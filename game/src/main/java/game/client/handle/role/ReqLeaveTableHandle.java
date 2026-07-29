@@ -2,7 +2,7 @@ package game.client.handle.role;
 
 import com.google.protobuf.Message;
 import game.Game;
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzSettleService;

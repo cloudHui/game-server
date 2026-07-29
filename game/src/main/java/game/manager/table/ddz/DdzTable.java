@@ -1,7 +1,9 @@
-package game.manager.table;
+package game.manager.table.ddz;
+
+import game.manager.table.*;
 
 import game.manager.table.banner.Banner;
-import game.manager.table.card.poll.CardPool;
+import game.manager.table.ddz.CardPool;
 import game.manager.table.cards.Card;
 import game.manager.table.ddz.DdzBidService;
 import game.manager.table.ddz.DdzHand;

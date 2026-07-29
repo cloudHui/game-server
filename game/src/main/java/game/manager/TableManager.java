@@ -1,11 +1,11 @@
 package game.manager;
 
 import game.Game;
-import game.manager.table.DdzTable;
-import game.manager.table.MjTable;
-import game.manager.table.PdkTable;
+import game.manager.table.ddz.DdzTable;
+import game.manager.table.mj.MjTable;
+import game.manager.table.pdk.PdkTable;
 import game.manager.table.Table;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.TableUser;
 import game.manager.thread.GameThreadPoolManager;
 import model.tablemodel.TableModel;

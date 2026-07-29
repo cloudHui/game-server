@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.TableUser;
 import game.manager.table.ai.AiSearchBudget;
 import game.manager.table.card.CardConst;

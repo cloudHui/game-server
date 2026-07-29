@@ -1,4 +1,7 @@
-package game.manager.table;
+package game.manager.table.tractor;
+
+import game.manager.table.*;
+import game.manager.table.ddz.DdzGameResult;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,6 @@
 package game.manager.table.state;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzBidService;
@@ -24,14 +24,14 @@ public class IdleRob extends AbstractTableHandle {
 
 	@Override
 	public boolean handle(Table table) {
-		if (table instanceof game.manager.table.TractorTable) {
+		if (table instanceof game.manager.table.tractor.TractorTable) {
 			long now = System.currentTimeMillis();
 			int seat = table.getOp().getCurrOpSeat();
 			TableUser u = table.getSeatUser(seat);
 			if (u != null && u.isRobot()
 					&& now >= table.getStateStartTime() + randomRobotDelay()) {
 				game.manager.table.tractor.TractorBidService.autoBid(
-						(game.manager.table.TractorTable) table, seat);
+						(game.manager.table.tractor.TractorTable) table, seat);
 				return false;
 			}
 			if (now >= table.getStateStartTime()
@@ -56,10 +56,10 @@ public class IdleRob extends AbstractTableHandle {
 
 	@Override
 	public void overTime(Table table) {
-		if (table instanceof game.manager.table.TractorTable) {
+		if (table instanceof game.manager.table.tractor.TractorTable) {
 			logger.info("拖拉机亮主超时, tableId: {}", table.getTableId());
 			game.manager.table.tractor.TractorBidService.onTimeout(
-					(game.manager.table.TractorTable) table);
+					(game.manager.table.tractor.TractorTable) table);
 			return;
 		}
 		logger.info("叫分/抢地主超时, tableId: {}", table.getTableId());

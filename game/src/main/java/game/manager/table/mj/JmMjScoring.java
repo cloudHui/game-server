@@ -109,7 +109,7 @@ public class JmMjScoring implements MjScoring {
 	private boolean isQingYiSe(List<game.manager.table.cards.Card> handTiles, List<MjExposedSet> exposedSets) {
 		int suit = -1;
 		for (game.manager.table.cards.Card c : handTiles) {
-			int s = game.manager.table.card.mj.MjConst.suitOf(c.getId());
+			int s = game.manager.table.mj.card.MjConst.suitOf(c.getId());
 			if (suit == -1) {
 				suit = s;
 			} else if (s != suit) {
@@ -118,7 +118,7 @@ public class JmMjScoring implements MjScoring {
 		}
 		for (MjExposedSet set : exposedSets) {
 			for (int tileId : set.getTileIds()) {
-				if (game.manager.table.card.mj.MjConst.suitOf(tileId) != suit) {
+				if (game.manager.table.mj.card.MjConst.suitOf(tileId) != suit) {
 					return false;
 				}
 			}

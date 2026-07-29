@@ -2,7 +2,7 @@ package game.manager.table.state;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
@@ -23,9 +23,9 @@ public class Rob extends AbstractTableHandle {
 
 	@Override
 	public boolean onTiming(Table table) {
-		if (table instanceof game.manager.table.TractorTable) {
+		if (table instanceof game.manager.table.tractor.TractorTable) {
 			game.manager.table.tractor.TractorBidService.notifyCurrent(
-					(game.manager.table.TractorTable) table);
+					(game.manager.table.tractor.TractorTable) table);
 			table.upNextState();
 			return false;
 		}

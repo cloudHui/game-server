@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.TableUser;
 import game.manager.table.banner.Banner;
 import game.manager.table.replay.DdzReplayRecorder;

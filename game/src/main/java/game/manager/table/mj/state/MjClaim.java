@@ -1,9 +1,11 @@
-package game.manager.table.state;
+package game.manager.table.mj.state;
+
+import game.manager.table.state.AbstractTableHandle;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.mj.MjClaimInfo;

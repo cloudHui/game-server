@@ -10,7 +10,7 @@ import com.google.protobuf.ByteString;
 import game.manager.table.GameResult;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.cards.Card;
 import game.db.ScoreRepository;
 import game.manager.table.replay.ReplayRecorder;

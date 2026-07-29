@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import game.manager.table.PdkTable;
+import game.manager.table.pdk.PdkTable;
 import game.manager.table.TableUser;
 import game.manager.table.card.CardConst;
 import game.manager.table.cards.Card;

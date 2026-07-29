@@ -1,4 +1,4 @@
-package game.manager.table.card.mj;
+package game.manager.table.mj.card;
 
 import model.tablemodel.TableModel;
 import org.junit.Test;

@@ -1,7 +1,7 @@
 package game.manager.table.state;
 
 import game.Game;
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.ddz.DdzSettleService;
 import game.manager.table.mj.MjSettleService;

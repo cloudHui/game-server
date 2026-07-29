@@ -1,6 +1,8 @@
-package game.manager.table.state;
+package game.manager.table.mj.state;
 
-import game.manager.table.MjTable;
+import game.manager.table.state.AbstractTableHandle;
+
+import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.mj.MjDrawService;
 import game.manager.table.mj.MjSettleService;

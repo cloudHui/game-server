@@ -1,6 +1,6 @@
 package game.manager.table.state;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
@@ -21,11 +21,11 @@ public class CardNotifyHandle extends AbstractTableHandle {
 
 	@Override
 	public boolean onTiming(Table table) {
-		if (table instanceof game.manager.table.PdkTable) {
-			return onPdkTiming((game.manager.table.PdkTable) table);
+		if (table instanceof game.manager.table.pdk.PdkTable) {
+			return onPdkTiming((game.manager.table.pdk.PdkTable) table);
 		}
-		if (table instanceof game.manager.table.TractorTable) {
-			return onTractorTiming((game.manager.table.TractorTable) table);
+		if (table instanceof game.manager.table.tractor.TractorTable) {
+			return onTractorTiming((game.manager.table.tractor.TractorTable) table);
 		}
 		DdzTable ddzTable = (DdzTable) table;
 		int seat = table.getOp().getCurrOpSeat();
@@ -50,7 +50,7 @@ public class CardNotifyHandle extends AbstractTableHandle {
 		return false;
 	}
 
-	private boolean onPdkTiming(game.manager.table.PdkTable table) {
+	private boolean onPdkTiming(game.manager.table.pdk.PdkTable table) {
 		int seat = table.getOp().getCurrOpSeat();
 		table.getOp().clearChoiceMap();
 		// 跑得快：管不上只下发不出；首出/能管只下发出牌
@@ -65,7 +65,7 @@ public class CardNotifyHandle extends AbstractTableHandle {
 		return false;
 	}
 
-	private boolean onTractorTiming(game.manager.table.TractorTable table) {
+	private boolean onTractorTiming(game.manager.table.tractor.TractorTable table) {
 		int seat = table.getOp().getCurrOpSeat();
 		table.getOp().clearChoiceMap();
 		GameProto.OpInfo play = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PLAY).build();

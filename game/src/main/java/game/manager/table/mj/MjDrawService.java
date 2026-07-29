@@ -1,9 +1,9 @@
 package game.manager.table.mj;
 
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.TableUser;
-import game.manager.table.card.mj.MjConst;
-import game.manager.table.card.mj.MjTilePool;
+import game.manager.table.mj.card.MjConst;
+import game.manager.table.mj.card.MjTilePool;
 import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;
 import msg.registor.message.GMsg;

@@ -1,6 +1,6 @@
 package game.manager.table.mj;
 
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.cards.Card;
 import proto.GameProto;
 

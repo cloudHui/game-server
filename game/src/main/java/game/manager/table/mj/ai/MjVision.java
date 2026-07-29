@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.TableUser;
-import game.manager.table.card.mj.MjConst;
+import game.manager.table.mj.card.MjConst;
 import game.manager.table.cards.Card;
 import game.manager.table.ddz.ai.AiVision;
 import game.manager.table.mj.MjExposedSet;

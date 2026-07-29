@@ -2,7 +2,7 @@ package game.manager.table.mj;
 
 import com.google.protobuf.ByteString;
 import game.manager.table.GameResult;
-import game.manager.table.MjTable;
+import game.manager.table.mj.MjTable;
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;

@@ -1,6 +1,6 @@
 package game.manager.table.ddz;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.state.Rob;

@@ -1,6 +1,6 @@
 package game.manager.table.state;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import model.tablemodel.RobotRoomTemplates;

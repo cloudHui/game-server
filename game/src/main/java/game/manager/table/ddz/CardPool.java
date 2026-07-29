@@ -1,4 +1,4 @@
-package game.manager.table.card.poll;
+package game.manager.table.ddz;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,7 +9,7 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.card.CardSuit;

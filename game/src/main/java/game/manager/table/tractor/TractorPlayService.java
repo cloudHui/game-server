@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import game.manager.table.TableUser;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.cards.Card;
 import game.manager.table.cards.CardOps;
 import game.manager.table.tractor.ai.TractorSimpleAi;

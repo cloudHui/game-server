@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.ByteString;
 
 import game.manager.table.GameResult;
-import game.manager.table.PdkTable;
+import game.manager.table.pdk.PdkTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;

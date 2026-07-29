@@ -9,7 +9,7 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import game.manager.table.PdkTable;
+import game.manager.table.pdk.PdkTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.card.CardSuit;

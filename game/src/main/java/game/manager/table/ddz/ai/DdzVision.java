@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.TableUser;
 import game.manager.table.card.CardSuit;
 import game.manager.table.cards.Card;

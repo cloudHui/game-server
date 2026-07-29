@@ -1,6 +1,6 @@
 package game.manager.table.mj;
 
-import game.manager.table.card.mj.MjConst;
+import game.manager.table.mj.card.MjConst;
 import game.manager.table.cards.Card;
 
 import java.util.*;

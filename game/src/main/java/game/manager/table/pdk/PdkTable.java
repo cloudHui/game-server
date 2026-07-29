@@ -1,4 +1,7 @@
-package game.manager.table;
+package game.manager.table.pdk;
+
+import game.manager.table.*;
+import game.manager.table.ddz.DdzGameResult;
 
 import game.manager.table.banner.Banner;
 import game.manager.table.cards.Card;

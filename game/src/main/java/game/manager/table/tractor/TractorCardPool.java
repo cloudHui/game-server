@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import game.manager.table.Table;
 import game.manager.table.TableUser;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.card.CardSuit;
 import game.manager.table.cards.Card;
 import game.manager.table.replay.PokerReplayRecorder;

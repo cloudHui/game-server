@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import game.manager.table.TableUser;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.cards.Card;
 import game.manager.table.tractor.TractorRules;
 import game.manager.table.tractor.TractorTableContext;

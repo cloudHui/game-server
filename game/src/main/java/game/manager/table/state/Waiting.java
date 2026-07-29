@@ -44,12 +44,12 @@ public class Waiting extends AbstractTableHandle {
 	private void startGame(Table table) {
 		table.initGameConfig();
 		if (table.getGameType() == 1 && table.getCurrentRound() == 1) {
-			game.manager.table.MjTable mjTable = (game.manager.table.MjTable) table;
+			game.manager.table.mj.MjTable mjTable = (game.manager.table.mj.MjTable) table;
 			mjTable.getMjContext().setDealerSeat(ThreadLocalRandom.current().nextInt(table.getTableModel().getSeatNum()));
 		}
 		table.dealCards();
 		if (table.getGameType() == 1) {
-			table.getOp().setCurrOpSeat(((game.manager.table.MjTable) table).getMjContext().getDealerSeat());
+			table.getOp().setCurrOpSeat(((game.manager.table.mj.MjTable) table).getMjContext().getDealerSeat());
 		} else if (table.getGameType() == 3 || table.getGameType() == 4) {
 			// 跑得快 / 拖拉机：首出座位由各自 dealCards 设定
 		} else {
@@ -63,7 +63,7 @@ public class Waiting extends AbstractTableHandle {
 
 		if (table.getGameType() == 1) {
 			if (table.getTableModel().getGameSubType() == 1) {
-				MjDrawService.flipLaiZi((game.manager.table.MjTable) table);
+				MjDrawService.flipLaiZi((game.manager.table.mj.MjTable) table);
 			}
 			table.upNextState(TableState.MJ_DEAL);
 		} else if (table.getGameType() == 3) {
@@ -112,7 +112,7 @@ public class Waiting extends AbstractTableHandle {
 				+ ", autoPlay=" + table.getTableModel().getAutoPlay());
 
 		if (table.getGameType() == 1) {
-			game.manager.table.MjTable mjTable = (game.manager.table.MjTable) table;
+			game.manager.table.mj.MjTable mjTable = (game.manager.table.mj.MjTable) table;
 			replay.writeDealerAndLaiZi(mjTable.getMjContext().getDealerSeat(),
 					mjTable.getMjContext().getLaiZiTileId(),
 					mjTable.getMjContext().getLaiZiFlipTile());

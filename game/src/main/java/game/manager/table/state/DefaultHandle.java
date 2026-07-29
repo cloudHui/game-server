@@ -1,7 +1,7 @@
 package game.manager.table.state;
 
 import game.manager.table.Table;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.tractor.TractorDealService;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;

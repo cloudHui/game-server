@@ -1,6 +1,6 @@
 package game.manager.table.state;
 
-import game.manager.table.DdzTable;
+import game.manager.table.ddz.DdzTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzPlayService;
@@ -40,13 +40,13 @@ public class IdleCardPlay extends AbstractTableHandle {
 
 	@Override
 	public void overTime(Table table) {
-		if (table instanceof game.manager.table.PdkTable) {
-			overTimePdk((game.manager.table.PdkTable) table);
+		if (table instanceof game.manager.table.pdk.PdkTable) {
+			overTimePdk((game.manager.table.pdk.PdkTable) table);
 			return;
 		}
-		if (table instanceof game.manager.table.TractorTable) {
+		if (table instanceof game.manager.table.tractor.TractorTable) {
 			game.manager.table.tractor.TractorPlayService.autoPlay(
-					(game.manager.table.TractorTable) table, table.getOp().getCurrOpSeat());
+					(game.manager.table.tractor.TractorTable) table, table.getOp().getCurrOpSeat());
 			return;
 		}
 		DdzTable ddzTable = (DdzTable) table;
@@ -67,7 +67,7 @@ public class IdleCardPlay extends AbstractTableHandle {
 		}
 	}
 
-	private void overTimePdk(game.manager.table.PdkTable table) {
+	private void overTimePdk(game.manager.table.pdk.PdkTable table) {
 		int seat = table.getOp().getCurrOpSeat();
 		TableUser u = table.getSeatUser(seat);
 		if (u == null) return;

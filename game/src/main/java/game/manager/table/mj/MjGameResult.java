@@ -1,4 +1,6 @@
-package game.manager.table;
+package game.manager.table.mj;
+
+import game.manager.table.*;
 
 import java.util.*;
 

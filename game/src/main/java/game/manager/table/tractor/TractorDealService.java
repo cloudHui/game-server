@@ -1,7 +1,7 @@
 package game.manager.table.tractor;
 
 import game.manager.table.TableUser;
-import game.manager.table.TractorTable;
+import game.manager.table.tractor.TractorTable;
 import game.manager.table.state.Waiting;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
