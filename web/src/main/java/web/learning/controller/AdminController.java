@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RestController
+@RestController("learningAdminController")
 @RequestMapping("/api/learning/admin")
 public class AdminController {
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);

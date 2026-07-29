@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@RestController
+@RestController("learningAuthController")
 @RequestMapping("/api/learning/auth")
 public class AuthController {
     private final AuthService auth;
