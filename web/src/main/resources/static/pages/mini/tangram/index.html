@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>七巧板 · 休闲</title>
+<link rel="stylesheet" href="tangram.css">
+<link rel="stylesheet" href="../../../shared/mini-result.css">
+<script src="../../../shared/app-base.js"></script>
+<script src="../../../shared/mini-base.js"></script>
+<script src="../../../shared/mini-result.js"></script>
+</head>
+<body>
+<header>
+  <h1>七巧板拼图</h1>
+  <a class="back" id="back" href="../mini-games.html">返回</a>
+</header>
+<main>
+  <div class="panel row">
+    <div class="board-wrap">
+      <canvas id="c" width="1080" height="760"></canvas>
+    </div>
+    <div class="side">
+      <p class="hint">按住彩色拼块拖到灰色轮廓内，松开后会自动吸附；也可以先点选拼块，再用按钮每次旋转 45°。</p>
+      <div id="status">把彩色拼块拖进灰色目标轮廓内</div>
+      <label class="toggle" for="helpLines">
+        <input type="checkbox" id="helpLines">
+        <span>显示目标图内帮助线条（默认关闭，不挡住拼块）</span>
+      </label>
+      <label class="toggle" for="sameDirection"><input type="checkbox" id="sameDirection">散落时保持拼成后的方向</label>
+      <button class="primary" id="rotate">旋转选中块 45°</button>
+      <button id="reset">重置本题</button>
+      <button id="next">下一题（共 <span id="levelCount">52</span> 题）</button>
+    </div>
+  </div>
+</main>
+<script src="tangram-levels.js"></script>
+<script src="tangram-data.js"></script>
+<script src="tangram-view.js"></script>
+<script src="tangram-layout.js"></script>
+<script src="tangram-geometry.js"></script>
+<script src="tangram-solutions.js"></script>
+<script src="tangram-snap.js"></script>
+<script src="tangram.js"></script>
+</body>
+</html>

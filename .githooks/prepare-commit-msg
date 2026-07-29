@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# 在编辑/最终确认前提前剥离 AI 署名，与 commit-msg 双保险。
+set -euo pipefail
+
+msg_file="${1:-}"
+[[ -n "$msg_file" && -f "$msg_file" ]] || exit 0
+
+tmp="$(mktemp)"
+grep -Eiv \
+  -e '^[[:space:]]*Co-authored-by:.*(cursor|cursoragent|codex|openai)' \
+  -e '^[[:space:]]*Made-with:[[:space:]]*Cursor' \
+  -e '^[[:space:]]*Signed-off-by:.*(cursor|cursoragent|codex)' \
+  "$msg_file" >"$tmp" || true
+cat "$tmp" >"$msg_file"
+rm -f "$tmp"
+exit 0

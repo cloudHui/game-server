@@ -1,0 +1,84 @@
+/* 扑克牌面公共样式：角标上下一致（小号），中下部主点数大 */
+.card-face {
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    color: #171717;
+    background: #fff;
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    border-radius: inherit;
+}
+.card-face.red { color: #c62828; }
+
+.card-corner {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font: 700 9px/1 Georgia, 'Times New Roman', serif;
+    line-height: 1;
+}
+.card-corner .rank { font-size: inherit; line-height: 1; }
+.card-corner .suit { font-size: 0.9em; line-height: 1; margin-top: 1px; }
+.card-corner-tl { top: 2px; left: 3px; }
+.card-corner-br {
+    bottom: 2px;
+    right: 3px;
+    transform: rotate(180deg);
+}
+
+.card-art {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 18%;
+    bottom: 14%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    pointer-events: none;
+}
+.card-art.rank-large .big-rank {
+    font: 800 28px/1 Georgia, 'Times New Roman', serif;
+    letter-spacing: -0.5px;
+}
+.card-art.rank-large .big-suit {
+    font-size: 16px;
+    line-height: 1;
+    margin-top: 2px;
+}
+.card-face.joker-face .card-art.rank-large .big-rank {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+/* 手牌尺寸变量覆盖（各玩法设 --poker-corner / --poker-art） */
+.my-cards .card-corner {
+    font-size: var(--poker-corner, 9px);
+}
+.my-cards .card-art.rank-large .big-rank {
+    font-size: var(--poker-art, 28px);
+}
+.my-cards .card-art.rank-large .big-suit {
+    font-size: calc(var(--poker-art, 28px) * 0.55);
+}
+.my-cards .card-face.joker-face .card-art.rank-large .big-rank {
+    font-size: calc(var(--poker-art, 28px) * 0.52);
+}
+
+.played-face {
+    position: relative;
+    background: #fff;
+    box-sizing: border-box;
+}
+.played-face .card-corner { font-size: 9px; }
+.played-face .card-art.rank-large .big-rank { font-size: 24px; }
+.played-face .card-art.rank-large .big-suit { font-size: 13px; }
+.played-face.joker-face .card-art.rank-large .big-rank,
+.played-face .card-face.joker-face .card-art.rank-large .big-rank { font-size: 12px; }

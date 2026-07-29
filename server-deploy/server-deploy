@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+ENV_FILE=/etc/server-deploy/server.env
+SERVER_DIR=${SERVER_INSTALL_DIR:-/opt/Server}
+action=${1:-menu}
+units="x-ui.service nginx.service fail2ban.service"
+
+web_running() {
+  pgrep -f 'build/web/Web.jar' >/dev/null 2>&1
+}
+
+status() {
+  echo "== services =="
+  for unit in $units; do
+    printf '%-28s ' "$unit"
+    if systemctl cat "$unit" >/dev/null 2>&1; then systemctl is-active "$unit" 2>/dev/null || true
+    else echo 'not-installed'; fi
+  done
+  printf '%-28s ' "game-web(Web.jar)"
+  if web_running; then echo active; else echo inactive; fi
+  echo "== ports =="; ss -lntup 2>/dev/null | grep -E ':(22|80|443|7393|2096|8081)\b' || true
+  echo "== disk =="; df -h / | tail -1
+  echo "== timers/cron =="; systemctl list-timers certbot.timer --no-pager 2>/dev/null || true; cat /etc/cron.d/server-deploy 2>/dev/null || true
+}
+restart() {
+  for unit in $units; do systemctl restart "$unit" 2>/dev/null || true; done
+  if [ -x "$SERVER_DIR/scripts/ops.sh" ]; then
+    (cd "$SERVER_DIR" && ./scripts/ops.sh restart web) || true
+  fi
+}
+logs() {
+  if [ "${2:-}" = "x-ui.service" ] || [ "${2:-}" = "xray" ]; then
+    journalctl -u x-ui.service -n 80 --no-pager
+  elif [ -f "$SERVER_DIR/logs/web/console.out" ]; then
+    tail -n 80 "$SERVER_DIR/logs/web/console.out"
+  else
+    echo "未找到 Web 日志: $SERVER_DIR/logs/web/console.out"
+  fi
+}
+report() { python3 /opt/server-audit-report.py; }
+preview() { python3 /opt/server-audit-report.py --no-email; }
+menu() {
+  printf '%s\n' '1) 状态  2) 重启全部  3) Web 日志  4) XRay 日志  5) 立即生成日报  6) 重新配置'
+  printf '选择：'; read -r choice
+  case "$choice" in 1) status;; 2) restart;; 3) logs x web;; 4) logs x x-ui.service;; 5) report;; 6) exec /opt/server-deploy/install.sh configure;; *) echo '无效选项'; exit 1;; esac
+}
+case "$action" in status) status;; restart) restart;; logs) logs "$@";; report) report;; preview) preview;; configure) exec /opt/server-deploy/install.sh configure;; menu) menu;; *) echo '用法：server-deploy [status|restart|logs|report|preview|configure]'; exit 1;; esac

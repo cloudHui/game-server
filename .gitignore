@@ -1,0 +1,16 @@
+.idea/*
+*/target/
+*.iml
+*.class
+build/
+logs
+sp/target
+scripts/web-path.txt
+data/
+.cursor/
+.codex/
+AGENTS.md
+agent.md
+**/AGENTS.md
+**/.cursor/
+**/.codex/

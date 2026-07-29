@@ -1,0 +1,456 @@
+/**
+ * 扑克牌桌共用渲染与结算。
+ * 各玩法覆盖：roleBadgeHtml、showOperationChoices；四人桌另覆写座位相关函数。
+ */
+function cardMeta(cardId) { return PokerCard.cardMeta(cardId); }
+function createCardFace(cardId) { return PokerCard.createCardFace(cardId); }
+
+function layoutMyCards() {
+    var container = document.getElementById('myCards');
+    if (!container || !window.GameLandscape) return;
+    var n = Math.max(gameState.layoutCardCount || gameState.myCards.length, 1);
+    var rows = n >= 18 ? 2 : 1;
+    var rowCount = Math.ceil(n / rows);
+    var pad = 24;
+    var size = GameLandscape.forcePokerLandscape();
+    var avail = Math.max(160, size.w - pad);
+    var cardW = rows === 2 ? Math.min(62, Math.max(48, Math.floor(avail / rowCount))) : 54;
+    var overlap = 0;
+    if (rowCount > 1) {
+        overlap = Math.floor((avail - cardW) / (rowCount - 1) - cardW);
+        overlap = Math.max(-Math.floor(cardW * 0.78), Math.min(-12, overlap));
+        var total = cardW + (rowCount - 1) * (cardW + overlap);
+        if (total > avail) {
+            cardW = Math.max(36, Math.floor(avail / (1 + (rowCount - 1) * 0.28)));
+            overlap = Math.floor((avail - cardW) / (rowCount - 1) - cardW);
+            overlap = Math.max(-Math.floor(cardW * 0.82), Math.min(-8, overlap));
+        }
+    }
+    // 牌数较多的玩法可按页面设置缩放，避免两排手牌遮住桌面。
+    var handScale = Number(window.pokerHandScale || 1);
+    if (handScale > 0 && handScale < 1) {
+        cardW = Math.max(30, Math.round(cardW * handScale));
+        overlap = Math.round(overlap * handScale);
+    }
+    var cardH = Math.round(cardW * (75 / 54));
+    container.style.setProperty('--ddz-card-w', cardW + 'px');
+    container.style.setProperty('--ddz-card-h', cardH + 'px');
+    container.style.setProperty('--ddz-overlap', overlap + 'px');
+    container.style.setProperty('--poker-corner', Math.max(7, Math.round(cardW * 0.17)) + 'px');
+    container.style.setProperty('--poker-art', Math.max(16, Math.round(cardW * 0.5)) + 'px');
+    var bar = document.getElementById('actionBar');
+    if (bar) bar.style.bottom = (cardH * rows + (rows === 2 ? 76 : 78)) + 'px';
+}
+
+function renderMyCards() {
+    var container = document.getElementById('myCards');
+    var useTwoRows = gameState.myCards.length >= 18;
+    container.className = 'my-cards' + (useTwoRows ? ' two-rows' : '');
+    var frag = document.createDocumentFragment();
+    var rowSize = useTwoRows ? Math.ceil(gameState.myCards.length / 2) : gameState.myCards.length;
+    var row = null;
+    var flashBag = {};
+    var flashList = gameState.dealFlashIds || [];
+    for (var f = 0; f < flashList.length; f++) {
+        flashBag[flashList[f]] = (flashBag[flashList[f]] || 0) + 1;
+    }
+    for (var i = 0; i < gameState.myCards.length; i++) {
+        if (i % rowSize === 0) {
+            row = document.createElement('div');
+            row.className = 'hand-row';
+            frag.appendChild(row);
+        }
+        var cardId = gameState.myCards[i];
+        var flash = flashBag[cardId] > 0;
+        if (flash) flashBag[cardId]--;
+        var card = document.createElement('div');
+        var selected = gameState.selectedCardIndexes
+            ? gameState.selectedCardIndexes.has(i) : gameState.selectedCards.has(cardId);
+        card.className = 'card' + (selected ? ' selected' : '')
+            + (flash ? ' deal-in' : '');
+        card.dataset.index = i;
+        card.style.zIndex = String(i + 1);
+        card.appendChild(createCardFace(cardId));
+        card.onclick = (function(value) {
+            return function(ev) {
+                ev.stopPropagation();
+                toggleCard(value, Number(this.dataset.index));
+            };
+        })(cardId);
+        row.appendChild(card);
+    }
+    container.innerHTML = '';
+    container.appendChild(frag);
+    gameState.dealFlashIds = [];
+    layoutMyCards();
+    renderPlayerLabels();
+}
+
+function renderDizhuCards(cardValues) {
+    var box = document.getElementById('dizhuCards');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!cardValues || !cardValues.length) return;
+    var label = document.createElement('span');
+    label.className = 'dizhu-label';
+    label.textContent = '底牌';
+    box.appendChild(label);
+    for (var i = 0; i < cardValues.length; i++) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.appendChild(createCardFace(cardValues[i]));
+        box.appendChild(card);
+    }
+}
+
+function toggleCard(cardValue, cardIndex) {
+    if (gameState.selectedCardIndexes) {
+        if (gameState.selectedCardIndexes.has(cardIndex)) gameState.selectedCardIndexes.delete(cardIndex);
+        else gameState.selectedCardIndexes.add(cardIndex);
+        renderMyCards();
+        return;
+    }
+    if (gameState.selectedCards.has(cardValue)) gameState.selectedCards.delete(cardValue);
+    else gameState.selectedCards.add(cardValue);
+    renderMyCards();
+}
+
+function scoreText(score) {
+    score = Number(score || 0);
+    return ' ' + (score > 0 ? '+' : '') + score;
+}
+
+function playedAreaIds() {
+    return (gameState.seatNum || 3) >= 4
+        ? ['playedTop', 'playedLeft', 'playedRight', 'playedBottom']
+        : ['playedLeft', 'playedRight', 'playedBottom'];
+}
+
+function clearAllPlayedAreas() {
+    playedAreaIds().forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+}
+
+function clearPassHints() {
+    playedAreaIds().forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.querySelector('.pass-hint')) el.innerHTML = '';
+    });
+}
+
+function playedTargetForRole(roleId) {
+    if (roleId === userId) return document.getElementById('playedBottom');
+    var seatNum = gameState.seatNum || 3;
+    for (var i = 0; i < gameState.players.length; i++) {
+        if (gameState.players[i].roleId !== roleId) continue;
+        var rel = (gameState.players[i].position - gameState.myPosition + seatNum) % seatNum;
+        if (seatNum >= 4) {
+            var slot = seatSlot(rel, seatNum);
+            return document.getElementById('played' + slot.charAt(0).toUpperCase() + slot.slice(1));
+        }
+        return document.getElementById(rel === 1 ? 'playedLeft' : 'playedRight');
+    }
+    return null;
+}
+
+function seatSlot(relPos, seatNum) {
+    if (seatNum <= 2) return 'top';
+    if (seatNum === 3) return relPos === 1 ? 'right' : 'left';
+    if (relPos === 1) return 'right';
+    if (relPos === 2) return 'top';
+    return 'left';
+}
+
+function renderPlayedCards(roleId, cardValues) {
+    var target = playedTargetForRole(roleId);
+    if (!target) return;
+    target.innerHTML = '';
+    (cardValues || []).forEach(function(value) {
+        var face = createCardFace(value);
+        face.classList.add('played-face');
+        target.appendChild(face);
+    });
+}
+
+function showPassHint(roleId) {
+    var target = playedTargetForRole(roleId);
+    if (!target) return;
+    target.innerHTML = '<div class="pass-hint">不要</div>';
+}
+
+function showBidHint(roleId, text) {
+    var target = playedTargetForRole(roleId);
+    if (!target) return;
+    target.innerHTML = '<div class="pass-hint">' + text + '</div>';
+}
+
+function roleBadgeHtml(roleId) { return ''; }
+
+function renderPlayerLabels() {
+    var bottom = document.getElementById('playerBottom');
+    if (!bottom) return;
+    var mine = null;
+    for (var i = 0; i < gameState.players.length; i++) {
+        if (gameState.players[i].roleId === userId) mine = gameState.players[i];
+    }
+    bottom.innerHTML = roleBadgeHtml(userId)
+        + '<span class="name" id="myName">' + (nickname || '我')
+        + scoreText(mine && mine.totalScore) + '</span>';
+}
+
+function renderCardBacks(containerId, count) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    var show = Math.min(count, (gameState.seatNum || 3) >= 4 ? 12 : count);
+    for (var i = 0; i < show; i++) {
+        var back = document.createElement('div');
+        back.className = 'card-back';
+        container.appendChild(back);
+    }
+}
+
+function renderOpponentHands() {
+    var players = gameState.players || [];
+    var seatNum = gameState.seatNum || 3;
+    renderPlayerLabels();
+    if (seatNum >= 4) {
+        ['Top', 'Left', 'Right'].forEach(function(s) {
+            var info = document.getElementById('player' + s);
+            var cards = document.getElementById('cards' + s);
+            if (info) info.innerHTML = '<span class="name">等待加入</span>';
+            if (cards) cards.innerHTML = '';
+        });
+        for (var i = 0; i < players.length; i++) {
+            var p = players[i];
+            if (p.roleId === userId || gameState.myPosition < 0) continue;
+            var cardCount = gameState.opponentCounts[p.roleId];
+            if (cardCount == null) cardCount = p.cardCount || 0;
+            var displayName = p.nickName || (p.robot || p.roleId < 0 ? '机器人' : '玩家');
+            var relPos = (p.position - gameState.myPosition + seatNum) % seatNum;
+            var slot = seatSlot(relPos, seatNum);
+            var cap = slot.charAt(0).toUpperCase() + slot.slice(1);
+            var info = document.getElementById('player' + cap);
+            if (!info) continue;
+            info.innerHTML = roleBadgeHtml(p.roleId)
+                + '<span class="name">' + displayName + scoreText(p.totalScore) + '</span>'
+                + '<span class="card-count">' + cardCount + '张</span>';
+            renderCardBacks('cards' + cap, cardCount);
+        }
+        return;
+    }
+    var leftEl = document.getElementById('playerLeft');
+    var rightEl = document.getElementById('playerRight');
+    for (var j = 0; j < players.length; j++) {
+        var op = players[j];
+        if (op.roleId === userId) continue;
+        var cnt = gameState.opponentCounts[op.roleId];
+        if (cnt == null) cnt = op.cardCount || 0;
+        var name = op.nickName || (op.robot || op.roleId < 0 ? '机器人' : '玩家');
+        var nameHtml = roleBadgeHtml(op.roleId)
+            + '<span class="name">' + name + scoreText(op.totalScore) + '</span>'
+            + '<span class="card-count">' + cnt + '张</span>';
+        var rel = (op.position - gameState.myPosition + 3) % 3;
+        if (rel === 1) {
+            leftEl.innerHTML = nameHtml;
+            renderCardBacks('cardsLeft', cnt);
+        } else {
+            rightEl.innerHTML = nameHtml;
+            renderCardBacks('cardsRight', cnt);
+        }
+    }
+}
+
+function updatePlayers(players) {
+    gameState.players = players;
+    for (var i = 0; i < players.length; i++) {
+        if (players[i].roleId === userId) {
+            gameState.myPosition = players[i].position;
+            break;
+        }
+    }
+    if ((gameState.seatNum || 3) < 4) {
+        var leftEl = document.getElementById('playerLeft');
+        var rightEl = document.getElementById('playerRight');
+        var leftCards = document.getElementById('cardsLeft');
+        var rightCards = document.getElementById('cardsRight');
+        if (leftEl) leftEl.innerHTML = '<span class="name">等待加入</span>';
+        if (rightEl) rightEl.innerHTML = '<span class="name">等待加入</span>';
+        if (leftCards) leftCards.innerHTML = '';
+        if (rightCards) rightCards.innerHTML = '';
+    }
+    renderOpponentHands();
+}
+
+function highlightActivePlayer(position, waitSeconds) {
+    stopOperationCountdown();
+    var seatNum = gameState.seatNum || 3;
+    var ids = seatNum >= 4
+        ? ['playerTop', 'playerLeft', 'playerRight', 'playerBottom']
+        : ['playerLeft', 'playerRight', 'playerBottom'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.className = 'player-info';
+    });
+    if (position === gameState.myPosition) {
+        document.getElementById('playerBottom').className = 'player-info active';
+        startOperationCountdown(document.getElementById('playerBottom'), waitSeconds);
+        return;
+    }
+    var relPos = (position - gameState.myPosition + seatNum) % seatNum;
+    if (seatNum >= 4) {
+        var slot = seatSlot(relPos, seatNum);
+        var el4 = document.getElementById('player' + slot.charAt(0).toUpperCase() + slot.slice(1));
+        if (el4) el4.className = 'player-info active';
+        startOperationCountdown(el4, waitSeconds);
+        return;
+    }
+    var active = document.getElementById(relPos === 1 ? 'playerLeft' : 'playerRight');
+    active.className = 'player-info active';
+    startOperationCountdown(active, waitSeconds);
+}
+
+function stopOperationCountdown() {
+    if (gameState.operationTimer) clearInterval(gameState.operationTimer);
+    gameState.operationTimer = null;
+    document.querySelectorAll('.operation-countdown').forEach(function(el) { el.remove(); });
+}
+
+function startOperationCountdown(target, waitSeconds) {
+    var left = Math.max(0, Math.ceil(Number(waitSeconds || 0)));
+    if (!target || !left) return;
+    var badge = document.createElement('span');
+    badge.className = 'operation-countdown';
+    target.appendChild(badge);
+    function tick() {
+        badge.textContent = left + '秒';
+        if (left <= 0) {
+            clearInterval(gameState.operationTimer);
+            gameState.operationTimer = null;
+            return;
+        }
+        left--;
+    }
+    tick();
+    gameState.operationTimer = setInterval(tick, 1000);
+}
+
+function snapshotOperationWait(snapshot) {
+    var duration = Number(snapshot && snapshot.stateDuration || 0);
+    var started = Number(snapshot && snapshot.stateStart || 0);
+    if (!duration || !started) return duration;
+    var elapsed = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    return Math.max(0, duration - elapsed);
+}
+
+function showActionButtons(type) {
+    var bar = document.getElementById('actionBar');
+    bar.innerHTML = '';
+    bar.style.display = 'flex';
+    if (type === 'prepare') {
+        var btn = document.createElement('button');
+        btn.className = 'action-btn btn-prepare';
+        btn.textContent = '准备';
+        btn.onclick = doPrepare;
+        bar.appendChild(btn);
+    } else if (type === 'waiting') {
+        var tip = document.createElement('span');
+        tip.style.cssText = 'color:#fff;font-size:14px;padding:8px 12px;';
+        tip.textContent = '等待玩家坐满后自动开局';
+        bar.appendChild(tip);
+    }
+}
+
+function hideActions() { GameTable.hideActions(); }
+function showCenterMsg(msg, duration) { GameTable.showCenterMsg(msg, duration); }
+
+function sortPokerByValue(cards) {
+    cards.sort(function(a, b) {
+        var va = a % 100, vb = b % 100;
+        if (va !== vb) return va - vb;
+        return Math.floor(a / 100) - Math.floor(b / 100);
+    });
+}
+
+function findPlayerName(roleId) {
+    if (roleId === userId) return nickname || '我';
+    for (var i = 0; i < gameState.players.length; i++) {
+        if (gameState.players[i].roleId === roleId) {
+            return gameState.players[i].nickName || ('玩家' + roleId);
+        }
+    }
+    return '玩家' + roleId;
+}
+
+/** 结算余牌角色标签，玩法可覆写 pokerSettleTag */
+function pokerSettleTag(roleId, landlordId) {
+    if (!landlordId) return '余牌';
+    return roleId === landlordId ? '地主' : '农民';
+}
+
+function buildRemainHandsHtml(remainPlayers, landlordId) {
+    if (!remainPlayers || !remainPlayers.length) return '';
+    var html = '';
+    for (var i = 0; i < remainPlayers.length; i++) {
+        var p = remainPlayers[i];
+        var cards = p.cards || [];
+        if (!cards.length) continue;
+        html += '<div class="settle-hand-row"><div class="label">'
+            + findPlayerName(p.roleId) + '（' + pokerSettleTag(p.roleId, landlordId) + '）剩余手牌</div>'
+            + '<div class="settle-hand-cards"></div></div>';
+    }
+    return html;
+}
+
+function fillRemainHandFaces(remainPlayers) {
+    var wrap = document.getElementById('settleHands');
+    if (!wrap || !remainPlayers) return;
+    var rows = wrap.querySelectorAll('.settle-hand-cards');
+    var ri = 0;
+    for (var i = 0; i < remainPlayers.length; i++) {
+        var cards = remainPlayers[i].cards || [];
+        if (!cards.length) continue;
+        var box = rows[ri++];
+        if (!box) continue;
+        for (var c = 0; c < cards.length; c++) {
+            var face = createCardFace(cards[c]);
+            face.classList.add('played-face');
+            box.appendChild(face);
+        }
+    }
+}
+
+function showSettle(title, meta, rowsHtml, remainPlayers, landlordId) {
+    GameTable.showSettle({
+        title: title,
+        meta: meta,
+        rowsHtml: rowsHtml,
+        handsHtml: buildRemainHandsHtml(remainPlayers, landlordId),
+        autoNext: gameState.autoNextRound
+    });
+    fillRemainHandFaces(remainPlayers);
+}
+
+function closeSettle() { GameTable.closeSettle(); }
+
+function appendOpChoice(bar, choice, map) {
+    var conf = map[choice.choice];
+    if (!conf) return;
+    var btn = document.createElement('button');
+    btn.className = 'action-btn ' + conf.cls;
+    btn.textContent = conf.text;
+    btn.onclick = (function(code) {
+        return function() { doOp(code); };
+    })(choice.choice);
+    bar.appendChild(btn);
+}
+
+function showOperationChoices(choices) {
+    var bar = document.getElementById('actionBar');
+    bar.innerHTML = '';
+    bar.style.display = 'flex';
+    var map = window.pokerOpChoiceMap || {};
+    for (var i = 0; i < choices.length; i++) appendOpChoice(bar, choices[i], map);
+}

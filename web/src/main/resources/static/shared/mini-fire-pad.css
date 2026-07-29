@@ -1,0 +1,56 @@
+/* 字母/数字射击共用：手机虚拟键盘与防横向溢出 */
+.mini-fire-pad {
+    display: none;
+    margin-top: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    gap: 6px;
+    justify-content: center;
+}
+
+.mini-fire-pad button {
+    border: none;
+    border-radius: 10px;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    color: #fff;
+    background: #ff8b94;
+    touch-action: manipulation;
+}
+
+.mini-fire-pad button:active {
+    transform: scale(0.94);
+    opacity: 0.9;
+}
+
+.mini-fire-pad.letters {
+    grid-template-columns: repeat(7, minmax(36px, 1fr));
+}
+
+.mini-fire-pad.letters button {
+    min-height: 40px;
+    font-size: 16px;
+}
+
+.mini-fire-pad.digits {
+    grid-template-columns: repeat(5, minmax(48px, 1fr));
+}
+
+.mini-fire-pad.digits button {
+    min-height: 48px;
+    font-size: 20px;
+    background: #1a535c;
+}
+
+.mini-fire-pad.digits button.util {
+    background: #ff6b6b;
+    font-size: 14px;
+}
+
+@media (max-width: 720px) {
+    .mini-fire-pad {
+        display: grid;
+    }
+}

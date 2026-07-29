@@ -1,0 +1,69 @@
+syntax = "proto3";
+option java_outer_classname = "ConstProto";
+
+package proto;
+
+//错误码
+enum Result{
+    SUCCESS = 0;
+    SERVER_NULL = 1;//服务空
+    TIME_OUT = 2;//回复超时
+    SERVER_ERROR = 3;//服务错误
+    TABLE_START = 4;//桌子已经开始
+    TABLE_NOT_START = 5;//桌子未开始
+    TABLE_CONFIG_ERROR = 6;//桌子配置错误
+    TABLE_NULL = 7;//桌子空
+    TABLE_FULL = 8;//桌子满
+    TABLE_ERROR = 9;//桌子异常
+    ROLE_ERROR = 10;//玩家异常
+    ROLE_NULL = 11;//玩家空
+    OP_CURR_ERROR = 12;//当前操作位置没有操作
+    OP_CARD_NOT_MATCH = 13;//操作牌数不匹配
+}
+
+//room状态
+// TODO: WAITE was renamed to WAIT. Regenerate Java code and update TableInfo.java references (ConstProto.TableState.WAITE -> WAIT)
+enum TableState{
+    WAIT = 0;//等待
+    START = 1;//开始
+}
+
+//操作选择
+enum Operation{
+    PASS = 0;//过
+    CALL = 1;//叫地主(兼容)
+    ROB = 2;//抢地主
+    NOT_CALL = 3;//不叫地主
+    NOT_ROB = 4;//不抢地主
+    TIP = 5;//提示
+    PLAY = 6;//出
+    PREPARE = 7;//准备
+    START_GAME = 8;//开始
+    CALL_SCORE_1 = 9;//叫一分
+    CALL_SCORE_2 = 10;//叫二分
+    CALL_SCORE_3 = 11;//叫三分
+    DRAW = 12;//摸牌(麻将)
+    DISCARD = 13;//出牌(麻将)
+    MJ_PENG = 14;//碰(麻将)
+    MJ_GANG = 15;//杠(麻将)
+    MJ_CHI = 16;//吃(麻将)
+    MJ_HU = 17;//胡(麻将)
+    MJ_PASS = 18;//过(麻将)
+}
+
+//牌型
+enum CardType{
+    SINGLE = 0;//单
+    DOUBLE = 1;//对子
+    TRIPLE = 2;//三不带
+    TRIPLE_ONE = 3;//三带一
+    TRIPLE_DOUBLE = 4;//三带二
+    PLANE_ONE = 5;//飞机带一
+    PLANE_DOUBLE = 6;//飞机带二
+    BOOM_DOUBLE_SINGLE = 7;//炸弹带二单
+    BOOM_DOUBLE_PAIR = 8;//炸弹带二对  // renamed from BOOM_DOUBLE_CUP (CUP was unclear)
+    STRAIGHT = 9;//顺子
+    STRAIGHT_DOUBLE = 10;//连对子
+    BOOM = 11;//炸弹
+    BOOM_MAX = 12;//双王炸
+}

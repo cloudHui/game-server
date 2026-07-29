@@ -1,0 +1,26 @@
+/* 牌桌竖屏强制横屏布局：整桌旋转 90°，避免手牌一排出框不可见 */
+html.force-landscape,
+html.force-landscape body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    position: fixed;
+    inset: 0;
+    touch-action: none;
+}
+html.force-landscape .table-bg {
+    position: absolute;
+    width: var(--game-w, 100vh);
+    height: var(--game-h, 100vw);
+    top: 0;
+    left: 100%;
+    transform: rotate(90deg);
+    transform-origin: top left;
+    overflow: hidden;
+}
+/* 未强制时也统一游戏宽高变量，便于手牌按可用宽度缩放 */
+html:not(.force-landscape) {
+    --game-w: 100vw;
+    --game-h: 100vh;
+}

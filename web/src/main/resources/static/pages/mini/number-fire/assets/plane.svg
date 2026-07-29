@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+    <!-- 飞机主体 -->
+    <path d="M40 10 L70 30 L40 50 L10 30 Z" fill="#FF8B94" stroke="#FF6B7B" stroke-width="2"/>
+    <!-- 机翼 -->
+    <path d="M20 30 L60 30 L50 40 L30 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
+    <!-- 机尾 -->
+    <path d="M10 30 L20 20 L20 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
+    <!-- 窗户 -->
+    <circle cx="30" cy="30" r="4" fill="#FFFFFF"/>
+    <circle cx="50" cy="30" r="4" fill="#FFFFFF"/>
+    <!-- 表情 -->
+    <path d="M35 20 Q40 25 45 20" stroke="#FF6B7B" stroke-width="2" fill="none"/>
+</svg> 

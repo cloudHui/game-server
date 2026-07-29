@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大厅</title>
+    <script src="../../shared/app-base.js"></script>
+    <link rel="stylesheet" href="../../shared/lobby-home.css">
+</head>
+<body>
+<header>
+    <h1>大厅</h1>
+    <div class="user-actions">
+        <span id="userDisplay"></span>
+        <a class="header-btn" href="../../pages/admin/replays.html">我的回放</a>
+        <button class="header-btn" onclick="logout()">退出</button>
+    </div>
+</header>
+<main>
+    <p class="breadcrumb">首页 / 大厅</p>
+    <div class="welcome">
+        <div>
+            <h2>欢迎回来，<span id="welcomeName">玩家</span></h2>
+            <p>先选大类：娱乐玩牌与小游戏；学习专区已接入家庭课堂。</p>
+        </div>
+        <a class="admin-link" href="../../pages/admin/admin.html" id="adminLink" style="display:none">管理后台 →</a>
+    </div>
+    <section class="game-grid cols-2">
+        <article class="game-card ent">
+            <div>
+                <div class="game-icon">🎮</div>
+                <h3>娱乐</h3>
+                <p>牌类（斗地主 / 跑得快 / 拖拉机）、麻将、休闲小游戏。</p>
+            </div>
+            <a class="game-btn ent" href="./entertainment.html">进入娱乐</a>
+        </article>
+        <article class="game-card learn">
+            <div>
+                <div class="game-icon">📚</div>
+                <h3>学习</h3>
+                <p>识字、算术、错题、统计与学习资源。</p>
+            </div>
+            <a class="game-btn learn" href="./learning.html">进入学习</a>
+        </article>
+    </section>
+</main>
+<script src="./lobby-session.js"></script>
+</body>
+</html>

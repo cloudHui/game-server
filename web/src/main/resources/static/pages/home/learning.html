@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习</title>
+    <script src="../../shared/app-base.js"></script>
+    <link rel="stylesheet" href="../../shared/lobby-home.css">
+</head>
+<body>
+<header>
+    <h1>学习</h1>
+    <div class="user-actions">
+        <span id="userDisplay"></span>
+        <a class="header-btn" href="./room.html">返回大厅</a>
+        <button class="header-btn" onclick="logout()">退出</button>
+    </div>
+</header>
+<main>
+    <p class="breadcrumb">首页 / 大厅 / 学习</p>
+    <div class="welcome">
+        <div>
+            <h2>学习专区</h2>
+            <p>家庭学习：识字、算术、错题、统计与资源。</p>
+        </div>
+        <a class="admin-link" id="learningAdmin" href="../learning/admin.html" style="display:none">学习管理 →</a>
+    </div>
+    <section class="game-grid cols-1">
+        <article class="game-card learn">
+            <div>
+                <div class="game-icon">📚</div>
+                <h3>成长小课堂</h3>
+                <p>使用与游戏相同的登录账号进入学习内容。</p>
+            </div>
+            <a class="game-btn learn" href="../learning/index.html">进入课堂</a>
+        </article>
+    </section>
+</main>
+<script src="./lobby-session.js"></script>
+<script>
+(function () {
+  if (localStorage.getItem('isAdmin') === '1') {
+    var el = document.getElementById('learningAdmin');
+    if (el) el.style.display = '';
+  }
+})();
+</script>
+</body>
+</html>

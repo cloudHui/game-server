@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../../../shared/app-base.js"></script>
+<script src="../../../shared/mini-base.js"></script>
+  <style>.mini-back{position:fixed;top:10px;left:10px;z-index:9999;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.65);color:#fff;text-decoration:none;font:14px sans-serif}</style>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1026" />
+  <meta name="description" content="Escape Run — a free, open-source, privacy-first math game for kids age 6–8. No ads, no tracking, works offline." />
+  <title>Escape Run — Math Adventure</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="stylesheet" href="src/ui/styles.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="frame">
+      <!-- Gameplay canvas -->
+      <canvas id="game" aria-label="Driving game area"></canvas>
+
+      <!-- DOM overlays (one visible at a time) -->
+      <div id="overlays" class="overlays"></div>
+    </div>
+
+    <!-- Live region for screen readers -->
+    <div id="live" class="sr-only" aria-live="polite"></div>
+  </div>
+
+  <noscript>
+    <p style="color:#fff;text-align:center;padding:2rem;font-family:sans-serif">
+      Escape Run needs JavaScript to play. It runs entirely in your browser — no data ever leaves your device.
+    </p>
+  </noscript>
+
+  <script type="module" src="src/main.js"></script>
+<script>if(window.MiniGames)MiniGames.requireLogin();</script>
+</body>
+</html>

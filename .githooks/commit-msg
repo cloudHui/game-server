@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# 剥离 Cursor/Codex 等 AI 协作署名 trailer，保证提交描述符合 AGENTS.md。
+set -euo pipefail
+
+msg_file="${1:-}"
+[[ -n "$msg_file" && -f "$msg_file" ]] || exit 0
+
+tmp="$(mktemp)"
+# 删除 Co-authored-by / Made-with 等 AI 署名行，并去掉文末多余空行
+grep -Eiv \
+  -e '^[[:space:]]*Co-authored-by:.*(cursor|cursoragent|codex|openai)' \
+  -e '^[[:space:]]*Made-with:[[:space:]]*Cursor' \
+  -e '^[[:space:]]*Signed-off-by:.*(cursor|cursoragent|codex)' \
+  "$msg_file" >"$tmp" || true
+
+# 压缩文末连续空行，保留正文
+awk '
+  { lines[NR] = $0 }
+  END {
+    end = NR
+    while (end > 0 && lines[end] ~ /^[[:space:]]*$/) end--
+    for (i = 1; i <= end; i++) print lines[i]
+    if (end > 0) print ""
+  }
+' "$tmp" >"$msg_file"
+
+rm -f "$tmp"
+exit 0

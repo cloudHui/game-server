@@ -1,0 +1,91 @@
+{
+  "music": [
+    {
+      "id": "menu_calm",
+      "file": "assets/audio/music/menu_calm.mp3",
+      "seconds": 45
+    },
+    {
+      "id": "game_calm",
+      "file": "assets/audio/music/game_calm.mp3",
+      "seconds": 60
+    }
+  ],
+  "sfx": [
+    {
+      "id": "correct",
+      "file": "assets/audio/sfx/correct.mp3"
+    },
+    {
+      "id": "wrong",
+      "file": "assets/audio/sfx/wrong.mp3"
+    },
+    {
+      "id": "collect",
+      "file": "assets/audio/sfx/collect.mp3"
+    },
+    {
+      "id": "star",
+      "file": "assets/audio/sfx/star.mp3"
+    },
+    {
+      "id": "win",
+      "file": "assets/audio/sfx/win.mp3"
+    },
+    {
+      "id": "unlock",
+      "file": "assets/audio/sfx/unlock.mp3"
+    },
+    {
+      "id": "tap",
+      "file": "assets/audio/sfx/tap.mp3"
+    },
+    {
+      "id": "levelup",
+      "file": "assets/audio/sfx/levelup.mp3"
+    }
+  ],
+  "voice": [
+    {
+      "id": "onb_steer",
+      "file": "assets/audio/voice/onb_steer.mp3",
+      "text": "Hi! I'm Pip. Tap the left, middle, or right lane to steer your car."
+    },
+    {
+      "id": "onb_collect",
+      "file": "assets/audio/voice/onb_collect.mp3",
+      "text": "Grab the sparkly stars to score. And steer around the cones!"
+    },
+    {
+      "id": "onb_gate",
+      "file": "assets/audio/voice/onb_gate.mp3",
+      "text": "When a question pops up, drive into the lane with the right answer. How many dots?"
+    },
+    {
+      "id": "onb_ready",
+      "file": "assets/audio/voice/onb_ready.mp3",
+      "text": "You've got it! Ready to race and learn? Let's go!"
+    },
+    {
+      "id": "teach_intro",
+      "file": "assets/audio/voice/teach_intro.mp3",
+      "text": "Let's look together. You can do it!"
+    },
+    {
+      "id": "hint_intro",
+      "file": "assets/audio/voice/hint_intro.mp3",
+      "text": "Here's a little hint."
+    },
+    {
+      "id": "levelup",
+      "file": "assets/audio/voice/levelup.mp3",
+      "text": "Level up! Here's the idea."
+    },
+    {
+      "id": "win",
+      "file": "assets/audio/voice/win.mp3",
+      "text": "Mission complete! Great driving!"
+    }
+  ],
+  "generatedAt": "2026-07-17T13:04:59.064Z"
+}

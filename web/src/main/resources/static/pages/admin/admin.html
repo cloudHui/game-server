@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    <link rel="stylesheet" href="./admin.css">
+    <script src="../../shared/app-base.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>管理后台</h1>
+        <div>
+            <a href="./terminal.html">服务器终端</a>
+            <a href="../../pages/home/room.html">回大厅</a>
+            <button onclick="doLogout()">退出</button>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div class="tabs">
+            <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
+            <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
+            <button class="tab" data-tab="tables" onclick="switchTab('tables')">桌子</button>
+            <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
+        </div>
+
+        <div id="panel-invites" class="panel active">
+            <div class="card">
+                <h2>创建邀请码</h2>
+                <div class="form-row">
+                    <div>
+                        <label>备注</label>
+                        <input id="note" placeholder="例如：朋友局">
+                    </div>
+                    <div>
+                        <label>可用次数</label>
+                        <input id="maxUses" type="number" min="1" value="5">
+                    </div>
+                    <div>
+                        <label>有效天数</label>
+                        <input id="expiresDays" type="number" min="0" value="7">
+                    </div>
+                    <button class="btn" onclick="createInvite()">创建</button>
+                </div>
+                <div class="msg" id="createMsg"></div>
+            </div>
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h2 style="margin:0;">邀请列表</h2>
+                    <button class="btn btn-ghost" onclick="loadInvites()">刷新</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>邀请码</th><th>备注</th><th>使用</th><th>过期</th><th>状态</th><th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inviteBody"><tr><td colspan="6">加载中...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="msg" id="listMsg"></div>
+            </div>
+        </div>
+
+        <div id="panel-users" class="panel">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h2 style="margin:0;">玩家列表</h2>
+                    <button class="btn btn-ghost" onclick="loadUsers()">刷新</button>
+                </div>
+                <div class="meta" id="usersMeta"></div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>用户名</th><th>昵称</th><th>在线</th><th>状态</th><th>最近登录</th><th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userBody"><tr><td colspan="7">切换到此页后加载</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="msg" id="usersMsg"></div>
+            </div>
+        </div>
+
+        <div id="panel-tables" class="panel">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h2 style="margin:0;">在线桌子</h2>
+                    <button class="btn btn-ghost" onclick="loadTables()">刷新</button>
+                </div>
+                <div class="meta" id="tablesMeta"></div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>桌号</th><th>模板</th><th>玩法</th><th>状态</th><th>人数</th><th>房主</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="msg" id="tablesMsg"></div>
+            </div>
+        </div>
+
+        <div id="panel-records" class="panel">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h2 style="margin:0;">战绩 / 回放记录</h2>
+                    <button class="btn btn-ghost" onclick="loadReplays()">刷新</button>
+                </div>
+                <div class="form-row">
+                    <input id="replayCode" placeholder="输入回放码，例如 2026-07-21/90001_1.txt">
+                    <button class="btn btn-ghost" onclick="openReplayCode()">打开回放</button>
+                    <button class="btn btn-ghost" onclick="loadReplays(1)">刷新全部</button>
+                </div>
+                <div class="meta">管理员列表展示全部回放并分页；回放码由日期和文件名组成。</div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日期</th><th>文件</th><th>桌号</th><th>局</th><th>玩法</th><th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="replayBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="form-row" style="justify-content:flex-end;">
+                    <button class="btn btn-ghost" onclick="loadReplays(replayPage - 1)">上一页</button>
+                    <span id="replayPageLabel" class="meta"></span>
+                    <button class="btn btn-ghost" onclick="loadReplays(replayPage + 1)">下一页</button>
+                </div>
+                <div class="msg" id="replayMsg"></div>
+            </div>
+            <div class="card">
+                <h2>落库战绩</h2>
+                <div class="meta">游戏结算后按玩家、局次和累计分数保存到 SQLite。</div>
+                <div style="overflow-x:auto;"><table><thead><tr><th>桌号</th><th>局</th><th>玩家</th><th>本局</th><th>累计</th><th>结果</th></tr></thead>
+                    <tbody id="recordBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div>
+            </div>
+            <div class="card" id="replayDetailCard" style="display:none;">
+                <h2 id="replayDetailTitle">回放详情</h2>
+                <pre class="replay" id="replayContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="./admin.js"></script>
+</body>
+</html>

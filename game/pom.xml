@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>Server</artifactId>
+        <groupId>com.cloud</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>game</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.cloud</groupId>
+            <artifactId>tool</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.36.0.3</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <useUniqueVersions>false</useUniqueVersions>
+                            <mainClass>game.Game</mainClass>
+                        </manifest>
+                    </archive>
+                    <finalName>Game</finalName>
+                    <outputDirectory>
+                        ${session.executionRootDirectory}/build/game
+                    </outputDirectory>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- 添加引号 -->
+                        <id>copy-dependencies</id>  <!-- 建议使用更明确的名称 -->
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>
+                                ${session.executionRootDirectory}/build/game/lib
+                            </outputDirectory>
+                            <excludeGroupIds>com.cloud</excludeGroupIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+<!--            <plugin>-->
+<!--                <artifactId>maven-assembly-plugin</artifactId>-->
+<!--                <version>2.4</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>GameAll</id>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>single</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <descriptorRefs>-->
+<!--                                <descriptorRef>jar-with-dependencies</descriptorRef>-->
+<!--                            </descriptorRefs>-->
+<!--                            <finalName>GameAll</finalName>-->
+<!--                            &lt;!&ndash; 设置为 false 以在最终文件名中不包含 assembly 插件自动添加的标识（如 'jar-with-dependencies'） &ndash;&gt;-->
+<!--                            <appendAssemblyId>false</appendAssemblyId>-->
+<!--                            <archive>-->
+<!--                                <manifest>-->
+<!--                                    <mainClass>game.Game</mainClass>-->
+<!--                                </manifest>-->
+<!--                            </archive>-->
+
+<!--                            <outputDirectory>-->
+<!--                                &lt;!&ndash;../Tool/&ndash;&gt;-->
+<!--                                ${session.executionRootDirectory}/build/game-->
+<!--                            </outputDirectory>-->
+<!--                            &lt;!&ndash;                            <excludes>&ndash;&gt;-->
+<!--                            &lt;!&ndash;                                <exclude>*.zip</exclude>&ndash;&gt;-->
+<!--                            &lt;!&ndash;                            </excludes>&ndash;&gt;-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+</project>
