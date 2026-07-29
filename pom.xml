@@ -16,7 +16,6 @@
         <module>gate</module>
         <module>lobby</module>
         <module>game</module>
-        <module>robot</module>
         <module>web</module>
         <module>sp</module>
     </modules>
