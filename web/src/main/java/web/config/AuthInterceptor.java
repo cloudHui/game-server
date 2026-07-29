@@ -1,27 +1,29 @@
 package web.config;
 
 import java.io.IOException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import web.service.UserService;
+import web.identity.SessionResolver;
 
 /** Protects browser pages and API endpoints before they reach controllers. */
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 	private final UserService userService;
+	private final SessionResolver sessions;
 
-	public AuthInterceptor(UserService userService) {
+	public AuthInterceptor(UserService userService, SessionResolver sessions) {
 		this.userService = userService;
+		this.sessions = sessions;
 	}
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 				throws IOException {
-		String sessionId = cookieValue(request, "sessionId");
+		String sessionId = sessions.resolve(request);
 		if (sessionId != null && userService.getSession(sessionId) != null) {
 			return true;
 		}
@@ -35,14 +37,5 @@ public class AuthInterceptor implements HandlerInterceptor {
 			response.sendRedirect(request.getContextPath() + "/");
 		}
 		return false;
-	}
-
-	private static String cookieValue(HttpServletRequest request, String name) {
-		Cookie[] cookies = request.getCookies();
-		if (cookies == null) return null;
-		for (Cookie cookie : cookies) {
-			if (name.equals(cookie.getName())) return cookie.getValue();
-		}
-		return null;
 	}
 }

@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +24,8 @@ import utils.other.MD5Utils;
 @Service
 public class AccountService {
 	private static final Logger logger = LoggerFactory.getLogger(AccountService.class);
+	private static final String DEFAULT_ADMIN_PASSWORD = "admin12345";
+	private static final String DEFAULT_USER_PASSWORD = "123456";
 
 	public static final int CODE_OK = 0;
 	public static final int CODE_FAIL = 1;
@@ -41,18 +45,34 @@ public class AccountService {
 	@PostConstruct
 	public void ensureAdmin() {
 		if (countUsers() > 0) {
+			upgradeDefaultAdminPassword();
 			return;
 		}
 		AccountUser admin = new AccountUser();
 		admin.username = "admin";
 		admin.nickname = "管理员";
-		admin.passwordHash = MD5Utils.MD5("admin123");
+		admin.passwordHash = MD5Utils.MD5(DEFAULT_ADMIN_PASSWORD);
 		admin.enabled = true;
 		admin.createdAt = System.currentTimeMillis();
 		admin.token = newToken();
 		long id = insert(admin);
 		if (id > 0) {
-			logger.info("已创建默认管理员 admin / admin123, userId={}", id);
+			logger.info("已创建默认管理员 admin，已设置独立初始密码，userId={}", id);
+		}
+	}
+
+	private void upgradeDefaultAdminPassword() {
+		String sql = "UPDATE user SET password_hash = ? WHERE username = 'admin' AND password_hash IN (?, ?)";
+		try (Connection conn = database.getConnection();
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setString(1, MD5Utils.MD5(DEFAULT_ADMIN_PASSWORD));
+			ps.setString(2, MD5Utils.MD5(DEFAULT_USER_PASSWORD));
+			ps.setString(3, MD5Utils.MD5("admin123"));
+			if (ps.executeUpdate() > 0) {
+				logger.warn("管理员仍在使用旧默认密码，已升级为新的管理员初始密码");
+			}
+		} catch (SQLException e) {
+			logger.error("升级管理员默认密码失败", e);
 		}
 	}
 
@@ -186,6 +206,84 @@ public class AccountService {
 			return Optional.empty();
 		}
 		return queryOne("SELECT * FROM user WHERE token = ?", token);
+	}
+
+	public List<AccountUser> listUsers() {
+		List<AccountUser> users = new ArrayList<>();
+		try (Connection conn = database.getConnection();
+			 PreparedStatement ps = conn.prepareStatement("SELECT * FROM user ORDER BY id");
+			 ResultSet rs = ps.executeQuery()) {
+			while (rs.next()) users.add(map(rs));
+		} catch (SQLException e) {
+			logger.error("listUsers 失败", e);
+		}
+		return users;
+	}
+
+	public Optional<AccountUser> createManagedUser(String username, String nickname) {
+		username = username == null ? "" : username.trim();
+		nickname = nickname == null || nickname.trim().isEmpty() ? username : nickname.trim();
+		if (username.isEmpty() || findByUsername(username).isPresent()) return Optional.empty();
+		AccountUser user = new AccountUser();
+		user.username = username;
+		user.nickname = nickname;
+		user.passwordHash = MD5Utils.MD5(DEFAULT_USER_PASSWORD);
+		user.enabled = true;
+		user.createdAt = System.currentTimeMillis();
+		user.token = newToken();
+		return insert(user) > 0 ? Optional.of(user) : Optional.empty();
+	}
+
+	public boolean setEnabled(String username, boolean enabled) {
+		return update("UPDATE user SET enabled = ? WHERE username = ?", enabled ? 1 : 0, username);
+	}
+
+	public boolean deleteUser(String username) {
+		if ("admin".equals(username)) return false;
+		return update("DELETE FROM user WHERE username = ?", username);
+	}
+
+	public boolean changePassword(long userId, String oldPassword, String newPassword) {
+		if (!validPassword(newPassword)) return false;
+		String sql = "UPDATE user SET password_hash = ? WHERE id = ? AND password_hash = ?";
+		try (Connection conn = database.getConnection();
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setString(1, MD5Utils.MD5(newPassword));
+			ps.setLong(2, userId);
+			ps.setString(3, MD5Utils.MD5(oldPassword == null ? "" : oldPassword));
+			return ps.executeUpdate() > 0;
+		} catch (SQLException e) {
+			logger.error("changePassword 失败 userId={}", userId, e);
+			return false;
+		}
+	}
+
+	public boolean resetPassword(String username) {
+		String sql = "UPDATE user SET password_hash = ? WHERE username = ?";
+		try (Connection conn = database.getConnection();
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setString(1, MD5Utils.MD5(DEFAULT_USER_PASSWORD));
+			ps.setString(2, username);
+			return ps.executeUpdate() > 0;
+		} catch (SQLException e) {
+			logger.error("resetPassword 失败 username={}", username, e);
+			return false;
+		}
+	}
+
+	private boolean validPassword(String password) {
+		return password != null && password.length() >= 6 && password.length() <= 64;
+	}
+
+	private boolean update(String sql, Object... values) {
+		try (Connection conn = database.getConnection();
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
+			for (int i = 0; i < values.length; i++) ps.setObject(i + 1, values[i]);
+			return ps.executeUpdate() > 0;
+		} catch (SQLException e) {
+			logger.error("账号更新失败", e);
+			return false;
+		}
 	}
 
 	private long countUsers() {

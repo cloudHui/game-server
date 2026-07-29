@@ -59,8 +59,10 @@ public class AuthController {
     @PostMapping("/password")
     public Map<String, Object> password(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                         @RequestBody PasswordRequest request) throws Exception {
-        Student user = auth.require(token);
-        students.changePassword(user.id, request.oldPassword, request.newPassword, false);
+        auth.require(token);
+        if (!auth.changePassword(token, request.oldPassword, request.newPassword)) {
+            throw new IllegalArgumentException("原密码不正确或新密码不符合要求");
+        }
         return ok("密码已修改");
     }
 

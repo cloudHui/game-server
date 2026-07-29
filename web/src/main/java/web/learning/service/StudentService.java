@@ -1,7 +1,6 @@
 package web.learning.service;
 
 import web.learning.model.Student;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -21,7 +20,6 @@ import org.slf4j.LoggerFactory;
 @Service
 public class StudentService {
     private static final Logger log = LoggerFactory.getLogger(StudentService.class);
-    public static final String DEFAULT_PASSWORD = "123456";
     public static final String ARCHIVE_ID_PATTERN = "[a-f0-9]{20}";
     public static final List<String> DEFAULT_PERMISSIONS = Arrays.asList(
             "CHINESE", "MATH", "ENGLISH", "PRIMARY", "RESOURCES", "MISTAKES", "RECORDS", "STATS", "PRINT");
@@ -30,8 +28,6 @@ public class StudentService {
             "MISTAKES", "RECORDS", "STATS", "PRINT", "ADMIN");
 
     private final JsonFileStore store;
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
-
     public StudentService(JsonFileStore store) { this.store = store; }
 
     public static boolean isValidArchiveId(String id) {
@@ -43,17 +39,15 @@ public class StudentService {
         migrateExisting();
         Student admin = findByUsername("admin");
         if (admin == null) {
-            create("admin", "管理员", DEFAULT_PASSWORD, "ADMIN", ALL_PERMISSIONS);
+            create("admin", "管理员", "ADMIN", ALL_PERMISSIONS);
         }
     }
 
-    public synchronized Student create(String username, String name, String password, String role,
+    public synchronized Student create(String username, String name, String role,
                                        List<String> permissions) throws Exception {
         username = normalizeUsername(username);
         if (findByUsername(username) != null) throw new IllegalArgumentException("用户名已存在");
         Student student = new Student(idFor(username), username, normalizeName(name == null ? username : name));
-        student.passwordHash = encoder.encode(validPassword(password));
-        student.mustChangePassword = true;
         student.role = "ADMIN".equals(role) ? "ADMIN" : "USER";
         student.permissions = new ArrayList<>("ADMIN".equals(student.role) ? ALL_PERMISSIONS :
                 permissions == null || permissions.isEmpty() ? DEFAULT_PERMISSIONS : permissions);
@@ -67,9 +61,6 @@ public class StudentService {
         if (student == null) {
             student = new Student(idFor(normalizeUsername(username)), normalizeUsername(username),
                     normalizeName(nickname == null || nickname.trim().isEmpty() ? username : nickname));
-            student.passwordHash = encoder.encode(UUID_PASSWORD);
-            student.mustChangePassword = false;
-            student.passwordChangedAt = LocalDateTime.now();
             student.role = gameAdmin ? "ADMIN" : "USER";
             student.permissions = new ArrayList<>(gameAdmin ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS);
             store.write(store.path("students", student.id), student);
@@ -90,8 +81,6 @@ public class StudentService {
         if (changed) store.write(store.path("students", student.id), student);
         return student;
     }
-
-    private static final String UUID_PASSWORD = "linked-" + java.util.UUID.randomUUID();
 
     public Student get(String id) throws Exception { return store.read(store.path("students", id), Student.class); }
 
@@ -124,19 +113,6 @@ public class StudentService {
         store.delete(store.path("mistakes", id));
     }
 
-    public synchronized void resetPassword(String id) throws Exception { setPassword(require(id), DEFAULT_PASSWORD, true); }
-
-    public synchronized void changePassword(String id, String oldPassword, String newPassword, boolean admin) throws Exception {
-        Student student = require(id);
-        if (!admin && !encoder.matches(oldPassword == null ? "" : oldPassword, student.passwordHash))
-            throw new IllegalArgumentException("原密码不正确");
-        setPassword(student, newPassword, false);
-    }
-
-    public boolean passwordMatches(Student student, String password) {
-        return student != null && student.passwordHash != null && encoder.matches(password == null ? "" : password, student.passwordHash);
-    }
-
     public synchronized void recordLogin(Student student) throws Exception {
         student.loginCount++;
         student.lastLoginAt = LocalDateTime.now();
@@ -150,8 +126,6 @@ public class StudentService {
         result.put("role", student.role); result.put("enabled", student.enabled); result.put("permissions", student.permissions);
         result.put("stage", student.stage); result.put("createdAt", student.createdAt); result.put("lastActiveAt", student.lastActiveAt);
         result.put("lastLoginAt", student.lastLoginAt); result.put("loginCount", student.loginCount);
-        result.put("passwordChanged", student.passwordChangedAt != null);
-        result.put("mustChangePassword", student.mustChangePassword);
         return result;
     }
 
@@ -159,16 +133,6 @@ public class StudentService {
         Student student = get(id);
         if (student == null) throw new IllegalArgumentException("找不到用户");
         return student;
-    }
-    private void setPassword(Student student, String password, boolean requireChange) throws Exception {
-        student.passwordHash = encoder.encode(validPassword(password));
-        student.mustChangePassword = requireChange;
-        student.passwordChangedAt = requireChange ? null : LocalDateTime.now();
-        store.write(store.path("students", student.id), student);
-    }
-    private String validPassword(String password) {
-        if (password == null || password.length() < 6 || password.length() > 64) throw new IllegalArgumentException("密码长度应为6到64位");
-        return password;
     }
     private String normalizeUsername(String value) {
         String username = value == null ? "" : value.trim().toLowerCase();
@@ -203,8 +167,6 @@ public class StudentService {
                 catch (IllegalArgumentException ignored) { student.username = ("user" + Integer.toHexString(fallback.hashCode())).replace("-", ""); }
                 changed = true;
             }
-            if (student.passwordHash == null) { student.passwordHash = encoder.encode(DEFAULT_PASSWORD); changed = true; }
-            if (student.passwordChangedAt == null && !student.mustChangePassword) { student.mustChangePassword = true; changed = true; }
             if (student.role == null) { student.role = "USER"; changed = true; }
             if (student.permissions == null || student.permissions.isEmpty()) { student.permissions = new ArrayList<>(DEFAULT_PERMISSIONS); changed = true; }
 

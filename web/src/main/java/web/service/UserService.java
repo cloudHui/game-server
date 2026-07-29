@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
@@ -19,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import proto.LobbyProto;
+import web.account.AccountService;
+import web.account.AccountUser;
 
 /**
  * 用户会话管理：经 Gate 访问 Lobby 登录/注册/房间
@@ -28,126 +29,38 @@ public class UserService {
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
 	private final GateClient gateClient;
+	private final AccountService accounts;
 	private final ReentrantLock sessionLock = new ReentrantLock();
 
 	private final Map<String, UserInfo> sessions = new ConcurrentHashMap<>();
 	private final Map<String, UserInfo> tokenSessions = new ConcurrentHashMap<>();
 	private final Map<Integer, String> userSessions = new ConcurrentHashMap<>();
 
-	/** 仅 lobby/gate 不可达时用于学习本地回退登录 */
-	private web.learning.service.StudentService learningStudents;
-
-	public UserService(GateClient gateClient) {
+	public UserService(GateClient gateClient, AccountService accounts) {
 		this.gateClient = gateClient;
-	}
-
-	@org.springframework.beans.factory.annotation.Autowired(required = false)
-	@org.springframework.context.annotation.Lazy
-	public void setLearningStudents(web.learning.service.StudentService learningStudents) {
-		this.learningStudents = learningStudents;
+		this.accounts = accounts;
 	}
 
 	public UserInfo login(String username, String password) {
 		String sessionId = UUID.randomUUID().toString();
 		logger.info("用户登录请求, username: {}, sessionId: {}", username, sessionId);
-		try {
-			LobbyProto.ReqLogin reqLogin = LobbyProto.ReqLogin.newBuilder()
-					.setUsername(ByteString.copyFromUtf8(username))
-					.setPassword(ByteString.copyFromUtf8(password))
-					.setToken(ByteString.EMPTY)
-					.build();
-
-			CompletableFuture<Message> future = gateClient.sendAndWait(
-					sessionId, LMsg.REQ_LOGIN_MSG, reqLogin, 5);
-			Message response = future.get(5, TimeUnit.SECONDS);
-
-			if (response instanceof LobbyProto.AckLogin) {
-				LobbyProto.AckLogin ack = (LobbyProto.AckLogin) response;
-				if (ack.getCode() != 0 || ack.getUserId() <= 0) {
-					logger.warn("登录失败, code: {}", ack.getCode());
-					gateClient.removeConnection(sessionId);
-					return null;
-				}
-				String uname = ack.getUsername().toStringUtf8();
-				if (uname.isEmpty()) {
-					uname = username;
-				}
-				gateClient.markAuthenticated(sessionId);
-				return storeSession(sessionId, ack.getUserId(), uname,
-						ack.getNickName().toStringUtf8(), ack.getToken().toStringUtf8(),
-						ack.getTablesList(), toTableInfos(ack.getTableInfosList()));
-			}
-			logger.error("登录响应类型错误, response: {}", response);
-			return null;
-		} catch (Exception e) {
-			logger.warn("Lobby 登录不可用，尝试学习本地回退: {}", e.toString());
-			gateClient.removeConnection(sessionId);
-			return loginLocalLearning(username, password);
-		}
-	}
-
-	/** gate/lobby 不可达时：用学习库账号建立仅 Web 会话（可进学习，不可进牌桌）。 */
-	private UserInfo loginLocalLearning(String username, String password) {
-		if (learningStudents == null) return null;
-		try {
-			web.learning.model.Student student = learningStudents.findByUsername(username);
-			if (student == null || !student.enabled || !learningStudents.passwordMatches(student, password)) {
-				return null;
-			}
-			String sessionId = UUID.randomUUID().toString();
-			int localId = -Math.abs(student.id.hashCode() | 1);
-			learningStudents.recordLogin(student);
-			logger.info("学习本地回退登录成功, username={}, sessionId={}", username, sessionId);
-			return storeSession(sessionId, localId, student.username, student.name,
-					"local-learning", Collections.<Long>emptyList(),
-					Collections.<TableInfoView>emptyList());
-		} catch (Exception ex) {
-			logger.error("学习本地回退登录失败", ex);
-			return null;
-		}
+		return accounts.authenticate(username, password)
+				.map(account -> session(account, sessionId))
+				.orElse(null);
 	}
 
 	public UserInfo register(String username, String password, String nickname, String invite) {
 		String sessionId = UUID.randomUUID().toString();
 		logger.info("用户注册请求, username: {}, sessionId: {}", username, sessionId);
-		try {
-			LobbyProto.ReqUserRegister.Builder builder = LobbyProto.ReqUserRegister.newBuilder()
-					.setUsername(ByteString.copyFromUtf8(username))
-					.setPassword(ByteString.copyFromUtf8(password))
-					.setNickName(ByteString.copyFromUtf8(nickname == null ? username : nickname));
-			if (invite != null && !invite.isEmpty()) {
-				builder.setInvite(ByteString.copyFromUtf8(invite));
-			}
-
-			CompletableFuture<Message> future = gateClient.sendAndWait(
-					sessionId, LMsg.REQ_REGISTER_MSG, builder.build(), 5);
-			Message response = future.get(5, TimeUnit.SECONDS);
-
-			if (response instanceof LobbyProto.AckUserRegister) {
-				LobbyProto.AckUserRegister ack = (LobbyProto.AckUserRegister) response;
-				if (ack.getCode() != 0 || ack.getUserId() <= 0) {
-					logger.warn("注册失败, code: {}", ack.getCode());
-					gateClient.removeConnection(sessionId);
-					UserInfo fail = new UserInfo(sessionId, 0, username, "", "",
-							Collections.emptyList(), Collections.emptyList());
-					fail.setErrorCode(ack.getCode());
-					return fail;
-				}
-				String uname = ack.getUsername().toStringUtf8();
-				if (uname.isEmpty()) {
-					uname = username;
-				}
-				gateClient.markAuthenticated(sessionId);
-				return storeSession(sessionId, ack.getUserId(), uname,
-						ack.getNickName().toStringUtf8(), ack.getToken().toStringUtf8(),
-						ack.getTablesList(), toTableInfos(ack.getTableInfosList()));
-			}
-			return null;
-		} catch (Exception e) {
-			logger.error("注册失败, username: {}", username, e);
-			gateClient.removeConnection(sessionId);
-			return null;
+		AccountUser[] created = new AccountUser[1];
+		int code = accounts.register(username, password, nickname, invite, created);
+		if (code == AccountService.CODE_OK) {
+			return session(created[0], sessionId);
 		}
+		UserInfo failed = new UserInfo(sessionId, 0, username, "", "",
+				Collections.emptyList(), Collections.emptyList());
+		failed.setErrorCode(code);
+		return failed;
 	}
 
 	public UserInfo validateToken(String token) {
@@ -155,47 +68,16 @@ public class UserService {
 		if (info != null) {
 			return info;
 		}
-		try {
-			String sessionId = "validate_" + UUID.randomUUID().toString().substring(0, 8);
-			LobbyProto.ReqLogin reqLogin = LobbyProto.ReqLogin.newBuilder()
-					.setUsername(ByteString.EMPTY)
-					.setPassword(ByteString.EMPTY)
-					.setToken(ByteString.copyFromUtf8(token))
-					.build();
-
-			CompletableFuture<Message> future = gateClient.sendAndWait(
-					sessionId, LMsg.REQ_LOGIN_MSG, reqLogin, 5);
-			Message response = future.get(5, TimeUnit.SECONDS);
-
-			if (response instanceof LobbyProto.AckLogin) {
-				LobbyProto.AckLogin ack = (LobbyProto.AckLogin) response;
-				if (ack.getCode() == 0 && ack.getUserId() > 0) {
-					String uname = ack.getUsername().toStringUtf8();
-					String nick = ack.getNickName().toStringUtf8();
-					if (uname.isEmpty()) {
-						uname = nick;
-					}
-					gateClient.markAuthenticated(sessionId);
-					return storeSession(sessionId, ack.getUserId(), uname, nick,
-							ack.getToken().toStringUtf8(), ack.getTablesList(),
-							toTableInfos(ack.getTableInfosList()));
-				}
-			}
-		} catch (Exception e) {
-			logger.error("Token验证失败", e);
-		}
-		return null;
+		String sessionId = UUID.randomUUID().toString();
+		return accounts.authenticateByToken(token)
+				.map(account -> session(account, sessionId))
+				.orElse(null);
 	}
 
-	private static List<TableInfoView> toTableInfos(List<LobbyProto.TableSeatInfo> list) {
-		if (list == null || list.isEmpty()) {
-			return Collections.emptyList();
-		}
-		List<TableInfoView> out = new ArrayList<>();
-		for (LobbyProto.TableSeatInfo t : list) {
-			out.add(new TableInfoView(t.getTableId(), t.getRoomId(), t.getGameType()));
-		}
-		return out;
+	private UserInfo session(AccountUser account, String sessionId) {
+		return storeSession(sessionId, Math.toIntExact(account.id), account.username,
+				account.nickname, account.token, Collections.<Long>emptyList(),
+				Collections.<TableInfoView>emptyList());
 	}
 
 	private UserInfo storeSession(String sessionId, int userId, String username,
@@ -230,6 +112,11 @@ public class UserService {
 
 	public UserInfo getSession(String sessionId) {
 		return sessions.get(sessionId);
+	}
+
+	public boolean changePassword(String sessionId, String oldPassword, String newPassword) {
+		UserInfo user = sessions.get(sessionId);
+		return user != null && accounts.changePassword(user.getUserId(), oldPassword, newPassword);
 	}
 
 	public void logout(String sessionId) {

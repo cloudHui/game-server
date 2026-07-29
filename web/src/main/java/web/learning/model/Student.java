@@ -8,7 +8,6 @@ public class Student {
     public String id;
     public String username;
     public String name;
-    public String passwordHash;
     public String role;
     public boolean enabled;
     public List<String> permissions = new ArrayList<>();
@@ -16,8 +15,6 @@ public class Student {
     public LocalDateTime createdAt;
     public LocalDateTime lastActiveAt;
     public LocalDateTime lastLoginAt;
-    public LocalDateTime passwordChangedAt;
-    public boolean mustChangePassword;
     public long loginCount;
 
     public Student() {}
