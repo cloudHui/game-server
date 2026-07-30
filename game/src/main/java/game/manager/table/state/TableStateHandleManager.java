@@ -1,6 +1,7 @@
 package game.manager.table.state;
 
 import java.util.HashMap;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import game.manager.table.Table;
+import game.manager.table.mj.state.MjDeal;
 import msg.registor.HandleTypeRegister;
 import msg.registor.enums.TableState;
 
@@ -31,6 +33,25 @@ public class TableStateHandleManager {
 
 	static {
 		HandleTypeRegister.initFactoryEnum(TableStateHandleManager.class, STATE_TABLE_HANDLE_MAP);
+		// 麻将状态处理器位于独立兄弟包，必须作为单独扫描根注册。
+		HandleTypeRegister.initFactoryEnum(MjDeal.class, STATE_TABLE_HANDLE_MAP);
+		validateRequiredHandles();
+	}
+
+	private static void validateRequiredHandles() {
+		Set<TableState> required = EnumSet.of(
+				TableState.MJ_DEAL,
+				TableState.MJ_PLAY,
+				TableState.MJ_DISCARD,
+				TableState.MJ_CLAIM);
+		required.removeAll(STATE_TABLE_HANDLE_MAP.keySet());
+		if (!required.isEmpty()) {
+			throw new ExceptionInInitializerError("麻将状态处理器未注册: " + required);
+		}
+	}
+
+	static boolean hasHandle(TableState state) {
+		return STATE_TABLE_HANDLE_MAP.containsKey(state);
 	}
 
 	/**
