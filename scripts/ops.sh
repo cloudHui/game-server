@@ -418,6 +418,12 @@ cmd_monitor() {
     [[ "$once" -eq 0 ]] && printf '按 Ctrl+C 退出\n'
   }
 
+  clear_monitor_screen() {
+    # 同时清除可见区域和终端回滚缓冲，再将光标归位。
+    # 不调用 clear，避免依赖 TERM/terminfo。
+    printf '\033[2J\033[3J\033[H'
+  }
+
   if [[ "$once" -eq 1 ]]; then
     monitor_snapshot
     return
@@ -425,7 +431,7 @@ cmd_monitor() {
 
   while true; do
     if [[ -t 1 ]]; then
-      printf '\033[H\033[2J'
+      clear_monitor_screen
     fi
     monitor_snapshot
     sleep "$interval"

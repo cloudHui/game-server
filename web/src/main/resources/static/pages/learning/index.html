@@ -13,16 +13,7 @@
   <div id="app" v-cloak>
     <div v-if="toast" class="toast">{{ toast }}</div>
 
-    <main v-if="authRestoring" class="welcome-page">
-      <section class="welcome-card">
-        <div class="brand-mark">学</div>
-        <p class="eyebrow">家庭学习工具</p>
-        <h1>正在恢复登录</h1>
-        <p class="welcome-tip">请稍候，正在校验会话…</p>
-      </section>
-    </main>
-
-    <main v-else-if="!student" class="welcome-page">
+    <main v-if="!authRestoring && !student" class="welcome-page">
       <section class="welcome-card">
         <div class="brand-mark">学</div>
         <p class="eyebrow">家庭学习工具</p>
@@ -51,7 +42,7 @@
       </section>
     </main>
 
-    <div v-else class="shell">
+    <div v-if="student" class="shell">
       <header class="topbar">
         <button class="icon-button" @click="goBack" :aria-label="view === 'home' ? '返回学习专区' : '返回课堂首页'">←</button>
         <div class="brand-small" @click="goHome"><span>学</span><b>成长小课堂</b></div>
