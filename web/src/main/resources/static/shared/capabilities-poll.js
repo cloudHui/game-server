@@ -3,6 +3,7 @@
   var CAP = { onlineTables: false, miniOnline: true, miniLocal: true, learning: true };
   var listeners = [];
   var timer = null;
+  var refreshing = false;
 
   function applyDom() {
     document.querySelectorAll('[data-need-online]').forEach(function (el) {
@@ -37,14 +38,19 @@
   }
 
   async function refresh() {
+    if (refreshing || (w.AppQuality && !w.AppQuality.canRequest())) return;
+    refreshing = true;
     try {
       var url = (typeof appUrl === 'function') ? appUrl('/api/capabilities') : '/api/capabilities';
       var r = await fetch(url, { credentials: 'include' });
       if (r.ok) {
         CAP = await r.json();
       }
-    } catch (e) { /* keep last */ }
-    applyDom();
+    } catch (e) { /* 保留上次能力状态，避免短暂断网让入口闪烁。 */ }
+    finally {
+      refreshing = false;
+      applyDom();
+    }
   }
 
   w.Capabilities = {
@@ -55,6 +61,7 @@
       refresh();
       if (timer) clearInterval(timer);
       timer = setInterval(refresh, 60000);
+      if (w.AppQuality) w.AppQuality.onResume(refresh);
     }
   };
 

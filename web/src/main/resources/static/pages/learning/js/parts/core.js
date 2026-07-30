@@ -46,14 +46,14 @@
         this.selectedStage=this.student.stage||'幼小衔接';this.view='home';
         if(this.visibleLibraryTypes&&this.visibleLibraryTypes.length&&!this.visibleLibraryTypes.some(item=>item.id===this.libraryType))this.libraryType=this.visibleLibraryTypes[0].id;
         if(this.student.mustChangePassword){this.passwordForm={oldPassword:'123456',newPassword:'',confirmPassword:''};this.showPassword=true;}else this.loadDashboard();
-        clearInterval(this.heartbeatTimer);this.sendHeartbeat();this.heartbeatTimer=setInterval(()=>this.sendHeartbeat(),10000);
+        clearInterval(this.heartbeatTimer);this.sendHeartbeat();this.heartbeatTimer=setInterval(()=>this.sendHeartbeat(),30000);
         this.bumpIdle();
       },
       bumpIdle(){if(!this.student)return;clearTimeout(this.idleTimer);this.idleTimer=setTimeout(()=>this.idleLogout(),this.idleMs);},
       idleLogout(){this.clearSession();this.redirectHome();},
       leaveStudent(){this.clearSession();this.redirectHome();},
       clearSession(){clearInterval(this.heartbeatTimer);clearTimeout(this.idleTimer);this.token='';this.student=null;this.authRestoring=false;this.view='home';localStorage.removeItem('learningToken');if(this.revokeMediaUrls)this.revokeMediaUrls();},
-      async sendHeartbeat(){if(!this.student||this.heartbeatBusy)return;this.heartbeatBusy=true;try{await this.api('auth/heartbeat',{method:'POST',body:JSON.stringify({page:this.pageName(),feature:this.currentFeature,device:this.deviceType()})});}catch(_){}finally{this.heartbeatBusy=false;}},
+      async sendHeartbeat(){if(!this.student||this.heartbeatBusy||(window.AppQuality&&!window.AppQuality.canRequest()))return;this.heartbeatBusy=true;try{await this.api('auth/heartbeat',{method:'POST',body:JSON.stringify({page:this.pageName(),feature:this.currentFeature,device:this.deviceType()})});}catch(_){}finally{this.heartbeatBusy=false;}},
       deviceType(){const ua=navigator.userAgent;return /iPad|Tablet/i.test(ua)?'平板':/Mobile|Android|iPhone/i.test(ua)?'手机':'电脑';},
       pageName(){return {home:'首页',chinese:'语文区',math:'数学区',mistakes:'错题库',records:'学习记录',resources:'资源中心',stats:'学习统计',print:'题目打印',stages:'小学阶段',subject:this.subjectName+'区'}[this.view]||this.view;},
       hasPerm(permission){return this.student&&('ADMIN'===this.student.role||(this.student.permissions||[]).includes(permission));},

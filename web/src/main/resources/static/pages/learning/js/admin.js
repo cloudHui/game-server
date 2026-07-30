@@ -12,7 +12,7 @@ createApp({
       try{const reg=await this.api('auth/registration');this.idleMs=Math.max(1,Number(reg.idleMinutes||10))*60*1000;}catch(_){}
       await Promise.all([this.loadStats().catch(e=>{if(this.isAuthError(e))throw e;this.notify('统计加载失败：'+e.message);}),this.loadUsers().catch(e=>{if(this.isAuthError(e))throw e;this.notify('用户列表加载失败：'+e.message);})]);
       this.bumpIdle();
-      this.timer=setInterval(()=>{if(this.tab==='dashboard')this.loadStats();if(this.tab==='online')this.loadOnline();},10000);
+      this.timer=setInterval(()=>{if(window.AppQuality&&!window.AppQuality.canRequest())return;if(this.tab==='dashboard')this.loadStats();if(this.tab==='online')this.loadOnline();},30000);
     }catch(error){this.notify('后台加载失败：'+error.message);if(this.isAuthError(error))setTimeout(()=>location.href='./',1200);}
   },
   beforeUnmount(){clearInterval(this.timer);clearTimeout(this.idleTimer);['pointerdown','keydown','touchstart','scroll'].forEach(evt=>window.removeEventListener(evt,this.onUserActivity));},
