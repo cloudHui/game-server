@@ -187,6 +187,8 @@ message NotMjState{
     int32 wait = 4;//等待时间(秒)
     repeated OpInfo choice = 5;//可选操作
     int32 wallLeft = 6;//牌墙剩余
+    int32 fromSeat = 7;//吃碰明杠的牌来源座位；暗杠为-1
+    repeated int32 exposedTiles = 8;//本次吃碰杠形成的完整副露牌组
 }
 
 //单局结算通知

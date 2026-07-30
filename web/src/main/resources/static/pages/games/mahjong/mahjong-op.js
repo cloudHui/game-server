@@ -118,14 +118,21 @@ function applyMahjongSnapshot(s) {
     gameState.exposedBySeat = {};
     (s.exposed || []).forEach(function (e) {
         if (!gameState.exposedBySeat[e.seat]) gameState.exposedBySeat[e.seat] = [];
-        gameState.exposedBySeat[e.seat].push({ kind: e.type, tiles: e.tileIds || [] });
+        var parsed = parseExposedType(e.type);
+        gameState.exposedBySeat[e.seat].push({
+            kind: parsed.kind,
+            tiles: e.tileIds || [],
+            fromSeat: parsed.fromSeat,
+            claimTile: parsed.kind === 'chi' && e.tileIds && e.tileIds.length
+                ? e.tileIds[e.tileIds.length - 1] : undefined
+        });
     });
     gameState.wallLeft = s.wallLeft || 0;
     gameState.lastDiscardTile = s.pendingDiscardTile || 0;
     gameState.lastDiscardSeat = s.pendingDiscardSeat == null ? -1 : s.pendingDiscardSeat;
     gameState.opPending = false;
     renderMyTiles(); renderMyExposed(); renderDiscarded(); refreshOpponentBacks();
-    setActiveSeat(s.opSeat);
+    setActiveSeat(s.opSeat, snapshotOperationWait(s));
     document.getElementById('wallInfo').textContent = '牌墙剩余: ' + gameState.wallLeft + '张';
     if (s.opSeat === gameState.myPosition) showOperationChoices(s.choices || []); else hideActions();
 }
@@ -134,7 +141,19 @@ function recordExposedFromAction(data) {
     var seat = data.opSeat;
     if (seat < 0) return;
     if (!gameState.exposedBySeat[seat]) gameState.exposedBySeat[seat] = [];
-    var info = buildExposedRecord(seat, data.action, data.tileId);
+    var info;
+    if (data.exposedTiles && data.exposedTiles.length) {
+        info = {
+            kind: data.action === OP.MJ_PENG ? 'peng'
+                : (data.action === OP.MJ_CHI ? 'chi' : resolveGangKind(seat, data.tileId)),
+            tiles: data.exposedTiles.slice(),
+            fromSeat: data.fromSeat,
+            claimTile: data.tileId
+        };
+        if (data.action === OP.MJ_GANG && data.fromSeat < 0) info.kind = 'anGang';
+    } else {
+        info = buildExposedRecord(seat, data.action, data.tileId);
+    }
     if (!info) return;
     gameState.exposedBySeat[seat].push(info);
     if (seat === gameState.myPosition) renderMyExposed();
@@ -215,7 +234,7 @@ function findDrawnTile(prev, next, hint) {
 function handleNotOp(data) {
     if (!data) return;
     var opSeat = data.opSeat;
-    setActiveSeat(opSeat);
+    setActiveSeat(opSeat, data.wait);
     if (gameState.myPosition >= 0 && opSeat === gameState.myPosition) {
         showOperationChoices(data.choice || []);
     } else {
@@ -241,6 +260,9 @@ function handleNotMjState(data) {
     if (data.wallLeft != null) {
         gameState.wallLeft = data.wallLeft;
         document.getElementById('wallInfo').textContent = '牌墙剩余: ' + data.wallLeft + '张';
+    }
+    if ((data.choice || []).length && data.opSeat >= 0) {
+        setActiveSeat(data.opSeat, data.wait);
     }
     if (data.tileId && data.action === OP.DISCARD) {
         gameState.lastDiscardTile = data.tileId;

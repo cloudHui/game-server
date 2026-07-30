@@ -241,11 +241,27 @@ public class MjSettleService {
 
 	/** 广播麻将操作 */
 	public static void broadcastMjAction(MjTable table, int seat, int tileId, ConstProto.Operation action) {
-		GameProto.NotMjState not = GameProto.NotMjState.newBuilder()
+		GameProto.NotMjState.Builder builder = GameProto.NotMjState.newBuilder()
 				.setOpSeat(seat).setTileId(tileId)
 				.setAction(action)
-				.setWallLeft(table.getMjTilePool().remaining()).build();
-		table.sendTableMessage(not, GMsg.MJ_TILE_NOT);
+				.setWallLeft(table.getMjTilePool().remaining());
+		if (action == ConstProto.Operation.MJ_PENG
+				|| action == ConstProto.Operation.MJ_GANG
+				|| action == ConstProto.Operation.MJ_CHI) {
+			List<MjExposedSet> sets = table.getMjContext().getExposedSets(seat);
+			for (int i = sets.size() - 1; i >= 0; i--) {
+				MjExposedSet set = sets.get(i);
+				boolean sameAction = action == ConstProto.Operation.MJ_PENG
+						? set.getType() == MjExposedSet.Type.PENG
+						: action == ConstProto.Operation.MJ_CHI
+								? set.getType() == MjExposedSet.Type.CHI : set.isGang();
+				if (sameAction && set.getTileIds().contains(tileId)) {
+					builder.setFromSeat(set.getFromSeat()).addAllExposedTiles(set.getTileIds());
+					break;
+				}
+			}
+		}
+		table.sendTableMessage(builder.build(), GMsg.MJ_TILE_NOT);
 	}
 
 	// ======================== 回放 ========================

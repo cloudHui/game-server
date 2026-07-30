@@ -119,8 +119,12 @@ public class MjTable extends Table {
 				switch (set.getType()) {
 					case PENG: notBuilder.setTileId(set.getTileIds().get(0)); notBuilder.setAction(ConstProto.Operation.MJ_PENG); break;
 					case MING_GANG: case AN_GANG: case BU_GANG: notBuilder.setTileId(set.getGangTileId()); notBuilder.setAction(ConstProto.Operation.MJ_GANG); break;
-					case CHI: notBuilder.setTileId(set.getTileIds().get(0)); notBuilder.setAction(ConstProto.Operation.MJ_CHI); break;
+					case CHI:
+						notBuilder.setTileId(set.getTileIds().get(set.getTileIds().size() - 1));
+						notBuilder.setAction(ConstProto.Operation.MJ_CHI);
+						break;
 				}
+				notBuilder.setFromSeat(set.getFromSeat()).addAllExposedTiles(set.getTileIds());
 				user.sendRoleMessage(notBuilder.build(), GMsg.MJ_TILE_NOT, getTableId());
 			}
 		}

@@ -21845,6 +21845,45 @@ public final class GameProto {
      * @return The wallLeft.
      */
     int getWallLeft();
+
+    /**
+     * <pre>
+     *吃碰明杠的牌来源座位；暗杠为-1
+     * </pre>
+     *
+     * <code>int32 fromSeat = 7;</code>
+     * @return The fromSeat.
+     */
+    int getFromSeat();
+
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @return A list containing the exposedTiles.
+     */
+    java.util.List<java.lang.Integer> getExposedTilesList();
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @return The count of exposedTiles.
+     */
+    int getExposedTilesCount();
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @param index The index of the element to return.
+     * @return The exposedTiles at the given index.
+     */
+    int getExposedTiles(int index);
   }
   /**
    * <pre>
@@ -21865,6 +21904,7 @@ public final class GameProto {
     private NotMjState() {
       action_ = 0;
       choice_ = java.util.Collections.emptyList();
+      exposedTiles_ = emptyIntList();
     }
 
     @java.lang.Override
@@ -22039,6 +22079,61 @@ public final class GameProto {
       return wallLeft_;
     }
 
+    public static final int FROMSEAT_FIELD_NUMBER = 7;
+    private int fromSeat_;
+    /**
+     * <pre>
+     *吃碰明杠的牌来源座位；暗杠为-1
+     * </pre>
+     *
+     * <code>int32 fromSeat = 7;</code>
+     * @return The fromSeat.
+     */
+    @java.lang.Override
+    public int getFromSeat() {
+      return fromSeat_;
+    }
+
+    public static final int EXPOSEDTILES_FIELD_NUMBER = 8;
+    private com.google.protobuf.Internal.IntList exposedTiles_;
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @return A list containing the exposedTiles.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Integer>
+        getExposedTilesList() {
+      return exposedTiles_;
+    }
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @return The count of exposedTiles.
+     */
+    public int getExposedTilesCount() {
+      return exposedTiles_.size();
+    }
+    /**
+     * <pre>
+     *本次吃碰杠形成的完整副露牌组
+     * </pre>
+     *
+     * <code>repeated int32 exposedTiles = 8;</code>
+     * @param index The index of the element to return.
+     * @return The exposedTiles at the given index.
+     */
+    public int getExposedTiles(int index) {
+      return exposedTiles_.getInt(index);
+    }
+    private int exposedTilesMemoizedSerializedSize = -1;
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -22053,6 +22148,7 @@ public final class GameProto {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
+      getSerializedSize();
       if (opSeat_ != 0) {
         output.writeInt32(1, opSeat_);
       }
@@ -22070,6 +22166,16 @@ public final class GameProto {
       }
       if (wallLeft_ != 0) {
         output.writeInt32(6, wallLeft_);
+      }
+      if (fromSeat_ != 0) {
+        output.writeInt32(7, fromSeat_);
+      }
+      if (getExposedTilesList().size() > 0) {
+        output.writeUInt32NoTag(66);
+        output.writeUInt32NoTag(exposedTilesMemoizedSerializedSize);
+      }
+      for (int i = 0; i < exposedTiles_.size(); i++) {
+        output.writeInt32NoTag(exposedTiles_.getInt(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -22104,6 +22210,24 @@ public final class GameProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(6, wallLeft_);
       }
+      if (fromSeat_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(7, fromSeat_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < exposedTiles_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeInt32SizeNoTag(exposedTiles_.getInt(i));
+        }
+        size += dataSize;
+        if (!getExposedTilesList().isEmpty()) {
+          size += 1;
+          size += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(dataSize);
+        }
+        exposedTilesMemoizedSerializedSize = dataSize;
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
@@ -22130,6 +22254,10 @@ public final class GameProto {
           .equals(other.getChoiceList())) return false;
       if (getWallLeft()
           != other.getWallLeft()) return false;
+      if (getFromSeat()
+          != other.getFromSeat()) return false;
+      if (!getExposedTilesList()
+          .equals(other.getExposedTilesList())) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -22155,6 +22283,12 @@ public final class GameProto {
       }
       hash = (37 * hash) + WALLLEFT_FIELD_NUMBER;
       hash = (53 * hash) + getWallLeft();
+      hash = (37 * hash) + FROMSEAT_FIELD_NUMBER;
+      hash = (53 * hash) + getFromSeat();
+      if (getExposedTilesCount() > 0) {
+        hash = (37 * hash) + EXPOSEDTILES_FIELD_NUMBER;
+        hash = (53 * hash) + getExposedTilesList().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -22304,6 +22438,10 @@ public final class GameProto {
         bitField0_ = (bitField0_ & ~0x00000001);
         wallLeft_ = 0;
 
+        fromSeat_ = 0;
+
+        exposedTiles_ = emptyIntList();
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -22345,6 +22483,12 @@ public final class GameProto {
           result.choice_ = choiceBuilder_.build();
         }
         result.wallLeft_ = wallLeft_;
+        result.fromSeat_ = fromSeat_;
+        if (((bitField0_ & 0x00000002) != 0)) {
+          exposedTiles_.makeImmutable();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        }
+        result.exposedTiles_ = exposedTiles_;
         onBuilt();
         return result;
       }
@@ -22434,6 +22578,19 @@ public final class GameProto {
         if (other.getWallLeft() != 0) {
           setWallLeft(other.getWallLeft());
         }
+        if (other.getFromSeat() != 0) {
+          setFromSeat(other.getFromSeat());
+        }
+        if (!other.exposedTiles_.isEmpty()) {
+          if (exposedTiles_.isEmpty()) {
+            exposedTiles_ = other.exposedTiles_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+          } else {
+            ensureExposedTilesIsMutable();
+            exposedTiles_.addAll(other.exposedTiles_);
+          }
+          onChanged();
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
@@ -22498,6 +22655,27 @@ public final class GameProto {
 
                 break;
               } // case 48
+              case 56: {
+                fromSeat_ = input.readInt32();
+
+                break;
+              } // case 56
+              case 64: {
+                int v = input.readInt32();
+                ensureExposedTilesIsMutable();
+                exposedTiles_.addInt(v);
+                break;
+              } // case 64
+              case 66: {
+                int length = input.readRawVarint32();
+                int limit = input.pushLimit(length);
+                ensureExposedTilesIsMutable();
+                while (input.getBytesUntilLimit() > 0) {
+                  exposedTiles_.addInt(input.readInt32());
+                }
+                input.popLimit(limit);
+                break;
+              } // case 66
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -23069,6 +23247,156 @@ public final class GameProto {
       public Builder clearWallLeft() {
         
         wallLeft_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int fromSeat_ ;
+      /**
+       * <pre>
+       *吃碰明杠的牌来源座位；暗杠为-1
+       * </pre>
+       *
+       * <code>int32 fromSeat = 7;</code>
+       * @return The fromSeat.
+       */
+      @java.lang.Override
+      public int getFromSeat() {
+        return fromSeat_;
+      }
+      /**
+       * <pre>
+       *吃碰明杠的牌来源座位；暗杠为-1
+       * </pre>
+       *
+       * <code>int32 fromSeat = 7;</code>
+       * @param value The fromSeat to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFromSeat(int value) {
+        
+        fromSeat_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *吃碰明杠的牌来源座位；暗杠为-1
+       * </pre>
+       *
+       * <code>int32 fromSeat = 7;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFromSeat() {
+        
+        fromSeat_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.Internal.IntList exposedTiles_ = emptyIntList();
+      private void ensureExposedTilesIsMutable() {
+        if (!((bitField0_ & 0x00000002) != 0)) {
+          exposedTiles_ = mutableCopy(exposedTiles_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @return A list containing the exposedTiles.
+       */
+      public java.util.List<java.lang.Integer>
+          getExposedTilesList() {
+        return ((bitField0_ & 0x00000002) != 0) ?
+                 java.util.Collections.unmodifiableList(exposedTiles_) : exposedTiles_;
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @return The count of exposedTiles.
+       */
+      public int getExposedTilesCount() {
+        return exposedTiles_.size();
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @param index The index of the element to return.
+       * @return The exposedTiles at the given index.
+       */
+      public int getExposedTiles(int index) {
+        return exposedTiles_.getInt(index);
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @param index The index to set the value at.
+       * @param value The exposedTiles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExposedTiles(
+          int index, int value) {
+        ensureExposedTilesIsMutable();
+        exposedTiles_.setInt(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @param value The exposedTiles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addExposedTiles(int value) {
+        ensureExposedTilesIsMutable();
+        exposedTiles_.addInt(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @param values The exposedTiles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllExposedTiles(
+          java.lang.Iterable<? extends java.lang.Integer> values) {
+        ensureExposedTilesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, exposedTiles_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       *本次吃碰杠形成的完整副露牌组
+       * </pre>
+       *
+       * <code>repeated int32 exposedTiles = 8;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearExposedTiles() {
+        exposedTiles_ = emptyIntList();
+        bitField0_ = (bitField0_ & ~0x00000002);
         onChanged();
         return this;
       }
@@ -32041,10 +32369,11 @@ public final class GameProto {
       "\035\n\004type\030\002 \001(\0162\017.proto.CardType\"&\n\004Card\022\r" +
       "\n\005value\030\001 \001(\005\022\017\n\007replace\030\002 \001(\005\"8\n\nNCards" +
       "Info\022\016\n\006roleId\030\001 \001(\005\022\032\n\005cards\030\002 \003(\0132\013.pr" +
-      "oto.Card\"\215\001\n\nNotMjState\022\016\n\006opSeat\030\001 \001(\005\022" +
+      "oto.Card\"\265\001\n\nNotMjState\022\016\n\006opSeat\030\001 \001(\005\022" +
       "\016\n\006tileId\030\002 \001(\005\022 \n\006action\030\003 \001(\0162\020.proto." +
       "Operation\022\014\n\004wait\030\004 \001(\005\022\035\n\006choice\030\005 \003(\0132" +
-      "\r.proto.OpInfo\022\020\n\010wallLeft\030\006 \001(\005\"\370\001\n\016Not" +
+      "\r.proto.OpInfo\022\020\n\010wallLeft\030\006 \001(\005\022\020\n\010from" +
+      "Seat\030\007 \001(\005\022\024\n\014exposedTiles\030\010 \003(\005\"\370\001\n\016Not" +
       "RoundResult\022\r\n\005round\030\001 \001(\005\022\022\n\nwinnerSeat" +
       "\030\002 \001(\005\022\013\n\003fan\030\003 \001(\005\022$\n\nseatScores\030\004 \003(\0132" +
       "\020.proto.SeatScore\022\017\n\007winType\030\005 \001(\014\022\'\n\013se" +
@@ -32207,7 +32536,7 @@ public final class GameProto {
     internal_static_proto_NotMjState_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotMjState_descriptor,
-        new java.lang.String[] { "OpSeat", "TileId", "Action", "Wait", "Choice", "WallLeft", });
+        new java.lang.String[] { "OpSeat", "TileId", "Action", "Wait", "Choice", "WallLeft", "FromSeat", "ExposedTiles", });
     internal_static_proto_NotRoundResult_descriptor =
       getDescriptor().getMessageTypes().get(23);
     internal_static_proto_NotRoundResult_fieldAccessorTable = new

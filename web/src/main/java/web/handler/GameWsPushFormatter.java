@@ -221,6 +221,8 @@ final class GameWsPushFormatter {
 		m.put("action", n.getActionValue());
 		m.put("wait", n.getWait());
 		m.put("wallLeft", n.getWallLeft());
+		m.put("fromSeat", n.getFromSeat());
+		m.put("exposedTiles", new ArrayList<>(n.getExposedTilesList()));
 		m.put("choice", formatOpChoices(n.getChoiceList()));
 		return m;
 	}

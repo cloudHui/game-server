@@ -19,15 +19,30 @@ function parseExposedType(typeStr) {
   return { kind: s.slice(0, at), fromSeat: isNaN(from) ? -1 : from };
 }
 
-/** 相对副露所有者标注来源方向 */
-function exposedSourceLabel(ownerSeat, fromSeat) {
-  if (fromSeat < 0) return '暗';
+/** 按当前玩家看到的桌面方位，计算牌组所有者指向来源玩家的箭头。 */
+function exposedSourceArrow(ownerSeat, fromSeat) {
+  if (fromSeat < 0 || ownerSeat === fromSeat) return '';
   var seatNum = gameState.seatNum || 4;
-  var rel = (fromSeat - ownerSeat + seatNum) % seatNum;
-  if (rel === 1) return '下';
-  if (seatNum >= 4 && rel === 2) return '对';
-  if (rel === seatNum - 1) return '上';
-  return '座' + fromSeat;
+  function point(seat) {
+    if (seat === gameState.myPosition) return { x: 0, y: 1 };
+    var rel = (seat - gameState.myPosition + seatNum) % seatNum;
+    var slot = seatSlot(rel, seatNum);
+    if (slot === 'left') return { x: -1, y: 0 };
+    if (slot === 'right') return { x: 1, y: 0 };
+    return { x: 0, y: -1 };
+  }
+  var owner = point(ownerSeat);
+  var source = point(fromSeat);
+  var dx = source.x - owner.x;
+  var dy = source.y - owner.y;
+  if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? '→' : '←';
+  return dy > 0 ? '↓' : '↑';
+}
+
+function markClaimSource(tile, ownerSeat, fromSeat) {
+  if (!tile || fromSeat < 0) return;
+  tile.className += ' from-claim';
+  tile.dataset.sourceArrow = exposedSourceArrow(ownerSeat, fromSeat);
 }
 
 function findClaimTileIndex(tiles, claimTile) {
@@ -62,24 +77,29 @@ function appendExposedSet(container, set, opt) {
         hidden.className = 'tile-back';
         base.appendChild(hidden);
       } else {
-        base.appendChild(MahjongTile.createTileEl(tiles[g] || tiles[0], { small: true }));
+        var baseTile = MahjongTile.createTileEl(tiles[g] || tiles[0], { small: true });
+        if (kind === 'buGang' && g === 1) markClaimSource(baseTile, ownerSeat, fromSeat);
+        base.appendChild(baseTile);
       }
     }
     group.appendChild(base);
-    var topTile = MahjongTile.createTileEl(tiles[3] || tiles[0], { small: true });
+    var topTile;
+    if (kind === 'anGang' && !opt.revealAnGang) {
+      topTile = document.createElement('div');
+      topTile.className = 'tile-back';
+    } else {
+      topTile = MahjongTile.createTileEl(tiles[3] || tiles[0], { small: true });
+    }
     topTile.className += ' gang-top';
+    if (kind === 'mingGang') markClaimSource(topTile, ownerSeat, fromSeat);
     group.appendChild(topTile);
   } else {
     for (var j = 0; j < tiles.length; j++) {
       var tile = MahjongTile.createTileEl(tiles[j], { small: true });
-      if (fromSeat >= 0 && j === markIdx) tile.className += ' from-claim';
+      if (fromSeat >= 0 && j === markIdx) markClaimSource(tile, ownerSeat, fromSeat);
       group.appendChild(tile);
     }
   }
-  var src = document.createElement('span');
-  src.className = 'exposed-src';
-    src.textContent = kind === 'anGang' ? '暗杠' : ('← ' + exposedSourceLabel(ownerSeat, fromSeat));
-  group.appendChild(src);
   container.appendChild(group);
 }
 

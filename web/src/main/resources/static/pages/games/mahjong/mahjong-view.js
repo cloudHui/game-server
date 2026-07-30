@@ -284,7 +284,8 @@ function updateTileCount() {
     document.getElementById('myTileCount').textContent = gameState.myTiles.length + '张';
 }
 
-function setActiveSeat(position) {
+function setActiveSeat(position, waitSeconds) {
+    stopMahjongOperationCountdown();
     ['playerTop', 'playerLeft', 'playerRight', 'playerBottom'].forEach(function (id) {
         document.getElementById(id).className = 'player-info';
     });
@@ -292,13 +293,49 @@ function setActiveSeat(position) {
     updateOperationArrow(position);
     if (position === gameState.myPosition) {
         document.getElementById('playerBottom').className = 'player-info active';
+        startMahjongOperationCountdown(document.getElementById('playerBottom'), waitSeconds);
         return;
     }
     var seatNum = gameState.seatNum || 4;
     var relPos = (position - gameState.myPosition + seatNum) % seatNum;
     var slot = seatSlot(relPos, seatNum);
     var cap = slot.charAt(0).toUpperCase() + slot.slice(1);
-    document.getElementById('player' + cap).className = 'player-info active';
+    var active = document.getElementById('player' + cap);
+    active.className = 'player-info active';
+    startMahjongOperationCountdown(active, waitSeconds);
+}
+
+function stopMahjongOperationCountdown() {
+    if (gameState.operationTimer) clearInterval(gameState.operationTimer);
+    gameState.operationTimer = null;
+    document.querySelectorAll('.operation-countdown').forEach(function (el) { el.remove(); });
+}
+
+function startMahjongOperationCountdown(target, waitSeconds) {
+    var left = Math.max(0, Math.ceil(Number(waitSeconds || 0)));
+    if (!target || !left) return;
+    var badge = document.createElement('span');
+    badge.className = 'operation-countdown';
+    target.appendChild(badge);
+    function tick() {
+        badge.textContent = left + '秒';
+        if (left <= 0) {
+            clearInterval(gameState.operationTimer);
+            gameState.operationTimer = null;
+            return;
+        }
+        left--;
+    }
+    tick();
+    gameState.operationTimer = setInterval(tick, 1000);
+}
+
+function snapshotOperationWait(snapshot) {
+    var duration = Number(snapshot && snapshot.stateDuration || 0);
+    var started = Number(snapshot && snapshot.stateStart || 0);
+    if (!duration || !started) return duration;
+    var elapsed = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    return Math.max(0, duration - elapsed);
 }
 
 function updateOperationArrow(position) {
