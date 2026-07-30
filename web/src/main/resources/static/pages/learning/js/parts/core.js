@@ -11,7 +11,7 @@
     },
     computed: {
       greeting(){const h=new Date().getHours();return h<11?'早上好':h<14?'中午好':h<18?'下午好':'晚上好';},
-      currentFeature(){if(this.view==='chinese')return this.chineseMode==='dictation'?'语文听写':'识字手写';if(this.view==='math')return this.mathQuestions.length&&!this.mathFinished?'算术答题':'数学区';if(this.view==='print')return'题目打印';return'';}
+      currentFeature(){if(this.view==='chinese')return this.chineseMode==='dictation'?'语文听写':'识字手写';if(this.view==='math')return this.mathQuestions.length&&!this.mathFinished?'算术答题':'数学区';if(this.view==='olympiad')return this.olympiadTopic?'奥数·'+this.olympiadTopic.name:'奥数专题';if(this.view==='print')return'题目打印';return'';}
     },
     methods: {
       apiUrl(path){
@@ -55,7 +55,7 @@
       clearSession(){clearInterval(this.heartbeatTimer);clearTimeout(this.idleTimer);this.token='';this.student=null;this.authRestoring=false;this.view='home';localStorage.removeItem('learningToken');if(this.revokeMediaUrls)this.revokeMediaUrls();},
       async sendHeartbeat(){if(!this.student||this.heartbeatBusy||(window.AppQuality&&!window.AppQuality.canRequest()))return;this.heartbeatBusy=true;try{await this.api('auth/heartbeat',{method:'POST',body:JSON.stringify({page:this.pageName(),feature:this.currentFeature,device:this.deviceType()})});}catch(_){}finally{this.heartbeatBusy=false;}},
       deviceType(){const ua=navigator.userAgent;return /iPad|Tablet/i.test(ua)?'平板':/Mobile|Android|iPhone/i.test(ua)?'手机':'电脑';},
-      pageName(){return {home:'首页',chinese:'语文区',math:'数学区',mistakes:'错题库',records:'学习记录',resources:'资源中心',stats:'学习统计',print:'题目打印',stages:'小学阶段',subject:this.subjectName+'区'}[this.view]||this.view;},
+      pageName(){return {home:'首页',chinese:'语文区',math:'数学区',olympiad:'奥数思维',mistakes:'错题库',records:'学习记录',resources:'资源中心',stats:'学习统计',print:'题目打印',stages:'小学阶段',subject:this.subjectName+'区'}[this.view]||this.view;},
       hasPerm(permission){return this.student&&('ADMIN'===this.student.role||(this.student.permissions||[]).includes(permission));},
       openAdmin(){if(this.student&&this.student.mustChangePassword){this.showToast('请先修改初始密码，再进入管理后台');return;}window.location.href=(typeof appUrl==='function')?appUrl('/pages/admin/admin.html'):'/pages/admin/admin.html';},
       async changePassword(){if(this.passwordForm.newPassword!==this.passwordForm.confirmPassword){this.showToast('两次输入的新密码不一致');return;}try{await this.api('auth/password',{method:'POST',body:JSON.stringify(this.passwordForm)});this.student.mustChangePassword=false;this.showPassword=false;this.passwordForm={oldPassword:'',newPassword:'',confirmPassword:''};await this.loadDashboard();this.showToast('密码已修改');}catch(error){this.showToast(error.message);}},

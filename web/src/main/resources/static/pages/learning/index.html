@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="theme-color" content="#7357e8">
   <title>成长小课堂</title>
-  <link rel="stylesheet" href="css/app.css?v=20260720-6">
-  <link rel="stylesheet" href="css/features.css?v=20260720-6">
+  <link rel="stylesheet" href="css/app.css?v=20260730-2">
+  <link rel="stylesheet" href="css/features.css?v=20260730-2">
 </head>
 <body>
   <div id="app" v-cloak>
@@ -150,6 +150,7 @@
               <label>题目数量<select v-model.number="mathConfig.count"><option :value="5">5题</option><option :value="10">10题</option><option :value="20">20题</option></select></label>
             </div>
             <button class="primary big" @click="startMath">{{ mathFinished ? '再练一次' : '开始答题' }}</button>
+            <button class="olympiad-entry" @click="openView('olympiad')"><span>💡</span><b>奥数思维训练</b><small>专题讲解 · 分层提示 · 变式练习</small></button>
           </div>
           <div v-else class="quiz-card">
             <div class="quiz-progress"><span>第 {{ mathIndex + 1 }} / {{ mathQuestions.length }} 题</span><div><i :style="{width: ((mathIndex+1)/mathQuestions.length*100)+'%'}"></i></div><b>答对 {{ mathCorrect }} 题</b></div>
@@ -157,6 +158,51 @@
             <form @submit.prevent="submitMath" class="math-answer"><input ref="mathInput" v-model="mathAnswer" type="number" inputmode="numeric" autocomplete="off" placeholder="?" aria-label="答案"><button class="primary">确定</button></form>
             <p v-if="mathFeedback" :class="['feedback', mathFeedback.correct?'right':'wrong']">{{ mathFeedback.text }}</p>
           </div>
+        </section>
+
+        <section v-else-if="view === 'olympiad'" class="page-section olympiad-page">
+          <div class="page-heading">
+            <div><p class="eyebrow">数学思维</p><h1>{{ olympiadTopic ? olympiadTopic.name : '奥数专题训练' }}</h1></div>
+            <button v-if="olympiadTopic" @click="leaveOlympiad">返回专题</button>
+          </div>
+          <template v-if="!olympiadTopic">
+            <div class="olympiad-intro"><div><span>💡</span><h2>先理解方法，再挑战变式</h2><p>每次5题，遇到困难可以逐层查看提示；错题会自动进入现有错题库。</p></div></div>
+            <div class="olympiad-topics">
+              <button v-for="topic in olympiadTopics" :key="topic.id" @click="selectOlympiadTopic(topic)">
+                <i>{{ topic.icon }}</i><span><b>{{ topic.name }}</b><small>{{ topic.desc }}</small><em>{{ topic.method }}</em></span>
+              </button>
+            </div>
+          </template>
+          <template v-else-if="!olympiadQuestions.length">
+            <article class="olympiad-setup card">
+              <span class="topic-icon">{{ olympiadTopic.icon }}</span>
+              <h2>{{ olympiadFinished ? '训练完成！' : olympiadTopic.name }}</h2>
+              <div v-if="olympiadFinished" class="result-circle"><strong>{{ olympiadCorrect }}</strong><small>/ 5 题正确</small></div>
+              <p>{{ olympiadFinished ? `本次使用了 ${olympiadHintsUsed} 次提示，记录和错题已经保存。` : olympiadTopic.desc }}</p>
+              <div class="method-card"><b>本专题核心方法</b><span>{{ olympiadTopic.method }}</span></div>
+              <label>训练难度
+                <select v-model.number="olympiadLevel"><option :value="1">入门</option><option :value="2">基础</option><option :value="3">提高</option></select>
+              </label>
+              <button class="primary big" @click="startOlympiad">{{ olympiadFinished ? '再练一次' : '开始5题训练' }}</button>
+            </article>
+          </template>
+          <article v-else class="olympiad-quiz card">
+            <div class="quiz-progress"><span>第 {{ olympiadIndex+1 }} / {{ olympiadQuestions.length }} 题</span><div><i :style="{width:olympiadProgress+'%'}"></i></div><b>答对 {{ olympiadCorrect }} 题</b></div>
+            <div class="question-tags"><span>{{ olympiadTopic.name }}</span><span v-if="currentOlympiad.variant">变式题</span></div>
+            <h2>{{ currentOlympiad.prompt }}</h2>
+            <form class="olympiad-answer" @submit.prevent="submitOlympiad">
+              <input ref="olympiadInput" v-model="olympiadAnswer" type="number" inputmode="numeric" autocomplete="off" :disabled="!!olympiadResult" aria-label="答案">
+              <span>{{ currentOlympiad.unit }}</span><button class="primary" :disabled="!!olympiadResult">提交答案</button>
+            </form>
+            <div class="hint-panel">
+              <button v-if="!olympiadResult" @click="showOlympiadHint">💭 {{ olympiadHintIndex ? '再给一点提示' : '我需要提示' }}</button>
+              <ol v-if="olympiadHintIndex"><li v-for="(hint,index) in currentOlympiad.hints.slice(0,olympiadHintIndex)" :key="index">{{ hint }}</li></ol>
+            </div>
+            <div v-if="olympiadResult" :class="['olympiad-result',olympiadResult.correct?'right':'wrong']">
+              <h3>{{ olympiadResult.text }}</h3><p><b>解题方法：</b>{{ currentOlympiad.method }}</p><p>{{ currentOlympiad.explanation }}</p>
+              <button class="primary" :disabled="olympiadSaving" @click="nextOlympiad">{{ olympiadIndex===olympiadQuestions.length-1 ? '完成并保存' : '下一题' }}</button>
+            </div>
+          </article>
         </section>
 
         <section v-else-if="view === 'mistakes'" class="page-section">
@@ -378,9 +424,10 @@
   </div>
   <script src="js/vue.global.prod.js?v=20260720-2"></script>
   <script src="js/parts/merge.js?v=20260730-1"></script>
-  <script src="js/parts/core.js?v=20260730-1"></script>
+  <script src="js/parts/core.js?v=20260730-2"></script>
   <script src="js/parts/chinese.js?v=20260730-1"></script>
   <script src="js/parts/math.js?v=20260730-1"></script>
+  <script src="js/parts/olympiad.js?v=20260730-2"></script>
   <script src="js/parts/library.js?v=20260730-1"></script>
   <script src="js/parts/resources.js?v=20260730-1"></script>
   <script src="js/app.js?v=20260730-1"></script>
