@@ -17,7 +17,6 @@
         <module>lobby</module>
         <module>game</module>
         <module>web</module>
-        <module>sp</module>
     </modules>
 
     <build>
