@@ -94,7 +94,7 @@
         <div>
             <button type="button" onclick="clearScreen()">清屏</button>
             <a href="./admin.html">管理后台</a>
-            <a href="../home/room.html">回大厅</a>
+            <a href="../lobby/index.html">回大厅</a>
         </div>
     </div>
     <div id="term"></div>
@@ -110,7 +110,7 @@
     if (!sessionId) { location.href = appUrl('/'); return; }
     if (!isAdmin) {
         alert('需要管理员账号');
-        location.href = appUrl('/pages/home/room.html');
+        location.href = appUrl('/pages/lobby/index.html');
         return;
     }
 

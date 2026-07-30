@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>娱乐</title>
+    <script src="../../shared/app-base.js"></script>
+    <link rel="stylesheet" href="../../shared/lobby-home.css">
+</head>
+<body>
+<header>
+    <h1>娱乐</h1>
+    <div class="user-actions">
+        <span id="userDisplay"></span>
+        <a class="header-btn" href="../lobby/entertainment.html">返回娱乐</a>
+        <button class="header-btn" onclick="logout()">退出</button>
+    </div>
+</header>
+<main>
+    <p class="breadcrumb">首页 / 大厅 / 娱乐</p>
+    <div class="welcome">
+        <div>
+            <h2>扑克玩法</h2>
+            <p>各玩法独立房间与牌桌页，手机默认横屏。</p>
+        </div>
+    </div>
+    <section class="game-grid">
+        <article class="game-card ddz">
+            <div>
+                <div class="game-icon">🃏</div>
+                <h3>斗地主</h3>
+                <p>经典三人玩法，叫抢地主。</p>
+            </div>
+            <a class="game-btn ddz" href="./doudizhu/rooms.html">进入斗地主</a>
+        </article>
+        <article class="game-card pdk">
+            <div>
+                <div class="game-icon">🏃</div>
+                <h3>跑得快</h3>
+                <p>三人出完即胜，节奏更快。</p>
+            </div>
+            <a class="game-btn pdk" href="./paodekuai/rooms.html">进入跑得快</a>
+        </article>
+        <article class="game-card tractor">
+            <div>
+                <div class="game-icon">🚜</div>
+                <h3>拖拉机</h3>
+                <p>四人升级，主牌拖拉机。</p>
+            </div>
+            <a class="game-btn tractor" href="./tractor/rooms.html">进入拖拉机</a>
+        </article>
+    </section>
+</main>
+<script src="../lobby/session.js"></script>
+</body>
+</html>

@@ -407,8 +407,10 @@ class Game {
     
     // 发射子弹
     shoot(targetLetter) {
-        this.shootSound.currentTime = 0;
-        this.shootSound.play();
+        if (this.shootSound) {
+            this.shootSound.currentTime = 0;
+            this.shootSound.play();
+        }
         
         // 发射子弹
         this.bullets.push({
@@ -585,8 +587,10 @@ class Game {
             letter.y += this.letterSpeed * (1 + (Math.random() * 0.2 - 0.1)); // ±10%的随机速度变化
             if (letter.y > this.canvas.height) {
                 this.letters.splice(i, 1);
-                this.missSound.currentTime = 0;
-                this.missSound.play();
+                if (this.missSound) {
+                    this.missSound.currentTime = 0;
+                    this.missSound.play();
+                }
             }
         }
         
@@ -613,8 +617,10 @@ class Game {
                     this.score += 10;
                     document.getElementById('score').textContent = this.score;
                     this.onLetterHit(hitChar);
-                    this.hitSound.currentTime = 0;
-                    this.hitSound.play();
+                    if (this.hitSound) {
+                        this.hitSound.currentTime = 0;
+                        this.hitSound.play();
+                    }
                 }
             }
             
@@ -749,4 +755,4 @@ class Game {
 // 初始化游戏
 window.onload = () => {
     const game = new Game();
-}; 
+};

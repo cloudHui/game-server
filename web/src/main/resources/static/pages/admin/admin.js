@@ -3,7 +3,7 @@ var sessionId = localStorage.getItem('sessionId');
         if (!sessionId) { window.location.href = appUrl('/'); }
         if (!isAdmin) {
             alert('需要管理员账号');
-            window.location.href = appUrl('/pages/home/room.html');
+            window.location.href = appUrl('/pages/lobby/index.html');
         }
 
         function switchTab(name) {

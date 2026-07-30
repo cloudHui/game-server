@@ -508,10 +508,10 @@
             localStorage.setItem('roomId', info.roomId || 0);
             localStorage.setItem('gameType', info.gameType || 2);
             var gt = Number(info.gameType || 2);
-            var page = gt === 1 ? '/pages/game/mahjong/index.html'
-                : gt === 3 ? '/pages/game/paodekuai/index.html'
-                : gt === 4 ? '/pages/game/tractor/index.html'
-                : '/pages/game/doudizhu/index.html';
+            var page = gt === 1 ? '/pages/games/mahjong/index.html'
+                : gt === 3 ? '/pages/games/paodekuai/index.html'
+                : gt === 4 ? '/pages/games/tractor/index.html'
+                : '/pages/games/doudizhu/index.html';
             window.location.href = appUrl(page);
         }
 
@@ -537,21 +537,21 @@
                     localStorage.setItem('tableId', tableId);
                     localStorage.setItem('roomId', roomId);
                     localStorage.setItem('gameType', gameType);
-                    var page = gameType === 1 ? '/pages/game/mahjong/index.html'
-                        : gameType === 3 ? '/pages/game/paodekuai/index.html'
-                        : gameType === 4 ? '/pages/game/tractor/index.html'
-                        : '/pages/game/doudizhu/index.html';
+                    var page = gameType === 1 ? '/pages/games/mahjong/index.html'
+                        : gameType === 3 ? '/pages/games/paodekuai/index.html'
+                        : gameType === 4 ? '/pages/games/tractor/index.html'
+                        : '/pages/games/doudizhu/index.html';
                     window.location.href = appUrl(page);
                 })
                 .catch(function() {
                     localStorage.setItem('tableId', tableId);
                     localStorage.setItem('gameType', 2);
-                    window.location.href = appUrl('/pages/game/doudizhu/index.html');
+                    window.location.href = appUrl('/pages/games/doudizhu/index.html');
                 });
         }
 
         function goHall() {
-            window.location.href = appUrl('/pages/home/room.html');
+            window.location.href = appUrl('/pages/lobby/index.html');
         }
 
         document.getElementById('loginPass').addEventListener('keypress', function(e) {

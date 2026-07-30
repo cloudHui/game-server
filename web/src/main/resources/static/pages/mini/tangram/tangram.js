@@ -6,7 +6,7 @@
   'use strict';
 
   MiniGames.requireLogin();
-  document.getElementById('back').href = appUrl('/pages/mini/mini-games.html');
+  document.getElementById('back').href = appUrl('/pages/mini/index.html');
 
   var canvas = document.getElementById('c');
   var ctx = canvas.getContext('2d');

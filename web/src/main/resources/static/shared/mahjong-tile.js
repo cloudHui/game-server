@@ -21,7 +21,7 @@
     else if (suit === 4) name = 'B_wind_' + value + '.png';
     else if (suit === 5) name = 'B_wind_' + (value + 4) + '.png';
     else return '';
-    return appUrl('/img/card/' + name);
+    return appUrl('/assets/cards/' + name);
   }
 
   function getTileName(tileId) {

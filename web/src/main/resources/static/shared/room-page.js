@@ -6,10 +6,10 @@
     var sessionId = localStorage.getItem('sessionId');
     var gameType = parseInt(document.body.dataset.gameType, 10);
     var META = {
-        1: { name: '麻将', official: [1, 11, 12, 9001], page: '/pages/game/mahjong/index.html', defaultSeats: 4 },
-        2: { name: '斗地主', official: [2, 9002, 9003], page: '/pages/game/doudizhu/index.html', defaultSeats: 3 },
-        3: { name: '跑得快', official: [9010], page: '/pages/game/paodekuai/index.html', defaultSeats: 3 },
-        4: { name: '拖拉机', official: [9011], page: '/pages/game/tractor/index.html', defaultSeats: 4 }
+        1: { name: '麻将', official: [1, 11, 12, 9001], page: '/pages/games/mahjong/index.html', defaultSeats: 4 },
+        2: { name: '斗地主', official: [2, 9002, 9003], page: '/pages/games/doudizhu/index.html', defaultSeats: 3 },
+        3: { name: '跑得快', official: [9010], page: '/pages/games/paodekuai/index.html', defaultSeats: 3 },
+        4: { name: '拖拉机', official: [9011], page: '/pages/games/tractor/index.html', defaultSeats: 4 }
     };
     var meta = META[gameType] || META[2];
     var gameName = meta.name;

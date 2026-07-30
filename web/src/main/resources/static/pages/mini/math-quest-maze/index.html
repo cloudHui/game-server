@@ -23,7 +23,7 @@ canvas{width:100%;max-width:720px;background:#263238;border-radius:12px;display:
 <body>
 <header>
   <h1>Math Quest Maze</h1>
-  <a class="back" id="back" href="../mini-games.html">返回</a>
+  <a class="back" id="back" href="../index.html">返回</a>
 </header>
 <main>
   <div class="hud">
@@ -42,7 +42,7 @@ canvas{width:100%;max-width:720px;background:#263238;border-radius:12px;display:
 </main>
 <script>
 MiniGames.requireLogin();
-document.getElementById('back').href = appUrl('/pages/mini/mini-games.html');
+document.getElementById('back').href = appUrl('/pages/mini/index.html');
 
 var canvas = document.getElementById('c');
 var canvasBuffer = new CanvasBuffer(canvas);

@@ -29,10 +29,10 @@
   }
 
   function gamePageByType(gameType) {
-    if (gameType === 1) return '/pages/game/mahjong/index.html';
-    if (gameType === 3) return '/pages/game/paodekuai/index.html';
-    if (gameType === 4) return '/pages/game/tractor/index.html';
-    return '/pages/game/doudizhu/index.html';
+    if (gameType === 1) return '/pages/games/mahjong/index.html';
+    if (gameType === 3) return '/pages/games/paodekuai/index.html';
+    if (gameType === 4) return '/pages/games/tractor/index.html';
+    return '/pages/games/doudizhu/index.html';
   }
 
   function setWsStatus(connected, text) {
@@ -117,15 +117,23 @@
     if (bar) bar.style.display = 'none';
   }
 
+  function roomListPage() {
+    var path = w.location.pathname;
+    if (path.indexOf('/mahjong/') >= 0) return '/pages/games/mahjong/rooms.html';
+    if (path.indexOf('/paodekuai/') >= 0) return '/pages/games/paodekuai/rooms.html';
+    if (path.indexOf('/tractor/') >= 0) return '/pages/games/tractor/rooms.html';
+    return '/pages/games/doudizhu/rooms.html';
+  }
+
   function backToLobby() {
-    w.location.href = appUrl('/pages/home/room.html');
+    w.location.href = appUrl(roomListPage());
   }
 
   function exitRoom(sendFn) {
     sendFn('leave', {}, function (resp) {
       if (resp && resp.code === 0) {
         localStorage.removeItem('tableId');
-        w.location.href = appUrl('/pages/home/room.html');
+        w.location.href = appUrl(roomListPage());
       } else {
         alert((resp && resp.msg) || '退出房间失败');
       }

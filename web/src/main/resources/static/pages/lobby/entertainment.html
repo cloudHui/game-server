@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>娱乐</title>
+    <script src="../../shared/app-base.js"></script>
+    <link rel="stylesheet" href="../../shared/lobby-home.css">
+</head>
+<body>
+<header>
+    <h1>娱乐</h1>
+    <div class="user-actions">
+        <span id="userDisplay"></span>
+        <a class="header-btn" href="./index.html">返回大厅</a>
+        <button class="header-btn" onclick="logout()">退出</button>
+    </div>
+</header>
+<main>
+    <p class="breadcrumb">首页 / 大厅 / 娱乐</p>
+    <div class="welcome">
+        <div>
+            <h2>娱乐专区</h2>
+            <p>牌类、麻将与休闲小游戏分模块进入，互不混在同一列表。</p>
+        </div>
+    </div>
+    <section class="game-grid">
+        <article class="game-card poker" data-need-online="onlineTables">
+            <div>
+                <div class="game-icon">🃏</div>
+                <h3>牌类</h3>
+                <p>斗地主、跑得快、拖拉机，各自独立房间页。</p>
+            </div>
+            <a class="game-btn poker" href="../games/index.html" data-need-online="onlineTables">进入牌类</a>
+        </article>
+        <article class="game-card mj" data-need-online="onlineTables">
+            <div>
+                <div class="game-icon">🀄</div>
+                <h3>麻将</h3>
+                <p>进入麻将专区后再加载麻将房间和桌子。</p>
+            </div>
+            <a class="game-btn mj" href="../games/mahjong/rooms.html" data-need-online="onlineTables">进入麻将</a>
+        </article>
+        <article class="game-card mini">
+            <div>
+                <div class="game-icon">🎯</div>
+                <h3>休闲游戏</h3>
+                <p>本地小游戏可玩；联机五子棋/象棋仅需 Web。</p>
+            </div>
+            <a class="game-btn mini" href="../mini/index.html">查看小游戏</a>
+        </article>
+    </section>
+</main>
+<script src="./session.js"></script>
+<script src="../../shared/capabilities-poll.js"></script>
+<style>
+.waiting-tip{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:6px;background:#c62828;color:#fff;font-size:12px;}
+.is-waiting{opacity:.72;}
+a.is-waiting{pointer-events:auto;}
+</style>
+</body>
+</html>

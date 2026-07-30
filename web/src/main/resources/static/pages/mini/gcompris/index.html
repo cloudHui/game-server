@@ -28,7 +28,7 @@ button.ghost{background:#78909c}
 <body>
 <header>
   <h1>启蒙乐园（GCompris 风格）</h1>
-  <a class="back" id="back" href="../mini-games.html">返回</a>
+  <a class="back" id="back" href="../index.html">返回</a>
 </header>
 <main>
   <div class="intro">参照 <a href="https://github.com/gcompris/GCompris-qt" target="_blank" rel="noopener" style="color:#ffe082">GCompris</a> 的儿童教育思路，提供可在浏览器直接玩的小活动（Qt 原版过重，这里做 Web 轻量版）。</div>
@@ -49,7 +49,7 @@ button.ghost{background:#78909c}
 </main>
 <script>
 MiniGames.requireLogin();
-document.getElementById('back').href = appUrl('/pages/mini/mini-games.html');
+document.getElementById('back').href = appUrl('/pages/mini/index.html');
 var menu = document.getElementById('menu');
 var play = document.getElementById('play');
 var board = document.getElementById('board');

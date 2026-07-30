@@ -4,10 +4,10 @@
 var fs = require('fs');
 var vm = require('vm');
 var path = require('path');
-var mini = path.join(__dirname, '../web/src/main/resources/static/pages/mini');
+var chess = path.join(__dirname, '../web/src/main/resources/static/pages/mini/chess');
 var context = { self: {}, Date: Date };
 vm.createContext(context);
-vm.runInContext(fs.readFileSync(path.join(mini, 'chess-rules.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(chess, 'chess-rules.js'), 'utf8'), context);
 context.self.ChessRules = context.self.ChessRules;
 
 function emptyBoard() {
