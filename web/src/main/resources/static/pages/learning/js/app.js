@@ -1,7 +1,7 @@
 const { createApp } = Vue;
 
 createApp(LearningMerge({
-  data: {},
+  data(){return {};},
   computed: {},
   methods: {},
   async mounted(){

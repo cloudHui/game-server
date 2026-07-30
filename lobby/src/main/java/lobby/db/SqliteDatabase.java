@@ -14,13 +14,28 @@ import org.slf4j.LoggerFactory;
  */
 public class SqliteDatabase {
 	private static final Logger logger = LoggerFactory.getLogger(SqliteDatabase.class);
-	private static final String DB_PATH = "data/lobby.db";
+	private static final String DB_PATH_PROPERTY = "account.db-path";
 
 	private static SqliteDatabase instance;
 	private final String jdbcUrl;
 
 	private SqliteDatabase() {
-		this(DB_PATH);
+		this(resolveDatabasePath());
+	}
+
+	private static String resolveDatabasePath() {
+		String configured = System.getProperty(DB_PATH_PROPERTY);
+		if (configured != null && !configured.trim().isEmpty()) {
+			return configured.trim();
+		}
+		String logHome = System.getProperty("LOG_HOME");
+		if (logHome != null && !logHome.trim().isEmpty()) {
+			File serverRoot = new File(logHome).getAbsoluteFile().getParentFile();
+			if (serverRoot != null) {
+				return new File(serverRoot, "data/lobby.db").getPath();
+			}
+		}
+		return new File("data/lobby.db").getPath();
 	}
 
 	SqliteDatabase(String path) {

@@ -1,8 +1,8 @@
 package web.learning.controller;
 
+import web.account.AccountService;
 import web.learning.model.Student;
 import web.learning.service.AuthService;
-import web.learning.service.InviteService;
 import web.learning.service.StudentService;
 import web.learning.service.UsageService;
 import org.springframework.web.bind.annotation.*;
@@ -15,20 +15,22 @@ public class AuthController {
     private final AuthService auth;
     private final StudentService students;
     private final UsageService usage;
-    private final InviteService invites;
+    private final AccountService accounts;
 
-    public AuthController(AuthService auth, StudentService students, UsageService usage, InviteService invites) {
+    public AuthController(AuthService auth, StudentService students, UsageService usage, AccountService accounts) {
         this.auth = auth;
         this.students = students;
         this.usage = usage;
-        this.invites = invites;
+        this.accounts = accounts;
     }
 
     @GetMapping("/registration")
     public Map<String, Object> registration(@RequestParam(value = "invite", required = false) String invite) throws Exception {
         Map<String, Object> result = auth.registrationOptions();
         if (invite != null && !invite.trim().isEmpty()) {
-            invites.peekValid(invite);
+            if (!accounts.peekInviteValid(invite)) {
+                throw new IllegalArgumentException("邀请码无效或已过期");
+            }
             result.put("inviteValid", true);
         }
         return result;
