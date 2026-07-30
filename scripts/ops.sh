@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Linux 运维入口：启停 / 状态 / 打包 / 清日志
+# Linux 运维入口：启停 / 状态 / 监控 / 打包 / 清日志
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,6 +29,14 @@ declare -A HEAP=(
   [web]=192m
 )
 
+declare -A INITIAL_HEAP=(
+  [center]=64m
+  [gate]=96m
+  [lobby]=128m
+  [game]=128m
+  [web]=64m
+)
+
 usage() {
   cat <<EOF
 用法:
@@ -36,6 +44,7 @@ usage() {
   $0 start-remaining     # 起尚未运行的游戏服（center/gate/lobby/game），受内存门禁
   $0 build
   $0 build-restart [服务|all]
+  $0 monitor [刷新秒数|--once]
   $0 clean-logs
   $0 nginx-apply <域名>
 
@@ -46,6 +55,9 @@ usage() {
   $0 start-remaining     # 内存足够时再起牌桌相关服务
   $0 start center        # 单独起某服务
   $0 restart web
+  $0 monitor             # 默认每 1 秒清屏刷新
+  $0 monitor 2           # 每 2 秒清屏刷新
+  $0 monitor --once      # 只输出一次，不清屏
   $0 build
   $0 nginx-apply www.example.com
 EOF
@@ -159,10 +171,11 @@ stop_one() {
 
 start_one() {
   local svc="$1"
-  local dir jar heap logctx
+  local dir jar heap initial_heap logctx
   dir="$(svc_dir "$svc")"
   jar="$(svc_jar "$svc")"
   heap="${HEAP[$svc]}"
+  initial_heap="${INITIAL_HEAP[$svc]}"
 
   if [[ ! -f "$jar" ]]; then
     echo "[$svc] 找不到 $jar，请先执行: $0 build"
@@ -180,7 +193,7 @@ start_one() {
     java
     -Dfile.encoding=UTF-8
     "-DLOG_HOME=${LOG_HOME}"
-    "-Xms${heap}"
+    "-Xms${initial_heap}"
     "-Xmx${heap}"
     -XX:+UseG1GC
   )
@@ -188,12 +201,15 @@ start_one() {
   if [[ "$svc" == "web" ]]; then
     local ctx
     ctx="/$(web_path)"
-    jvm+=("-Dserver.servlet.context-path=${ctx}")
+    jvm+=(
+      -Xss256k
+      "-Dserver.servlet.context-path=${ctx}"
+    )
     # 保持仓库根为工作目录，使 application.yml 中 build/game/replay 路径有效
     workdir="$ROOT"
-    echo "[$svc] 启动 context-path=${ctx} heap=${heap} log=${LOG_HOME}/${svc}"
+    echo "[$svc] 启动 context-path=${ctx} heap=${initial_heap}-${heap} stack=256k log=${LOG_HOME}/${svc}"
   else
-    echo "[$svc] 启动 heap=${heap} log=${LOG_HOME}/${svc}"
+    echo "[$svc] 启动 heap=${initial_heap}-${heap} log=${LOG_HOME}/${svc}"
   fi
 
   local console_out="$LOG_HOME/$svc/console.out"
@@ -323,6 +339,97 @@ cmd_status() {
   else
     echo "Nginx 反代: 未检测到当前路径，可执行: $0 nginx-apply <域名>"
   fi
+}
+
+cmd_monitor() {
+  local interval="${1:-1}"
+  local once=0
+
+  if [[ "$interval" == "--once" ]]; then
+    once=1
+    interval=1
+  elif ! [[ "$interval" =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+       ! awk -v n="$interval" 'BEGIN { exit !(n > 0) }'; then
+    echo "用法: $0 monitor [刷新秒数|--once]" >&2
+    return 2
+  fi
+
+  monitor_snapshot() {
+    local now
+    now="$(date '+%F %T')"
+
+    printf '五个 Java 服务与 xray 实时资源监控  %s  刷新: %ss\n' "$now" "$interval"
+    printf '%-9s %-8s %9s %9s %11s  %s\n' "服务" "PID" "CPU%" "MEM%" "RSS(MB)" "进程"
+    printf '%s\n' '--------------------------------------------------------------------------'
+
+    ps -eo pid=,comm=,%cpu=,%mem=,rss=,args= 2>/dev/null |
+      awk '
+      function service_name(comm, args, lower) {
+          lower = tolower(args)
+          if (comm == "java") {
+              if (lower ~ /(^|[/[:space:]])center[.]jar([[:space:]]|$)/) return "center"
+              if (lower ~ /(^|[/[:space:]])gate[.]jar([[:space:]]|$)/)   return "gate"
+              if (lower ~ /(^|[/[:space:]])lobby[.]jar([[:space:]]|$)/)  return "lobby"
+              if (lower ~ /(^|[/[:space:]])game[.]jar([[:space:]]|$)/)   return "game"
+              if (lower ~ /(^|[/[:space:]])web[.]jar([[:space:]]|$)/)    return "web"
+              return ""
+          }
+          if (comm == "xray" || comm == "x-ui" ||
+              lower ~ /(^|[/[:space:]])xray([[:space:]]|$)/ ||
+              lower ~ /(^|[/[:space:]])x-ui([[:space:]]|$)/) return "xray"
+          return ""
+      }
+      {
+          pid=$1
+          comm=$2
+          cpu=$3
+          mem=$4
+          rss=$5
+          args=""
+          for (i=6; i<=NF; i++) args=args (i == 6 ? "" : " ") $i
+
+          name=service_name(comm, args)
+          if (name == "") next
+
+          found++
+          total_cpu += cpu
+          total_mem += mem
+          total_rss += rss
+          count[name]++
+          printf "%-9s %-8s %8.1f%% %8.1f%% %11.1f  %s\n",
+                 name, pid, cpu, mem, rss/1024, comm
+      }
+      END {
+          if (!found)
+              print "未发现目标进程（Center/Gate/Lobby/Game/Web.jar 或 xray/x-ui）"
+
+          print "--------------------------------------------------------------------------"
+          printf "%-9s %-8s %8.1f%% %8.1f%% %11.1f\n",
+                 "合计", found, total_cpu, total_mem, total_rss/1024
+          printf "进程数: center=%d gate=%d lobby=%d game=%d web=%d xray=%d\n",
+                 count["center"], count["gate"], count["lobby"],
+                 count["game"], count["web"], count["xray"]
+      }'
+
+    printf '\n系统内存: '
+    free -h 2>/dev/null | awk '/^Mem:/ {printf "%s / %s（可用 %s）\n", $3, $2, $7}'
+    printf '系统负载: '
+    awk '{printf "%s %s %s\n", $1, $2, $3}' /proc/loadavg 2>/dev/null
+    [[ "$once" -eq 0 ]] && printf '按 Ctrl+C 退出\n'
+  }
+
+  if [[ "$once" -eq 1 ]]; then
+    monitor_snapshot
+    return
+  fi
+
+  while true; do
+    if [[ -t 1 ]]; then
+      printf '\033[H\033[2J'
+    fi
+    monitor_snapshot
+    sleep "$interval"
+  done
 }
 
 cmd_build() {
@@ -467,6 +574,7 @@ main() {
     stop) cmd_stop "$arg" ;;
     restart) cmd_restart "$arg" ;;
     status) cmd_status "$arg" ;;
+    monitor) cmd_monitor "${2:-1}" ;;
     build) cmd_build ;;
     build-restart) cmd_build_restart "$arg" ;;
     clean-logs) cmd_clean_logs ;;
