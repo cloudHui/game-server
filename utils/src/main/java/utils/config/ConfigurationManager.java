@@ -77,7 +77,7 @@ public class ConfigurationManager {
 					}
 				}
 				if (inputStream == null) {
-					filePath = ConfigPathUtils.getProjectPath() + FILE_NAME;
+					filePath = ConfigPathUtils.getProjectPath() + File.separator + FILE_NAME;
 					file = new File(filePath);
 					if (file.exists()) {
 						inputStream = new FileInputStream(filePath);

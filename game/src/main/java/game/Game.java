@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import game.client.ClientProto;
 import game.client.GameClient;
 import game.manager.TableManager;
+import game.manager.table.RobotOperationDelay;
 import msg.registor.HandleTypeRegister;
 import msg.registor.enums.ServerType;
 import net.service.ServerService;
@@ -282,6 +283,11 @@ public class Game {
 	 */
 	private void initializeGameManagers() {
 		tableManager = new TableManager();
+		RobotOperationDelay.reload();
+		registerTimer(60_000L, 60_000L, -1, ignored -> {
+			RobotOperationDelay.reload();
+			return false;
+		}, null);
 		logger.info("游戏管理器初始化完成");
 	}
 	/**

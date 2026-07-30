@@ -8,6 +8,7 @@ import java.util.List;
 import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
+import game.manager.table.RobotOperationDelay;
 import game.manager.table.mj.MjClaimInfo;
 import game.manager.table.mj.MjClaimService;
 import game.manager.table.mj.MjTableContext;
@@ -48,7 +49,7 @@ public class MjClaim extends AbstractTableHandle {
 	}
 
 	private long randomRobotDelay() {
-		return java.util.concurrent.ThreadLocalRandom.current().nextLong(3000, 6001);
+		return RobotOperationDelay.randomMillis();
 	}
 
 	@Override

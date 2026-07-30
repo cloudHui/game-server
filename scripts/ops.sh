@@ -441,8 +441,8 @@ cmd_monitor() {
 cmd_build() {
   command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn"; exit 1; }
   cd "$ROOT"
-  echo "打包中（跳过 sp，跳过测试）..."
-  mvn -q install -DskipTests -pl '!sp'
+  echo "打包中（跳过测试）..."
+  mvn -q install -DskipTests
   # Maven 的 copy-dependencies 会排除 com.cloud 内部模块；这里必须显式同步，
   # 否则业务 JAR 更新后仍可能加载旧的 tool/utils/proto JAR。
   local module jar svc lib
@@ -458,6 +458,11 @@ cmd_build() {
       cp -f "$jar" "$lib/$module-1.0-SNAPSHOT.jar"
     done
   done
+
+  if [[ ! -f "$BUILD/game/app.properties" ]]; then
+    cp "$ROOT/game/app.properties.example" "$BUILD/game/app.properties"
+    echo "已创建游戏服外置配置: $BUILD/game/app.properties"
+  fi
 
   # 校验改包后的运行时类确实来自最新 tool JAR。
   if ! jar tf "$BUILD/center/lib/tool-1.0-SNAPSHOT.jar" | grep -q '^tools/ServerManager.class$'; then

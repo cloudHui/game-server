@@ -110,8 +110,8 @@ exit /b 0
 cd /d "%ROOT%"
 where mvn >nul 2>&1 || (echo 未找到 Maven，请先配置 PATH。& exit /b 1)
 echo.
-echo [打包] Maven install（跳过测试，跳过 sp）...
-mvn -q install -DskipTests -pl ^!sp
+echo [打包] Maven install（跳过测试）...
+mvn -q install -DskipTests
 if errorlevel 1 (echo Maven 打包失败。& exit /b 1)
 
 for %%S in (center gate lobby game web) do if not exist "%BUILD%\%%S" mkdir "%BUILD%\%%S"
@@ -122,6 +122,7 @@ if not exist "%BUILD%\game\Game.jar" (echo 缺少 build\game\Game.jar& exit /b 1
 if not exist "%BUILD%\web\Web.jar" (echo 缺少 build\web\Web.jar& exit /b 1)
 call :sync_proto
 call :sync_internal_modules || exit /b 1
+if not exist "%BUILD%\game\app.properties" copy /y "%ROOT%\game\app.properties.example" "%BUILD%\game\app.properties" >nul
 echo [打包] 完成，产物位于 %BUILD%。
 exit /b 0
 

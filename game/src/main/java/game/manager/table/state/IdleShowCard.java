@@ -2,6 +2,7 @@ package game.manager.table.state;
 
 import game.manager.table.Table;
 import game.manager.table.TableUser;
+import game.manager.table.RobotOperationDelay;
 import game.manager.table.tractor.TractorTable;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
@@ -41,7 +42,7 @@ public class IdleShowCard extends AbstractTableHandle {
 	}
 
 	private long randomRobotDelay() {
-		return java.util.concurrent.ThreadLocalRandom.current().nextLong(800, 5001);
+		return RobotOperationDelay.randomMillis();
 	}
 
 	@Override

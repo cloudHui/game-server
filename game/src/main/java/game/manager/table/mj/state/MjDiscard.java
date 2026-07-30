@@ -5,6 +5,7 @@ import game.manager.table.state.AbstractTableHandle;
 import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
+import game.manager.table.RobotOperationDelay;
 import game.manager.table.mj.MjDrawService;
 import game.manager.table.mj.MjPlayService;
 import game.manager.table.mj.MjExposedSet;
@@ -54,7 +55,7 @@ public class MjDiscard extends AbstractTableHandle {
 	}
 
 	private long randomRobotDelay() {
-		return java.util.concurrent.ThreadLocalRandom.current().nextLong(3000, 6001);
+		return RobotOperationDelay.randomMillis();
 	}
 
 	@Override
