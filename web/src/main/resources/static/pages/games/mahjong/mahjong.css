@@ -343,9 +343,18 @@ body {
 .opponent-tiles {
     display: flex;
     justify-content: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: visible;
+}
+.opponent-hand-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
     max-width: calc(var(--game-w, 100vw) * 0.78);
     margin: 0 auto;
-    overflow: visible;
 }
 .opponent-tiles .tile-back {
     width: 28px;
@@ -359,27 +368,28 @@ body {
 .opponent-tiles .tile-back:first-child { margin-left: 0; }
 .side-tiles {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    align-items: flex-end;
 }
 .side-tiles .tile-back {
-    width: 36px;
-    height: 16px;
-    margin-top: -4px;
-    border-radius: 1px;
+    width: 28px;
+    height: 36px;
+    margin-left: -10px;
+    border-radius: 2px;
     background: linear-gradient(165deg, #3d9a55 0%, #1f6b38 55%, #15532c 100%);
     border: 1px solid #0f3d22;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px rgba(0,0,0,0.35);
 }
-.side-tiles .tile-back:first-child { margin-top: 0; }
+.side-tiles .tile-back:first-child { margin-left: 0; }
 
 .opponent-exposed {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-flow: row-reverse nowrap;
+    justify-content: flex-start;
+    align-items: flex-end;
     gap: 4px;
-    margin-bottom: 4px;
-    max-width: min(360px, calc(var(--game-w, 100vw) * 0.78));
+    max-width: min(360px, calc(var(--game-w, 100vw) * 0.42));
+    flex: 0 0 auto;
 }
 .opponent-exposed:empty { display: none; }
 .opponent-exposed .exposed-set .tile,
@@ -387,16 +397,6 @@ body {
     width: 22px;
     height: 30px;
 }
-.side-exposed {
-    flex-direction: column;
-    max-width: none;
-    margin-bottom: 6px;
-}
-.side-exposed .exposed-set {
-    flex-wrap: wrap;
-    max-width: 52px;
-}
-
 .discarded-area {
     position: absolute;
     width: min(340px, calc(var(--game-w, 100vw) * 0.42));
