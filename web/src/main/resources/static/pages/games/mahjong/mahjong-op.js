@@ -214,6 +214,11 @@ function handleNotCard(data) {
     }
     updateTileCount();
     refreshOpponentBacks();
+    // 补杠/暗杠后的补摸可能先于新的 NotOperation 到达；即使服务端提示
+    // 短暂丢失，也要立即恢复本人的手牌交互和出牌按钮。
+    if (isDraw) {
+        showOperationChoices([{ choice: OP.DISCARD }]);
+    }
 }
 
 /** 对比新旧手牌找出刚摸入的一张 */
@@ -306,10 +311,12 @@ function handleNotMjState(data) {
 }
 
 function handleNotResult(data) {
-    var msg = (data && data.winner && data.winner > 0)
-        ? ('玩家 ' + data.winner + ' 获胜!') : '流局!';
-    showCenterMsg(msg, 3000);
-    showActionButtons('prepare');
+    // 麻将的 NotResult 用于杠分即时通知，不代表本局结束。
+    // 本局结束只由 NotRoundResult 驱动，不能在杠后把操作栏切成“准备”。
+    if (!data) return;
+    var seat = Number(data.winner);
+    var factor = Number(data.settleFactor || data.settle_factor || 0);
+    showCenterMsg('座位 ' + seat + ' 杠分' + (factor ? ' +' + factor : ''), 1600);
 }
 
 function handleNotRoundResult(data) {
@@ -327,7 +334,9 @@ function handleNotRoundResult(data) {
             + sign + scores[i].score + '</span></div>';
     }
     if (data.winTile) removeClaimedDiscard(data.winTile);
-    showSettle(title, meta, rows, buildMjSettleHandsHtml(data.hands || []));
+    showSettle(title, meta, rows, buildMjSettleHandsHtml(
+        data.hands || [], data.winnerSeat, data.winTile
+    ));
     showCenterMsg(title, 2500);
     gameState.exposedBySeat = {};
     gameState.discardedTiles = [];
@@ -376,30 +385,45 @@ function applyTotalScores(totals) {
 }
 
 /** 结算亮开手牌与副露；暗杠亮牌并打「暗杠」标识，来源标注方向 */
-function buildMjSettleHandsHtml(hands) {
+function buildMjSettleHandsHtml(hands, winnerSeat, winTile) {
     if (!hands || !hands.length) return '';
     var html = '';
     for (var i = 0; i < hands.length; i++) {
         var h = hands[i];
         html += '<div class="settle-hand-row"><div class="label">座位 ' + h.seat;
+        if (h.seat === winnerSeat) {
+            html += '<span class="settle-hu-badge">胡</span>';
+        }
         if (h.exposed && h.exposed.length) {
             html += '<span class="settle-badge">含副露</span>';
         }
         html += '</div><div class="settle-hand-cards" data-seat="' + h.seat + '"></div></div>';
     }
-    setTimeout(function () { fillSettleHandCards(hands); }, 0);
+    setTimeout(function () { fillSettleHandCards(hands, winnerSeat, winTile); }, 0);
     return html;
 }
 
-function fillSettleHandCards(hands) {
+function fillSettleHandCards(hands, winnerSeat, winTile) {
     for (var i = 0; i < hands.length; i++) {
         var h = hands[i];
         var box = document.querySelector('.settle-hand-cards[data-seat="' + h.seat + '"]');
         if (!box) continue;
         box.innerHTML = '';
-        var tiles = h.handTiles || [];
+        var tiles = (h.handTiles || []).slice();
+        sortHandTiles(tiles);
+        // 自摸时服务端手牌已包含胡牌；点炮时不包含。统一从普通手牌区
+        // 拿出胡牌，并在右侧留间隔单独展示。
+        if (h.seat === winnerSeat && winTile && tiles.length % 3 === 2) {
+            var winIndex = tiles.indexOf(winTile);
+            if (winIndex >= 0) tiles.splice(winIndex, 1);
+        }
         for (var t = 0; t < tiles.length; t++) {
             box.appendChild(MahjongTile.createTileEl(tiles[t], { small: true }));
+        }
+        if (h.seat === winnerSeat && winTile) {
+            var winningTile = MahjongTile.createTileEl(winTile, { small: true });
+            winningTile.className += ' settle-win-tile';
+            box.appendChild(winningTile);
         }
         var exposed = h.exposed || [];
         for (var e = 0; e < exposed.length; e++) {
