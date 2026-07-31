@@ -127,17 +127,21 @@ function toggleTile(index) {
     }
 }
 
+/** 牌背增量同步：张数不变不重画，避免整手清空造成跳动 */
 function renderCardBacks(containerId, count) {
     var container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = '';
-    var frag = document.createDocumentFragment();
-    for (var i = 0; i < count; i++) {
+    count = Math.max(0, Number(count) || 0);
+    var kids = container.children;
+    if (kids.length === count) return;
+    while (kids.length > count) {
+        container.removeChild(container.lastChild);
+    }
+    while (kids.length < count) {
         var back = document.createElement('div');
         back.className = 'tile-back';
-        frag.appendChild(back);
+        container.appendChild(back);
     }
-    container.appendChild(frag);
 }
 
 /**
@@ -217,10 +221,15 @@ function seatSlot(relPos, seatNum) {
 
 function clearSeatSlots() {
     ['Top', 'Left', 'Right'].forEach(function (s) {
-        document.getElementById('player' + s).innerHTML = '<span class="name">等待加入</span>';
+        var info = document.getElementById('player' + s);
+        info.className = 'player-info';
+        info.innerHTML = '<span class="name">等待加入</span><span class="tile-count"></span>';
         document.getElementById('tiles' + s).innerHTML = '';
         var exp = document.getElementById('exposed' + s);
-        if (exp) exp.innerHTML = '';
+        if (exp) {
+            exp.innerHTML = '';
+            delete exp.dataset.exposedSig;
+        }
     });
 }
 
@@ -254,13 +263,28 @@ function refreshOpponentBacks() {
         var info = document.getElementById('player' + cap);
         var tiles = document.getElementById('tiles' + cap);
         if (!info || !tiles) continue;
-        info.innerHTML =
-            '<span class="name">' + (p.nickName || '玩家') + scoreText(p.totalScore) + '</span>' +
-            '<span class="tile-count">' + tileCount + '张</span>';
+        updateOpponentInfo(info, p, tileCount);
         // 手牌仅绿牌背看张数；副露（碰/杠/吃）亮倒可见
         renderOpponentExposed(cap, p.position);
         renderCardBacks('tiles' + cap, tileCount);
     }
+}
+
+/** 只改名字/张数文本，保留倒计时节点，避免整段 innerHTML 造成跳动 */
+function updateOpponentInfo(info, player, tileCount) {
+    var nameText = (player.nickName || '玩家') + scoreText(player.totalScore);
+    var countText = tileCount + '张';
+    var nameEl = info.querySelector('.name');
+    var countEl = info.querySelector('.tile-count');
+    if (!nameEl || !countEl) {
+        var countdown = info.querySelector('.operation-countdown');
+        info.innerHTML = '<span class="name"></span><span class="tile-count"></span>';
+        nameEl = info.querySelector('.name');
+        countEl = info.querySelector('.tile-count');
+        if (countdown) info.appendChild(countdown);
+    }
+    if (nameEl.textContent !== nameText) nameEl.textContent = nameText;
+    if (countEl.textContent !== countText) countEl.textContent = countText;
 }
 
 function scoreText(score) {
@@ -269,14 +293,23 @@ function scoreText(score) {
     return ' ' + (score > 0 ? '+' : '') + score;
 }
 
-/** 渲染对手已亮倒的副露（暗杠仍牌背） */
+/** 渲染对手已亮倒的副露（暗杠仍牌背）；内容未变则跳过 */
 function renderOpponentExposed(cap, seat) {
     var box = document.getElementById('exposed' + cap);
     if (!box) return;
-    box.innerHTML = '';
     var sets = gameState.exposedBySeat[seat] || [];
+    var sig = '';
     for (var i = 0; i < sets.length; i++) {
-        appendExposedSet(box, sets[i], { ownerSeat: seat, revealAnGang: false });
+        var s = sets[i];
+        sig += (s.kind || '') + ':' + (s.tiles || s.tileIds || []).join(',')
+            + ':' + (s.fromSeat != null ? s.fromSeat : '') + ':'
+            + (s.claimTile != null ? s.claimTile : '') + '|';
+    }
+    if (box.dataset.exposedSig === sig) return;
+    box.dataset.exposedSig = sig;
+    box.innerHTML = '';
+    for (var j = 0; j < sets.length; j++) {
+        appendExposedSet(box, sets[j], { ownerSeat: seat, revealAnGang: false });
     }
 }
 
