@@ -358,7 +358,7 @@ cmd_monitor() {
     local now
     now="$(date '+%F %T')"
 
-    printf '五个 Java 服务与 xray 实时资源监控  %s  刷新: %ss\n' "$now" "$interval"
+    printf 'Java 与 xray/x-ui 服务实时资源监控  %s  刷新: %ss\n' "$now" "$interval"
     printf '%-9s %-8s %9s %9s %11s  %s\n' "服务" "PID" "CPU%" "MEM%" "RSS(MB)" "进程"
     printf '%s\n' '--------------------------------------------------------------------------'
 
@@ -374,9 +374,8 @@ cmd_monitor() {
               if (lower ~ /(^|[/[:space:]])web[.]jar([[:space:]]|$)/)    return "web"
               return ""
           }
-          if (comm == "xray" || comm == "x-ui" ||
-              lower ~ /(^|[/[:space:]])xray([[:space:]]|$)/ ||
-              lower ~ /(^|[/[:space:]])x-ui([[:space:]]|$)/) return "xray"
+          if (comm == "x-ui" || lower ~ /(^|[/[:space:]])x-ui([[:space:]]|$)/) return "x-ui"
+          if (comm == "xray" || lower ~ /(^|[/[:space:]])xray([[:space:]]|$)/) return "xray"
           return ""
       }
       {
@@ -406,9 +405,9 @@ cmd_monitor() {
           print "--------------------------------------------------------------------------"
           printf "%-9s %-8s %8.1f%% %8.1f%% %11.1f\n",
                  "合计", found, total_cpu, total_mem, total_rss/1024
-          printf "进程数: center=%d gate=%d lobby=%d game=%d web=%d xray=%d\n",
+          printf "进程数: center=%d gate=%d lobby=%d game=%d web=%d xray=%d x-ui=%d\n",
                  count["center"], count["gate"], count["lobby"],
-                 count["game"], count["web"], count["xray"]
+                 count["game"], count["web"], count["xray"], count["x-ui"]
       }'
 
     printf '\n系统内存: '
