@@ -12,17 +12,17 @@ import proto.ServerProto;
 
 @ProcessType(SMsg.NOT_TABLE_DESTROYED_MSG)
 public class NotTableDestroyedHandle implements Handler {
-	private static final Logger logger = LoggerFactory.getLogger(NotTableDestroyedHandle.class);
+    private static final Logger logger = LoggerFactory.getLogger(NotTableDestroyedHandle.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
-		try {
-			ServerProto.NotTableDestroyed not = (ServerProto.NotTableDestroyed) message;
-			TableManager.getInstance().removeTable(not.getTableId());
-			logger.info("收到桌子销毁通知, tableId: {}", not.getTableId());
-		} catch (Exception e) {
-			logger.error("处理桌子销毁通知失败", e);
-		}
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        try {
+            ServerProto.NotTableDestroyed not = (ServerProto.NotTableDestroyed) message;
+            TableManager.getInstance().removeTable(not.getTableId());
+            logger.info("收到桌子销毁通知, tableId: {}", not.getTableId());
+        } catch (Exception e) {
+            logger.error("处理桌子销毁通知失败", e);
+        }
+        return true;
+    }
 }

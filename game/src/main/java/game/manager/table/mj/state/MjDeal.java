@@ -1,7 +1,6 @@
 package game.manager.table.mj.state;
 
 import game.manager.table.state.AbstractTableHandle;
-
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 

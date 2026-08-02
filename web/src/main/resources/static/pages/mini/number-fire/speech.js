@@ -3,5 +3,5 @@
  * 保留此文件以免旧缓存路径 404；正式入口请加载共享脚本。
  */
 (function (w) {
-  if (w.MiniFireSpeech) w.NumberFireSpeech = w.MiniFireSpeech;
+    if (w.MiniFireSpeech) w.NumberFireSpeech = w.MiniFireSpeech;
 })(window);

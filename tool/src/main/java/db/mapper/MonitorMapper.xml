@@ -9,6 +9,9 @@
     </resultMap>
 
     <select id="queryChangeTable" resultMap="TableChangeMap">
-        SELECT tablename,gameid,channelid,updatetime FROM tablechange WHERE updatetime>#{updatetime} AND area=#{area}
+        SELECT tablename, gameid, channelid, updatetime
+        FROM tablechange
+        WHERE updatetime > #{updatetime}
+          AND area = #{area}
     </select>
 </mapper>

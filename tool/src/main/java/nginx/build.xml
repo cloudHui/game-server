@@ -26,7 +26,7 @@
                 <attribute name="Main-Class" value="${main-class}"/>
             </manifest>
         </jar>
-        <echo message="打包成功！JAR 文件位于：${jar.dir}/${ant.project.name}.jar" />
+        <echo message="打包成功！JAR 文件位于：${jar.dir}/${ant.project.name}.jar"/>
     </target>
 
 </project>

@@ -14,9 +14,9 @@ import msg.registor.enums.TableState;
 @ProcessEnum(TableState.TABLE_DIS)
 public class TableDis extends AbstractTableHandle {
 
-	@Override
-	public boolean onTiming(Table table) {
-		Game.getInstance().getTableManager().removeTableAsync(table.getTableId());
-		return true;
-	}
+    @Override
+    public boolean onTiming(Table table) {
+        Game.getInstance().getTableManager().removeTableAsync(table.getTableId());
+        return true;
+    }
 }

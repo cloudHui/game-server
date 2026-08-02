@@ -80,7 +80,7 @@ public class ConnectConfiguration {
             long[] connectId = new long[ids.length];
             int i = 0;
 
-            for(int iSize = ids.length; i < iSize; ++i) {
+            for (int iSize = ids.length; i < iSize; ++i) {
                 connectId[i] = Long.parseLong(ids[i]);
             }
 
@@ -96,7 +96,7 @@ public class ConnectConfiguration {
             List<Long> connectId = new ArrayList<>(ids.length);
             int i = 0;
 
-            for(int iSize = ids.length; i < iSize; ++i) {
+            for (int iSize = ids.length; i < iSize; ++i) {
                 connectId.add(Long.parseLong(ids[i]));
             }
 

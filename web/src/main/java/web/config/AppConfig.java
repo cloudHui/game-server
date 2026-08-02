@@ -15,34 +15,34 @@ import web.service.GateClient;
  */
 @Configuration
 public class AppConfig implements WebMvcConfigurer {
-	private static final Logger logger = LoggerFactory.getLogger(AppConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(AppConfig.class);
 
-	@Value("${gate.host:127.0.0.1}")
-	private String gateHost;
+    @Value("${gate.host:127.0.0.1}")
+    private String gateHost;
 
-	@Value("${gate.port:5600}")
-	private int gatePort;
+    @Value("${gate.port:5600}")
+    private int gatePort;
 
-	private final AuthInterceptor authInterceptor;
+    private final AuthInterceptor authInterceptor;
 
-	public AppConfig(@Lazy AuthInterceptor authInterceptor) {
-		this.authInterceptor = authInterceptor;
-	}
+    public AppConfig(@Lazy AuthInterceptor authInterceptor) {
+        this.authInterceptor = authInterceptor;
+    }
 
-	@Bean
-	public GateClient gateClient() {
-		logger.info("初始化Gate客户端, gate: {}:{}", gateHost, gatePort);
-		return new GateClient(gateHost, gatePort);
-	}
+    @Bean
+    public GateClient gateClient() {
+        logger.info("初始化Gate客户端, gate: {}:{}", gateHost, gatePort);
+        return new GateClient(gateHost, gatePort);
+    }
 
-	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
-		registry.addInterceptor(authInterceptor)
-				.addPathPatterns("/**")
-				.excludePathPatterns("/", "/index.html", "/api/auth/**", "/api/login",
-						"/api/capabilities",
-						"/app-base.js", "/favicon.ico", "/css/**", "/js/**", "/img/**",
-						"/shared/**", "/pages/learning/css/**", "/pages/learning/js/**",
-						"/ws/**");
-	}
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/", "/index.html", "/api/auth/**", "/api/login",
+                        "/api/capabilities",
+                        "/app-base.js", "/favicon.ico", "/css/**", "/js/**", "/img/**",
+                        "/shared/**", "/pages/learning/css/**", "/pages/learning/js/**",
+                        "/ws/**");
+    }
 }

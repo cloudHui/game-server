@@ -120,10 +120,14 @@ public class AuthService {
 
     private String registerMessage(int code) {
         switch (code) {
-            case 2: return "用户名已存在";
-            case 3: return "需要邀请码";
-            case 4: return "邀请码无效";
-            default: return "注册失败";
+            case 2:
+                return "用户名已存在";
+            case 3:
+                return "需要邀请码";
+            case 4:
+                return "邀请码无效";
+            default:
+                return "注册失败";
         }
     }
 

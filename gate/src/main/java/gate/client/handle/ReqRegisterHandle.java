@@ -15,17 +15,17 @@ import proto.ServerProto;
 @ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandle implements Handler {
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message reqRegister, long mapId, int sequence) {
-		ServerProto.ReqRegister req = (ServerProto.ReqRegister) reqRegister;
-		ModelProto.ServerInfo serverInfo = req.getServerInfo();
-		ServerType serverType = ServerType.get(serverInfo.getServerType());
-		if (serverType == null) {
-			return true;
-		}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message reqRegister, long mapId, int sequence) {
+        ServerProto.ReqRegister req = (ServerProto.ReqRegister) reqRegister;
+        ModelProto.ServerInfo serverInfo = req.getServerInfo();
+        ServerType serverType = ServerType.get(serverInfo.getServerType());
+        if (serverType == null) {
+            return true;
+        }
 
-		ServerProto.AckRegister.Builder ackRegister = ServerProto.AckRegister.newBuilder();
-		sender.sendMessage(clientId, CMsg.ACK_REGISTER, mapId, ackRegister.build(), sequence);
-		return true;
-	}
+        ServerProto.AckRegister.Builder ackRegister = ServerProto.AckRegister.newBuilder();
+        sender.sendMessage(clientId, CMsg.ACK_REGISTER, mapId, ackRegister.build(), sequence);
+        return true;
+    }
 }

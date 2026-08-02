@@ -24,11 +24,11 @@ function updatePlayers(players) {
 }
 
 window.pokerOpChoiceMap = {
-    6: { cls: 'btn-play', text: '出牌' },
-    13: { cls: 'btn-play', text: '放回8张' },
-    1: { cls: 'btn-call', text: '亮主' },
-    2: { cls: 'btn-rob', text: '反主' },
-    3: { cls: 'btn-pass', text: '过' },
-    0: { cls: 'btn-pass', text: '过' },
-    4: { cls: 'btn-pass', text: '过' }
+    6: {cls: 'btn-play', text: '出牌'},
+    13: {cls: 'btn-play', text: '放回8张'},
+    1: {cls: 'btn-call', text: '亮主'},
+    2: {cls: 'btn-rob', text: '反主'},
+    3: {cls: 'btn-pass', text: '过'},
+    0: {cls: 'btn-pass', text: '过'},
+    4: {cls: 'btn-pass', text: '过'}
 };

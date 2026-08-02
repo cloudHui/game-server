@@ -14,7 +14,8 @@ public final class ClientIp {
     private static final Pattern IPV4 = Pattern.compile(
             "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d)$");
 
-    private ClientIp() {}
+    private ClientIp() {
+    }
 
     public static String current() {
         try {

@@ -17,9 +17,10 @@
     window.logout = function () {
         fetch(appUrl('/api/logout'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionId })
-        }).catch(function () {});
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sessionId: sessionId})
+        }).catch(function () {
+        });
         localStorage.clear();
         window.location.href = appUrl('/');
     };

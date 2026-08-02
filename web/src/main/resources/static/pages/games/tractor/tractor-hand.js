@@ -10,7 +10,7 @@ var DEAL_CARD_MS = 100;
 function sortHandCards(cards) {
     var level = gameState.levelRank || 15;
     var trump = gameState.trumpSuit || 0;
-    cards.sort(function(a, b) {
+    cards.sort(function (a, b) {
         var ka = tractorHandOrder(a, level, trump);
         var kb = tractorHandOrder(b, level, trump);
         return ka - kb || a - b;
@@ -34,8 +34,8 @@ function tractorHandOrder(cardId, level, trump) {
 function updateTrumpMeta(level, trump) {
     if (level) gameState.levelRank = level;
     if (typeof trump === 'number') gameState.trumpSuit = trump;
-    var levelMap = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 15: '2' };
-    var suitMap = { 0: '无主', 1: '方块', 2: '梅花', 3: '红桃', 4: '黑桃' };
+    var levelMap = {11: 'J', 12: 'Q', 13: 'K', 14: 'A', 15: '2'};
+    var suitMap = {0: '无主', 1: '方块', 2: '梅花', 3: '红桃', 4: '黑桃'};
     var el = document.getElementById('multipleInfo');
     if (el) {
         el.textContent = '级牌 ' + (levelMap[gameState.levelRank] || gameState.levelRank)
@@ -74,20 +74,22 @@ function playLocalDealAnim(fullMine, opponentCounts, opts) {
     gameState.pendingDealCards = fullMine.slice();
     var targets = opponentCounts || {};
     var roleIds = Object.keys(targets);
-    roleIds.forEach(function(rid) { gameState.opponentCounts[rid] = 0; });
+    roleIds.forEach(function (rid) {
+        gameState.opponentCounts[rid] = 0;
+    });
     renderMyCards();
     renderOpponentHands();
     showCenterMsg('发牌中，可抢主', 1500);
 
     var idx = 0;
     var total = fullMine.length;
-    gameState.dealAnimTimer = setInterval(function() {
+    gameState.dealAnimTimer = setInterval(function () {
         var card = fullMine[idx++];
         gameState.myCards.push(card);
         gameState.dealFlashIds = [card];
         sortHandCards(gameState.myCards);
         // 对手张数同步上涨
-        roleIds.forEach(function(rid) {
+        roleIds.forEach(function (rid) {
             var cap = targets[rid] || 0;
             if ((gameState.opponentCounts[rid] || 0) < cap) {
                 gameState.opponentCounts[rid] = (gameState.opponentCounts[rid] || 0) + 1;
@@ -100,7 +102,7 @@ function playLocalDealAnim(fullMine, opponentCounts, opts) {
             stopDealAnim();
             gameState.dealing = false;
             gameState.layoutCardCount = 0;
-            roleIds.forEach(function(rid) {
+            roleIds.forEach(function (rid) {
                 gameState.opponentCounts[rid] = targets[rid] || 0;
             });
             sortHandCards(gameState.myCards);
@@ -168,7 +170,7 @@ function handleNotCard(data) {
     var skip = gameState.skipDealAnim
         || (gameState.myCards.length >= 25 && mine.length >= 25);
     if (mine.length >= 25 && !bottom.length) {
-        playLocalDealAnim(mine, opponentCounts, { skip: skip });
+        playLocalDealAnim(mine, opponentCounts, {skip: skip});
         if (!skip) gameState.selectedCards.clear();
         if (!skip) gameState.selectedCardIndexes.clear();
         return;

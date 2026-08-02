@@ -1,23 +1,22 @@
 package game.manager.table.mj.state;
 
-import game.manager.table.state.AbstractTableHandle;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import game.manager.table.mj.MjTable;
+import game.manager.table.RobotOperationDelay;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
-import game.manager.table.RobotOperationDelay;
 import game.manager.table.mj.MjClaimInfo;
 import game.manager.table.mj.MjClaimService;
+import game.manager.table.mj.MjTable;
 import game.manager.table.mj.MjTableContext;
 import game.manager.table.mj.ai.MjSimpleAi;
+import game.manager.table.state.AbstractTableHandle;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.GameProto;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 麻将claim等待阶段: 出牌后等待其他玩家碰/杠/胡/过响应
@@ -26,71 +25,71 @@ import proto.GameProto;
 @ProcessEnum(TableState.MJ_CLAIM)
 public class MjClaim extends AbstractTableHandle {
 
-	private static final Logger logger = LoggerFactory.getLogger(MjClaim.class);
+    private static final Logger logger = LoggerFactory.getLogger(MjClaim.class);
 
-	@Override
-	public boolean handle(Table table) {
-		MjTableContext ctx = ((MjTable) table).getMjContext();
-		boolean onlyRobotPending = true;
-		for (int seat : ctx.getPendingClaimSeats()) {
-			TableUser user = table.getSeatUser(seat);
-			if (user != null && !user.isRobot()) {
-				onlyRobotPending = false;
-				break;
-			}
-		}
-		// 真人有吃碰杠胡选择时必须保留操作窗口；仅当待响应位全部是机器人时才由AI接管。
-		if (onlyRobotPending
-				&& System.currentTimeMillis() >= table.getStateStartTime() + randomRobotDelay()) {
-			overTime(table);
-			return false;
-		}
-		return super.handle(table);
-	}
+    @Override
+    public boolean handle(Table table) {
+        MjTableContext ctx = ((MjTable) table).getMjContext();
+        boolean onlyRobotPending = true;
+        for (int seat : ctx.getPendingClaimSeats()) {
+            TableUser user = table.getSeatUser(seat);
+            if (user != null && !user.isRobot()) {
+                onlyRobotPending = false;
+                break;
+            }
+        }
+        // 真人有吃碰杠胡选择时必须保留操作窗口；仅当待响应位全部是机器人时才由AI接管。
+        if (onlyRobotPending
+                && System.currentTimeMillis() >= table.getStateStartTime() + randomRobotDelay()) {
+            overTime(table);
+            return false;
+        }
+        return super.handle(table);
+    }
 
-	private long randomRobotDelay() {
-		return RobotOperationDelay.randomMillis();
-	}
+    private long randomRobotDelay() {
+        return RobotOperationDelay.randomMillis();
+    }
 
-	@Override
-	public void overTime(Table table) {
-		MjTable mjTable = (MjTable) table;
-		MjTableContext ctx = mjTable.getMjContext();
-		int aiLevel = ctx.getAiLevel();
-		logger.info("麻将claim超时, tableId: {}, pendingSeats: {}, aiLevel: {}",
-				table.getTableId(), ctx.getPendingClaimSeats(), aiLevel);
+    @Override
+    public void overTime(Table table) {
+        MjTable mjTable = (MjTable) table;
+        MjTableContext ctx = mjTable.getMjContext();
+        int aiLevel = ctx.getAiLevel();
+        logger.info("麻将claim超时, tableId: {}, pendingSeats: {}, aiLevel: {}",
+                table.getTableId(), ctx.getPendingClaimSeats(), aiLevel);
 
-		if (aiLevel >= 0 && hasRobotPending(table, ctx)) {
-			// AI 决策：遍历每个待响应座位，用 AI 判断
-			List<Integer> pending = new ArrayList<>(ctx.getPendingClaimSeats());
-			for (int seat : pending) {
-				TableUser user = table.getSeatUser(seat);
-				if (user == null) {
-					continue;
-				}
-				if (!user.isRobot() && !table.isAutoPlayEnabled() && aiLevel < 0) {
-					continue;
-				}
-				MjClaimInfo claimInfo = MjClaimService.buildClaimInfo(mjTable, seat);
-				if (claimInfo == null) {
-					continue;
-				}
-				GameProto.OpInfo decision = MjSimpleAi.decideClaim(mjTable, user, claimInfo);
-				// 执行 AI 决策（胡/碰/杠/吃/过）
-				MjClaimService.applyClaim(mjTable, user.getUserId(), decision);
-			}
-			return;
-		}
+        if (aiLevel >= 0 && hasRobotPending(table, ctx)) {
+            // AI 决策：遍历每个待响应座位，用 AI 判断
+            List<Integer> pending = new ArrayList<>(ctx.getPendingClaimSeats());
+            for (int seat : pending) {
+                TableUser user = table.getSeatUser(seat);
+                if (user == null) {
+                    continue;
+                }
+                if (!user.isRobot() && !table.isAutoPlayEnabled() && aiLevel < 0) {
+                    continue;
+                }
+                MjClaimInfo claimInfo = MjClaimService.buildClaimInfo(mjTable, seat);
+                if (claimInfo == null) {
+                    continue;
+                }
+                GameProto.OpInfo decision = MjSimpleAi.decideClaim(mjTable, user, claimInfo);
+                // 执行 AI 决策（胡/碰/杠/吃/过）
+                MjClaimService.applyClaim(mjTable, user.getUserId(), decision);
+            }
+            return;
+        }
 
-		// fallback: 超时全部自动pass
-		MjClaimService.timeoutClaim(mjTable);
-	}
+        // fallback: 超时全部自动pass
+        MjClaimService.timeoutClaim(mjTable);
+    }
 
-	private static boolean hasRobotPending(Table table, MjTableContext ctx) {
-		for (int seat : ctx.getPendingClaimSeats()) {
-			TableUser user = table.getSeatUser(seat);
-			if (user != null && user.isRobot()) return true;
-		}
-		return false;
-	}
+    private static boolean hasRobotPending(Table table, MjTableContext ctx) {
+        for (int seat : ctx.getPendingClaimSeats()) {
+            TableUser user = table.getSeatUser(seat);
+            if (user != null && user.isRobot()) return true;
+        }
+        return false;
+    }
 }

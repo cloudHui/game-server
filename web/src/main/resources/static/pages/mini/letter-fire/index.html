@@ -1,9 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<script src="../../../shared/app-base.js"></script>
-<script src="../../../shared/mini-base.js"></script>
-<style>.mini-back{position:fixed;top:10px;left:10px;z-index:9999;padding:8px 12px;border-radius:8px;background:#333;color:#fff;text-decoration:none;font:14px sans-serif}</style>
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/mini-base.js"></script>
+    <style>.mini-back {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #333;
+        color: #fff;
+        text-decoration: none;
+        font: 14px sans-serif
+    }</style>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,101 +23,101 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <h1>字母射击游戏</h1>
-        
-        <div class="game-info">
-            <div class="score-container">
-                <span>得分: </span>
-                <span id="score">0</span>
-            </div>
-            <div class="time-container">
-                <span>时间: </span>
-                <span id="time">60</span>
-                <span>秒</span>
-            </div>
+<div class="game-container">
+    <h1>字母射击游戏</h1>
+
+    <div class="game-info">
+        <div class="score-container">
+            <span>得分: </span>
+            <span id="score">0</span>
         </div>
-        <div class="fire-status" id="fireStatus" aria-live="polite">
-            <span class="fire-chip"><em>输入</em><b id="inputShow">—</b></span>
-            <span class="fire-chip reading"><em>读音</em><b id="readingShow">—</b></span>
-        </div>
-        
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <p class="hint-mobile">手机可点下方字母射击；也可接外接键盘。</p>
-        <div id="touchPad" aria-label="字母键盘"></div>
-        
-        <div class="game-settings">
-            <div class="case-switch">
-                <span>字母大小写: </span>
-                <label class="switch">
-                    <input type="checkbox" id="caseToggle">
-                    <span class="slider"></span>
-                </label>
-                <span id="caseStatus">小写</span>
-            </div>
-            
-            <div class="difficulty-setting">
-                <span>难度: </span>
-                <select id="difficulty">
-                    <option value="easy">简单</option>
-                    <option value="normal" selected>普通</option>
-                    <option value="hard">困难</option>
-                </select>
-            </div>
-            
-            <div class="speed-setting">
-                <span>速度等级: </span>
-                <select id="speedLevel">
-                    <option value="1">1 - 极慢</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5" selected>5 - 中等</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10 - 极快</option>
-                </select>
-            </div>
-            
-            <div class="time-setting">
-                <span>游戏时长: </span>
-                <select id="gameTime">
-                    <option value="30">30秒</option>
-                    <option value="60" selected>60秒</option>
-                    <option value="90">90秒</option>
-                    <option value="120">120秒</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button id="startButton">开始游戏</button>
-            <button id="restartButton">重新开始</button>
+        <div class="time-container">
+            <span>时间: </span>
+            <span id="time">60</span>
+            <span>秒</span>
         </div>
     </div>
-    
-    <!-- 内联飞机SVG -->
-    <div style="display: none;">
-        <svg id="planeSvg" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
-            <!-- 飞机主体 -->
-            <path d="M40 10 L70 30 L40 50 L10 30 Z" fill="#FF8B94" stroke="#FF6B7B" stroke-width="2"/>
-            <!-- 机翼 -->
-            <path d="M20 30 L60 30 L50 40 L30 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
-            <!-- 机尾 -->
-            <path d="M10 30 L20 20 L20 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
-            <!-- 窗户 -->
-            <circle cx="30" cy="30" r="4" fill="#FFFFFF"/>
-            <circle cx="50" cy="30" r="4" fill="#FFFFFF"/>
-            <!-- 表情 -->
-            <path d="M35 20 Q40 25 45 20" stroke="#FF6B7B" stroke-width="2" fill="none"/>
-        </svg>
+    <div class="fire-status" id="fireStatus" aria-live="polite">
+        <span class="fire-chip"><em>输入</em><b id="inputShow">—</b></span>
+        <span class="fire-chip reading"><em>读音</em><b id="readingShow">—</b></span>
     </div>
-    
-    <script src="../../../shared/mini-fire-pad.js"></script>
-    <script src="../../../shared/mini-fire-speech.js"></script>
-    <script src="game.js"></script>
-<script>if(window.MiniGames)MiniGames.requireLogin();</script>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <p class="hint-mobile">手机可点下方字母射击；也可接外接键盘。</p>
+    <div id="touchPad" aria-label="字母键盘"></div>
+
+    <div class="game-settings">
+        <div class="case-switch">
+            <span>字母大小写: </span>
+            <label class="switch">
+                <input type="checkbox" id="caseToggle">
+                <span class="slider"></span>
+            </label>
+            <span id="caseStatus">小写</span>
+        </div>
+
+        <div class="difficulty-setting">
+            <span>难度: </span>
+            <select id="difficulty">
+                <option value="easy">简单</option>
+                <option value="normal" selected>普通</option>
+                <option value="hard">困难</option>
+            </select>
+        </div>
+
+        <div class="speed-setting">
+            <span>速度等级: </span>
+            <select id="speedLevel">
+                <option value="1">1 - 极慢</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5 - 中等</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10 - 极快</option>
+            </select>
+        </div>
+
+        <div class="time-setting">
+            <span>游戏时长: </span>
+            <select id="gameTime">
+                <option value="30">30秒</option>
+                <option value="60" selected>60秒</option>
+                <option value="90">90秒</option>
+                <option value="120">120秒</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="startButton">开始游戏</button>
+        <button id="restartButton">重新开始</button>
+    </div>
+</div>
+
+<!-- 内联飞机SVG -->
+<div style="display: none;">
+    <svg id="planeSvg" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+        <!-- 飞机主体 -->
+        <path d="M40 10 L70 30 L40 50 L10 30 Z" fill="#FF8B94" stroke="#FF6B7B" stroke-width="2"/>
+        <!-- 机翼 -->
+        <path d="M20 30 L60 30 L50 40 L30 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
+        <!-- 机尾 -->
+        <path d="M10 30 L20 20 L20 40 Z" fill="#FFD3B6" stroke="#FF6B7B" stroke-width="2"/>
+        <!-- 窗户 -->
+        <circle cx="30" cy="30" r="4" fill="#FFFFFF"/>
+        <circle cx="50" cy="30" r="4" fill="#FFFFFF"/>
+        <!-- 表情 -->
+        <path d="M35 20 Q40 25 45 20" stroke="#FF6B7B" stroke-width="2" fill="none"/>
+    </svg>
+</div>
+
+<script src="../../../shared/mini-fire-pad.js"></script>
+<script src="../../../shared/mini-fire-speech.js"></script>
+<script src="game.js"></script>
+<script>if (window.MiniGames) MiniGames.requireLogin();</script>
 </body>
 </html>

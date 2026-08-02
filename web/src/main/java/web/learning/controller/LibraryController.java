@@ -23,7 +23,9 @@ public class LibraryController {
         this.library = library;
     }
 
-    /** 数据就绪状态。 */
+    /**
+     * 数据就绪状态。
+     */
     @GetMapping("/status")
     public Map<String, Object> status(@RequestHeader(value = "X-Session-Token", required = false) String token) throws Exception {
         auth.requirePermission(token, "RESOURCES");
@@ -48,7 +50,9 @@ public class LibraryController {
         return library.characterPage(query, tag, page, size);
     }
 
-    /** 英汉词典翻页：统一 query + tag。 */
+    /**
+     * 英汉词典翻页：统一 query + tag。
+     */
     @GetMapping("/dictionary")
     public Map<String, Object> dictionary(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                           @RequestParam(defaultValue = "") String query,
@@ -59,7 +63,9 @@ public class LibraryController {
         return library.dictionaryPage(query, tag, page, size);
     }
 
-    /** 古诗词翻页：统一 query + tag。 */
+    /**
+     * 古诗词翻页：统一 query + tag。
+     */
     @GetMapping("/poetry")
     public Map<String, Object> poetry(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                       @RequestParam(defaultValue = "") String query,
@@ -70,7 +76,9 @@ public class LibraryController {
         return library.poetryPage(query, tag, page, size);
     }
 
-    /** 查询教材目录（仅链接，不下载 PDF）。 */
+    /**
+     * 查询教材目录（仅链接，不下载 PDF）。
+     */
     @GetMapping("/textbooks")
     public List<JsonNode> textbooks(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                     @RequestParam(defaultValue = "") String query) throws Exception {
@@ -78,7 +86,9 @@ public class LibraryController {
         return library.textbooks(query);
     }
 
-    /** 教材目录树浏览。 */
+    /**
+     * 教材目录树浏览。
+     */
     @GetMapping("/textbooks/tree")
     public Map<String, Object> textbooksTree(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                              @RequestParam(defaultValue = "") String prefix,
@@ -87,7 +97,9 @@ public class LibraryController {
         return library.textbooksTree(prefix, query);
     }
 
-    /** 儿童英语图卡翻页。 */
+    /**
+     * 儿童英语图卡翻页。
+     */
     @GetMapping("/english")
     public Map<String, Object> english(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                        @RequestParam(defaultValue = "") String query,
@@ -98,7 +110,9 @@ public class LibraryController {
         return library.englishKidsPage(query, tag, page, size);
     }
 
-    /** 常用英语词汇翻页。 */
+    /**
+     * 常用英语词汇翻页。
+     */
     @GetMapping("/vocab")
     public Map<String, Object> vocab(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                      @RequestParam(defaultValue = "") String query,

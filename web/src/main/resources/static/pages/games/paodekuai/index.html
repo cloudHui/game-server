@@ -17,47 +17,49 @@
 </head>
 <body>
 <div class="table-bg">
-        <div class="top-bar">
-            <span class="room-info" id="roomInfo">牌桌加载中...</span>
-            <span id="tableState"></span>
-            <span id="multipleInfo">跑得快</span>
-            <button class="back-btn" id="refreshTableBtn" onclick="refreshTable()">刷新牌桌</button>
-            <button class="back-btn" onclick="backToLobby()">返回房间列表</button>
-            <button class="back-btn" onclick="exitRoom()" style="margin-left:8px;background:rgba(198,40,40,0.85);">退出房间</button>
-        </div>
-        <div class="ws-status" id="wsStatus">连接中...</div>
-        <div class="dizhu-cards" id="dizhuCards" style="display:none;"></div>
+    <div class="top-bar">
+        <span class="room-info" id="roomInfo">牌桌加载中...</span>
+        <span id="tableState"></span>
+        <span id="multipleInfo">跑得快</span>
+        <button class="back-btn" id="refreshTableBtn" onclick="refreshTable()">刷新牌桌</button>
+        <button class="back-btn" onclick="backToLobby()">返回房间列表</button>
+        <button class="back-btn" onclick="exitRoom()" style="margin-left:8px;background:rgba(198,40,40,0.85);">
+            退出房间
+        </button>
+    </div>
+    <div class="ws-status" id="wsStatus">连接中...</div>
+    <div class="dizhu-cards" id="dizhuCards" style="display:none;"></div>
 
-        <div class="player-area player-left">
-            <div class="player-info" id="playerLeft"><span class="name">等待加入</span></div>
-            <div class="opponent-cards" id="cardsLeft"></div>
-        </div>
-        <div class="player-area player-right">
-            <div class="player-info" id="playerRight"><span class="name">等待加入</span></div>
-            <div class="opponent-cards" id="cardsRight"></div>
-        </div>
-        <div class="played-cards played-left" id="playedLeft"></div>
-        <div class="played-cards played-right" id="playedRight"></div>
-        <div class="played-cards played-bottom" id="playedBottom"></div>
-        <div class="center-message" id="centerMsg"></div>
-        <div class="settle-overlay" id="settleOverlay">
-            <div class="settle-panel">
-                <h3 id="settleTitle">本局结算</h3>
-                <div class="meta" id="settleMeta"></div>
-                <div id="settleRows"></div>
-                <div class="settle-hands" id="settleHands"></div>
-                <div class="settle-countdown" id="settleCountdown"></div>
-                <button onclick="closeSettle()">继续</button>
-            </div>
-        </div>
-        <div class="action-bar" id="actionBar" style="display:none;"></div>
-        <div class="player-area player-bottom">
-            <div class="player-info" id="playerBottom"><span class="name" id="myName">我</span></div>
-            <div class="my-cards" id="myCards"></div>
+    <div class="player-area player-left">
+        <div class="player-info" id="playerLeft"><span class="name">等待加入</span></div>
+        <div class="opponent-cards" id="cardsLeft"></div>
+    </div>
+    <div class="player-area player-right">
+        <div class="player-info" id="playerRight"><span class="name">等待加入</span></div>
+        <div class="opponent-cards" id="cardsRight"></div>
+    </div>
+    <div class="played-cards played-left" id="playedLeft"></div>
+    <div class="played-cards played-right" id="playedRight"></div>
+    <div class="played-cards played-bottom" id="playedBottom"></div>
+    <div class="center-message" id="centerMsg"></div>
+    <div class="settle-overlay" id="settleOverlay">
+        <div class="settle-panel">
+            <h3 id="settleTitle">本局结算</h3>
+            <div class="meta" id="settleMeta"></div>
+            <div id="settleRows"></div>
+            <div class="settle-hands" id="settleHands"></div>
+            <div class="settle-countdown" id="settleCountdown"></div>
+            <button onclick="closeSettle()">继续</button>
         </div>
     </div>
-    <script src="./paodekuai-view.js"></script>
-    <script src="./paodekuai-op.js"></script>
-    <script src="./paodekuai.js"></script>
+    <div class="action-bar" id="actionBar" style="display:none;"></div>
+    <div class="player-area player-bottom">
+        <div class="player-info" id="playerBottom"><span class="name" id="myName">我</span></div>
+        <div class="my-cards" id="myCards"></div>
+    </div>
+</div>
+<script src="./paodekuai-view.js"></script>
+<script src="./paodekuai-op.js"></script>
+<script src="./paodekuai.js"></script>
 </body>
 </html>

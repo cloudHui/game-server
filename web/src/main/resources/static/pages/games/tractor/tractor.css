@@ -4,13 +4,22 @@
     left: 50%;
     transform: translateX(-50%);
 }
+
 .card.deal-in {
     animation: tractor-deal-in 0.28s ease-out;
 }
+
 @keyframes tractor-deal-in {
-    from { opacity: 0; transform: translateY(-18px) scale(0.86); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(-18px) scale(0.86);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
+
 .kill-fx, .trick-win-fx {
     position: absolute;
     left: 50%;
@@ -25,23 +34,75 @@
     pointer-events: none;
     animation: tractor-fx-pop 0.85s ease-out forwards;
 }
-.kill-fx { background: #c62828; box-shadow: 0 2px 8px rgba(198,40,40,.45); }
-.trick-win-fx { background: #ef6c00; }
-.trick-win-fx.killed { background: #b71c1c; }
+
+.kill-fx {
+    background: #c62828;
+    box-shadow: 0 2px 8px rgba(198, 40, 40, .45);
+}
+
+.trick-win-fx {
+    background: #ef6c00;
+}
+
+.trick-win-fx.killed {
+    background: #b71c1c;
+}
+
 @keyframes tractor-fx-pop {
-    0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.7); }
-    25% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.08); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(1); }
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px) scale(.7);
+    }
+    25% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1.08);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-14px) scale(1);
+    }
 }
-.played-cards { position: absolute; }
-.played-top { top: 118px; left: 50%; transform: translateX(-50%); }
-.played-left { left: 88px; top: 48%; transform: translateY(-50%); }
-.played-right { right: 88px; top: 48%; transform: translateY(-50%); }
-.played-bottom { bottom: calc(var(--ddz-card-h, 75px) + 92px); left: 50%; transform: translateX(-50%); }
+
+.played-cards {
+    position: absolute;
+}
+
+.played-top {
+    top: 118px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.played-left {
+    left: 88px;
+    top: 48%;
+    transform: translateY(-50%);
+}
+
+.played-right {
+    right: 88px;
+    top: 48%;
+    transform: translateY(-50%);
+}
+
+.played-bottom {
+    bottom: calc(var(--ddz-card-h, 75px) + 92px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 @media (max-width: 640px) {
-    .played-left { left: 8px; }
-    .played-right { right: 8px; }
+    .played-left {
+        left: 8px;
+    }
+
+    .played-right {
+        right: 8px;
+    }
 }
+
 @media (max-height: 720px) {
-    .played-bottom { bottom: calc(var(--ddz-card-h, 75px) + 78px); }
+    .played-bottom {
+        bottom: calc(var(--ddz-card-h, 75px) + 78px);
+    }
 }

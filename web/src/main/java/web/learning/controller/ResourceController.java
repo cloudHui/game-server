@@ -54,7 +54,7 @@ public class ResourceController {
      * 不含学习库自带包（english/kids、english/vocab 等）；那些只给开放学习库按需取文件。
      */
     @GetMapping
-    public List<ResourceInfo> list(@RequestHeader(value="X-Session-Token",required=false) String token,
+    public List<ResourceInfo> list(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                    @RequestParam(required = false) String subject) throws Exception {
         requireReadAccess(token, subject == null ? "" : subject);
         Path base = subject == null || subject.isEmpty() ? root : safePath(subject);
@@ -79,16 +79,19 @@ public class ResourceController {
     }
 
     @GetMapping("/file")
-    public ResponseEntity<FileSystemResource> file(@RequestHeader(value="X-Session-Token",required=false) String token,
-                                                    @RequestParam String path,
-                                                    @RequestParam(defaultValue = "false") boolean download) throws Exception {
+    public ResponseEntity<FileSystemResource> file(@RequestHeader(value = "X-Session-Token", required = false) String token,
+                                                   @RequestParam String path,
+                                                   @RequestParam(defaultValue = "false") boolean download) throws Exception {
         requireReadAccess(token, path);
         Path file = safePath(path);
         if (!Files.isRegularFile(file) || !allowed(file)) throw new IllegalArgumentException("找不到资源文件");
         String type = Files.probeContentType(file);
         MediaType mediaType;
-        try { mediaType = type == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(type); }
-        catch (Exception ignored) { mediaType = MediaType.APPLICATION_OCTET_STREAM; }
+        try {
+            mediaType = type == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(type);
+        } catch (Exception ignored) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
         ResponseEntity.BodyBuilder response = ResponseEntity.ok().contentType(mediaType);
         if (download) {
             String encoded = URLEncoder.encode(file.getFileName().toString(), StandardCharsets.UTF_8.name()).replace("+", "%20");
@@ -98,30 +101,41 @@ public class ResourceController {
     }
 
     @PostMapping
-    public ResourceInfo upload(@RequestHeader("X-Session-Token") String token,@RequestParam String subject,
+    public ResourceInfo upload(@RequestHeader("X-Session-Token") String token, @RequestParam String subject,
                                @RequestPart("file") MultipartFile upload) throws Exception {
         auth.requireAdmin(token);
-        if(upload.isEmpty()||upload.getSize()>50L*1024*1024)throw new IllegalArgumentException("文件为空或超过50MB");
-        String name=Paths.get(upload.getOriginalFilename()==null?"resource":upload.getOriginalFilename()).getFileName().toString();
-        Path target=safePath(subject).resolve(name).normalize();
-        if(!target.startsWith(root)||!allowed(target))throw new IllegalArgumentException("不支持的文件类型");
-        Files.createDirectories(target.getParent());upload.transferTo(target.toFile());
-        return new ResourceInfo(root.relativize(target).toString().replace('\\','/'),Files.size(target),Files.getLastModifiedTime(target).toMillis());
+        if (upload.isEmpty() || upload.getSize() > 50L * 1024 * 1024)
+            throw new IllegalArgumentException("文件为空或超过50MB");
+        String name = Paths.get(upload.getOriginalFilename() == null ? "resource" : upload.getOriginalFilename()).getFileName().toString();
+        Path target = safePath(subject).resolve(name).normalize();
+        if (!target.startsWith(root) || !allowed(target)) throw new IllegalArgumentException("不支持的文件类型");
+        Files.createDirectories(target.getParent());
+        upload.transferTo(target.toFile());
+        return new ResourceInfo(root.relativize(target).toString().replace('\\', '/'), Files.size(target), Files.getLastModifiedTime(target).toMillis());
     }
 
     @DeleteMapping
-    public java.util.Map<String,Object> delete(@RequestHeader("X-Session-Token") String token,@RequestParam String path)throws Exception{
-        auth.requireAdmin(token);Path file=safePath(path);if(!Files.deleteIfExists(file))throw new IllegalArgumentException("找不到资源文件");
-        return java.util.Collections.<String,Object>singletonMap("message","资源已删除");
+    public java.util.Map<String, Object> delete(@RequestHeader("X-Session-Token") String token, @RequestParam String path) throws Exception {
+        auth.requireAdmin(token);
+        Path file = safePath(path);
+        if (!Files.deleteIfExists(file)) throw new IllegalArgumentException("找不到资源文件");
+        return java.util.Collections.<String, Object>singletonMap("message", "资源已删除");
     }
 
-    /** 儿童英语图卡允许 ENGLISH；其余上传资源仍要 RESOURCES。 */
+    /**
+     * 儿童英语图卡允许 ENGLISH；其余上传资源仍要 RESOURCES。
+     */
     private void requireReadAccess(String token, String path) throws Exception {
         String normalized = path == null ? "" : path.replace('\\', '/');
         if (normalized.startsWith("english/kids") || normalized.startsWith("english/english-kids")
                 || "english".equals(normalized) || normalized.startsWith("english/")) {
-            try { auth.requirePermission(token, "ENGLISH"); return; }
-            catch (SecurityException ignored) { auth.requirePermission(token, "RESOURCES"); return; }
+            try {
+                auth.requirePermission(token, "ENGLISH");
+                return;
+            } catch (SecurityException ignored) {
+                auth.requirePermission(token, "RESOURCES");
+                return;
+            }
         }
         auth.requirePermission(token, "RESOURCES");
     }
@@ -138,7 +152,9 @@ public class ResourceController {
         return dot >= 0 && ALLOWED.contains(name.substring(dot + 1).toLowerCase());
     }
 
-    /** 学习库资源目录：可按路径取文件，但不出现在「家庭资料」列表里。 */
+    /**
+     * 学习库资源目录：可按路径取文件，但不出现在「家庭资料」列表里。
+     */
     private boolean isLibraryPack(String relative) {
         String path = relative == null ? "" : relative.replace('\\', '/');
         return path.startsWith("english/kids/")
@@ -153,6 +169,11 @@ public class ResourceController {
         public String path;
         public long size;
         public long modifiedAt;
-        public ResourceInfo(String path, long size, long modifiedAt) { this.path = path; this.size = size; this.modifiedAt = modifiedAt; }
+
+        public ResourceInfo(String path, long size, long modifiedAt) {
+            this.path = path;
+            this.size = size;
+            this.modifiedAt = modifiedAt;
+        }
     }
 }

@@ -1,14 +1,10 @@
 package game.manager.table.ddz;
 
-import game.manager.table.*;
-
+import game.manager.table.GameResult;
+import game.manager.table.Table;
+import game.manager.table.TableUser;
 import game.manager.table.banner.Banner;
-import game.manager.table.ddz.CardPool;
 import game.manager.table.cards.Card;
-import game.manager.table.ddz.DdzBidService;
-import game.manager.table.ddz.DdzHand;
-import game.manager.table.ddz.DdzPlayService;
-import game.manager.table.ddz.DdzTableContext;
 import game.manager.table.replay.DdzReplayRecorder;
 import game.manager.table.replay.ReplayRecorder;
 import model.tablemodel.TableModel;
@@ -28,7 +24,9 @@ public class DdzTable extends Table {
     private final CardPool cardPool;
     private final Banner banner;
     private final DdzTableContext ddz = new DdzTableContext();
-    /** 下一局优先叫牌座位（地主连庄或农民胜后下家优先） */
+    /**
+     * 下一局优先叫牌座位（地主连庄或农民胜后下家优先）
+     */
     private int nextFirstCallSeat = -1;
 
     public DdzTable(long tableId, TableModel model, ModelProto.RoomRole creator) {
@@ -62,7 +60,9 @@ public class DdzTable extends Table {
         }
     }
 
-    /** 结算后设置下一局优先叫牌座位 */
+    /**
+     * 结算后设置下一局优先叫牌座位
+     */
     public void setNextFirstCallSeat(int seat) {
         this.nextFirstCallSeat = seat;
     }

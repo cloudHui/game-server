@@ -30,9 +30,13 @@ public class LibraryService {
     private final Path resourceRoot;
     private final ObjectMapper mapper;
     private volatile List<Map<String, Object>> vocabCache;
-    /** 汉字列表缓存：文件名十六进制码点 -> 字符。 */
+    /**
+     * 汉字列表缓存：文件名十六进制码点 -> 字符。
+     */
     private volatile List<String> characterCache;
-    /** 精选诗词缓存（默认浏览，避免扫 30 万首全库）。 */
+    /**
+     * 精选诗词缓存（默认浏览，避免扫 30 万首全库）。
+     */
     private volatile List<JsonNode> featuredPoetryCache;
 
     public LibraryService(@Value("${family-learning.dataset-dir}") String dir,
@@ -43,7 +47,9 @@ public class LibraryService {
         this.mapper = mapper;
     }
 
-    /** 确保基础目录存在，避免首次查询报错。 */
+    /**
+     * 确保基础目录存在，避免首次查询报错。
+     */
     @PostConstruct
     public void init() throws IOException {
         Files.createDirectories(root.resolve("characters"));
@@ -51,7 +57,9 @@ public class LibraryService {
         Files.createDirectories(englishKidsRoot());
     }
 
-    /** 数据/资源就绪状态，供前端提示缺包。 */
+    /**
+     * 数据/资源就绪状态，供前端提示缺包。
+     */
     public Map<String, Object> status() throws IOException {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("characters", countFiles(root.resolve("characters"), ".json") > 0);
@@ -68,7 +76,9 @@ public class LibraryService {
         return result;
     }
 
-    /** 儿童英语图卡（兼容旧调用，返回首屏列表）。 */
+    /**
+     * 儿童英语图卡（兼容旧调用，返回首屏列表）。
+     */
     public List<Map<String, Object>> englishKids(String query) throws IOException {
         Map<String, Object> page = englishKidsPage(query, "", 1, LIMIT);
         @SuppressWarnings("unchecked")
@@ -76,19 +86,25 @@ public class LibraryService {
         return items == null ? Collections.emptyList() : items;
     }
 
-    /** 儿童英语图卡：分类标签 + 翻页。 */
+    /**
+     * 儿童英语图卡：分类标签 + 翻页。
+     */
     public Map<String, Object> englishKidsPage(String query, String tag, int page, int size) throws IOException {
         List<Map<String, Object>> all = loadKidsCards();
         return pageItems(filterTagged(all, query, tag), tagCounts(all), page, size);
     }
 
-    /** 常用英语词汇（约 5000）：多标签 + 翻页。 */
+    /**
+     * 常用英语词汇（约 5000）：多标签 + 翻页。
+     */
     public Map<String, Object> englishVocabPage(String query, String tag, int page, int size) throws IOException {
         List<Map<String, Object>> all = loadVocab();
         return pageItems(filterTagged(all, query, tag), tagCounts(all), page, size);
     }
 
-    /** 教材目录树：按路径前缀浏览；有 query 时走搜索。 */
+    /**
+     * 教材目录树：按路径前缀浏览；有 query 时走搜索。
+     */
     public Map<String, Object> textbooksTree(String prefix, String query) throws IOException {
         Map<String, Object> result = new LinkedHashMap<>();
         String q = clean(query);
@@ -120,7 +136,9 @@ public class LibraryService {
         return result;
     }
 
-    /** 按单字读取汉字笔顺详情（含笔画轨迹）。 */
+    /**
+     * 按单字读取汉字笔顺详情（含笔画轨迹）。
+     */
     public JsonNode character(String value) throws IOException {
         if (value == null || value.codePointCount(0, value.length()) != 1) {
             throw new IllegalArgumentException("请输入一个汉字");
@@ -205,7 +223,9 @@ public class LibraryService {
         return pageNodes(toDictRows(rows), tags, page, size);
     }
 
-    /** 兼容旧调用：按词查询词典。 */
+    /**
+     * 兼容旧调用：按词查询词典。
+     */
     public List<JsonNode> dictionary(String query) throws IOException {
         Map<String, Object> page = dictionaryPage(query, "", 1, LIMIT);
         return castItems(page);
@@ -232,7 +252,9 @@ public class LibraryService {
         return pageNodes(rows, tags, page, size);
     }
 
-    /** 兼容旧调用：按关键词查诗词。 */
+    /**
+     * 兼容旧调用：按关键词查诗词。
+     */
     public List<JsonNode> poetry(String query) throws IOException {
         String key = clean(query);
         if (key.isEmpty()) return Collections.emptyList();
@@ -248,7 +270,9 @@ public class LibraryService {
         return searchJsonl(data, key, "title");
     }
 
-    /** 教材目录：本地 textbooks.json，只含路径和链接。 */
+    /**
+     * 教材目录：本地 textbooks.json，只含路径和链接。
+     */
     public List<JsonNode> textbooks(String query) throws IOException {
         Path cache = root.resolve("textbooks.json");
         if (!Files.isRegularFile(cache)) refreshTextbooks(cache);
@@ -274,7 +298,11 @@ public class LibraryService {
             Iterator<String> iterator = lines.iterator();
             while (iterator.hasNext()) {
                 JsonNode item;
-                try { item = mapper.readTree(iterator.next()); } catch (Exception ignored) { continue; }
+                try {
+                    item = mapper.readTree(iterator.next());
+                } catch (Exception ignored) {
+                    continue;
+                }
                 String text = item.toString().toLowerCase(Locale.ROOT);
                 if (!text.contains(key)) continue;
                 String field = exactField == null ? "" : item.path(exactField).asText();
@@ -291,7 +319,9 @@ public class LibraryService {
         return merge(exact, partial, fuzzy);
     }
 
-    /** 只扫查询首字对应的标题分片与作者分片，避免读整库索引。 */
+    /**
+     * 只扫查询首字对应的标题分片与作者分片，避免读整库索引。
+     */
     private List<JsonNode> searchPoetryShards(Path indexDir, Path data, String query) throws IOException {
         String shard = Integer.toHexString(query.codePointAt(0));
         List<long[]> exact = new ArrayList<>(), partial = new ArrayList<>(), fuzzy = new ArrayList<>();
@@ -300,7 +330,9 @@ public class LibraryService {
         return loadPoetry(data, merge(exact, partial, fuzzy));
     }
 
-    /** 兼容旧版单文件 poetry.idx。 */
+    /**
+     * 兼容旧版单文件 poetry.idx。
+     */
     private List<JsonNode> readPoetryHits(Path index, Path data, String query) throws IOException {
         List<long[]> exact = new ArrayList<>(), partial = new ArrayList<>(), fuzzy = new ArrayList<>();
         collectPoetryHits(index, query, exact, partial, fuzzy);
@@ -338,7 +370,9 @@ public class LibraryService {
         }
     }
 
-    /** 按偏移从 poetry.jsonl 读取完整诗句。 */
+    /**
+     * 按偏移从 poetry.jsonl 读取完整诗句。
+     */
     private List<JsonNode> loadPoetry(Path data, List<long[]> hits) throws IOException {
         List<JsonNode> result = new ArrayList<>(hits.size());
         try (RandomAccessFile raf = new RandomAccessFile(data.toFile(), "r")) {
@@ -352,7 +386,9 @@ public class LibraryService {
         return result;
     }
 
-    /** 按优先级合并三组结果，总数不超过 LIMIT。 */
+    /**
+     * 按优先级合并三组结果，总数不超过 LIMIT。
+     */
     private <T> List<T> merge(List<T> exact, List<T> partial, List<T> fuzzy) {
         List<T> result = new ArrayList<>(exact);
         for (T item : partial) if (result.size() < LIMIT) result.add(item);
@@ -360,7 +396,9 @@ public class LibraryService {
         return result;
     }
 
-    /** 无本地教材缓存时，从公开仓库树拉取 PDF 路径（仅地址）。 */
+    /**
+     * 无本地教材缓存时，从公开仓库树拉取 PDF 路径（仅地址）。
+     */
     private void refreshTextbooks(Path cache) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(TREE).openConnection();
         connection.setConnectTimeout(8000);
@@ -386,7 +424,9 @@ public class LibraryService {
         Files.move(temp, cache, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
-    /** URL 编码教材路径中的中文段落。 */
+    /**
+     * URL 编码教材路径中的中文段落。
+     */
     private String encodePath(String path) throws UnsupportedEncodingException {
         String[] parts = path.split("/", -1);
         StringBuilder result = new StringBuilder();
@@ -397,7 +437,9 @@ public class LibraryService {
         return result.toString();
     }
 
-    /** 去掉首尾空白并限制长度，防止超长查询。 */
+    /**
+     * 去掉首尾空白并限制长度，防止超长查询。
+     */
     private String clean(String value) {
         if (value == null) return "";
         String text = value.trim();
@@ -550,7 +592,9 @@ public class LibraryService {
         return pageNodes(filtered, tags, page, size);
     }
 
-    /** 统一翻页响应：items/total/page/size/pageCount/tags。 */
+    /**
+     * 统一翻页响应：items/total/page/size/pageCount/tags。
+     */
     private Map<String, Object> pageNodes(List<Map<String, Object>> filtered, List<Map<String, Object>> tags, int page, int size) {
         int pageSize = Math.max(1, Math.min(size <= 0 ? 24 : size, 60));
         int total = filtered.size();
@@ -568,7 +612,9 @@ public class LibraryService {
         return result;
     }
 
-    /** 缓存汉字字头列表（由文件名码点还原，不读 JSON）。 */
+    /**
+     * 缓存汉字字头列表（由文件名码点还原，不读 JSON）。
+     */
     private List<String> loadCharacters() throws IOException {
         List<String> cached = characterCache;
         if (cached != null) return cached;
@@ -622,7 +668,9 @@ public class LibraryService {
         return rows;
     }
 
-    /** 词典字母标签：有数据的 a-z。 */
+    /**
+     * 词典字母标签：有数据的 a-z。
+     */
     private List<Map<String, Object>> dictionaryLetterTags() throws IOException {
         Path dir = root.resolve("dictionary");
         Set<String> letters = new TreeSet<>();
@@ -647,17 +695,23 @@ public class LibraryService {
         return tags;
     }
 
-    /** 读取某一字母开头的词典分片（最多合并 240 条供翻页）。 */
+    /**
+     * 读取某一字母开头的词典分片（最多合并 240 条供翻页）。
+     */
     private List<JsonNode> readDictionaryLetter(String letter) throws IOException {
         return readDictionaryShards(letter, 240);
     }
 
-    /** 「全部」：跨字母取样浏览，避免一次装入整部词典。 */
+    /**
+     * 「全部」：跨字母取样浏览，避免一次装入整部词典。
+     */
     private List<JsonNode> readDictionaryBrowseAll() throws IOException {
         return readDictionaryShards("", 360);
     }
 
-    /** letter 为空读全部片；否则只读该字母开头的片。 */
+    /**
+     * letter 为空读全部片；否则只读该字母开头的片。
+     */
     private List<JsonNode> readDictionaryShards(String letter, int cap) throws IOException {
         Path dir = root.resolve("dictionary");
         if (!Files.isDirectory(dir)) return Collections.emptyList();
@@ -679,7 +733,11 @@ public class LibraryService {
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (line.isEmpty()) continue;
-                    try { rows.add(mapper.readTree(line)); } catch (Exception ignored) { continue; }
+                    try {
+                        rows.add(mapper.readTree(line));
+                    } catch (Exception ignored) {
+                        continue;
+                    }
                     if (rows.size() >= cap) return rows;
                 }
             }
@@ -687,7 +745,9 @@ public class LibraryService {
         return rows;
     }
 
-    /** 汉字标签：常用。 */
+    /**
+     * 汉字标签：常用。
+     */
     private List<Map<String, Object>> characterTags() {
         List<Map<String, Object>> tags = new ArrayList<>();
         Map<String, Object> common = new LinkedHashMap<>();
@@ -702,7 +762,9 @@ public class LibraryService {
         return !"common".equals(tag) || commonCharacters().contains(ch);
     }
 
-    /** 小学常见字（标签「常用」）；不在字库中的会自动跳过。 */
+    /**
+     * 小学常见字（标签「常用」）；不在字库中的会自动跳过。
+     */
     private List<String> commonCharacters() {
         String text = "一二三四五六七八九十百千万天地人你我他上下左右大小多少男女老少父母子女"
                 + "同学老师学校学习读写听说看想走来去出入开关早晚春秋夏冬风雨花草树木山水"
@@ -727,7 +789,9 @@ public class LibraryService {
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
                         if (line.isEmpty()) continue;
-                        try { list.add(mapper.readTree(line)); } catch (Exception ignored) { /* skip */ }
+                        try {
+                            list.add(mapper.readTree(line));
+                        } catch (Exception ignored) { /* skip */ }
                     }
                 }
             }
@@ -739,7 +803,9 @@ public class LibraryService {
                             while ((line = reader.readLine()) != null) {
                                 line = line.trim();
                                 if (line.isEmpty()) continue;
-                                try { list.add(mapper.readTree(line)); } catch (Exception ignored) { /* skip */ }
+                                try {
+                                    list.add(mapper.readTree(line));
+                                } catch (Exception ignored) { /* skip */ }
                             }
                         }
                     }

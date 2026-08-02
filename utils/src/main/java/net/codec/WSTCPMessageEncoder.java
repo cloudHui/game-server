@@ -10,21 +10,21 @@ import net.message.TCPMessage;
 import java.util.List;
 
 public class WSTCPMessageEncoder extends MessageToMessageEncoder<TCPMessage> {
-	public WSTCPMessageEncoder() {
-	}
+    public WSTCPMessageEncoder() {
+    }
 
-	@Override
-	protected void encode(ChannelHandlerContext ctx, TCPMessage msg, List<Object> out) {
-		int length = msg.getMessage() == null ? 0 : msg.getMessage().length;
-		ByteBuf buf = Unpooled.buffer(length + 40);
-		buf.writeInt(msg.getResult());
-		buf.writeInt(msg.getMessageId());
-		buf.writeInt(length);
-		buf.writeInt(msg.getClientId());
-		if (length > 0) {
-			buf.writeBytes(msg.getMessage());
-		}
+    @Override
+    protected void encode(ChannelHandlerContext ctx, TCPMessage msg, List<Object> out) {
+        int length = msg.getMessage() == null ? 0 : msg.getMessage().length;
+        ByteBuf buf = Unpooled.buffer(length + 40);
+        buf.writeInt(msg.getResult());
+        buf.writeInt(msg.getMessageId());
+        buf.writeInt(length);
+        buf.writeInt(msg.getClientId());
+        if (length > 0) {
+            buf.writeBytes(msg.getMessage());
+        }
 
-		out.add(new BinaryWebSocketFrame(buf));
-	}
+        out.add(new BinaryWebSocketFrame(buf));
+    }
 }

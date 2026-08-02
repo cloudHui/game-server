@@ -2,11 +2,11 @@ package game.client.handle.role;
 
 import com.google.protobuf.Message;
 import game.Game;
-import game.manager.table.mj.MjTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzSettleService;
 import game.manager.table.mj.MjSettleService;
+import game.manager.table.mj.MjTable;
 import msg.annotation.ProcessType;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
@@ -37,16 +37,16 @@ public class ReqLeaveTableHandle implements Handler {
             }
 
             table.execute(() -> {
-                    int result = processLeave(clientId, table);
-                    if (result == ConstProto.Result.SUCCESS_VALUE) {
-                        GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
-                                .setTableInfo(GameProto.TableInfo.newBuilder()
-                                        .setTableId(table.getTableId()).setRoomId(table.getRoomId()).build())
-                                .build();
-                        sender.sendMessage(clientId, GMsg.ACK_LEAVE, mapId, response, sequence);
-                    } else {
-                        sender.sendMessage(TCPMessage.newInstance(result));
-                    }
+                int result = processLeave(clientId, table);
+                if (result == ConstProto.Result.SUCCESS_VALUE) {
+                    GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
+                            .setTableInfo(GameProto.TableInfo.newBuilder()
+                                    .setTableId(table.getTableId()).setRoomId(table.getRoomId()).build())
+                            .build();
+                    sender.sendMessage(clientId, GMsg.ACK_LEAVE, mapId, response, sequence);
+                } else {
+                    sender.sendMessage(TCPMessage.newInstance(result));
+                }
             }).exceptionally(error -> {
                 logger.error("桌子线程处理离开请求失败, tableId: {}", mapId, error);
                 return null;

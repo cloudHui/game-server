@@ -6,7 +6,7 @@ function choiceCards(choiceObj) {
     var out = [];
     for (var i = 0; i < cards.length; i++) {
         var v = typeof cards[i] === 'object' ? cards[i].value : cards[i];
-        if (v != null) out.push({ value: v });
+        if (v != null) out.push({value: v});
     }
     return out;
 }
@@ -15,21 +15,27 @@ function doOp(choice, cards) {
     if (gameState.opPending) return;
     cards = cards || [];
     if (choice === OP.DISCARD && cards.length === 0 && gameState.selectedTile >= 0) {
-        cards = [{ value: gameState.myTiles[gameState.selectedTile] }];
+        cards = [{value: gameState.myTiles[gameState.selectedTile]}];
     }
     if (choice === OP.MJ_CHI && cards.length > 0) {
         var chiTiles = [];
         for (var i = 0; i < cards.length; i++) chiTiles.push(cards[i].value);
         if (gameState.lastClaimTile) chiTiles.push(gameState.lastClaimTile);
-        chiTiles.sort(function (a, b) { return a - b; });
+        chiTiles.sort(function (a, b) {
+            return a - b;
+        });
         gameState._lastChiTiles = chiTiles;
     }
 
     if (choice === OP.DISCARD && cards.length > 0) {
         gameState.pendingDiscardTile = cards[0].value;
     }
-    console.info('[麻将操作发送]', { choice: choice, cards: cards.map(function (c) { return c.value; }),
-        handCount: gameState.myTiles.length, hand: gameState.myTiles.slice() });
+    console.info('[麻将操作发送]', {
+        choice: choice, cards: cards.map(function (c) {
+            return c.value;
+        }),
+        handCount: gameState.myTiles.length, hand: gameState.myTiles.slice()
+    });
     gameState.opPending = true;
     sendWsMessage('op', {
         choice: choice,
@@ -44,8 +50,12 @@ function doOp(choice, cards) {
             }
             return;
         }
-        console.info('[麻将操作成功]', { choice: choice, cards: cards.map(function (c) { return c.value; }),
-            handCount: gameState.myTiles.length });
+        console.info('[麻将操作成功]', {
+            choice: choice, cards: cards.map(function (c) {
+                return c.value;
+            }),
+            handCount: gameState.myTiles.length
+        });
         if (choice === OP.MJ_HU) {
             showCenterMsg('胡!', 2000);
         }
@@ -91,9 +101,11 @@ function resetMahjongViewForReconnect() {
 function refreshTable() {
     var btn = document.getElementById('refreshTableBtn');
     if (!btn || btn.disabled) return;
-    btn.disabled = true; btn.textContent = '刷新中';
-    sendWsMessage('refreshTable', { tableId: tableId }, function (resp) {
-        btn.disabled = false; btn.textContent = '刷新牌桌';
+    btn.disabled = true;
+    btn.textContent = '刷新中';
+    sendWsMessage('refreshTable', {tableId: tableId}, function (resp) {
+        btn.disabled = false;
+        btn.textContent = '刷新牌桌';
         if (resp.code !== 0 || !resp.data) {
             showCenterMsg(resp.msg || '刷新牌桌失败');
             return;
@@ -111,8 +123,12 @@ function applyMahjongSnapshot(s) {
     }
     sortHandTiles(gameState.myTiles);
     gameState.drawnTileId = s.drawnTile || 0;
-    gameState.discardedTiles = (s.discards || []).map(function (d) { return d.tileId; });
-    gameState.discardSeats = (s.discards || []).map(function (d) { return d.seat; });
+    gameState.discardedTiles = (s.discards || []).map(function (d) {
+        return d.tileId;
+    });
+    gameState.discardSeats = (s.discards || []).map(function (d) {
+        return d.seat;
+    });
     gameState.discardLayouts = [];
     gameState.lastDiscardEventAt = 0;
     gameState.exposedBySeat = {};
@@ -131,7 +147,10 @@ function applyMahjongSnapshot(s) {
     gameState.lastDiscardTile = s.pendingDiscardTile || 0;
     gameState.lastDiscardSeat = s.pendingDiscardSeat == null ? -1 : s.pendingDiscardSeat;
     gameState.opPending = false;
-    renderMyTiles(); renderMyExposed(); renderDiscarded(); refreshOpponentBacks();
+    renderMyTiles();
+    renderMyExposed();
+    renderDiscarded();
+    refreshOpponentBacks();
     setActiveSeat(s.opSeat, snapshotOperationWait(s));
     document.getElementById('wallInfo').textContent = '牌墙剩余: ' + gameState.wallLeft + '张';
     if (s.opSeat === gameState.myPosition) showOperationChoices(s.choices || []); else hideActions();
@@ -187,8 +206,10 @@ function handleNotCard(data) {
         }
     }
 
-    console.info('[麻将手牌同步]', { previousCount: prevLen, nextCount: nextMine.length,
-        nextMine: nextMine.slice(), previousDrawn: prevDrawn });
+    console.info('[麻将手牌同步]', {
+        previousCount: prevLen, nextCount: nextMine.length,
+        nextMine: nextMine.slice(), previousDrawn: prevDrawn
+    });
 
     var isInitialDeal = prevLen === 0 && nextMine.length >= 13;
     var isDraw = !isInitialDeal && nextMine.length === prevLen + 1;
@@ -203,7 +224,7 @@ function handleNotCard(data) {
         gameState.myTiles = rest;
         gameState.drawnTileId = drawn;
         gameState.selectedTile = rest.length - 1;
-        renderMyTiles({ flashDrawn: true });
+        renderMyTiles({flashDrawn: true});
     } else {
         sortHandTiles(nextMine);
         gameState.myTiles = nextMine;
@@ -217,7 +238,7 @@ function handleNotCard(data) {
     // 补杠/暗杠后的补摸可能先于新的 NotOperation 到达；即使服务端提示
     // 短暂丢失，也要立即恢复本人的手牌交互和出牌按钮。
     if (isDraw) {
-        showOperationChoices([{ choice: OP.DISCARD }]);
+        showOperationChoices([{choice: OP.DISCARD}]);
     }
 }
 
@@ -259,8 +280,10 @@ function handleNotState(data) {
 
 function handleNotMjState(data) {
     if (!data) return;
-    console.info('[麻将状态消息]', { action: data.action, seat: data.opSeat, tile: data.tileId,
-        wallLeft: data.wallLeft, handCount: gameState.myTiles.length });
+    console.info('[麻将状态消息]', {
+        action: data.action, seat: data.opSeat, tile: data.tileId,
+        wallLeft: data.wallLeft, handCount: gameState.myTiles.length
+    });
     if (data.tileId) gameState.lastClaimTile = data.tileId;
     if (data.wallLeft != null) {
         gameState.wallLeft = data.wallLeft;
@@ -363,7 +386,7 @@ function appendDiscardEvent(seat, tileId) {
         && gameState.discardSeats[n - 1] === seat
         && now - gameState.lastDiscardEventAt < 2000;
     if (duplicate) {
-        console.warn('[麻将弃牌去重]', { seat: seat, tile: tileId });
+        console.warn('[麻将弃牌去重]', {seat: seat, tile: tileId});
         return false;
     }
     gameState.discardedTiles.push(tileId);
@@ -399,7 +422,9 @@ function buildMjSettleHandsHtml(hands, winnerSeat, winTile) {
         }
         html += '</div><div class="settle-hand-cards" data-seat="' + h.seat + '"></div></div>';
     }
-    setTimeout(function () { fillSettleHandCards(hands, winnerSeat, winTile); }, 0);
+    setTimeout(function () {
+        fillSettleHandCards(hands, winnerSeat, winTile);
+    }, 0);
     return html;
 }
 
@@ -418,10 +443,10 @@ function fillSettleHandCards(hands, winnerSeat, winTile) {
             if (winIndex >= 0) tiles.splice(winIndex, 1);
         }
         for (var t = 0; t < tiles.length; t++) {
-            box.appendChild(MahjongTile.createTileEl(tiles[t], { small: true }));
+            box.appendChild(MahjongTile.createTileEl(tiles[t], {small: true}));
         }
         if (h.seat === winnerSeat && winTile) {
-            var winningTile = MahjongTile.createTileEl(winTile, { small: true });
+            var winningTile = MahjongTile.createTileEl(winTile, {small: true});
             winningTile.className += ' settle-win-tile';
             box.appendChild(winningTile);
         }
@@ -432,7 +457,7 @@ function fillSettleHandCards(hands, winnerSeat, winTile) {
                 kind: parsed.kind,
                 tiles: exposed[e].tileIds || [],
                 fromSeat: parsed.fromSeat
-            }, { ownerSeat: h.seat, revealAnGang: true });
+            }, {ownerSeat: h.seat, revealAnGang: true});
         }
     }
 }
@@ -461,6 +486,14 @@ function handleNotGameResult(data) {
     showActionButtons('prepare');
 }
 
-function closeSettle() { GameTable.closeSettle(); }
-function backToLobby() { GameTable.backToLobby(); }
-function exitRoom() { GameTable.exitRoom(sendWsMessage); }
+function closeSettle() {
+    GameTable.closeSettle();
+}
+
+function backToLobby() {
+    GameTable.backToLobby();
+}
+
+function exitRoom() {
+    GameTable.exitRoom(sendWsMessage);
+}

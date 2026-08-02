@@ -7,7 +7,9 @@
     var SIZE = 15;
     var canvas = document.getElementById('board');
     var cells = [];
-    var view = GomokuView.create(canvas, function () { return cells; });
+    var view = GomokuView.create(canvas, function () {
+        return cells;
+    });
     var turn = 1;
     var finished = false;
     var mode = null; // local | ai | online
@@ -30,22 +32,29 @@
         finished = false;
     }
 
-    function setStatus(t) { document.getElementById('status').textContent = t; }
+    function setStatus(t) {
+        document.getElementById('status').textContent = t;
+    }
 
-    function draw() { view.draw(); }
+    function draw() {
+        view.draw();
+    }
 
     function countDir(x, y, dx, dy, color) {
         var n = 0, cx = x + dx, cy = y + dy;
         while (cx >= 0 && cx < SIZE && cy >= 0 && cy < SIZE && cells[cy][cx] === color) {
-            n++; cx += dx; cy += dy;
+            n++;
+            cx += dx;
+            cy += dy;
         }
         return n;
     }
+
     function checkWin(x, y, color) {
-        return countDir(x,y,1,0,color)+countDir(x,y,-1,0,color) >= 4
-            || countDir(x,y,0,1,color)+countDir(x,y,0,-1,color) >= 4
-            || countDir(x,y,1,1,color)+countDir(x,y,-1,-1,color) >= 4
-            || countDir(x,y,1,-1,color)+countDir(x,y,-1,1,color) >= 4;
+        return countDir(x, y, 1, 0, color) + countDir(x, y, -1, 0, color) >= 4
+            || countDir(x, y, 0, 1, color) + countDir(x, y, 0, -1, color) >= 4
+            || countDir(x, y, 1, 1, color) + countDir(x, y, -1, -1, color) >= 4
+            || countDir(x, y, 1, -1, color) + countDir(x, y, -1, 1, color) >= 4;
     }
 
     function placeLocal(x, y) {
@@ -58,12 +67,17 @@
         } else {
             var full = true;
             for (var i = 0; i < SIZE && full; i++)
-                for (var j = 0; j < SIZE; j++) if (!cells[i][j]) { full = false; break; }
-            if (full) { finished = true; setStatus('和棋'); }
-            else {
+                for (var j = 0; j < SIZE; j++) if (!cells[i][j]) {
+                    full = false;
+                    break;
+                }
+            if (full) {
+                finished = true;
+                setStatus('和棋');
+            } else {
                 turn = turn === 1 ? 2 : 1;
                 if (mode === 'ai') setStatus(turn === myColor ? '轮到你'
-                        : (aiLevel >= 4 ? '大师 AI 深度思考中（最多约 5 秒）…' : '电脑思考中…'));
+                    : (aiLevel >= 4 ? '大师 AI 深度思考中（最多约 5 秒）…' : '电脑思考中…'));
                 else setStatus(turn === 1 ? '黑棋落子' : '白棋落子');
             }
         }
@@ -104,7 +118,9 @@
             aiWorker.onmessage = function (event) {
                 var result = event.data;
                 var wait = aiLevel >= 4 ? Math.max(0, 1000 - (Date.now() - aiStartedAt)) : 0;
-                setTimeout(function () { finishAiMove(result.id, result.move); }, wait);
+                setTimeout(function () {
+                    finishAiMove(result.id, result.move);
+                }, wait);
             };
             aiWorker.onerror = function () {
                 var job = aiJob;
@@ -135,7 +151,8 @@
         } else {
             document.getElementById('difficultyBox').style.display = 'none';
         }
-        myColor = 1; aiColor = 2;
+        myColor = 1;
+        aiColor = 2;
         onlineSide = null;
         emptyBoard();
         if (vsAi) restartAiWorker();
@@ -147,7 +164,8 @@
 
     function startOnline() {
         stopAiWorker();
-        emptyBoard(); draw();
+        emptyBoard();
+        draw();
         mode = 'online';
         finished = true;
         document.getElementById('resignBtn').disabled = true;
@@ -157,7 +175,7 @@
         sock = new MiniGames.MiniSocket(onSockEvent);
         sock.connect(user.sessionId).then(function () {
             setStatus('匹配中…');
-            return sock.send('match', { game: 'gomoku' });
+            return sock.send('match', {game: 'gomoku'});
         }).then(function (msg) {
             if (msg.data && msg.data.status === 'queued') setStatus('排队等待对手…');
         }).catch(function (e) {
@@ -196,7 +214,8 @@
     }
 
     function cancelOnline() {
-        if (sock) sock.send('cancelMatch', {}).catch(function () {});
+        if (sock) sock.send('cancelMatch', {}).catch(function () {
+        });
         closeSock();
         setStatus('已取消匹配');
         document.getElementById('cancelBtn').style.display = 'none';
@@ -206,7 +225,8 @@
     function resignGame() {
         if (finished) return;
         if (mode === 'online' && sock) {
-            sock.send('resign', {}).catch(function () {});
+            sock.send('resign', {}).catch(function () {
+            });
             return;
         }
         finished = true;
@@ -230,7 +250,10 @@
 
     function closeSock() {
         if (sock) {
-            try { sock.send('leave', {}); } catch (e) {}
+            try {
+                sock.send('leave', {});
+            } catch (e) {
+            }
             sock.close();
             sock = null;
         }
@@ -244,7 +267,7 @@
 
         if (mode === 'online') {
             if (turn !== myColor) return;
-            sock.send('move', { x: x, y: y }).catch(function (err) {
+            sock.send('move', {x: x, y: y}).catch(function (err) {
                 setStatus(err.message || '落子失败');
             });
             return;

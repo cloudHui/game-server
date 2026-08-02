@@ -1,8 +1,5 @@
 package gate.connect.handle.time;
 
-import java.util.Arrays;
-import java.util.List;
-
 import gate.Gate;
 import gate.connect.ConnectProcessor;
 import msg.annotation.ProcessClass;
@@ -13,31 +10,34 @@ import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 import tools.handle.AbstractAckServerInfoHandle;
 
+import java.util.Arrays;
+import java.util.List;
+
 @ProcessClass(ServerProto.AckServerInfo.class)
 public class AckServerInfoHandle extends AbstractAckServerInfoHandle {
-	private static final Logger logger = LoggerFactory.getLogger(AckServerInfoHandle.class);
+    private static final Logger logger = LoggerFactory.getLogger(AckServerInfoHandle.class);
 
-	private static final List<ServerType> RETRY_SERVER_TYPES = Arrays.asList(ServerType.Lobby, ServerType.Game);
+    private static final List<ServerType> RETRY_SERVER_TYPES = Arrays.asList(ServerType.Lobby, ServerType.Game);
 
-	@Override
-	protected void processServerInfo(ServerProto.AckServerInfo response) {
-		logger.info("处理请求需要连接的服务器信息返回, response:{}", response.toString());
+    @Override
+    protected void processServerInfo(ServerProto.AckServerInfo response) {
+        logger.info("处理请求需要连接的服务器信息返回, response:{}", response.toString());
 
-		Gate.getInstance().execute(() ->
-				Gate.getInstance().getServerManager().connectToSever(
-						response.getServersList(),
-						Gate.getInstance().getServerId(),
-						Gate.getInstance().getInnerIp() + ":" + Gate.getInstance().getPort(),
-						ConnectProcessor.TRANSFER, ConnectProcessor.PARSER, ConnectProcessor.HANDLERS, ServerType.Gate));
-	}
+        Gate.getInstance().execute(() ->
+                Gate.getInstance().getServerManager().connectToSever(
+                        response.getServersList(),
+                        Gate.getInstance().getServerId(),
+                        Gate.getInstance().getInnerIp() + ":" + Gate.getInstance().getPort(),
+                        ConnectProcessor.TRANSFER, ConnectProcessor.PARSER, ConnectProcessor.HANDLERS, ServerType.Gate));
+    }
 
-	@Override
-	protected void scheduleRetry(Sender serverClient) {
-		logger.warn("未找到可用服务器,将在 {}ms 后重试", RETRY_DELAY);
+    @Override
+    protected void scheduleRetry(Sender serverClient) {
+        logger.warn("未找到可用服务器,将在 {}ms 后重试", RETRY_DELAY);
 
-		Gate.getInstance().registerTimer(RETRY_DELAY, RETRY_INTERVAL, RETRY_COUNT, gate -> {
-			sendRetryRequest(serverClient, RETRY_SERVER_TYPES, ConnectProcessor.PARSER);
-			return true;
-		}, Gate.getInstance());
-	}
+        Gate.getInstance().registerTimer(RETRY_DELAY, RETRY_INTERVAL, RETRY_COUNT, gate -> {
+            sendRetryRequest(serverClient, RETRY_SERVER_TYPES, ConnectProcessor.PARSER);
+            return true;
+        }, Gate.getInstance());
+    }
 }

@@ -21,35 +21,35 @@ import proto.ServerProto;
 @ProcessType(LMsg.ACK_REGISTER_MSG)
 public class RegisterBack implements BackHandle, Handler {
 
-	private static final Logger logger = LoggerFactory.getLogger(RegisterBack.class);
+    private static final Logger logger = LoggerFactory.getLogger(RegisterBack.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
-		return false;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
+        return false;
+    }
 
-	@Override
-	public void handle(TCPMessage response, GateTcpClient client) {
-		try {
-			LobbyProto.AckUserRegister res = LobbyProto.AckUserRegister.parseFrom(response.getMessage());
-			if (res.getCode() == 0 && res.getUserId() > 0) {
-				client.setRoleId(res.getUserId());
-				notifyCenterLoginSuccess(ClientHandler.getRemoteIP(client).getHostString());
-				logger.info("用户注册成功, userId: {}", res.getUserId());
-			} else {
-				logger.warn("注册失败, code: {}, userId: {}", res.getCode(), res.getUserId());
-			}
-		} catch (Exception e) {
-			logger.error("解析注册响应失败, msgId: {}", Integer.toHexString(response.getMessageId()), e);
-		}
-	}
+    @Override
+    public void handle(TCPMessage response, GateTcpClient client) {
+        try {
+            LobbyProto.AckUserRegister res = LobbyProto.AckUserRegister.parseFrom(response.getMessage());
+            if (res.getCode() == 0 && res.getUserId() > 0) {
+                client.setRoleId(res.getUserId());
+                notifyCenterLoginSuccess(ClientHandler.getRemoteIP(client).getHostString());
+                logger.info("用户注册成功, userId: {}", res.getUserId());
+            } else {
+                logger.warn("注册失败, code: {}, userId: {}", res.getCode(), res.getUserId());
+            }
+        } catch (Exception e) {
+            logger.error("解析注册响应失败, msgId: {}", Integer.toHexString(response.getMessageId()), e);
+        }
+    }
 
-	private void notifyCenterLoginSuccess(String certificate) {
-		ServerProto.NotRegisterClient.Builder loginNotify = ServerProto.NotRegisterClient.newBuilder();
-		loginNotify.setCert(ByteString.copyFromUtf8(certificate));
-		ConnectHandler centerConnection = Gate.getInstance().getServerManager().getServerClient(ServerType.Center);
-		if (centerConnection != null) {
-			centerConnection.sendMessage(CMsg.NOT_LINK, loginNotify.build());
-		}
-	}
+    private void notifyCenterLoginSuccess(String certificate) {
+        ServerProto.NotRegisterClient.Builder loginNotify = ServerProto.NotRegisterClient.newBuilder();
+        loginNotify.setCert(ByteString.copyFromUtf8(certificate));
+        ConnectHandler centerConnection = Gate.getInstance().getServerManager().getServerClient(ServerType.Center);
+        if (centerConnection != null) {
+            centerConnection.sendMessage(CMsg.NOT_LINK, loginNotify.build());
+        }
+    }
 }

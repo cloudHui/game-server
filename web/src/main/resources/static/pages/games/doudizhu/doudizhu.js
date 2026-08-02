@@ -30,10 +30,15 @@ document.getElementById('roomInfo').textContent = '桌号: ' + tableId;
 
 var gameWs = GameTable.createGameWs({
     sessionId: sessionId,
-    onAuthed: function () { enterTable(); },
+    onAuthed: function () {
+        enterTable();
+    },
     onPush: handleWsPush
 });
-function sendWsMessage(action, data, callback) { return gameWs.send(action, data, callback); }
+
+function sendWsMessage(action, data, callback) {
+    return gameWs.send(action, data, callback);
+}
 
 function handleWsPush(data) {
     switch (data.action) {
@@ -66,7 +71,7 @@ function handleWsPush(data) {
 
 
 function enterTable() {
-    sendWsMessage('enterTable', { tableId: tableId }, function(resp) {
+    sendWsMessage('enterTable', {tableId: tableId}, function (resp) {
         if (resp.code === 0 && resp.data) {
             updatePlayers(resp.data.players || []);
             if (resp.data.tableInfo) {

@@ -49,8 +49,8 @@ public class ConfigPacker {
         List<Path> xlsxFiles = new ArrayList<>();
         try (Stream<Path> stream = Files.list(excelDir)) {
             stream.filter(p -> p.toString().endsWith(".xlsx"))
-                  .filter(p -> !p.getFileName().toString().startsWith("~$")) // 过滤临时文件
-                  .forEach(xlsxFiles::add);
+                    .filter(p -> !p.getFileName().toString().startsWith("~$")) // 过滤临时文件
+                    .forEach(xlsxFiles::add);
         }
 
         if (xlsxFiles.isEmpty()) {

@@ -1,6 +1,6 @@
 package tools.ding.old;
 
-public class OapiRobotSendRequest{
+public class OapiRobotSendRequest {
     private String actionCard;
     private String at;
     private String feedCard;

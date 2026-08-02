@@ -10,7 +10,7 @@ import tools.other.excel.ExcelUtil;
  */
 public class GeneraExcel {
 
-	public static void main(String[] args) {
-		ExcelUtil.scanResourcesCreateJavaHead("tool");
-	}
+    public static void main(String[] args) {
+        ExcelUtil.scanResourcesCreateJavaHead("tool");
+    }
 }

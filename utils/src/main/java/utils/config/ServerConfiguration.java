@@ -46,7 +46,7 @@ public class ServerConfiguration {
         SocketAddress[] addresses = new SocketAddress[hosts.length];
         int i = 0;
 
-        for(int iSize = hosts.length; i < iSize; ++i) {
+        for (int iSize = hosts.length; i < iSize; ++i) {
             String[] data = hosts[i].split(":");
             addresses[i] = new InetSocketAddress(data[0], Integer.parseInt(data[1]));
         }
@@ -67,7 +67,7 @@ public class ServerConfiguration {
     public static List<SocketAddress> getSocketAddresses(String[] hosts, List<SocketAddress> addresses) {
         int i = 0;
 
-        for(int iSize = hosts.length; i < iSize; ++i) {
+        for (int iSize = hosts.length; i < iSize; ++i) {
             String[] data = hosts[i].split(":");
             addresses.add(new InetSocketAddress(data[0], Integer.parseInt(data[1])));
         }

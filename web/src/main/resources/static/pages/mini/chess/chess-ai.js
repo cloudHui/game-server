@@ -2,7 +2,7 @@
     'use strict';
 
     function material(piece) {
-        return {k:10000,r:500,c:300,n:250,b:150,a:150,p:60}[piece.toLowerCase()] || 0;
+        return {k: 10000, r: 500, c: 300, n: 250, b: 150, a: 150, p: 60}[piece.toLowerCase()] || 0;
     }
 
     function evaluate(board) {
@@ -18,8 +18,8 @@
         var moves = [];
         for (var row = 0; row < 10; row++) for (var col = 0; col < 9; col++) {
             if (board[row][col] === '.' || w.ChessRules.isRed(board[row][col]) !== forRed) continue;
-            w.ChessRules.legalFrom(board,row,col).forEach(function (target) {
-                moves.push([row,col,target[0],target[1]]);
+            w.ChessRules.legalFrom(board, row, col).forEach(function (target) {
+                moves.push([row, col, target[0], target[1]]);
             });
         }
         return moves;
@@ -36,7 +36,7 @@
         return moves.slice(0, limit);
     }
 
-    var TIMEOUT = { timeout: true };
+    var TIMEOUT = {timeout: true};
 
     function search(board, level, depth, forRed, alpha, beta, deadline) {
         if (deadline && Date.now() >= deadline) throw TIMEOUT;
@@ -47,15 +47,22 @@
         var best = forRed ? -1e15 : 1e15;
         for (var i = 0; i < moves.length; i++) {
             var move = moves[i], piece = board[move[0]][move[1]], captured = board[move[2]][move[3]];
-            board[move[2]][move[3]] = piece; board[move[0]][move[1]] = '.';
+            board[move[2]][move[3]] = piece;
+            board[move[0]][move[1]] = '.';
             var value;
             try {
                 value = search(board, level, depth - 1, !forRed, alpha, beta, deadline);
             } finally {
-                board[move[0]][move[1]] = piece; board[move[2]][move[3]] = captured;
+                board[move[0]][move[1]] = piece;
+                board[move[2]][move[3]] = captured;
             }
-            if (forRed) { best = Math.max(best, value); alpha = Math.max(alpha, best); }
-            else { best = Math.min(best, value); beta = Math.min(beta, best); }
+            if (forRed) {
+                best = Math.max(best, value);
+                alpha = Math.max(alpha, best);
+            } else {
+                best = Math.min(best, value);
+                beta = Math.min(beta, best);
+            }
             if (beta <= alpha) break;
         }
         return best;
@@ -75,14 +82,19 @@
         for (var i = 0; i < moves.length; i++) {
             if (deadline && Date.now() >= deadline) throw TIMEOUT;
             var move = moves[i], piece = board[move[0]][move[1]], captured = board[move[2]][move[3]];
-            board[move[2]][move[3]] = piece; board[move[0]][move[1]] = '.';
+            board[move[2]][move[3]] = piece;
+            board[move[0]][move[1]] = '.';
             var score;
             try {
                 score = search(board, level, depth - 1, true, -1e15, 1e15, deadline);
             } finally {
-                board[move[0]][move[1]] = piece; board[move[2]][move[3]] = captured;
+                board[move[0]][move[1]] = piece;
+                board[move[2]][move[3]] = captured;
             }
-            if (score < best) { best = score; pick = move; }
+            if (score < best) {
+                best = score;
+                pick = move;
+            }
         }
         return pick;
     }
@@ -101,5 +113,5 @@
         return best;
     }
 
-    w.ChessAi = { pickMove: pickMove, pickMasterMove: pickMasterMove };
+    w.ChessAi = {pickMove: pickMove, pickMasterMove: pickMasterMove};
 })(typeof self !== 'undefined' ? self : window);

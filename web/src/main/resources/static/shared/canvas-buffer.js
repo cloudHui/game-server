@@ -3,11 +3,11 @@
 
     function CanvasBuffer(canvas) {
         this.canvas = canvas;
-        this.visibleContext = canvas.getContext('2d', { alpha: false });
+        this.visibleContext = canvas.getContext('2d', {alpha: false});
         this.frame = document.createElement('canvas');
-        this.frameContext = this.frame.getContext('2d', { alpha: false });
+        this.frameContext = this.frame.getContext('2d', {alpha: false});
         this.background = document.createElement('canvas');
-        this.backgroundContext = this.background.getContext('2d', { alpha: false });
+        this.backgroundContext = this.background.getContext('2d', {alpha: false});
         this.resize(canvas.width, canvas.height);
     }
 

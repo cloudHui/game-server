@@ -13,7 +13,10 @@ import java.util.stream.Collectors;
 @Service
 public class MistakeService {
     private final JsonFileStore store;
-    public MistakeService(JsonFileStore store) { this.store = store; }
+
+    public MistakeService(JsonFileStore store) {
+        this.store = store;
+    }
 
     public synchronized Mistake add(Mistake incoming) throws Exception {
         validateId(incoming.studentId);
@@ -74,17 +77,22 @@ public class MistakeService {
     public synchronized Mistake update(String studentId, String mistakeId, Mistake changes) throws Exception {
         validate(changes);
         List<Mistake> all = all(studentId);
-        for (int i = 0; i < all.size(); i++) if (mistakeId.equals(all.get(i).id)) {
-            Mistake current = all.get(i); changes.id = current.id; changes.studentId = studentId;
-            if (changes.firstWrongAt == null) changes.firstWrongAt = current.firstWrongAt;
-            if (changes.lastWrongAt == null) changes.lastWrongAt = current.lastWrongAt;
-            if (changes.lastReviewedAt == null) changes.lastReviewedAt = current.lastReviewedAt;
-            if (changes.errorCount <= 0) changes.errorCount = current.errorCount;
-            if (changes.reviewCount <= 0) changes.reviewCount = current.reviewCount;
-            if (changes.consecutiveCorrect <= 0) changes.consecutiveCorrect = current.consecutiveCorrect;
-            if (changes.status == null || changes.status.trim().isEmpty()) changes.status = current.status;
-            all.set(i, changes); store.write(store.path("mistakes", studentId), all); return changes;
-        }
+        for (int i = 0; i < all.size(); i++)
+            if (mistakeId.equals(all.get(i).id)) {
+                Mistake current = all.get(i);
+                changes.id = current.id;
+                changes.studentId = studentId;
+                if (changes.firstWrongAt == null) changes.firstWrongAt = current.firstWrongAt;
+                if (changes.lastWrongAt == null) changes.lastWrongAt = current.lastWrongAt;
+                if (changes.lastReviewedAt == null) changes.lastReviewedAt = current.lastReviewedAt;
+                if (changes.errorCount <= 0) changes.errorCount = current.errorCount;
+                if (changes.reviewCount <= 0) changes.reviewCount = current.reviewCount;
+                if (changes.consecutiveCorrect <= 0) changes.consecutiveCorrect = current.consecutiveCorrect;
+                if (changes.status == null || changes.status.trim().isEmpty()) changes.status = current.status;
+                all.set(i, changes);
+                store.write(store.path("mistakes", studentId), all);
+                return changes;
+            }
         throw new IllegalArgumentException("找不到错题");
     }
 
@@ -96,19 +104,27 @@ public class MistakeService {
 
     private List<Mistake> all(String studentId) throws Exception {
         if (!StudentService.isValidArchiveId(studentId)) return new ArrayList<>();
-        return store.readList(store.path("mistakes", studentId), new TypeReference<List<Mistake>>() {});
+        return store.readList(store.path("mistakes", studentId), new TypeReference<List<Mistake>>() {
+        });
     }
 
     private boolean sameQuestion(Mistake a, Mistake b) {
         return safe(a.subject).equals(safe(b.subject)) && safe(a.question).equals(safe(b.question));
     }
-    private String safe(String value) { return value == null ? "" : value; }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
     private void validateId(String id) {
         if (!StudentService.isValidArchiveId(id)) throw new IllegalArgumentException("无效的学习档案");
     }
+
     private void validate(Mistake mistake) {
-        if (mistake.subject == null || mistake.subject.trim().isEmpty()) throw new IllegalArgumentException("错题科目不能为空");
-        if (mistake.question == null || mistake.question.trim().isEmpty()) throw new IllegalArgumentException("错题内容不能为空");
+        if (mistake.subject == null || mistake.subject.trim().isEmpty())
+            throw new IllegalArgumentException("错题科目不能为空");
+        if (mistake.question == null || mistake.question.trim().isEmpty())
+            throw new IllegalArgumentException("错题内容不能为空");
         if (mistake.correctAnswer == null) mistake.correctAnswer = "";
     }
 }

@@ -9,6 +9,7 @@ html.force-landscape body {
     inset: 0;
     touch-action: none;
 }
+
 html.force-landscape .table-bg {
     position: absolute;
     width: var(--game-w, 100vh);
@@ -19,6 +20,7 @@ html.force-landscape .table-bg {
     transform-origin: top left;
     overflow: hidden;
 }
+
 /* 未强制时也统一游戏宽高变量，便于手牌按可用宽度缩放 */
 html:not(.force-landscape) {
     --game-w: 100vw;

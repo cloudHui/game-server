@@ -9,7 +9,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-/** 仅作用于学习页与学习 API，避免 CSP 影响娱乐前端。 */
+/**
+ * 仅作用于学习页与学习 API，避免 CSP 影响娱乐前端。
+ */
 @Component
 public class SecurityHeadersFilter extends OncePerRequestFilter {
     @Override

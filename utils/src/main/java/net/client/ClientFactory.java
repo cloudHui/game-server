@@ -6,5 +6,5 @@ import io.netty.channel.ChannelHandlerAdapter;
 import java.util.List;
 
 public interface ClientFactory {
-	List<ChannelHandlerAdapter> create(Channel var1);
+    List<ChannelHandlerAdapter> create(Channel var1);
 }

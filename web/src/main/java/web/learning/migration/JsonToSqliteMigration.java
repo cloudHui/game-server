@@ -18,9 +18,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** Standalone, non-Spring migration command for the legacy business JSON. */
+/**
+ * Standalone, non-Spring migration command for the legacy business JSON.
+ */
 public final class JsonToSqliteMigration {
-    private JsonToSqliteMigration() {}
+    private JsonToSqliteMigration() {
+    }
 
     public static void main(String[] args) throws Exception {
         Path dataDir = argument(args, "data-dir", Paths.get("./data"));
@@ -67,8 +70,11 @@ public final class JsonToSqliteMigration {
                     "INSERT INTO documents(folder,item_key,payload,updated_at) VALUES(?,?,?,?) " +
                             "ON CONFLICT(folder,item_key) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")) {
                 for (Document document : documents) {
-                    insert.setString(1, document.folder); insert.setString(2, document.key);
-                    insert.setString(3, document.payload); insert.setString(4, Instant.now().toString()); insert.addBatch();
+                    insert.setString(1, document.folder);
+                    insert.setString(2, document.key);
+                    insert.setString(3, document.payload);
+                    insert.setString(4, Instant.now().toString());
+                    insert.addBatch();
                 }
                 insert.executeBatch();
             }
@@ -85,7 +91,14 @@ public final class JsonToSqliteMigration {
     }
 
     private static final class Document {
-        final String folder; final String key; final String payload;
-        Document(String folder, String key, String payload) { this.folder = folder; this.key = key; this.payload = payload; }
+        final String folder;
+        final String key;
+        final String payload;
+
+        Document(String folder, String key, String payload) {
+            this.folder = folder;
+            this.key = key;
+            this.payload = payload;
+        }
     }
 }

@@ -12,25 +12,25 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import net.client.ClientFactory;
 
 public class WSServiceHandler extends ChannelInitializer<SocketChannel> {
-	private final String webSocketPath;
-	private final ClientFactory clientFactory;
+    private final String webSocketPath;
+    private final ClientFactory clientFactory;
 
-	public WSServiceHandler(String webSocketPath, ClientFactory clientFactory) {
-		this.webSocketPath = webSocketPath;
-		this.clientFactory = clientFactory;
-	}
+    public WSServiceHandler(String webSocketPath, ClientFactory clientFactory) {
+        this.webSocketPath = webSocketPath;
+        this.clientFactory = clientFactory;
+    }
 
-	@Override
-	protected void initChannel(SocketChannel ch) throws Exception {
-		ChannelPipeline p = ch.pipeline();
-		p.addLast(new HttpRequestDecoder());
-		p.addLast(new HttpObjectAggregator(65535));
-		p.addLast(new WebSocketFrameAggregator(2147483647));
-		p.addLast(new WebSocketServerProtocolHandler(this.webSocketPath));
-		p.addLast(new HttpResponseEncoder());
+    @Override
+    protected void initChannel(SocketChannel ch) throws Exception {
+        ChannelPipeline p = ch.pipeline();
+        p.addLast(new HttpRequestDecoder());
+        p.addLast(new HttpObjectAggregator(65535));
+        p.addLast(new WebSocketFrameAggregator(2147483647));
+        p.addLast(new WebSocketServerProtocolHandler(this.webSocketPath));
+        p.addLast(new HttpResponseEncoder());
 
-		for (ChannelHandlerAdapter channelInboundHandlerAdapter : this.clientFactory.create(ch)) {
-			p.addLast(channelInboundHandlerAdapter);
-		}
-	}
+        for (ChannelHandlerAdapter channelInboundHandlerAdapter : this.clientFactory.create(ch)) {
+            p.addLast(channelInboundHandlerAdapter);
+        }
+    }
 }

@@ -6,24 +6,26 @@
     function countDir(cells, x, y, dx, dy, color) {
         var n = 0, cx = x + dx, cy = y + dy;
         while (cx >= 0 && cx < SIZE && cy >= 0 && cy < SIZE && cells[cy][cx] === color) {
-            n++; cx += dx; cy += dy;
+            n++;
+            cx += dx;
+            cy += dy;
         }
         return n;
     }
 
     function checkWin(cells, x, y, color) {
-        return countDir(cells,x,y,1,0,color)+countDir(cells,x,y,-1,0,color) >= 4
-            || countDir(cells,x,y,0,1,color)+countDir(cells,x,y,0,-1,color) >= 4
-            || countDir(cells,x,y,1,1,color)+countDir(cells,x,y,-1,-1,color) >= 4
-            || countDir(cells,x,y,1,-1,color)+countDir(cells,x,y,-1,1,color) >= 4;
+        return countDir(cells, x, y, 1, 0, color) + countDir(cells, x, y, -1, 0, color) >= 4
+            || countDir(cells, x, y, 0, 1, color) + countDir(cells, x, y, 0, -1, color) >= 4
+            || countDir(cells, x, y, 1, 1, color) + countDir(cells, x, y, -1, -1, color) >= 4
+            || countDir(cells, x, y, 1, -1, color) + countDir(cells, x, y, -1, 1, color) >= 4;
     }
 
     function scorePoint(cells, x, y, color) {
         if (cells[y][x]) return -1;
         cells[y][x] = color;
         var s = 0;
-        [[1,0],[0,1],[1,1],[1,-1]].forEach(function (d) {
-            var n = 1 + countDir(cells,x,y,d[0],d[1],color) + countDir(cells,x,y,-d[0],-d[1],color);
+        [[1, 0], [0, 1], [1, 1], [1, -1]].forEach(function (d) {
+            var n = 1 + countDir(cells, x, y, d[0], d[1], color) + countDir(cells, x, y, -d[0], -d[1], color);
             if (n >= 5) s += 100000;
             else if (n === 4) s += 10000;
             else if (n === 3) s += 1000;
@@ -45,16 +47,22 @@
     /** 只搜索棋子附近的高价值点，控制移动端的搜索量。 */
     function candidateMoves(cells, aiColor, myColor, limit) {
         var list = [], occupied = cells.some(function (row) {
-            return row.some(function (value) { return value !== 0; });
+            return row.some(function (value) {
+                return value !== 0;
+            });
         });
         for (var y = 0; y < SIZE; y++) for (var x = 0; x < SIZE; x++) {
             if (!cells[y][x] && (!occupied || hasNeighbor(cells, x, y, 2))) {
-                list.push({ x: x, y: y, score: scorePoint(cells, x, y, aiColor) * 1.1
-                    + scorePoint(cells, x, y, myColor) * 1.25 });
+                list.push({
+                    x: x, y: y, score: scorePoint(cells, x, y, aiColor) * 1.1
+                        + scorePoint(cells, x, y, myColor) * 1.25
+                });
             }
         }
-        if (!occupied) return [{ x: 7, y: 7, score: 0 }];
-        list.sort(function (a, b) { return b.score - a.score; });
+        if (!occupied) return [{x: 7, y: 7, score: 0}];
+        list.sort(function (a, b) {
+            return b.score - a.score;
+        });
         return list.slice(0, limit);
     }
 
@@ -81,14 +89,19 @@
             } finally {
                 cells[move.y][move.x] = 0;
             }
-            if (maximizing) { best = Math.max(best, value); alpha = Math.max(alpha, best); }
-            else { best = Math.min(best, value); beta = Math.min(beta, best); }
+            if (maximizing) {
+                best = Math.max(best, value);
+                alpha = Math.max(alpha, best);
+            } else {
+                best = Math.min(best, value);
+                beta = Math.min(beta, best);
+            }
             if (beta <= alpha) break;
         }
         return best;
     }
 
-    var TIMEOUT = { timeout: true };
+    var TIMEOUT = {timeout: true};
 
     function findImmediate(cells, color, aiColor, myColor) {
         var moves = candidateMoves(cells, aiColor, myColor, 30);
@@ -119,7 +132,10 @@
             } finally {
                 cells[move.y][move.x] = 0;
             }
-            if (value > best) { best = value; pick = move; }
+            if (value > best) {
+                best = value;
+                pick = move;
+            }
         }
         return pick;
     }
@@ -145,5 +161,5 @@
         return best;
     }
 
-    w.GomokuAi = { pickMove: pickMove, pickMasterMove: pickMasterMove };
+    w.GomokuAi = {pickMove: pickMove, pickMasterMove: pickMasterMove};
 })(typeof self !== 'undefined' ? self : window);

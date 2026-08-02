@@ -1,34 +1,34 @@
 package game.manager;
 
 import game.Game;
+import game.manager.table.Table;
+import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzTable;
 import game.manager.table.mj.MjTable;
 import game.manager.table.pdk.PdkTable;
-import game.manager.table.Table;
 import game.manager.table.tractor.TractorTable;
-import game.manager.table.TableUser;
 import game.manager.thread.GameThreadPoolManager;
+import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import model.tablemodel.RobotRoomTemplates;
 import msg.registor.enums.ServerType;
+import msg.registor.message.GMsg;
 import msg.registor.message.SMsg;
 import net.client.handler.ClientHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import proto.GameProto;
 import proto.ModelProto;
 import proto.ServerProto;
-import proto.GameProto;
 import tool.config.TableConfigManager;
-import msg.registor.message.GMsg;
 import utils.metrics.MetricsCollector;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * 桌子管理器
@@ -53,8 +53,8 @@ public class TableManager {
         if (configManager.loadFail()) {
             throw new RuntimeException("加载配置文件失败");
         }
-		// 与大厅注册同一组固定模板，机器人桌无需依赖外部配置文件。
-		RobotRoomTemplates.register(configManager::putRuntimeModel);
+        // 与大厅注册同一组固定模板，机器人桌无需依赖外部配置文件。
+        RobotRoomTemplates.register(configManager::putRuntimeModel);
         configManager.startWatch();
         logger.info("桌子管理器初始化完成");
     }
@@ -111,7 +111,9 @@ public class TableManager {
         }
     }
 
-    /** 通知仍在桌内的客户端桌子已解散，客户端收到后应清理桌面并返回大厅。 */
+    /**
+     * 通知仍在桌内的客户端桌子已解散，客户端收到后应清理桌面并返回大厅。
+     */
     private void notifyPlayersTableDestroyed(Table table) {
         GameProto.NotTableState notification = GameProto.NotTableState.newBuilder()
                 .setState(msg.registor.enums.TableState.TABLE_DIS.getId())
@@ -127,7 +129,9 @@ public class TableManager {
         }
     }
 
-    /** 在桌子管理线程创建桌子，网络线程只接收 Future。 */
+    /**
+     * 在桌子管理线程创建桌子，网络线程只接收 Future。
+     */
     public CompletableFuture<Table> createTableAsync(int roomId, ModelProto.RoomRole role) {
         return threadPoolManager.submitTableManager(() -> createTable(roomId, role));
     }
@@ -150,7 +154,9 @@ public class TableManager {
         return threadPoolManager.submitTableManager(this::snapshotTables).thenCompose(this::collectTableInfo);
     }
 
-    /** 线程池由 GameThreadPoolManager 统一关闭，这里仅做业务侧占位。 */
+    /**
+     * 线程池由 GameThreadPoolManager 统一关闭，这里仅做业务侧占位。
+     */
     public void shutdown() {
         // no-op：共享线程池生命周期归属 GameThreadPoolManager
     }

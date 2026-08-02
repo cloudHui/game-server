@@ -11,29 +11,43 @@
     <script src="gomoku-view.js"></script>
     <style>
         :root {
-            --bg0: #0f2a1c; --bg1: #1a472a; --accent: #c9a227; --card: rgba(255,252,245,0.96);
+            --bg0: #0f2a1c;
+            --bg1: #1a472a;
+            --accent: #c9a227;
+            --card: rgba(255, 252, 245, 0.96);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
             min-height: 100vh;
-            background:
-                radial-gradient(ellipse at 20% 10%, rgba(201,162,39,0.18), transparent 45%),
-                linear-gradient(160deg, var(--bg0), var(--bg1) 55%, #12301f);
+            background: radial-gradient(ellipse at 20% 10%, rgba(201, 162, 39, 0.18), transparent 45%),
+            linear-gradient(160deg, var(--bg0), var(--bg1) 55%, #12301f);
             color: #1b1b1b;
         }
+
         .header {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             padding: 14px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: #fff;
         }
-        .header h1 { font-size: 20px; color: #ffd700; }
+
+        .header h1 {
+            font-size: 20px;
+            color: #ffd700;
+        }
+
         .header-btn {
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.28);
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.28);
             color: #fff;
             padding: 6px 14px;
             border-radius: 6px;
@@ -41,15 +55,27 @@
             font-size: 13px;
             text-decoration: none;
         }
-        .wrap { max-width: 720px; margin: 24px auto; padding: 0 16px 40px; }
+
+        .wrap {
+            max-width: 720px;
+            margin: 24px auto;
+            padding: 0 16px 40px;
+        }
+
         .panel {
             background: var(--card);
             border-radius: 14px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             margin-bottom: 16px;
         }
-        .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+        .modes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
         .modes button, .actions button {
             border: none;
             border-radius: 10px;
@@ -58,9 +84,19 @@
             font-size: 14px;
             color: #fff;
         }
-        .modes button:nth-child(1) { background: linear-gradient(135deg, #1f5c36, #2d8a4e); }
-        .modes button:nth-child(2) { background: linear-gradient(135deg, #1565c0, #42a5f5); }
-        .modes button:nth-child(3) { background: linear-gradient(135deg, #c41e2a, #e63946); }
+
+        .modes button:nth-child(1) {
+            background: linear-gradient(135deg, #1f5c36, #2d8a4e);
+        }
+
+        .modes button:nth-child(2) {
+            background: linear-gradient(135deg, #1565c0, #42a5f5);
+        }
+
+        .modes button:nth-child(3) {
+            background: linear-gradient(135deg, #c41e2a, #e63946);
+        }
+
         .status {
             text-align: center;
             margin: 12px 0;
@@ -68,7 +104,12 @@
             font-size: 15px;
             min-height: 22px;
         }
-        .board-wrap { display: flex; justify-content: center; }
+
+        .board-wrap {
+            display: flex;
+            justify-content: center;
+        }
+
         canvas {
             background: #deb887;
             border-radius: 8px;
@@ -77,45 +118,88 @@
             cursor: pointer;
             touch-action: none;
         }
-        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-        .actions button { background: rgba(0,0,0,0.55); min-width: 100px; }
-        .actions button.danger { background: linear-gradient(135deg, #8b1e1e, #c41e2a); }
-        .hint { font-size: 12px; color: #666; text-align: center; margin-top: 10px; }
-        .difficulty { display: block; margin: 12px auto 0; max-width: 300px; font-size: 13px; color: #555; }
-        .difficulty select { margin-left: 6px; padding: 5px 8px; border: 1px solid #bbb; border-radius: 5px; }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .actions button {
+            background: rgba(0, 0, 0, 0.55);
+            min-width: 100px;
+        }
+
+        .actions button.danger {
+            background: linear-gradient(135deg, #8b1e1e, #c41e2a);
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .difficulty {
+            display: block;
+            margin: 12px auto 0;
+            max-width: 300px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .difficulty select {
+            margin-left: 6px;
+            padding: 5px 8px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+        }
+
         @media (max-width: 560px) {
-            .modes { grid-template-columns: 1fr; }
+            .modes {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>五子棋</h1>
-        <div>
-            <span id="userDisplay" style="margin-right:10px;font-size:13px;"></span>
-            <a class="header-btn" href="../index.html" id="backLink">返回小游戏</a>
-        </div>
+<div class="header">
+    <h1>五子棋</h1>
+    <div>
+        <span id="userDisplay" style="margin-right:10px;font-size:13px;"></span>
+        <a class="header-btn" href="../index.html" id="backLink">返回小游戏</a>
     </div>
-    <div class="wrap">
-        <div class="panel" id="modePanel">
-            <div class="modes">
-                <button type="button" onclick="startLocal(false)">本地双人</button>
-                <button type="button" onclick="startLocal(true)">人机对战</button>
-                <button type="button" onclick="startOnline()">联机匹配</button>
-            </div>
-            <label class="difficulty" id="difficultyBox">AI 难度（人机模式生效）
-                <select id="difficulty"><option value="1">入门：偏重进攻</option><option value="2" selected>标准：攻守平衡</option><option value="3">挑战：优先封堵</option><option value="4">大师：限时迭代加深</option></select>
-            </label>
-            <p class="hint">15×15 无禁手 · 黑先 · 联机需另一位登录玩家同时匹配</p>
+</div>
+<div class="wrap">
+    <div class="panel" id="modePanel">
+        <div class="modes">
+            <button type="button" onclick="startLocal(false)">本地双人</button>
+            <button type="button" onclick="startLocal(true)">人机对战</button>
+            <button type="button" onclick="startOnline()">联机匹配</button>
         </div>
-        <div class="status" id="status">请选择模式</div>
-        <div class="board-wrap"><canvas id="board" width="480" height="480"></canvas></div>
-        <div class="actions">
-            <button type="button" onclick="resignGame()" id="resignBtn" disabled>认输</button>
-            <button type="button" onclick="cancelOnline()" id="cancelBtn" style="display:none;">取消匹配</button>
-            <button type="button" onclick="resetToMenu()">重选模式</button>
-        </div>
+        <label class="difficulty" id="difficultyBox">AI 难度（人机模式生效）
+            <select id="difficulty">
+                <option value="1">入门：偏重进攻</option>
+                <option value="2" selected>标准：攻守平衡</option>
+                <option value="3">挑战：优先封堵</option>
+                <option value="4">大师：限时迭代加深</option>
+            </select>
+        </label>
+        <p class="hint">15×15 无禁手 · 黑先 · 联机需另一位登录玩家同时匹配</p>
     </div>
-    <script src="gomoku.js"></script>
+    <div class="status" id="status">请选择模式</div>
+    <div class="board-wrap">
+        <canvas id="board" width="480" height="480"></canvas>
+    </div>
+    <div class="actions">
+        <button type="button" onclick="resignGame()" id="resignBtn" disabled>认输</button>
+        <button type="button" onclick="cancelOnline()" id="cancelBtn" style="display:none;">取消匹配</button>
+        <button type="button" onclick="resetToMenu()">重选模式</button>
+    </div>
+</div>
+<script src="gomoku.js"></script>
 </body>
 </html>

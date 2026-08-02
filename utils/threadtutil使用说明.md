@@ -4,12 +4,12 @@
 
 ## 包结构
 
-| 包路径 | 作用 |
-|--------|------|
+| 包路径                  | 作用                   |
+|----------------------|----------------------|
 | `threadtutil.thread` | 固定线程池、按 groupId 串行执行 |
-| `threadtutil.timer` | 延迟 / 周期 / 有限次定时器 |
-| `threadtutil.lock` | 定时器等待唤醒信号 |
-| `threadtutil.utils` | 时间与默认并发度工具 |
+| `threadtutil.timer`  | 延迟 / 周期 / 有限次定时器     |
+| `threadtutil.lock`   | 定时器等待唤醒信号            |
+| `threadtutil.utils`  | 时间与默认并发度工具           |
 
 ## 1. ExecutorPool：业务线程池
 

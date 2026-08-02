@@ -2,7 +2,9 @@
  * 麻将牌桌渲染：手牌/副露/弃牌/座位/操作栏。
  * 依赖页面全局 gameState / OP / userId / MahjongTile / GameTable / GameLandscape。
  */
-function getTileName(tileId) { return MahjongTile.getTileName(tileId); }
+function getTileName(tileId) {
+    return MahjongTile.getTileName(tileId);
+}
 
 /** 手牌排序：花色升序，同花色点数小的在左 */
 function sortHandTiles(tiles) {
@@ -63,7 +65,9 @@ function renderMyTiles(opt) {
         (function (idx, tileId) {
             var isDrawn = drawnId && idx === gameState.myTiles.length - 1 && tileId === drawnId;
             var tile = MahjongTile.createTileEl(tileId, {
-                onClick: function () { toggleTile(idx); }
+                onClick: function () {
+                    toggleTile(idx);
+                }
             });
             if (gameState.selectedTile === idx) tile.className += ' selected';
             if (isDrawn) {
@@ -98,7 +102,9 @@ function tryAppendDrawnTile(container) {
     });
     var idx = tiles.length - 1;
     var tile = MahjongTile.createTileEl(tiles[idx], {
-        onClick: function () { toggleTile(idx); }
+        onClick: function () {
+            toggleTile(idx);
+        }
     });
     tile.className += ' tile-drawn tile-flash';
     if (gameState.selectedTile === idx) tile.className += ' selected';
@@ -113,7 +119,7 @@ function renderMyExposed() {
     box.innerHTML = '';
     var sets = gameState.exposedBySeat[gameState.myPosition] || [];
     for (var i = 0; i < sets.length; i++) {
-        appendExposedSet(box, sets[i], { ownerSeat: gameState.myPosition, revealAnGang: false });
+        appendExposedSet(box, sets[i], {ownerSeat: gameState.myPosition, revealAnGang: false});
     }
     layoutMyHand();
 }
@@ -161,7 +167,7 @@ function renderDiscarded() {
         gameState.discardLayouts.length = n;
     }
     for (var i = 0; i < n; i++) {
-        var tile = MahjongTile.createTileEl(gameState.discardedTiles[i], { small: true });
+        var tile = MahjongTile.createTileEl(gameState.discardedTiles[i], {small: true});
         var lay = gameState.discardLayouts[i];
         tile.style.position = 'absolute';
         tile.style.left = (50 + lay.x) + '%';
@@ -309,7 +315,7 @@ function renderOpponentExposed(cap, seat) {
     box.dataset.exposedSig = sig;
     box.innerHTML = '';
     for (var j = 0; j < sets.length; j++) {
-        appendExposedSet(box, sets[j], { ownerSeat: seat, revealAnGang: false });
+        appendExposedSet(box, sets[j], {ownerSeat: seat, revealAnGang: false});
     }
 }
 
@@ -341,7 +347,9 @@ function setActiveSeat(position, waitSeconds) {
 function stopMahjongOperationCountdown() {
     if (gameState.operationTimer) clearInterval(gameState.operationTimer);
     gameState.operationTimer = null;
-    document.querySelectorAll('.operation-countdown').forEach(function (el) { el.remove(); });
+    document.querySelectorAll('.operation-countdown').forEach(function (el) {
+        el.remove();
+    });
 }
 
 function startMahjongOperationCountdown(target, waitSeconds) {
@@ -350,6 +358,7 @@ function startMahjongOperationCountdown(target, waitSeconds) {
     var badge = document.createElement('span');
     badge.className = 'operation-countdown';
     target.appendChild(badge);
+
     function tick() {
         badge.textContent = left + '秒';
         if (left <= 0) {
@@ -359,6 +368,7 @@ function startMahjongOperationCountdown(target, waitSeconds) {
         }
         left--;
     }
+
     tick();
     gameState.operationTimer = setInterval(tick, 1000);
 }
@@ -393,9 +403,11 @@ function appendChiTileFaces(btn, handCards, claimTile) {
     var ids = [];
     for (var i = 0; i < handCards.length; i++) ids.push(handCards[i].value);
     if (claimTile) ids.push(claimTile);
-    ids.sort(function (a, b) { return a - b; });
+    ids.sort(function (a, b) {
+        return a - b;
+    });
     for (var j = 0; j < ids.length; j++) {
-        var t = MahjongTile.createTileEl(ids[j], { small: true });
+        var t = MahjongTile.createTileEl(ids[j], {small: true});
         t.className += ' chi-face';
         if (claimTile && ids[j] === claimTile) t.className += ' chi-claim';
         wrap.appendChild(t);
@@ -423,7 +435,9 @@ function showOperationChoices(choices) {
             } else if (code === OP.PASS || code === OP.MJ_PASS) {
                 btn.className += ' btn-pass';
                 btn.textContent = '过';
-                btn.onclick = function () { doOp(OP.MJ_PASS); };
+                btn.onclick = function () {
+                    doOp(OP.MJ_PASS);
+                };
             } else if (code === OP.MJ_CHI) {
                 btn.className += ' btn-chi btn-chi-tiles';
                 var lab = document.createElement('span');
@@ -431,21 +445,29 @@ function showOperationChoices(choices) {
                 lab.textContent = '吃';
                 btn.appendChild(lab);
                 appendChiTileFaces(btn, cards, gameState.lastClaimTile);
-                btn.onclick = function () { doOp(OP.MJ_CHI, cards); };
+                btn.onclick = function () {
+                    doOp(OP.MJ_CHI, cards);
+                };
             } else if (code === OP.MJ_PENG) {
                 btn.className += ' btn-peng';
                 btn.textContent = '碰';
-                btn.onclick = function () { doOp(OP.MJ_PENG, cards); };
+                btn.onclick = function () {
+                    doOp(OP.MJ_PENG, cards);
+                };
             } else if (code === OP.MJ_GANG) {
                 btn.className += ' btn-gang';
                 btn.textContent = cards.length === 1
                     ? ('杠(' + getTileName(cards[0].value) + ')')
                     : '杠';
-                btn.onclick = function () { doOp(OP.MJ_GANG, cards); };
+                btn.onclick = function () {
+                    doOp(OP.MJ_GANG, cards);
+                };
             } else if (code === OP.MJ_HU) {
                 btn.className += ' btn-hu';
                 btn.textContent = '胡';
-                btn.onclick = function () { doOp(OP.MJ_HU, cards); };
+                btn.onclick = function () {
+                    doOp(OP.MJ_HU, cards);
+                };
             } else {
                 return;
             }
@@ -472,5 +494,10 @@ function showActionButtons(type) {
     }
 }
 
-function hideActions() { GameTable.hideActions(); }
-function showCenterMsg(msg, duration) { GameTable.showCenterMsg(msg, duration); }
+function hideActions() {
+    GameTable.hideActions();
+}
+
+function showCenterMsg(msg, duration) {
+    GameTable.showCenterMsg(msg, duration);
+}

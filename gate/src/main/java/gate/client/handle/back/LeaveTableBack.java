@@ -16,20 +16,20 @@ import org.slf4j.LoggerFactory;
 @ProcessType(GMsg.ACK_LEAVE)
 public class LeaveTableBack implements BackHandle, Handler {
 
-	private static final Logger logger = LoggerFactory.getLogger(LeaveTableBack.class);
+    private static final Logger logger = LoggerFactory.getLogger(LeaveTableBack.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
-		return false;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
+        return false;
+    }
 
-	@Override
-	public void handle(TCPMessage response, GateTcpClient client) {
-		try {
-			client.setMapId(-1);
-			logger.info("用户离开桌子成功, userId: {}, 已清空 mapId", client.getRoleId());
-		} catch (Exception e) {
-			logger.error("处理离开桌子响应失败, userId: {}", client.getRoleId(), e);
-		}
-	}
+    @Override
+    public void handle(TCPMessage response, GateTcpClient client) {
+        try {
+            client.setMapId(-1);
+            logger.info("用户离开桌子成功, userId: {}, 已清空 mapId", client.getRoleId());
+        } catch (Exception e) {
+            logger.error("处理离开桌子响应失败, userId: {}", client.getRoleId(), e);
+        }
+    }
 }

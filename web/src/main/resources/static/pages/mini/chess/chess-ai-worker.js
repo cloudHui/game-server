@@ -6,5 +6,5 @@ self.onmessage = function (event) {
     var move = data.level >= 4
         ? self.ChessAi.pickMasterMove(data.board, data.budgetMs || 7800)
         : self.ChessAi.pickMove(data.board, data.level);
-    self.postMessage({ id: data.id, move: move });
+    self.postMessage({id: data.id, move: move});
 };

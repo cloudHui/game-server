@@ -16,18 +16,18 @@ import proto.ServerProto;
 @ProcessType(CMsg.HEART)
 public class HeartHandler implements Handler {
 
-	private final static Logger logger = LoggerFactory.getLogger(HeartHandler.class);
+    private final static Logger logger = LoggerFactory.getLogger(HeartHandler.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message reqHeart, long mapId, int sequence) {
-		ServerProto.ReqHeart req = (ServerProto.ReqHeart) reqHeart;
-		long now = System.currentTimeMillis();
-		int serverType = req.getServerType();
-		ServerProto.AckHeart.Builder ack = ServerProto.AckHeart.newBuilder();
-		ack.setReqTime(now);
-		//ack.setRetryTime(req.getRetryTime());
-		sender.sendMessage(clientId, CMsg.HEART_ACK, mapId, ack.build(), sequence);
-		logger.debug("[server:{}, heart ack cost:{}ms]", ServerType.get(serverType), now - req.getReqTime());
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message reqHeart, long mapId, int sequence) {
+        ServerProto.ReqHeart req = (ServerProto.ReqHeart) reqHeart;
+        long now = System.currentTimeMillis();
+        int serverType = req.getServerType();
+        ServerProto.AckHeart.Builder ack = ServerProto.AckHeart.newBuilder();
+        ack.setReqTime(now);
+        //ack.setRetryTime(req.getRetryTime());
+        sender.sendMessage(clientId, CMsg.HEART_ACK, mapId, ack.build(), sequence);
+        logger.debug("[server:{}, heart ack cost:{}ms]", ServerType.get(serverType), now - req.getReqTime());
+        return true;
+    }
 }

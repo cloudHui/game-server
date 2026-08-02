@@ -20,7 +20,8 @@
         var n = 0, row = fromRow + dr, col = fromCol + dc;
         while (row !== toRow || col !== toCol) {
             if (board[row][col] !== '.') n++;
-            row += dr; col += dc;
+            row += dr;
+            col += dc;
         }
         return n;
     }
@@ -28,8 +29,14 @@
     function faceToFace(board) {
         var redRow = -1, redCol = -1, blackRow = -1, blackCol = -1;
         for (var row = 0; row < ROWS; row++) for (var col = 0; col < COLS; col++) {
-            if (board[row][col] === 'K') { redRow = row; redCol = col; }
-            if (board[row][col] === 'k') { blackRow = row; blackCol = col; }
+            if (board[row][col] === 'K') {
+                redRow = row;
+                redCol = col;
+            }
+            if (board[row][col] === 'k') {
+                blackRow = row;
+                blackCol = col;
+            }
         }
         if (redRow < 0 || blackRow < 0 || redCol !== blackCol) return false;
         return countBlocks(board, redRow, redCol, blackRow, blackCol) === 0;
@@ -42,10 +49,10 @@
         if (target !== '.' && isRed(target) === isRed(piece)) return false;
         if (!allowKingTarget && target.toLowerCase() === 'k') return false;
         var dr = toRow - fromRow, dc = toCol - fromCol, type = piece.toLowerCase();
-        if (type === 'k') return inPalace(toRow,toCol,isRed(piece)) && Math.abs(dr)+Math.abs(dc) === 1;
-        if (type === 'a') return inPalace(toRow,toCol,isRed(piece)) && Math.abs(dr) === 1 && Math.abs(dc) === 1;
+        if (type === 'k') return inPalace(toRow, toCol, isRed(piece)) && Math.abs(dr) + Math.abs(dc) === 1;
+        if (type === 'a') return inPalace(toRow, toCol, isRed(piece)) && Math.abs(dr) === 1 && Math.abs(dc) === 1;
         if (type === 'b') return Math.abs(dr) === 2 && Math.abs(dc) === 2
-            && board[fromRow+dr/2][fromCol+dc/2] === '.' && (isRed(piece) ? toRow >= 5 : toRow <= 4);
+            && board[fromRow + dr / 2][fromCol + dc / 2] === '.' && (isRed(piece) ? toRow >= 5 : toRow <= 4);
         if (type === 'n') {
             if (!((Math.abs(dr) === 2 && Math.abs(dc) === 1)
                 || (Math.abs(dr) === 1 && Math.abs(dc) === 2))) return false;
@@ -54,10 +61,10 @@
             return board[blockRow][blockCol] === '.';
         }
         if (type === 'r') return (dr === 0 || dc === 0)
-            && countBlocks(board,fromRow,fromCol,toRow,toCol) === 0;
+            && countBlocks(board, fromRow, fromCol, toRow, toCol) === 0;
         if (type === 'c') {
             if (dr !== 0 && dc !== 0) return false;
-            var blocks = countBlocks(board,fromRow,fromCol,toRow,toCol);
+            var blocks = countBlocks(board, fromRow, fromCol, toRow, toCol);
             return target === '.' ? blocks === 0 : blocks === 1;
         }
         if (type === 'p') {
@@ -74,7 +81,7 @@
     function legalFrom(board, row, col) {
         var list = [];
         for (var toRow = 0; toRow < ROWS; toRow++) for (var toCol = 0; toCol < COLS; toCol++) {
-            if (isMoveLegal(board, row, col, toRow, toCol)) list.push([toRow,toCol]);
+            if (isMoveLegal(board, row, col, toRow, toCol)) list.push([toRow, toCol]);
         }
         return list;
     }
@@ -82,13 +89,16 @@
     function isInCheck(board, red) {
         var king = red ? 'K' : 'k', kingRow = -1, kingCol = -1;
         for (var row = 0; row < ROWS; row++) for (var col = 0; col < COLS; col++) {
-            if (board[row][col] === king) { kingRow = row; kingCol = col; }
+            if (board[row][col] === king) {
+                kingRow = row;
+                kingCol = col;
+            }
         }
         if (kingRow < 0) return true;
         for (var fromRow = 0; fromRow < ROWS; fromRow++) for (var fromCol = 0; fromCol < COLS; fromCol++) {
             var attacker = board[fromRow][fromCol];
             if (attacker !== '.' && isRed(attacker) !== red
-                    && isLegal(board, fromRow, fromCol, kingRow, kingCol, true)) return true;
+                && isLegal(board, fromRow, fromCol, kingRow, kingCol, true)) return true;
         }
         return false;
     }
@@ -96,9 +106,11 @@
     function isMoveLegal(board, fromRow, fromCol, toRow, toCol) {
         if (!isLegal(board, fromRow, fromCol, toRow, toCol, false)) return false;
         var piece = board[fromRow][fromCol], captured = board[toRow][toCol];
-        board[toRow][toCol] = piece; board[fromRow][fromCol] = '.';
+        board[toRow][toCol] = piece;
+        board[fromRow][fromCol] = '.';
         var invalid = faceToFace(board) || isInCheck(board, isRed(piece));
-        board[fromRow][fromCol] = piece; board[toRow][toCol] = captured;
+        board[fromRow][fromCol] = piece;
+        board[toRow][toCol] = captured;
         return !invalid;
     }
 
@@ -106,7 +118,7 @@
         if (!isInCheck(board, red)) return false;
         for (var row = 0; row < ROWS; row++) for (var col = 0; col < COLS; col++) {
             if (board[row][col] !== '.' && isRed(board[row][col]) === red
-                    && legalFrom(board, row, col).length) return false;
+                && legalFrom(board, row, col).length) return false;
         }
         return true;
     }

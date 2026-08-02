@@ -17,7 +17,8 @@ public class Student {
     public LocalDateTime lastLoginAt;
     public long loginCount;
 
-    public Student() {}
+    public Student() {
+    }
 
     public Student(String id, String username, String name) {
         this.id = id;

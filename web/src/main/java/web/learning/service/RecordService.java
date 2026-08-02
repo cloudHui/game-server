@@ -13,7 +13,10 @@ import java.util.UUID;
 @Service
 public class RecordService {
     private final JsonFileStore store;
-    public RecordService(JsonFileStore store) { this.store = store; }
+
+    public RecordService(JsonFileStore store) {
+        this.store = store;
+    }
 
     public synchronized LearningRecord add(LearningRecord record) throws Exception {
         validateId(record.studentId);
@@ -29,7 +32,8 @@ public class RecordService {
 
     public List<LearningRecord> list(String studentId) throws Exception {
         if (!StudentService.isValidArchiveId(studentId)) return new ArrayList<>();
-        return store.readList(store.path("records", studentId), new TypeReference<List<LearningRecord>>() {});
+        return store.readList(store.path("records", studentId), new TypeReference<List<LearningRecord>>() {
+        });
     }
 
     public synchronized LearningRecord update(String studentId, String recordId, LearningRecord changes) throws Exception {
@@ -38,9 +42,12 @@ public class RecordService {
         for (int i = 0; i < records.size(); i++) {
             LearningRecord current = records.get(i);
             if (recordId.equals(current.id)) {
-                changes.id = current.id; changes.studentId = studentId;
+                changes.id = current.id;
+                changes.studentId = studentId;
                 if (changes.createdAt == null) changes.createdAt = current.createdAt;
-                records.set(i, changes); store.write(store.path("records", studentId), records); return changes;
+                records.set(i, changes);
+                store.write(store.path("records", studentId), records);
+                return changes;
             }
         }
         throw new IllegalArgumentException("找不到学习记录");
@@ -75,10 +82,14 @@ public class RecordService {
     }
 
     private void validate(LearningRecord record) {
-        if (record.subject == null || record.subject.trim().isEmpty()) throw new IllegalArgumentException("学习科目不能为空");
-        if (record.module == null || record.module.trim().isEmpty()) throw new IllegalArgumentException("学习模块不能为空");
-        if (record.total < 0 || record.correct < 0 || record.correct > record.total) throw new IllegalArgumentException("完成数和正确数不正确");
-        if (record.durationSeconds < 0 || record.durationSeconds > 86400) throw new IllegalArgumentException("学习时长不正确");
+        if (record.subject == null || record.subject.trim().isEmpty())
+            throw new IllegalArgumentException("学习科目不能为空");
+        if (record.module == null || record.module.trim().isEmpty())
+            throw new IllegalArgumentException("学习模块不能为空");
+        if (record.total < 0 || record.correct < 0 || record.correct > record.total)
+            throw new IllegalArgumentException("完成数和正确数不正确");
+        if (record.durationSeconds < 0 || record.durationSeconds > 86400)
+            throw new IllegalArgumentException("学习时长不正确");
     }
 
     public static class Dashboard {

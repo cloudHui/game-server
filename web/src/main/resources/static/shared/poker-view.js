@@ -2,8 +2,13 @@
  * 扑克牌桌共用渲染与结算。
  * 各玩法覆盖：roleBadgeHtml、showOperationChoices；四人桌另覆写座位相关函数。
  */
-function cardMeta(cardId) { return PokerCard.cardMeta(cardId); }
-function createCardFace(cardId) { return PokerCard.createCardFace(cardId); }
+function cardMeta(cardId) {
+    return PokerCard.cardMeta(cardId);
+}
+
+function createCardFace(cardId) {
+    return PokerCard.createCardFace(cardId);
+}
 
 function layoutMyCards() {
     var container = document.getElementById('myCards');
@@ -71,8 +76,8 @@ function renderMyCards() {
         card.dataset.index = i;
         card.style.zIndex = String(i + 1);
         card.appendChild(createCardFace(cardId));
-        card.onclick = (function(value) {
-            return function(ev) {
+        card.onclick = (function (value) {
+            return function (ev) {
                 ev.stopPropagation();
                 toggleCard(value, Number(this.dataset.index));
             };
@@ -127,14 +132,14 @@ function playedAreaIds() {
 }
 
 function clearAllPlayedAreas() {
-    playedAreaIds().forEach(function(id) {
+    playedAreaIds().forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '';
     });
 }
 
 function clearPassHints() {
-    playedAreaIds().forEach(function(id) {
+    playedAreaIds().forEach(function (id) {
         var el = document.getElementById(id);
         if (el && el.querySelector('.pass-hint')) el.innerHTML = '';
     });
@@ -167,7 +172,7 @@ function renderPlayedCards(roleId, cardValues) {
     var target = playedTargetForRole(roleId);
     if (!target) return;
     target.innerHTML = '';
-    (cardValues || []).forEach(function(value) {
+    (cardValues || []).forEach(function (value) {
         var face = createCardFace(value);
         face.classList.add('played-face');
         target.appendChild(face);
@@ -186,7 +191,9 @@ function showBidHint(roleId, text) {
     target.innerHTML = '<div class="pass-hint">' + text + '</div>';
 }
 
-function roleBadgeHtml(roleId) { return ''; }
+function roleBadgeHtml(roleId) {
+    return '';
+}
 
 function renderPlayerLabels() {
     var bottom = document.getElementById('playerBottom');
@@ -217,7 +224,7 @@ function renderOpponentHands() {
     var seatNum = gameState.seatNum || 3;
     renderPlayerLabels();
     if (seatNum >= 4) {
-        ['Top', 'Left', 'Right'].forEach(function(s) {
+        ['Top', 'Left', 'Right'].forEach(function (s) {
             var info = document.getElementById('player' + s);
             var cards = document.getElementById('cards' + s);
             if (info) info.innerHTML = '<span class="name">等待加入</span>';
@@ -290,7 +297,7 @@ function highlightActivePlayer(position, waitSeconds) {
     var ids = seatNum >= 4
         ? ['playerTop', 'playerLeft', 'playerRight', 'playerBottom']
         : ['playerLeft', 'playerRight', 'playerBottom'];
-    ids.forEach(function(id) {
+    ids.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.className = 'player-info';
     });
@@ -315,7 +322,9 @@ function highlightActivePlayer(position, waitSeconds) {
 function stopOperationCountdown() {
     if (gameState.operationTimer) clearInterval(gameState.operationTimer);
     gameState.operationTimer = null;
-    document.querySelectorAll('.operation-countdown').forEach(function(el) { el.remove(); });
+    document.querySelectorAll('.operation-countdown').forEach(function (el) {
+        el.remove();
+    });
 }
 
 function startOperationCountdown(target, waitSeconds) {
@@ -324,6 +333,7 @@ function startOperationCountdown(target, waitSeconds) {
     var badge = document.createElement('span');
     badge.className = 'operation-countdown';
     target.appendChild(badge);
+
     function tick() {
         badge.textContent = left + '秒';
         if (left <= 0) {
@@ -333,6 +343,7 @@ function startOperationCountdown(target, waitSeconds) {
         }
         left--;
     }
+
     tick();
     gameState.operationTimer = setInterval(tick, 1000);
 }
@@ -363,11 +374,16 @@ function showActionButtons(type) {
     }
 }
 
-function hideActions() { GameTable.hideActions(); }
-function showCenterMsg(msg, duration) { GameTable.showCenterMsg(msg, duration); }
+function hideActions() {
+    GameTable.hideActions();
+}
+
+function showCenterMsg(msg, duration) {
+    GameTable.showCenterMsg(msg, duration);
+}
 
 function sortPokerByValue(cards) {
-    cards.sort(function(a, b) {
+    cards.sort(function (a, b) {
         var va = a % 100, vb = b % 100;
         if (va !== vb) return va - vb;
         return Math.floor(a / 100) - Math.floor(b / 100);
@@ -433,7 +449,9 @@ function showSettle(title, meta, rowsHtml, remainPlayers, landlordId) {
     fillRemainHandFaces(remainPlayers);
 }
 
-function closeSettle() { GameTable.closeSettle(); }
+function closeSettle() {
+    GameTable.closeSettle();
+}
 
 function appendOpChoice(bar, choice, map) {
     var conf = map[choice.choice];
@@ -441,8 +459,10 @@ function appendOpChoice(bar, choice, map) {
     var btn = document.createElement('button');
     btn.className = 'action-btn ' + conf.cls;
     btn.textContent = conf.text;
-    btn.onclick = (function(code) {
-        return function() { doOp(code); };
+    btn.onclick = (function (code) {
+        return function () {
+            doOp(code);
+        };
     })(choice.choice);
     bar.appendChild(btn);
 }

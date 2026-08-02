@@ -1,8 +1,6 @@
 package game.manager.table.mj;
 
-import game.manager.table.mj.MjTable;
 import game.manager.table.TableUser;
-import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
@@ -20,124 +18,135 @@ import java.util.Collections;
  */
 public class MjPlayService {
 
-	private static final Logger logger = LoggerFactory.getLogger(MjPlayService.class);
+    private static final Logger logger = LoggerFactory.getLogger(MjPlayService.class);
 
-	private MjPlayService() {}
+    private MjPlayService() {
+    }
 
-	// ======================== 出牌 ========================
+    // ======================== 出牌 ========================
 
-	/** 处理玩家出牌请求 */
-	public static boolean applyDiscard(MjTable table, int userId, GameProto.OpInfo opInfo) {
-		if (table.getTableState() != TableState.MJ_DISCARD) {
-			logger.warn("非出牌阶段拒绝出牌, table: {}, state: {}, userId: {}",
-					table.getTableId(), table.getTableState(), userId);
-			return false;
-		}
-		MjTableContext ctx = table.getMjContext();
-		if (!ctx.isTileDrawn() && !ctx.isDiscardAfterClaim()) {
-			logger.warn("本回合尚未摸牌且非碰吃接牌出牌, 拒绝出牌, table: {}, seat: {}, userId: {}",
-					table.getTableId(), table.getOp().getCurrOpSeat(), userId);
-			return false;
-		}
-		int seat = table.getOp().getCurrOpSeat();
-		TableUser user = table.getSeatUser(seat);
-		if (user == null || user.getUserId() != userId) {
-			logger.warn("出牌操作座位不匹配, table: {}, seat: {}, userId: {}", table.getTableId(), seat, userId);
-			return false;
-		}
-		if (opInfo.getOpCardsCount() != 1 || opInfo.getOpCards(0).getCardsCount() != 1) {
-			logger.warn("出牌牌数非法, table: {}, userId: {}, opCardsCount: {}, cardCount: {}",
-					table.getTableId(), userId, opInfo.getOpCardsCount(),
-					opInfo.getOpCardsCount() == 0 ? 0 : opInfo.getOpCards(0).getCardsCount());
-			return false;
-		}
+    /**
+     * 处理玩家出牌请求
+     */
+    public static boolean applyDiscard(MjTable table, int userId, GameProto.OpInfo opInfo) {
+        if (table.getTableState() != TableState.MJ_DISCARD) {
+            logger.warn("非出牌阶段拒绝出牌, table: {}, state: {}, userId: {}",
+                    table.getTableId(), table.getTableState(), userId);
+            return false;
+        }
+        MjTableContext ctx = table.getMjContext();
+        if (!ctx.isTileDrawn() && !ctx.isDiscardAfterClaim()) {
+            logger.warn("本回合尚未摸牌且非碰吃接牌出牌, 拒绝出牌, table: {}, seat: {}, userId: {}",
+                    table.getTableId(), table.getOp().getCurrOpSeat(), userId);
+            return false;
+        }
+        int seat = table.getOp().getCurrOpSeat();
+        TableUser user = table.getSeatUser(seat);
+        if (user == null || user.getUserId() != userId) {
+            logger.warn("出牌操作座位不匹配, table: {}, seat: {}, userId: {}", table.getTableId(), seat, userId);
+            return false;
+        }
+        if (opInfo.getOpCardsCount() != 1 || opInfo.getOpCards(0).getCardsCount() != 1) {
+            logger.warn("出牌牌数非法, table: {}, userId: {}, opCardsCount: {}, cardCount: {}",
+                    table.getTableId(), userId, opInfo.getOpCardsCount(),
+                    opInfo.getOpCardsCount() == 0 ? 0 : opInfo.getOpCards(0).getCardsCount());
+            return false;
+        }
 
-		int tileId = opInfo.getOpCards(0).getCards(0).getValue();
-		int beforeCount = user.getCards().size();
-		boolean removed = user.removeCardsByProtoIds(Collections.singletonList(tileId));
-		if (!removed) {
-			logger.warn("出牌不在手牌中, table: {}, userId: {}, tile: {}", table.getTableId(), userId, tileId);
-			return false;
-		}
+        int tileId = opInfo.getOpCards(0).getCards(0).getValue();
+        int beforeCount = user.getCards().size();
+        boolean removed = user.removeCardsByProtoIds(Collections.singletonList(tileId));
+        if (!removed) {
+            logger.warn("出牌不在手牌中, table: {}, userId: {}, tile: {}", table.getTableId(), userId, tileId);
+            return false;
+        }
 
-		ctx.setLastDiscardTile(tileId);
-		ctx.setLastDiscardSeat(seat);
-		ctx.addDiscard(seat, tileId);
-		ctx.resetTurn();
-		ctx.setGangShangKaiHua(false);
+        ctx.setLastDiscardTile(tileId);
+        ctx.setLastDiscardSeat(seat);
+        ctx.addDiscard(seat, tileId);
+        ctx.resetTurn();
+        ctx.setGangShangKaiHua(false);
 
-		GameProto.NotMjState not = GameProto.NotMjState.newBuilder()
-				.setOpSeat(seat).setTileId(tileId)
-				.setAction(ConstProto.Operation.DISCARD)
-				.setWallLeft(table.getMjTilePool().remaining()).build();
-		table.sendTableMessage(not, GMsg.MJ_TILE_NOT);
+        GameProto.NotMjState not = GameProto.NotMjState.newBuilder()
+                .setOpSeat(seat).setTileId(tileId)
+                .setAction(ConstProto.Operation.DISCARD)
+                .setWallLeft(table.getMjTilePool().remaining()).build();
+        table.sendTableMessage(not, GMsg.MJ_TILE_NOT);
 
-		MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
-		if (replay != null) replay.recordDiscard(seat, tileId);
+        MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
+        if (replay != null) replay.recordDiscard(seat, tileId);
 
-		logger.info("麻将出牌, table: {}, userId: {}, seat: {}, tile: {}, hand: {} -> {}, exposed: {}, discardCount: {}",
-				table.getTableId(), userId, seat, tileId, beforeCount, user.getCards().size(),
-				ctx.getExposedSets(seat).size(), ctx.getDiscardPile(seat).size());
-		return true;
-	}
+        logger.info("麻将出牌, table: {}, userId: {}, seat: {}, tile: {}, hand: {} -> {}, exposed: {}, discardCount: {}",
+                table.getTableId(), userId, seat, tileId, beforeCount, user.getCards().size(),
+                ctx.getExposedSets(seat).size(), ctx.getDiscardPile(seat).size());
+        return true;
+    }
 
-	// ======================== 流程控制 ========================
+    // ======================== 流程控制 ========================
 
-	/** 出牌后的公共流程：检测claim，无人响应则进入下一个玩家摸牌 */
-	public static void afterDiscard(MjTable table) {
-		if (!MjClaimService.checkClaim(table)) {
-			nextPlayer(table);
-			table.upNextStateWithTime(TableState.MJ_PLAY, System.currentTimeMillis());
-		}
-		int nextSeat = table.getOp().getCurrOpSeat();
-		logger.info("麻将出牌后轮转, table: {}, fromSeat: {}, nextState: {}, nextSeat: {}, tileDrawn: {}, discardAfterClaim: {}, nextCanOperate: {}",
-				table.getTableId(), table.getMjContext().getLastDiscardSeat(), table.getTableState(), nextSeat,
-				table.getMjContext().isTileDrawn(), table.getMjContext().isDiscardAfterClaim(),
-				table.getOp().getSeatOps(nextSeat));
-	}
+    /**
+     * 出牌后的公共流程：检测claim，无人响应则进入下一个玩家摸牌
+     */
+    public static void afterDiscard(MjTable table) {
+        if (!MjClaimService.checkClaim(table)) {
+            nextPlayer(table);
+            table.upNextStateWithTime(TableState.MJ_PLAY, System.currentTimeMillis());
+        }
+        int nextSeat = table.getOp().getCurrOpSeat();
+        logger.info("麻将出牌后轮转, table: {}, fromSeat: {}, nextState: {}, nextSeat: {}, tileDrawn: {}, discardAfterClaim: {}, nextCanOperate: {}",
+                table.getTableId(), table.getMjContext().getLastDiscardSeat(), table.getTableState(), nextSeat,
+                table.getMjContext().isTileDrawn(), table.getMjContext().isDiscardAfterClaim(),
+                table.getOp().getSeatOps(nextSeat));
+    }
 
-	/** 移动到下一个玩家 */
-	public static void nextPlayer(MjTable table) {
-		int currSeat = table.getOp().getCurrOpSeat();
-		int nextSeat = table.nextSeat(currSeat);
-		table.getOp().setCurrOpSeat(nextSeat);
-		table.getMjContext().resetTurn();
-		table.getMjContext().setGangShangKaiHua(false);
-	}
+    /**
+     * 移动到下一个玩家
+     */
+    public static void nextPlayer(MjTable table) {
+        int currSeat = table.getOp().getCurrOpSeat();
+        int nextSeat = table.nextSeat(currSeat);
+        table.getOp().setCurrOpSeat(nextSeat);
+        table.getMjContext().resetTurn();
+        table.getMjContext().setGangShangKaiHua(false);
+    }
 
-	// ======================== 工厂方法 ========================
+    // ======================== 工厂方法 ========================
 
-	/** 根据桌子配置创建WinChecker */
-	public static MjWinChecker createWinChecker(MjTable table) {
-		int subType = table.getTableModel().getGameSubType();
-		MjTableContext ctx = table.getMjContext();
-		boolean allowSevenPairs = table.getTableModel().getAllowSevenPairs() != 0;
+    /**
+     * 根据桌子配置创建WinChecker
+     */
+    public static MjWinChecker createWinChecker(MjTable table) {
+        int subType = table.getTableModel().getGameSubType();
+        MjTableContext ctx = table.getMjContext();
+        boolean allowSevenPairs = table.getTableModel().getAllowSevenPairs() != 0;
 
-		switch (subType) {
-			case 1: // 荆门
-				return new JmWinChecker(ctx.getLaiZiTileId(), allowSevenPairs);
-			case 2: // 卡五星
-				return new KwWinChecker(new int[]{1, 2}, allowSevenPairs, true);
-			default:
-				return new MjWinChecker(allowSevenPairs);
-		}
-	}
+        switch (subType) {
+            case 1: // 荆门
+                return new JmWinChecker(ctx.getLaiZiTileId(), allowSevenPairs);
+            case 2: // 卡五星
+                return new KwWinChecker(new int[]{1, 2}, allowSevenPairs, true);
+            default:
+                return new MjWinChecker(allowSevenPairs);
+        }
+    }
 
-	/** 根据桌子配置创建Scoring */
-	public static MjScoring createScoring(MjTable table) {
-		int subType = table.getTableModel().getGameSubType();
-		switch (subType) {
-			case 1: // 荆门
-				return new JmMjScoring();
-			case 2: // 卡五星
-				MjWinChecker checker = createWinChecker(table);
-				if (checker instanceof KwWinChecker) {
-					return new KwMjScoring((KwWinChecker) checker);
-				}
-				logger.error("createScoring: 卡五星checker类型不匹配, tableId: {}", table.getTableId());
-				return new JmMjScoring();
-			default:
-				return new JmMjScoring();
-		}
-	}
+    /**
+     * 根据桌子配置创建Scoring
+     */
+    public static MjScoring createScoring(MjTable table) {
+        int subType = table.getTableModel().getGameSubType();
+        switch (subType) {
+            case 1: // 荆门
+                return new JmMjScoring();
+            case 2: // 卡五星
+                MjWinChecker checker = createWinChecker(table);
+                if (checker instanceof KwWinChecker) {
+                    return new KwMjScoring((KwWinChecker) checker);
+                }
+                logger.error("createScoring: 卡五星checker类型不匹配, tableId: {}", table.getTableId());
+                return new JmMjScoring();
+            default:
+                return new JmMjScoring();
+        }
+    }
 }

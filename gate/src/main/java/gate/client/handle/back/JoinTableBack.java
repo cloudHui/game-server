@@ -20,21 +20,21 @@ import proto.GameProto;
 @ProcessType(GMsg.ACK_ENTER_TABLE_MSG)
 public class JoinTableBack implements BackHandle, Handler {
 
-	private static final Logger logger = LoggerFactory.getLogger(JoinTableBack.class);
+    private static final Logger logger = LoggerFactory.getLogger(JoinTableBack.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
-		return false;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
+        return false;
+    }
 
-	@Override
-	public void handle(TCPMessage response, GateTcpClient client) {
-		try {
-			GameProto.AckEnterTable res = GameProto.AckEnterTable.parseFrom(response.getMessage());
-			client.setMapId(res.getTableInfo().getTableId());
-			logger.info("用户加入game 桌子成功, userId: {}, mapId: {}", client.getRoleId(), client.getMapId());
-		} catch (Exception e) {
-			logger.error("解析加入game 桌子响应失败, msgId: {}, userId: {}", Integer.toHexString(response.getMessageId()), client.getRoleId(), e);
-		}
-	}
+    @Override
+    public void handle(TCPMessage response, GateTcpClient client) {
+        try {
+            GameProto.AckEnterTable res = GameProto.AckEnterTable.parseFrom(response.getMessage());
+            client.setMapId(res.getTableInfo().getTableId());
+            logger.info("用户加入game 桌子成功, userId: {}, mapId: {}", client.getRoleId(), client.getMapId());
+        } catch (Exception e) {
+            logger.error("解析加入game 桌子响应失败, msgId: {}, userId: {}", Integer.toHexString(response.getMessageId()), client.getRoleId(), e);
+        }
+    }
 }

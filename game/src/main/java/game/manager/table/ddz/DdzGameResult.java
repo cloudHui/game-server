@@ -1,6 +1,6 @@
 package game.manager.table.ddz;
 
-import game.manager.table.*;
+import game.manager.table.GameResult;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -24,12 +24,22 @@ public class DailyReportService {
     public DailyReportService(ObjectProvider<JavaMailSender> mailSender, StatsService stats, UsageService usage, JsonFileStore store,
                               @Value("${family-learning.report.recipient:}") String recipient,
                               @Value("${spring.mail.username:}") String sender) {
-        this.mailSender = mailSender.getIfAvailable(); this.stats = stats; this.usage = usage; this.store = store;
-        this.recipient = recipient; this.sender = sender;
+        this.mailSender = mailSender.getIfAvailable();
+        this.stats = stats;
+        this.usage = usage;
+        this.store = store;
+        this.recipient = recipient;
+        this.sender = sender;
     }
 
     @Scheduled(cron = "${family-learning.report.cron}", zone = "${family-learning.report.zone}")
-    public void scheduled() { try { send(false); } catch (Exception exception) { log("发送失败: " + exception.getMessage()); } }
+    public void scheduled() {
+        try {
+            send(false);
+        } catch (Exception exception) {
+            log("发送失败: " + exception.getMessage());
+        }
+    }
 
     public synchronized Map<String, Object> send(boolean force) throws Exception {
         DailyUsage today = usage.today();
@@ -38,12 +48,19 @@ public class DailyReportService {
         if (mailSender == null || recipient == null || recipient.trim().isEmpty() || sender == null || sender.trim().isEmpty())
             return status("disabled", "邮件配置尚未完成");
         Map<String, Object> data = stats.admin();
-        SimpleMailMessage message = new SimpleMailMessage(); message.setFrom(sender); message.setTo(recipient);
-        message.setSubject("[成长小课堂日报] " + LocalDate.now()); message.setText(render(data)); mailSender.send(message);
-        log("发送成功: " + recipient); return status("sent", "日报已发送到 " + recipient);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(sender);
+        message.setTo(recipient);
+        message.setSubject("[成长小课堂日报] " + LocalDate.now());
+        message.setText(render(data));
+        mailSender.send(message);
+        log("发送成功: " + recipient);
+        return status("sent", "日报已发送到 " + recipient);
     }
 
-    public String preview() throws Exception { return render(stats.admin()); }
+    public String preview() throws Exception {
+        return render(stats.admin());
+    }
 
     private String render(Map<String, Object> data) {
         StringBuilder text = new StringBuilder();
@@ -64,6 +81,18 @@ public class DailyReportService {
         text.append("前端错误：").append(data.get("frontendErrors")).append("，后端错误：").append(data.get("backendErrors")).append("\n");
         return text.toString();
     }
-    private Map<String, Object> status(String status, String message) { Map<String,Object> result=new java.util.LinkedHashMap<>();result.put("status",status);result.put("message",message);return result; }
-    private void log(String message) { try { java.nio.file.Files.write(store.root().resolve("reports/mail.log"), (LocalDateTime.now()+" "+message+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND); } catch (Exception ignored) {} }
+
+    private Map<String, Object> status(String status, String message) {
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("status", status);
+        result.put("message", message);
+        return result;
+    }
+
+    private void log(String message) {
+        try {
+            java.nio.file.Files.write(store.root().resolve("reports/mail.log"), (LocalDateTime.now() + " " + message + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+        }
+    }
 }

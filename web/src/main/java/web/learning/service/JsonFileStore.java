@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,9 @@ public class JsonFileStore {
         }
     }
 
-    /** Compatibility path used as a logical document identifier. */
+    /**
+     * Compatibility path used as a logical document identifier.
+     */
     public Path path(String folder, String safeName) {
         if (!safeName.matches("[a-zA-Z0-9_.-]+")) throw new IllegalArgumentException("非法文件标识");
         return root.resolve(folder).resolve(safeName + ".json");
@@ -72,8 +75,13 @@ public class JsonFileStore {
         try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO documents(folder,item_key,payload,updated_at) VALUES(?,?,?,datetime('now')) " +
                         "ON CONFLICT(folder,item_key) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")) {
-            statement.setString(1, key[0]); statement.setString(2, key[1]); statement.setString(3, payload); statement.executeUpdate();
-        } catch (SQLException exception) { throw new IOException("SQLite 写入失败: " + path, exception); }
+            statement.setString(1, key[0]);
+            statement.setString(2, key[1]);
+            statement.setString(3, payload);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 写入失败: " + path, exception);
+        }
     }
 
     public synchronized <T> List<T> readFolder(String folder, Class<T> type) throws IOException {
@@ -97,7 +105,9 @@ public class JsonFileStore {
                 }
             }
             return result;
-        } catch (SQLException exception) { throw new IOException("SQLite 查询失败: " + folder, exception); }
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 查询失败: " + folder, exception);
+        }
     }
 
     public synchronized void delete(Path path) throws IOException {
@@ -108,8 +118,12 @@ public class JsonFileStore {
     public synchronized void deleteDocument(String folder, String itemKey) throws IOException {
         try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                 "DELETE FROM documents WHERE folder=? AND item_key=?")) {
-            statement.setString(1, folder); statement.setString(2, itemKey); statement.executeUpdate();
-        } catch (SQLException exception) { throw new IOException("SQLite 删除失败: " + folder + "/" + itemKey, exception); }
+            statement.setString(1, folder);
+            statement.setString(2, itemKey);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 删除失败: " + folder + "/" + itemKey, exception);
+        }
     }
 
     public synchronized void writeDocument(String folder, String itemKey, Object value) throws IOException {
@@ -117,16 +131,26 @@ public class JsonFileStore {
         try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO documents(folder,item_key,payload,updated_at) VALUES(?,?,?,datetime('now')) " +
                         "ON CONFLICT(folder,item_key) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")) {
-            statement.setString(1, folder); statement.setString(2, itemKey); statement.setString(3, payload); statement.executeUpdate();
-        } catch (SQLException exception) { throw new IOException("SQLite 写入失败: " + folder + "/" + itemKey, exception); }
+            statement.setString(1, folder);
+            statement.setString(2, itemKey);
+            statement.setString(3, payload);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 写入失败: " + folder + "/" + itemKey, exception);
+        }
     }
 
     public synchronized String findDocument(String folder, String itemKey) throws IOException {
         try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                 "SELECT payload FROM documents WHERE folder=? AND item_key=?")) {
-            statement.setString(1, folder); statement.setString(2, itemKey);
-            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
-        } catch (SQLException exception) { throw new IOException("SQLite 查询失败: " + folder + "/" + itemKey, exception); }
+            statement.setString(1, folder);
+            statement.setString(2, itemKey);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next() ? rows.getString(1) : null;
+            }
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 查询失败: " + folder + "/" + itemKey, exception);
+        }
     }
 
     public synchronized void moveDocument(String folder, String fromKey, String toKey) throws IOException {
@@ -137,31 +161,53 @@ public class JsonFileStore {
         if (existing == null) {
             try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                     "UPDATE documents SET item_key=? WHERE folder=? AND item_key=?")) {
-                statement.setString(1, toKey); statement.setString(2, folder); statement.setString(3, fromKey); statement.executeUpdate();
-            } catch (SQLException exception) { throw new IOException("SQLite 重命名失败: " + folder + "/" + fromKey, exception); }
+                statement.setString(1, toKey);
+                statement.setString(2, folder);
+                statement.setString(3, fromKey);
+                statement.executeUpdate();
+            } catch (SQLException exception) {
+                throw new IOException("SQLite 重命名失败: " + folder + "/" + fromKey, exception);
+            }
             return;
         }
         // Target exists: keep target, drop the source key after optional merge by caller.
         deleteDocument(folder, fromKey);
     }
 
-    public synchronized boolean exists(Path path) throws IOException { return find(path) != null; }
-    public Path root() { return root; }
-    public Path database() { return database; }
+    public synchronized boolean exists(Path path) throws IOException {
+        return find(path) != null;
+    }
+
+    public Path root() {
+        return root;
+    }
+
+    public Path database() {
+        return database;
+    }
 
     public static final class Entry<T> {
         public final String key;
         public final T value;
-        public Entry(String key, T value) { this.key = key; this.value = value; }
+
+        public Entry(String key, T value) {
+            this.key = key;
+            this.value = value;
+        }
     }
 
     private String find(Path path) throws IOException {
         String[] key = key(path);
         try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
                 "SELECT payload FROM documents WHERE folder=? AND item_key=?")) {
-            statement.setString(1, key[0]); statement.setString(2, key[1]);
-            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
-        } catch (SQLException exception) { throw new IOException("SQLite 查询失败: " + path, exception); }
+            statement.setString(1, key[0]);
+            statement.setString(2, key[1]);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.next() ? rows.getString(1) : null;
+            }
+        } catch (SQLException exception) {
+            throw new IOException("SQLite 查询失败: " + path, exception);
+        }
     }
 
     private String[] key(Path path) {
@@ -173,5 +219,7 @@ public class JsonFileStore {
         return new String[]{relative.getName(0).toString(), name.substring(0, name.length() - 5)};
     }
 
-    private Connection connection() throws SQLException { return DriverManager.getConnection("jdbc:sqlite:" + database); }
+    private Connection connection() throws SQLException {
+        return DriverManager.getConnection("jdbc:sqlite:" + database);
+    }
 }

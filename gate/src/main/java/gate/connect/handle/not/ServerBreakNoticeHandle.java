@@ -1,7 +1,5 @@
 package gate.connect.handle.not;
 
-import java.util.List;
-
 import com.google.protobuf.Message;
 import gate.Gate;
 import msg.annotation.ProcessType;
@@ -15,31 +13,33 @@ import proto.ModelProto;
 import proto.ServerProto;
 import tools.ServerManager;
 
+import java.util.List;
+
 /**
  * 服务掉线通知
  */
 @ProcessType(CMsg.BREAK_NOTICE)
 public class ServerBreakNoticeHandle implements Handler {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(ServerBreakNoticeHandle.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServerBreakNoticeHandle.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message notServerBreak, long mapId, int sequence) {
-		ServerProto.NotServerBreak req = (ServerProto.NotServerBreak) notServerBreak;
-		List<ModelProto.ServerInfo> serverInfos = req.getServersList();
-		if (serverInfos.isEmpty()) {
-			return true;
-		}
-		Gate instance = Gate.getInstance();
-		ServerManager serverManager = instance.getServerManager();
-		ServerType serverType;
-		for (ModelProto.ServerInfo serverInfo : serverInfos) {
-			serverType = ServerType.get(serverInfo.getServerType());
-			if (serverType != null) {
-				serverManager.removeServerClient(serverType, serverInfo.getServerId());
-				LOGGER.error("[gate receive server:{} info:{} break]", serverType, serverInfo.toString());
-			}
-		}
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message notServerBreak, long mapId, int sequence) {
+        ServerProto.NotServerBreak req = (ServerProto.NotServerBreak) notServerBreak;
+        List<ModelProto.ServerInfo> serverInfos = req.getServersList();
+        if (serverInfos.isEmpty()) {
+            return true;
+        }
+        Gate instance = Gate.getInstance();
+        ServerManager serverManager = instance.getServerManager();
+        ServerType serverType;
+        for (ModelProto.ServerInfo serverInfo : serverInfos) {
+            serverType = ServerType.get(serverInfo.getServerType());
+            if (serverType != null) {
+                serverManager.removeServerClient(serverType, serverInfo.getServerId());
+                LOGGER.error("[gate receive server:{} info:{} break]", serverType, serverInfo.toString());
+            }
+        }
+        return true;
+    }
 }

@@ -4,7 +4,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** 数据库专用线程池，避免 SQLite 写入阻塞桌子逻辑线程或网络线程。 */
+/**
+ * 数据库专用线程池，避免 SQLite 写入阻塞桌子逻辑线程或网络线程。
+ */
 public class DatabaseExecutorManager {
     private final ExecutorService executor;
 

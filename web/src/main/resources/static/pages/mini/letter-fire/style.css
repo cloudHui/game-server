@@ -136,22 +136,36 @@ h1 {
     color: #ff8b94;
 }
 
-#difficulty option[value="easy"] { color: #5cb85c; }
-#difficulty option[value="normal"] { color: #f0ad4e; }
-#difficulty option[value="hard"] { color: #d9534f; }
+#difficulty option[value="easy"] {
+    color: #5cb85c;
+}
+
+#difficulty option[value="normal"] {
+    color: #f0ad4e;
+}
+
+#difficulty option[value="hard"] {
+    color: #d9534f;
+}
 
 #speedLevel option[value="1"],
 #speedLevel option[value="2"],
-#speedLevel option[value="3"] { color: #5cb85c; }
+#speedLevel option[value="3"] {
+    color: #5cb85c;
+}
 
 #speedLevel option[value="4"],
 #speedLevel option[value="5"],
 #speedLevel option[value="6"],
-#speedLevel option[value="7"] { color: #f0ad4e; }
+#speedLevel option[value="7"] {
+    color: #f0ad4e;
+}
 
 #speedLevel option[value="8"],
 #speedLevel option[value="9"],
-#speedLevel option[value="10"] { color: #d9534f; }
+#speedLevel option[value="10"] {
+    color: #d9534f;
+}
 
 .switch {
     position: relative;

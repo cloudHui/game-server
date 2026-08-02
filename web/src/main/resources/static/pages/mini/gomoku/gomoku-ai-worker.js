@@ -6,5 +6,5 @@ self.onmessage = function (event) {
     var move = data.level >= 4
         ? self.GomokuAi.pickMasterMove(data.cells, data.aiColor, data.myColor, data.budgetMs || 4800)
         : self.GomokuAi.pickMove(data.cells, data.aiColor, data.myColor, data.level);
-    self.postMessage({ id: data.id, move: move });
+    self.postMessage({id: data.id, move: move});
 };

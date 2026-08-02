@@ -12,23 +12,23 @@ import tools.handle.AbstractRegisterHandler;
 @ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandler extends AbstractRegisterHandler<Lobby> {
 
-	@Override
-	protected Lobby getServerInstance() {
-		return Lobby.getInstance();
-	}
+    @Override
+    protected Lobby getServerInstance() {
+        return Lobby.getInstance();
+    }
 
-	@Override
-	protected void addServerClient(ServerType serverType, Sender client) {
-		getServerInstance().serverClientManager.addServerClient(serverType, (LobbyClient) client);
-	}
+    @Override
+    protected void addServerClient(ServerType serverType, Sender client) {
+        getServerInstance().serverClientManager.addServerClient(serverType, (LobbyClient) client);
+    }
 
-	@Override
-	protected ModelProto.ServerInfo getCurrentServerInfo() {
-		return getServerInstance().getServerInfo();
-	}
+    @Override
+    protected ModelProto.ServerInfo getCurrentServerInfo() {
+        return getServerInstance().getServerInfo();
+    }
 
-	@Override
-	protected void beforeRegistration(Sender sender, ModelProto.ServerInfo serverInfo, ServerType serverType) {
-		((LobbyClient) sender).setServerInfo(serverInfo);
-	}
+    @Override
+    protected void beforeRegistration(Sender sender, ModelProto.ServerInfo serverInfo, ServerType serverType) {
+        ((LobbyClient) sender).setServerInfo(serverInfo);
+    }
 }

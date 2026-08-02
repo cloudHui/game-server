@@ -24,12 +24,16 @@
                 ctx.lineWidth = 1;
                 for (var i = 0; i < size; i++) {
                     var point = pad + i * cell;
-                    ctx.beginPath(); ctx.moveTo(pad, point);
-                    ctx.lineTo(pad + (size - 1) * cell, point); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(point, pad);
-                    ctx.lineTo(point, pad + (size - 1) * cell); ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pad, point);
+                    ctx.lineTo(pad + (size - 1) * cell, point);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(point, pad);
+                    ctx.lineTo(point, pad + (size - 1) * cell);
+                    ctx.stroke();
                 }
-                [[3,3],[3,11],[7,7],[11,3],[11,11]].forEach(function (point) {
+                [[3, 3], [3, 11], [7, 7], [11, 3], [11, 11]].forEach(function (point) {
                     ctx.beginPath();
                     ctx.arc(pad + point[0] * cell, pad + point[1] * cell, 3, 0, Math.PI * 2);
                     ctx.fillStyle = '#5c4033';
@@ -47,9 +51,11 @@
                     var gradient = ctx.createRadialGradient(
                         center - 4, center - 4, 2, center, center, cell * 0.42);
                     if (color === 1) {
-                        gradient.addColorStop(0, '#666'); gradient.addColorStop(1, '#111');
+                        gradient.addColorStop(0, '#666');
+                        gradient.addColorStop(1, '#111');
                     } else {
-                        gradient.addColorStop(0, '#fff'); gradient.addColorStop(1, '#ddd');
+                        gradient.addColorStop(0, '#fff');
+                        gradient.addColorStop(1, '#ddd');
                     }
                     ctx.beginPath();
                     ctx.arc(center, center, cell * 0.42, 0, Math.PI * 2);
@@ -81,8 +87,8 @@
         }
 
         buffer.watchResize(resize);
-        return { resize: resize, draw: draw, eventCell: eventCell };
+        return {resize: resize, draw: draw, eventCell: eventCell};
     }
 
-    w.GomokuView = { create: create };
+    w.GomokuView = {create: create};
 })(window);

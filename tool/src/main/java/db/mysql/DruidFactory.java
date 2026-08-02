@@ -9,22 +9,22 @@ import javax.sql.DataSource;
 import java.util.Properties;
 
 public class DruidFactory implements DataSourceFactory {
-	private static final Logger LOGGER = LoggerFactory.getLogger(DruidFactory.class);
-	private DataSource dataSource;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DruidFactory.class);
+    private DataSource dataSource;
 
-	public DruidFactory() {
-	}
+    public DruidFactory() {
+    }
 
-	public void setProperties(Properties properties) {
-		try {
-			this.dataSource = DruidDataSourceFactory.createDataSource(properties);
-		} catch (Exception var3) {
-			LOGGER.error("[ERROR] failed for create data source ({})", properties.toString(), var3);
-		}
+    public void setProperties(Properties properties) {
+        try {
+            this.dataSource = DruidDataSourceFactory.createDataSource(properties);
+        } catch (Exception var3) {
+            LOGGER.error("[ERROR] failed for create data source ({})", properties.toString(), var3);
+        }
 
-	}
+    }
 
-	public DataSource getDataSource() {
-		return this.dataSource;
-	}
+    public DataSource getDataSource() {
+        return this.dataSource;
+    }
 }

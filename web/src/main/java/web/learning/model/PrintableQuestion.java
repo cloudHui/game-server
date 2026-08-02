@@ -5,7 +5,11 @@ public class PrintableQuestion {
     public String type;
     public String text;
     public String answer;
+
     public PrintableQuestion(String id, String type, String text, String answer) {
-        this.id = id; this.type = type; this.text = text; this.answer = answer;
+        this.id = id;
+        this.type = type;
+        this.text = text;
+        this.answer = answer;
     }
 }

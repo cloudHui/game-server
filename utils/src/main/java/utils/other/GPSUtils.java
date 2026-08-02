@@ -19,7 +19,7 @@ public class GPSUtils {
             double a = radLat1 - radLat2;
             double b = rad(lng1) - rad(lng2);
             double s = 2.0D * Math.asin(Math.sqrt(Math.pow(Math.sin(a / 2.0D), 2.0D) + Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2.0D), 2.0D)));
-            return (double)Math.abs(Math.round(s * 6378137.0D * 10000.0D) / 10000L);
+            return (double) Math.abs(Math.round(s * 6378137.0D * 10000.0D) / 10000L);
         }
     }
 }

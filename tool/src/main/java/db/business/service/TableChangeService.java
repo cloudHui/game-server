@@ -10,15 +10,15 @@ import java.util.Date;
 import java.util.List;
 
 public class TableChangeService extends DBService<TableChangeDao> {
-	public TableChangeService() {
-		this(DBSourceFactory.INSTANCE.getSqlSessionFactory());
-	}
+    public TableChangeService() {
+        this(DBSourceFactory.INSTANCE.getSqlSessionFactory());
+    }
 
-	public TableChangeService(SqlSessionFactory sqlSessionFactory) {
-		super(sqlSessionFactory, TableChangeDao.class);
-	}
+    public TableChangeService(SqlSessionFactory sqlSessionFactory) {
+        super(sqlSessionFactory, TableChangeDao.class);
+    }
 
-	public List<TableChangeEntity> queryChangeTable(Date updateTime, int area) {
-		return this.execute((o) -> o.queryChangeTable(updateTime, area));
-	}
+    public List<TableChangeEntity> queryChangeTable(Date updateTime, int area) {
+        return this.execute((o) -> o.queryChangeTable(updateTime, area));
+    }
 }

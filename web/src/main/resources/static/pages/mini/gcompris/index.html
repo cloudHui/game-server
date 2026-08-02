@@ -1,159 +1,302 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>启蒙乐园 · 休闲</title>
-<script src="../../../shared/app-base.js"></script>
-<script src="../../../shared/mini-base.js"></script>
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;background:linear-gradient(160deg,#0d47a1,#1565c0 50%,#42a5f5);color:#fff;min-height:100vh}
-header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:rgba(0,0,0,.25)}
-h1{margin:0;font-size:20px;color:#ffe082}.back{color:#fff;text-decoration:none;border:1px solid #fff6;padding:6px 12px;border-radius:7px}
-main{max-width:900px;margin:18px auto;padding:0 14px 28px}
-.intro{background:rgba(255,255,255,.12);padding:12px 14px;border-radius:12px;margin-bottom:14px;line-height:1.5}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.card{background:#fff;color:#222;border-radius:14px;padding:16px;cursor:pointer;box-shadow:0 8px 20px #0004}
-.card h2{margin:0 0 6px;font-size:18px}.card p{margin:0;color:#607d8b;font-size:13px;line-height:1.45}
-.play{display:none;background:#fff;color:#222;border-radius:14px;padding:16px}
-.play h2{margin:0 0 10px}.board{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0}
-.cell{width:72px;height:72px;border-radius:12px;border:0;font-size:28px;cursor:pointer;background:#eceff1}
-.cell.on{outline:3px solid #1565c0}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-button.act{padding:10px 14px;border:0;border-radius:8px;background:#1565c0;color:#fff;cursor:pointer}
-button.ghost{background:#78909c}
-#msg{min-height:24px;font-weight:700;color:#2e7d32}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>启蒙乐园 · 休闲</title>
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/mini-base.js"></script>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(160deg, #0d47a1, #1565c0 50%, #42a5f5);
+            color: #fff;
+            min-height: 100vh
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            background: rgba(0, 0, 0, .25)
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #ffe082
+        }
+
+        .back {
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid #fff6;
+            padding: 6px 12px;
+            border-radius: 7px
+        }
+
+        main {
+            max-width: 900px;
+            margin: 18px auto;
+            padding: 0 14px 28px
+        }
+
+        .intro {
+            background: rgba(255, 255, 255, .12);
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+            line-height: 1.5
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px
+        }
+
+        .card {
+            background: #fff;
+            color: #222;
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px #0004
+        }
+
+        .card h2 {
+            margin: 0 0 6px;
+            font-size: 18px
+        }
+
+        .card p {
+            margin: 0;
+            color: #607d8b;
+            font-size: 13px;
+            line-height: 1.45
+        }
+
+        .play {
+            display: none;
+            background: #fff;
+            color: #222;
+            border-radius: 14px;
+            padding: 16px
+        }
+
+        .play h2 {
+            margin: 0 0 10px
+        }
+
+        .board {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 12px 0
+        }
+
+        .cell {
+            width: 72px;
+            height: 72px;
+            border-radius: 12px;
+            border: 0;
+            font-size: 28px;
+            cursor: pointer;
+            background: #eceff1
+        }
+
+        .cell.on {
+            outline: 3px solid #1565c0
+        }
+
+        .bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px
+        }
+
+        button.act {
+            padding: 10px 14px;
+            border: 0;
+            border-radius: 8px;
+            background: #1565c0;
+            color: #fff;
+            cursor: pointer
+        }
+
+        button.ghost {
+            background: #78909c
+        }
+
+        #msg {
+            min-height: 24px;
+            font-weight: 700;
+            color: #2e7d32
+        }
+    </style>
 </head>
 <body>
 <header>
-  <h1>启蒙乐园（GCompris 风格）</h1>
-  <a class="back" id="back" href="../index.html">返回</a>
+    <h1>启蒙乐园（GCompris 风格）</h1>
+    <a class="back" id="back" href="../index.html">返回</a>
 </header>
 <main>
-  <div class="intro">参照 <a href="https://github.com/gcompris/GCompris-qt" target="_blank" rel="noopener" style="color:#ffe082">GCompris</a> 的儿童教育思路，提供可在浏览器直接玩的小活动（Qt 原版过重，这里做 Web 轻量版）。</div>
-  <section class="grid" id="menu">
-    <article class="card" data-g="count"><h2>数一数</h2><p>数清星星数量并选择正确答案。</p></article>
-    <article class="card" data-g="memory"><h2>记忆翻牌</h2><p>翻开两张相同图案即可消除。</p></article>
-    <article class="card" data-g="color"><h2>认颜色</h2><p>按提示点击正确颜色方块。</p></article>
-  </section>
-  <section class="play" id="play">
-    <h2 id="title">活动</h2>
-    <div id="msg"></div>
-    <div class="board" id="board"></div>
-    <div class="bar">
-      <button class="act" id="again">再来一局</button>
-      <button class="act ghost" id="toMenu">返回活动列表</button>
+    <div class="intro">参照 <a href="https://github.com/gcompris/GCompris-qt" target="_blank" rel="noopener"
+                               style="color:#ffe082">GCompris</a> 的儿童教育思路，提供可在浏览器直接玩的小活动（Qt
+        原版过重，这里做 Web 轻量版）。
     </div>
-  </section>
+    <section class="grid" id="menu">
+        <article class="card" data-g="count"><h2>数一数</h2>
+            <p>数清星星数量并选择正确答案。</p></article>
+        <article class="card" data-g="memory"><h2>记忆翻牌</h2>
+            <p>翻开两张相同图案即可消除。</p></article>
+        <article class="card" data-g="color"><h2>认颜色</h2>
+            <p>按提示点击正确颜色方块。</p></article>
+    </section>
+    <section class="play" id="play">
+        <h2 id="title">活动</h2>
+        <div id="msg"></div>
+        <div class="board" id="board"></div>
+        <div class="bar">
+            <button class="act" id="again">再来一局</button>
+            <button class="act ghost" id="toMenu">返回活动列表</button>
+        </div>
+    </section>
 </main>
 <script>
-MiniGames.requireLogin();
-document.getElementById('back').href = appUrl('/pages/mini/index.html');
-var menu = document.getElementById('menu');
-var play = document.getElementById('play');
-var board = document.getElementById('board');
-var msg = document.getElementById('msg');
-var title = document.getElementById('title');
-var current = 'count';
+    MiniGames.requireLogin();
+    document.getElementById('back').href = appUrl('/pages/mini/index.html');
+    var menu = document.getElementById('menu');
+    var play = document.getElementById('play');
+    var board = document.getElementById('board');
+    var msg = document.getElementById('msg');
+    var title = document.getElementById('title');
+    var current = 'count';
 
-menu.onclick = function (e) {
-  var card = e.target.closest('.card');
-  if (!card) return;
-  current = card.dataset.g;
-  menu.style.display = 'none';
-  play.style.display = 'block';
-  start();
-};
-document.getElementById('toMenu').onclick = function () {
-  play.style.display = 'none';
-  menu.style.display = 'grid';
-};
-document.getElementById('again').onclick = start;
-
-function start() {
-  board.innerHTML = '';
-  msg.textContent = '';
-  if (current === 'count') startCount();
-  else if (current === 'memory') startMemory();
-  else startColor();
-}
-
-function startCount() {
-  title.textContent = '数一数';
-  var n = 3 + Math.floor(Math.random() * 7);
-  var box = document.createElement('div');
-  box.style.cssText = 'font-size:34px;letter-spacing:6px;text-align:center;width:100%;margin:8px 0 14px';
-  box.textContent = new Array(n + 1).join('⭐');
-  board.appendChild(box);
-  var opts = [n, n + 1, Math.max(1, n - 1), n + 2].sort(function () { return Math.random() - 0.5; });
-  opts.forEach(function (v) {
-    var b = document.createElement('button');
-    b.className = 'cell';
-    b.textContent = v;
-    b.onclick = function () {
-      msg.textContent = v === n ? '答对了！' : '再试试';
-      msg.style.color = v === n ? '#2e7d32' : '#c62828';
+    menu.onclick = function (e) {
+        var card = e.target.closest('.card');
+        if (!card) return;
+        current = card.dataset.g;
+        menu.style.display = 'none';
+        play.style.display = 'block';
+        start();
     };
-    board.appendChild(b);
-  });
-}
-
-function startMemory() {
-  title.textContent = '记忆翻牌';
-  var icons = ['🍎','🚗','🐶','🌙','🎈','🐟'];
-  var cards = icons.concat(icons).sort(function () { return Math.random() - 0.5; });
-  var open = [], done = 0;
-  cards.forEach(function (icon, idx) {
-    var b = document.createElement('button');
-    b.className = 'cell';
-    b.dataset.icon = icon;
-    b.dataset.idx = idx;
-    b.textContent = '?';
-    b.onclick = function () {
-      if (b.dataset.lock || open.length === 2) return;
-      b.textContent = icon;
-      open.push(b);
-      if (open.length < 2) return;
-      if (open[0].dataset.icon === open[1].dataset.icon) {
-        open.forEach(function (x) { x.dataset.lock = '1'; x.style.background = '#c8e6c9'; });
-        open = [];
-        done++;
-        if (done === icons.length) { msg.textContent = '全部配对完成！'; msg.style.color = '#2e7d32'; }
-      } else {
-        setTimeout(function () {
-          open.forEach(function (x) { x.textContent = '?'; });
-          open = [];
-        }, 550);
-      }
+    document.getElementById('toMenu').onclick = function () {
+        play.style.display = 'none';
+        menu.style.display = 'grid';
     };
-    board.appendChild(b);
-  });
-}
+    document.getElementById('again').onclick = start;
 
-function startColor() {
-  title.textContent = '认颜色';
-  var colors = [
-    {name:'红色', c:'#e53935'},
-    {name:'绿色', c:'#43a047'},
-    {name:'蓝色', c:'#1e88e5'},
-    {name:'橙色', c:'#fb8c00'},
-    {name:'紫色', c:'#8e24aa'}
-  ];
-  var ans = colors[Math.floor(Math.random() * colors.length)];
-  msg.textContent = '请点击：' + ans.name;
-  msg.style.color = '#1565c0';
-  colors.sort(function () { return Math.random() - 0.5; }).forEach(function (item) {
-    var b = document.createElement('button');
-    b.className = 'cell';
-    b.style.background = item.c;
-    b.onclick = function () {
-      if (item.name === ans.name) { msg.textContent = '正确！'; msg.style.color = '#2e7d32'; }
-      else { msg.textContent = '不对，再选'; msg.style.color = '#c62828'; }
-    };
-    board.appendChild(b);
-  });
-}
+    function start() {
+        board.innerHTML = '';
+        msg.textContent = '';
+        if (current === 'count') startCount();
+        else if (current === 'memory') startMemory();
+        else startColor();
+    }
+
+    function startCount() {
+        title.textContent = '数一数';
+        var n = 3 + Math.floor(Math.random() * 7);
+        var box = document.createElement('div');
+        box.style.cssText = 'font-size:34px;letter-spacing:6px;text-align:center;width:100%;margin:8px 0 14px';
+        box.textContent = new Array(n + 1).join('⭐');
+        board.appendChild(box);
+        var opts = [n, n + 1, Math.max(1, n - 1), n + 2].sort(function () {
+            return Math.random() - 0.5;
+        });
+        opts.forEach(function (v) {
+            var b = document.createElement('button');
+            b.className = 'cell';
+            b.textContent = v;
+            b.onclick = function () {
+                msg.textContent = v === n ? '答对了！' : '再试试';
+                msg.style.color = v === n ? '#2e7d32' : '#c62828';
+            };
+            board.appendChild(b);
+        });
+    }
+
+    function startMemory() {
+        title.textContent = '记忆翻牌';
+        var icons = ['🍎', '🚗', '🐶', '🌙', '🎈', '🐟'];
+        var cards = icons.concat(icons).sort(function () {
+            return Math.random() - 0.5;
+        });
+        var open = [], done = 0;
+        cards.forEach(function (icon, idx) {
+            var b = document.createElement('button');
+            b.className = 'cell';
+            b.dataset.icon = icon;
+            b.dataset.idx = idx;
+            b.textContent = '?';
+            b.onclick = function () {
+                if (b.dataset.lock || open.length === 2) return;
+                b.textContent = icon;
+                open.push(b);
+                if (open.length < 2) return;
+                if (open[0].dataset.icon === open[1].dataset.icon) {
+                    open.forEach(function (x) {
+                        x.dataset.lock = '1';
+                        x.style.background = '#c8e6c9';
+                    });
+                    open = [];
+                    done++;
+                    if (done === icons.length) {
+                        msg.textContent = '全部配对完成！';
+                        msg.style.color = '#2e7d32';
+                    }
+                } else {
+                    setTimeout(function () {
+                        open.forEach(function (x) {
+                            x.textContent = '?';
+                        });
+                        open = [];
+                    }, 550);
+                }
+            };
+            board.appendChild(b);
+        });
+    }
+
+    function startColor() {
+        title.textContent = '认颜色';
+        var colors = [
+            {name: '红色', c: '#e53935'},
+            {name: '绿色', c: '#43a047'},
+            {name: '蓝色', c: '#1e88e5'},
+            {name: '橙色', c: '#fb8c00'},
+            {name: '紫色', c: '#8e24aa'}
+        ];
+        var ans = colors[Math.floor(Math.random() * colors.length)];
+        msg.textContent = '请点击：' + ans.name;
+        msg.style.color = '#1565c0';
+        colors.sort(function () {
+            return Math.random() - 0.5;
+        }).forEach(function (item) {
+            var b = document.createElement('button');
+            b.className = 'cell';
+            b.style.background = item.c;
+            b.onclick = function () {
+                if (item.name === ans.name) {
+                    msg.textContent = '正确！';
+                    msg.style.color = '#2e7d32';
+                } else {
+                    msg.textContent = '不对，再选';
+                    msg.style.color = '#c62828';
+                }
+            };
+            board.appendChild(b);
+        });
+    }
 </script>
 </body>
 </html>

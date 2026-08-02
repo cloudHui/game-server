@@ -1,10 +1,6 @@
 package utils.other;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -70,10 +66,10 @@ public class IpUtil {
             Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
             InetAddress ip;
             while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = (NetworkInterface)allNetInterfaces.nextElement();
+                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
                 Enumeration addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
-                    ip = (InetAddress)addresses.nextElement();
+                    ip = (InetAddress) addresses.nextElement();
                     if (ip instanceof Inet4Address) {
                         if ("127.0.0.1".equals(ip.getHostAddress())) {
                             continue;

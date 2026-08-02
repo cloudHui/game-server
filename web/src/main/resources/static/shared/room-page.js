@@ -6,10 +6,10 @@
     var sessionId = localStorage.getItem('sessionId');
     var gameType = parseInt(document.body.dataset.gameType, 10);
     var META = {
-        1: { name: '麻将', official: [1, 11, 12, 9001], page: '/pages/games/mahjong/index.html', defaultSeats: 4 },
-        2: { name: '斗地主', official: [2, 9002, 9003], page: '/pages/games/doudizhu/index.html', defaultSeats: 3 },
-        3: { name: '跑得快', official: [9010], page: '/pages/games/paodekuai/index.html', defaultSeats: 3 },
-        4: { name: '拖拉机', official: [9011], page: '/pages/games/tractor/index.html', defaultSeats: 4 }
+        1: {name: '麻将', official: [1, 11, 12, 9001], page: '/pages/games/mahjong/index.html', defaultSeats: 4},
+        2: {name: '斗地主', official: [2, 9002, 9003], page: '/pages/games/doudizhu/index.html', defaultSeats: 3},
+        3: {name: '跑得快', official: [9010], page: '/pages/games/paodekuai/index.html', defaultSeats: 3},
+        4: {name: '拖拉机', official: [9011], page: '/pages/games/tractor/index.html', defaultSeats: 4}
     };
     var meta = META[gameType] || META[2];
     var gameName = meta.name;
@@ -63,7 +63,9 @@
         var list = document.getElementById('roomList');
         list.innerHTML = '<div class="loading">正在加载' + gameName + '房间…</div>';
         fetch(appUrl('/api/rooms?sessionId=' + encodeURIComponent(sessionId)))
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                return r.json();
+            })
             .then(function (data) {
                 if (data.code === 401) {
                     window.location.href = appUrl('/');
@@ -147,17 +149,21 @@
     function createAndEnter(roomId) {
         fetch(appUrl('/api/rooms/create'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionId, mode: 'fixed', roomId: roomId, gameType: gameType })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sessionId: sessionId, mode: 'fixed', roomId: roomId, gameType: gameType})
         })
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                return r.json();
+            })
             .then(function (data) {
                 if (data.code === 0 && data.tableId) {
                     goTable(data.tableId, data.roomId || roomId);
                     return;
                 }
                 return fetch(appUrl('/api/rooms?sessionId=' + encodeURIComponent(sessionId)))
-                    .then(function (r) { return r.json(); })
+                    .then(function (r) {
+                        return r.json();
+                    })
                     .then(function (listData) {
                         var mine = null;
                         (listData.rooms || []).forEach(function (room) {
@@ -169,7 +175,9 @@
                         else alert((data && data.msg) || '创建房间失败');
                     });
             })
-            .catch(function () { alert('网络错误，请重试'); });
+            .catch(function () {
+                alert('网络错误，请重试');
+            });
     }
 
     function goTable(tableId, roomId) {
@@ -183,9 +191,10 @@
     window.logout = function () {
         fetch(appUrl('/api/logout'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionId })
-        }).catch(function () {});
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sessionId: sessionId})
+        }).catch(function () {
+        });
         localStorage.clear();
         window.location.href = appUrl('/');
     };

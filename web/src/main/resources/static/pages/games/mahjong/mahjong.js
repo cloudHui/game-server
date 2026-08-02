@@ -56,32 +56,51 @@ document.getElementById('roomInfo').textContent = '桌号: ' + tableId;
 var gameWs = GameTable.createGameWs({
     sessionId: sessionId,
     onAuthed: function () {
-        console.info('[麻将连接认证]', { tableId: tableId, userId: userId,
-            handCount: gameState.myTiles.length });
+        console.info('[麻将连接认证]', {
+            tableId: tableId, userId: userId,
+            handCount: gameState.myTiles.length
+        });
         if (typeof resetMahjongViewForReconnect === 'function') resetMahjongViewForReconnect();
         enterTable();
     },
     onPush: handleWsPush
 });
-function sendWsMessage(action, data, callback) { return gameWs.send(action, data, callback); }
+
+function sendWsMessage(action, data, callback) {
+    return gameWs.send(action, data, callback);
+}
 
 function handleWsPush(data) {
     switch (data.action) {
         case 'seatUpdate':
             if (data.data && data.data.players) updatePlayers(data.data.players);
             break;
-        case 'notCard': handleNotCard(data.data); break;
-        case 'notOp': handleNotOp(data.data); break;
-        case 'notState': handleNotState(data.data); break;
-        case 'notResult': handleNotResult(data.data); break;
-        case 'notMjState': handleNotMjState(data.data); break;
-        case 'notRoundResult': handleNotRoundResult(data.data); break;
-        case 'notGameResult': handleNotGameResult(data.data); break;
+        case 'notCard':
+            handleNotCard(data.data);
+            break;
+        case 'notOp':
+            handleNotOp(data.data);
+            break;
+        case 'notState':
+            handleNotState(data.data);
+            break;
+        case 'notResult':
+            handleNotResult(data.data);
+            break;
+        case 'notMjState':
+            handleNotMjState(data.data);
+            break;
+        case 'notRoundResult':
+            handleNotRoundResult(data.data);
+            break;
+        case 'notGameResult':
+            handleNotGameResult(data.data);
+            break;
     }
 }
 
 function enterTable() {
-    sendWsMessage('enterTable', { tableId: tableId }, function(resp) {
+    sendWsMessage('enterTable', {tableId: tableId}, function (resp) {
         gameState.syncingHistory = false;
         if (resp.code === 0 && resp.data) {
             updatePlayers(resp.data.players || []);
@@ -97,7 +116,9 @@ function enterTable() {
 }
 
 window.addEventListener('resize', layoutMyHand);
-window.addEventListener('orientationchange', function () { setTimeout(layoutMyHand, 60); });
+window.addEventListener('orientationchange', function () {
+    setTimeout(layoutMyHand, 60);
+});
 if (window.GameLandscape) GameLandscape.bind(layoutMyHand);
 layoutMyHand();
 gameWs.connect();

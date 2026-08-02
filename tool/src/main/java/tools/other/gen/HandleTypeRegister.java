@@ -7,7 +7,7 @@
 //import annotation.ProcessType;
 //import utils.other.ClazzUtil;
 //
-///**
+/// **
 // * 处理类型注册绑定工具类
 // */
 //public class HandleTypeRegister {

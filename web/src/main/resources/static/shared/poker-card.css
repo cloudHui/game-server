@@ -10,7 +10,10 @@
     box-sizing: border-box;
     border-radius: inherit;
 }
-.card-face.red { color: #c62828; }
+
+.card-face.red {
+    color: #c62828;
+}
 
 .card-corner {
     position: absolute;
@@ -21,9 +24,23 @@
     font: 700 9px/1 Georgia, 'Times New Roman', serif;
     line-height: 1;
 }
-.card-corner .rank { font-size: inherit; line-height: 1; }
-.card-corner .suit { font-size: 0.9em; line-height: 1; margin-top: 1px; }
-.card-corner-tl { top: 2px; left: 3px; }
+
+.card-corner .rank {
+    font-size: inherit;
+    line-height: 1;
+}
+
+.card-corner .suit {
+    font-size: 0.9em;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.card-corner-tl {
+    top: 2px;
+    left: 3px;
+}
+
 .card-corner-br {
     bottom: 2px;
     right: 3px;
@@ -43,15 +60,18 @@
     line-height: 1;
     pointer-events: none;
 }
+
 .card-art.rank-large .big-rank {
     font: 800 28px/1 Georgia, 'Times New Roman', serif;
     letter-spacing: -0.5px;
 }
+
 .card-art.rank-large .big-suit {
     font-size: 16px;
     line-height: 1;
     margin-top: 2px;
 }
+
 .card-face.joker-face .card-art.rank-large .big-rank {
     font-size: 15px;
     font-weight: 800;
@@ -62,12 +82,15 @@
 .my-cards .card-corner {
     font-size: var(--poker-corner, 9px);
 }
+
 .my-cards .card-art.rank-large .big-rank {
     font-size: var(--poker-art, 28px);
 }
+
 .my-cards .card-art.rank-large .big-suit {
     font-size: calc(var(--poker-art, 28px) * 0.55);
 }
+
 .my-cards .card-face.joker-face .card-art.rank-large .big-rank {
     font-size: calc(var(--poker-art, 28px) * 0.52);
 }
@@ -77,8 +100,20 @@
     background: #fff;
     box-sizing: border-box;
 }
-.played-face .card-corner { font-size: 9px; }
-.played-face .card-art.rank-large .big-rank { font-size: 24px; }
-.played-face .card-art.rank-large .big-suit { font-size: 13px; }
+
+.played-face .card-corner {
+    font-size: 9px;
+}
+
+.played-face .card-art.rank-large .big-rank {
+    font-size: 24px;
+}
+
+.played-face .card-art.rank-large .big-suit {
+    font-size: 13px;
+}
+
 .played-face.joker-face .card-art.rank-large .big-rank,
-.played-face .card-face.joker-face .card-art.rank-large .big-rank { font-size: 12px; }
+.played-face .card-face.joker-face .card-art.rank-large .big-rank {
+    font-size: 12px;
+}

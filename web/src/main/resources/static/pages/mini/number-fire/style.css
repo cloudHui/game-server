@@ -89,9 +89,20 @@ h1 {
     background: #eee;
 }
 
-.lv-id { font-size: 20px; font-weight: 700; }
-.lv-meta { font-size: 12px; color: #52796f; }
-.lv-best { font-size: 11px; color: #ff6b6b; }
+.lv-id {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.lv-meta {
+    font-size: 12px;
+    color: #52796f;
+}
+
+.lv-best {
+    font-size: 11px;
+    color: #ff6b6b;
+}
 
 .game-info {
     display: flex;
@@ -246,8 +257,19 @@ button.action.secondary:hover {
         border-radius: 14px;
     }
 
-    .game-info { font-size: 15px; }
-    .level-grid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
-    .hint-mobile { display: block; }
-    .hint-row { font-size: 13px; }
+    .game-info {
+        font-size: 15px;
+    }
+
+    .level-grid {
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    }
+
+    .hint-mobile {
+        display: block;
+    }
+
+    .hint-row {
+        font-size: 13px;
+    }
 }

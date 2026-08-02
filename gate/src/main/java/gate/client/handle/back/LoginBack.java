@@ -21,40 +21,40 @@ import proto.ServerProto;
 @ProcessType(LMsg.ACK_LOGIN_MSG)
 public class LoginBack implements BackHandle, Handler {
 
-	private static final Logger logger = LoggerFactory.getLogger(LoginBack.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoginBack.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
-		return false;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
+        return false;
+    }
 
-	@Override
-	public void handle(TCPMessage response, GateTcpClient client) {
-		try {
-			LobbyProto.AckLogin res = LobbyProto.AckLogin.parseFrom(response.getMessage());
-			if (res.getCode() == 0 && res.getUserId() > 0) {
-				client.setRoleId(res.getUserId());
-				notifyCenterLoginSuccess(ClientHandler.getRemoteIP(client).getHostString());
-				logger.info("用户登录成功, userId: {}", res.getUserId());
-			} else {
-				logger.warn("登录失败, code: {}, userId: {}", res.getCode(), res.getUserId());
-			}
-		} catch (Exception e) {
-			logger.error("解析登录响应失败, msgId: {}, userId: {}",
-					Integer.toHexString(response.getMessageId()), client.getRoleId(), e);
-		}
-	}
+    @Override
+    public void handle(TCPMessage response, GateTcpClient client) {
+        try {
+            LobbyProto.AckLogin res = LobbyProto.AckLogin.parseFrom(response.getMessage());
+            if (res.getCode() == 0 && res.getUserId() > 0) {
+                client.setRoleId(res.getUserId());
+                notifyCenterLoginSuccess(ClientHandler.getRemoteIP(client).getHostString());
+                logger.info("用户登录成功, userId: {}", res.getUserId());
+            } else {
+                logger.warn("登录失败, code: {}, userId: {}", res.getCode(), res.getUserId());
+            }
+        } catch (Exception e) {
+            logger.error("解析登录响应失败, msgId: {}, userId: {}",
+                    Integer.toHexString(response.getMessageId()), client.getRoleId(), e);
+        }
+    }
 
-	private void notifyCenterLoginSuccess(String certificate) {
-		ServerProto.NotRegisterClient.Builder loginNotify = ServerProto.NotRegisterClient.newBuilder();
-		loginNotify.setCert(ByteString.copyFromUtf8(certificate));
+    private void notifyCenterLoginSuccess(String certificate) {
+        ServerProto.NotRegisterClient.Builder loginNotify = ServerProto.NotRegisterClient.newBuilder();
+        loginNotify.setCert(ByteString.copyFromUtf8(certificate));
 
-		ConnectHandler centerConnection = Gate.getInstance().getServerManager().getServerClient(ServerType.Center);
-		if (centerConnection != null) {
-			centerConnection.sendMessage(CMsg.NOT_LINK, loginNotify.build());
-			logger.debug("已通知中心服务器登录成功, certificate: {}", certificate);
-		} else {
-			logger.warn("中心服务器连接不可用,无法通知登录成功");
-		}
-	}
+        ConnectHandler centerConnection = Gate.getInstance().getServerManager().getServerClient(ServerType.Center);
+        if (centerConnection != null) {
+            centerConnection.sendMessage(CMsg.NOT_LINK, loginNotify.build());
+            logger.debug("已通知中心服务器登录成功, certificate: {}", certificate);
+        } else {
+            logger.warn("中心服务器连接不可用,无法通知登录成功");
+        }
+    }
 }

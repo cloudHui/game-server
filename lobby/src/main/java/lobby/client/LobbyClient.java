@@ -10,27 +10,27 @@ import org.slf4j.LoggerFactory;
 import proto.ModelProto;
 
 public class LobbyClient extends ClientHandler {
-	private static final Logger logger = LoggerFactory.getLogger(LobbyClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(LobbyClient.class);
 
-	private ModelProto.ServerInfo serverInfo;
+    private ModelProto.ServerInfo serverInfo;
 
-	public LobbyClient() {
-		super(ClientProto.PARSER, ClientProto.HANDLERS, ClientProto.TRANSFER, TCPMaker.INSTANCE);
-		setCloseEvent(this::handleConnectionClose);
-	}
+    public LobbyClient() {
+        super(ClientProto.PARSER, ClientProto.HANDLERS, ClientProto.TRANSFER, TCPMaker.INSTANCE);
+        setCloseEvent(this::handleConnectionClose);
+    }
 
-	private void handleConnectionClose(ChannelHandler client) {
-		logger.info("Lobby 客户端连接关闭, serverInfo: {}",
-				serverInfo != null ? serverInfo.getServerId() : "unknown");
-		if (serverInfo != null) {
-			ServerType serverType = ServerType.get(serverInfo.getServerType());
-			if (serverType != null) {
-				Lobby.getInstance().serverClientManager.removeServerClient(serverType, serverInfo.getServerId());
-			}
-		}
-	}
+    private void handleConnectionClose(ChannelHandler client) {
+        logger.info("Lobby 客户端连接关闭, serverInfo: {}",
+                serverInfo != null ? serverInfo.getServerId() : "unknown");
+        if (serverInfo != null) {
+            ServerType serverType = ServerType.get(serverInfo.getServerType());
+            if (serverType != null) {
+                Lobby.getInstance().serverClientManager.removeServerClient(serverType, serverInfo.getServerId());
+            }
+        }
+    }
 
-	public void setServerInfo(ModelProto.ServerInfo serverInfo) {
-		this.serverInfo = serverInfo;
-	}
+    public void setServerInfo(ModelProto.ServerInfo serverInfo) {
+        this.serverInfo = serverInfo;
+    }
 }

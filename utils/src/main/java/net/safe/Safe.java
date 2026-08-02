@@ -1,9 +1,9 @@
 package net.safe;
 
 public interface Safe {
-	boolean isValid(int msgId);
+    boolean isValid(int msgId);
 
-	static boolean DEFAULT() {
-		return true;
-	}
+    static boolean DEFAULT() {
+        return true;
+    }
 }

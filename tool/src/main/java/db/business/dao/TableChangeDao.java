@@ -7,5 +7,5 @@ import java.util.Date;
 import java.util.List;
 
 public interface TableChangeDao {
-	List<TableChangeEntity> queryChangeTable(@Param("updatetime") Date var1, @Param("area") int var2);
+    List<TableChangeEntity> queryChangeTable(@Param("updatetime") Date var1, @Param("area") int var2);
 }

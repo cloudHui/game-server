@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import web.learning.service.UsageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +16,16 @@ import org.slf4j.LoggerFactory;
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private final UsageService usage;
-    public GlobalExceptionHandler(UsageService usage){this.usage=usage;}
+
+    public GlobalExceptionHandler(UsageService usage) {
+        this.usage = usage;
+    }
 
     @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<Map<String,Object>> forbidden(SecurityException exception){
-        return response(HttpStatus.UNAUTHORIZED,exception.getMessage());
+    public ResponseEntity<Map<String, Object>> forbidden(SecurityException exception) {
+        return response(HttpStatus.UNAUTHORIZED, exception.getMessage());
     }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> badRequest(IllegalArgumentException exception) {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage());

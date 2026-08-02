@@ -16,13 +16,13 @@ import proto.ServerProto;
 @ProcessType(CMsg.REGISTER_NOTICE)
 public class RegisterNoticeHandle implements Handler {
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message registerInfo, long mapId, int sequence) {
-		Gate.getInstance().execute(() -> Gate.getInstance().getServerManager().connectToSever(
-				((ServerProto.NotRegisterInfo) registerInfo).getServersList(), Gate.getInstance().getServerId(),
-				(Gate.getInstance().getInnerIp() + ":" + Gate.getInstance().getPort()),
-				ConnectProcessor.TRANSFER, ConnectProcessor.PARSER,
-				ConnectProcessor.HANDLERS, ServerType.Gate));
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message registerInfo, long mapId, int sequence) {
+        Gate.getInstance().execute(() -> Gate.getInstance().getServerManager().connectToSever(
+                ((ServerProto.NotRegisterInfo) registerInfo).getServersList(), Gate.getInstance().getServerId(),
+                (Gate.getInstance().getInnerIp() + ":" + Gate.getInstance().getPort()),
+                ConnectProcessor.TRANSFER, ConnectProcessor.PARSER,
+                ConnectProcessor.HANDLERS, ServerType.Gate));
+        return true;
+    }
 }

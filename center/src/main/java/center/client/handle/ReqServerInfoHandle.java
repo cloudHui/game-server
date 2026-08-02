@@ -1,7 +1,5 @@
 package center.client.handle;
 
-import java.util.List;
-
 import center.Center;
 import center.client.CenterClient;
 import com.google.protobuf.Message;
@@ -16,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 import tools.ServerClientManager;
 
+import java.util.List;
+
 /**
  * 处理服务信息查询请求
  * 返回指定类型服务器的信息列表
@@ -23,67 +23,67 @@ import tools.ServerClientManager;
 @ProcessType(CMsg.REQ_SERVER)
 public class ReqServerInfoHandle implements Handler {
 
-	private static final Logger logger = LoggerFactory.getLogger(ReqServerInfoHandle.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReqServerInfoHandle.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
-		try {
-			ServerProto.ReqServerInfo request = (ServerProto.ReqServerInfo) message;
-			ServerClientManager manager = Center.getInstance().getServerManager();
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        try {
+            ServerProto.ReqServerInfo request = (ServerProto.ReqServerInfo) message;
+            ServerClientManager manager = Center.getInstance().getServerManager();
 
-			logger.info("处理服务信息查询请求, 查询类型数量: {}", request.getServerTypeCount());
+            logger.info("处理服务信息查询请求, 查询类型数量: {}", request.getServerTypeCount());
 
-			ServerProto.AckServerInfo response = buildServerInfoResponse(request, manager);
-			sender.sendMessage(clientId, CMsg.ACK_SERVER, mapId, response, sequence);
+            ServerProto.AckServerInfo response = buildServerInfoResponse(request, manager);
+            sender.sendMessage(clientId, CMsg.ACK_SERVER, mapId, response, sequence);
 
-			logger.info("返回服务信息, 服务器数量: {}", response.getServersCount());
-		} catch (Exception e) {
-			logger.error("处理服务信息查询请求失败", e);
-		}
-		return true;
-	}
+            logger.info("返回服务信息, 服务器数量: {}", response.getServersCount());
+        } catch (Exception e) {
+            logger.error("处理服务信息查询请求失败", e);
+        }
+        return true;
+    }
 
-	/**
-	 * 构建服务器信息响应
-	 */
-	private ServerProto.AckServerInfo buildServerInfoResponse(ServerProto.ReqServerInfo request, ServerClientManager manager) {
-		ServerProto.AckServerInfo.Builder response = ServerProto.AckServerInfo.newBuilder();
-		List<Integer> serverTypes = request.getServerTypeList();
+    /**
+     * 构建服务器信息响应
+     */
+    private ServerProto.AckServerInfo buildServerInfoResponse(ServerProto.ReqServerInfo request, ServerClientManager manager) {
+        ServerProto.AckServerInfo.Builder response = ServerProto.AckServerInfo.newBuilder();
+        List<Integer> serverTypes = request.getServerTypeList();
 
-		for (int serverTypeValue : serverTypes) {
-			ServerType serverType = ServerType.get(serverTypeValue);
-			if (serverType == null) {
-				logger.error("未知的服务器类型值: {}", serverTypeValue);
-				continue;
-			}
+        for (int serverTypeValue : serverTypes) {
+            ServerType serverType = ServerType.get(serverTypeValue);
+            if (serverType == null) {
+                logger.error("未知的服务器类型值: {}", serverTypeValue);
+                continue;
+            }
 
-			addServerInfoToResponse(manager, response, serverType);
-		}
+            addServerInfoToResponse(manager, response, serverType);
+        }
 
-		return response.build();
-	}
+        return response.build();
+    }
 
-	/**
-	 * 添加指定类型的服务器信息到响应
-	 */
-	private void addServerInfoToResponse(ServerClientManager manager,
-										 ServerProto.AckServerInfo.Builder response,
-										 ServerType serverType) {
-		List<ClientHandler> servers = manager.getAllTypeServer(serverType);
-		if (servers == null || servers.isEmpty()) {
-			logger.info("该类型服务器暂无在线实例: {}", serverType);
-			return;
-		}
+    /**
+     * 添加指定类型的服务器信息到响应
+     */
+    private void addServerInfoToResponse(ServerClientManager manager,
+                                         ServerProto.AckServerInfo.Builder response,
+                                         ServerType serverType) {
+        List<ClientHandler> servers = manager.getAllTypeServer(serverType);
+        if (servers == null || servers.isEmpty()) {
+            logger.info("该类型服务器暂无在线实例: {}", serverType);
+            return;
+        }
 
-		int addedCount = 0;
-		for (ClientHandler client : servers) {
-			CenterClient centerClient = (CenterClient) client;
-			if (centerClient.getServerInfo() != null) {
-				response.addServers(centerClient.getServerInfo());
-				addedCount++;
-			}
-		}
+        int addedCount = 0;
+        for (ClientHandler client : servers) {
+            CenterClient centerClient = (CenterClient) client;
+            if (centerClient.getServerInfo() != null) {
+                response.addServers(centerClient.getServerInfo());
+                addedCount++;
+            }
+        }
 
-		logger.info("添加服务器信息到响应, serverType: {}, 数量: {}", serverType, addedCount);
-	}
+        logger.info("添加服务器信息到响应, serverType: {}, 数量: {}", serverType, addedCount);
+    }
 }

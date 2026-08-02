@@ -8,7 +8,7 @@ function roleIdBySeat(seat) {
 }
 
 function clearKillEffects() {
-    document.querySelectorAll('.kill-fx, .trick-win-fx').forEach(function(el) {
+    document.querySelectorAll('.kill-fx, .trick-win-fx').forEach(function (el) {
         el.remove();
     });
 }
@@ -144,7 +144,7 @@ function handleNotState(data) {
         GameTable.backToLobby();
         return;
     }
-    var labels = { 1: '游戏进行中', 2: '发牌中', 3: '亮主中', 4: '亮主中', 5: '扣底中', 6: '扣底中', 10: '小结算' };
+    var labels = {1: '游戏进行中', 2: '发牌中', 3: '亮主中', 4: '亮主中', 5: '扣底中', 6: '扣底中', 10: '小结算'};
     var label = labels[data.state];
     document.getElementById('tableState').textContent = label || '等待中';
     gameState.dealing = data.state === 2;
@@ -166,9 +166,9 @@ function handleNotState(data) {
 function doOp(choice) {
     if (gameState.opPending) return;
     var selected = [];
-    gameState.selectedCardIndexes.forEach(function(cardIndex) {
+    gameState.selectedCardIndexes.forEach(function (cardIndex) {
         if (gameState.myCards[cardIndex] != null) {
-            selected.push({ value: gameState.myCards[cardIndex] });
+            selected.push({value: gameState.myCards[cardIndex]});
         }
     });
     if (choice === 6 && selected.length === 0) {
@@ -189,7 +189,7 @@ function doOp(choice) {
     sendWsMessage('op', {
         choice: choice,
         cards: selected.length > 0 ? selected : undefined
-    }, function(resp) {
+    }, function (resp) {
         if (resp.code !== 0) {
             gameState.opPending = false;
             gameState.pendingPlayCount = 0;
@@ -213,8 +213,10 @@ function doOp(choice) {
 }
 
 function throwFailHint(selected) {
-    var ids = selected.map(function(card) { return Number(card.value); });
-    ids.sort(function(a, b) {
+    var ids = selected.map(function (card) {
+        return Number(card.value);
+    });
+    ids.sort(function (a, b) {
         return tractorHandOrder(a, gameState.levelRank || 15, gameState.trumpSuit || 0)
             - tractorHandOrder(b, gameState.levelRank || 15, gameState.trumpSuit || 0);
     });
@@ -223,14 +225,18 @@ function throwFailHint(selected) {
     return '甩牌失败，请出所选牌中最小的 ' + name;
 }
 
-function doPrepare() { GameTable.doPrepare(sendWsMessage); }
+function doPrepare() {
+    GameTable.doPrepare(sendWsMessage);
+}
 
 function refreshTable() {
     var btn = document.getElementById('refreshTableBtn');
     if (!btn || btn.disabled) return;
-    btn.disabled = true; btn.textContent = '刷新中';
-    sendWsMessage('refreshTable', { tableId: tableId }, function (resp) {
-        btn.disabled = false; btn.textContent = '刷新牌桌';
+    btn.disabled = true;
+    btn.textContent = '刷新中';
+    sendWsMessage('refreshTable', {tableId: tableId}, function (resp) {
+        btn.disabled = false;
+        btn.textContent = '刷新牌桌';
         if (resp.code !== 0 || !resp.data) {
             showCenterMsg(resp.msg || '刷新牌桌失败');
             return;
@@ -285,7 +291,9 @@ function applyDdzSnapshot(s) {
     }
     if (!gameState.trickCount && gameState.lastPlayedCards.length) {
         var actor = 0;
-        (s.players || []).forEach(function (p) { if (p.position === s.lastPlaySeat) actor = p.roleId; });
+        (s.players || []).forEach(function (p) {
+            if (p.position === s.lastPlaySeat) actor = p.roleId;
+        });
         if (actor) renderPlayedCards(actor, gameState.lastPlayedCards);
     }
 
@@ -298,5 +306,10 @@ function applyDdzSnapshot(s) {
     if (s.opSeat === gameState.myPosition) showOperationChoices(s.choices || []); else hideActions();
 }
 
-function backToLobby() { GameTable.backToLobby(); }
-function exitRoom() { GameTable.exitRoom(sendWsMessage); }
+function backToLobby() {
+    GameTable.backToLobby();
+}
+
+function exitRoom() {
+    GameTable.exitRoom(sendWsMessage);
+}

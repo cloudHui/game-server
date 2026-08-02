@@ -17,24 +17,24 @@ import proto.GameProto;
  */
 @ProcessType(GMsg.REQ_TABLE_SNAPSHOT)
 public class ReqTableSnapshotHandle implements Handler {
-	private static final Logger logger = LoggerFactory.getLogger(ReqTableSnapshotHandle.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReqTableSnapshotHandle.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
-		GameProto.ReqTableSnapshot request = (GameProto.ReqTableSnapshot) message;
-		Table table = Game.getInstance().getTableManager().getTable(request.getTableId());
-		if (table == null) return true;
-		table.execute(() -> {
-			TableUser viewer = table.getUsers().get(clientId);
-			if (viewer == null) return;
-			GameProto.AckTableSnapshot snapshot = table.buildTableSnapshot(viewer);
-			sender.sendMessage(clientId, GMsg.ACK_TABLE_SNAPSHOT,
-					table.getTableId(), snapshot, sequence);
-		}).exceptionally(error -> {
-			logger.error("生成牌桌快照失败, tableId: {}, userId: {}",
-					request.getTableId(), clientId, error);
-			return null;
-		});
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        GameProto.ReqTableSnapshot request = (GameProto.ReqTableSnapshot) message;
+        Table table = Game.getInstance().getTableManager().getTable(request.getTableId());
+        if (table == null) return true;
+        table.execute(() -> {
+            TableUser viewer = table.getUsers().get(clientId);
+            if (viewer == null) return;
+            GameProto.AckTableSnapshot snapshot = table.buildTableSnapshot(viewer);
+            sender.sendMessage(clientId, GMsg.ACK_TABLE_SNAPSHOT,
+                    table.getTableId(), snapshot, sequence);
+        }).exceptionally(error -> {
+            logger.error("生成牌桌快照失败, tableId: {}, userId: {}",
+                    request.getTableId(), clientId, error);
+            return null;
+        });
+        return true;
+    }
 }

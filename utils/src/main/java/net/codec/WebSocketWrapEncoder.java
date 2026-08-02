@@ -10,12 +10,12 @@ import net.proto.SysProto;
 import java.util.List;
 
 public class WebSocketWrapEncoder extends MessageToMessageEncoder<SysProto.SysMessage> {
-	public WebSocketWrapEncoder() {
-	}
+    public WebSocketWrapEncoder() {
+    }
 
-	@Override
-	protected void encode(ChannelHandlerContext channelHandlerContext, SysProto.SysMessage sysMessage, List<Object> list) {
-		ByteBuf buf = Unpooled.wrappedBuffer(sysMessage.toByteArray());
-		list.add(new BinaryWebSocketFrame(buf));
-	}
+    @Override
+    protected void encode(ChannelHandlerContext channelHandlerContext, SysProto.SysMessage sysMessage, List<Object> list) {
+        ByteBuf buf = Unpooled.wrappedBuffer(sysMessage.toByteArray());
+        list.add(new BinaryWebSocketFrame(buf));
+    }
 }

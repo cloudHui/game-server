@@ -1,5 +1,7 @@
 /** 斗地主操作与推送处理 */
-function sortHandCards(cards) { sortPokerByValue(cards); }
+function sortHandCards(cards) {
+    sortPokerByValue(cards);
+}
 
 function handleNotCard(data) {
     // 发牌通知：自己有牌值；roleId=0 为桌面底牌；他人牌值为0但张数有效
@@ -174,7 +176,8 @@ function handleDdzRoundResult(data) {
             }
         }
     }
-    renderPlayerLabels(); renderOpponentHands();
+    renderPlayerLabels();
+    renderOpponentHands();
 }
 
 function handleNotGameResult(data) {
@@ -194,8 +197,8 @@ function handleNotGameResult(data) {
 function doOp(choice) {
     if (gameState.opPending) return;
     var selected = [];
-    gameState.selectedCards.forEach(function(cardValue) {
-        selected.push({ value: cardValue });
+    gameState.selectedCards.forEach(function (cardValue) {
+        selected.push({value: cardValue});
     });
     if (choice === 6 && selected.length === 0) {
         showCenterMsg('请先选择要出的牌');
@@ -206,7 +209,7 @@ function doOp(choice) {
     sendWsMessage('op', {
         choice: choice,
         cards: selected.length > 0 ? selected : undefined
-    }, function(resp) {
+    }, function (resp) {
         if (resp.code !== 0) {
             gameState.opPending = false;
             showCenterMsg(resp.msg || '操作失败');
@@ -220,13 +223,18 @@ function doOp(choice) {
     hideActions();
 }
 
-function doPrepare() { GameTable.doPrepare(sendWsMessage); }
+function doPrepare() {
+    GameTable.doPrepare(sendWsMessage);
+}
+
 function refreshTable() {
     var btn = document.getElementById('refreshTableBtn');
     if (!btn || btn.disabled) return;
-    btn.disabled = true; btn.textContent = '刷新中';
-    sendWsMessage('refreshTable', { tableId: tableId }, function (resp) {
-        btn.disabled = false; btn.textContent = '刷新牌桌';
+    btn.disabled = true;
+    btn.textContent = '刷新中';
+    sendWsMessage('refreshTable', {tableId: tableId}, function (resp) {
+        btn.disabled = false;
+        btn.textContent = '刷新牌桌';
         if (resp.code !== 0 || !resp.data) {
             showCenterMsg(resp.msg || '刷新牌桌失败');
             return;
@@ -252,16 +260,23 @@ function applyDdzSnapshot(s) {
     (s.players || []).forEach(function (p) {
         if (p.position === s.landlordSeat) gameState.landlordId = p.roleId;
     });
-    clearAllPlayedAreas(); clearPassHints();
+    clearAllPlayedAreas();
+    clearPassHints();
     if (gameState.lastPlayedCards.length) {
         var actor = 0;
-        (s.players || []).forEach(function (p) { if (p.position === s.lastPlaySeat) actor = p.roleId; });
+        (s.players || []).forEach(function (p) {
+            if (p.position === s.lastPlaySeat) actor = p.roleId;
+        });
         renderPlayedCards(actor, gameState.lastPlayedCards);
     }
     (s.passSeats || []).forEach(function (seat) {
-        (s.players || []).forEach(function (p) { if (p.position === seat) showPassHint(p.roleId); });
+        (s.players || []).forEach(function (p) {
+            if (p.position === seat) showPassHint(p.roleId);
+        });
     });
-    renderDizhuCards(gameState.bottomCards); renderMyCards(); renderOpponentHands();
+    renderDizhuCards(gameState.bottomCards);
+    renderMyCards();
+    renderOpponentHands();
     highlightActivePlayer(s.opSeat, snapshotOperationWait(s));
     document.getElementById('multipleInfo').textContent = '底分 ' + (s.baseScore || 1)
         + ' · 叫抢×' + (s.robMultiplier || 1) + ' · 炸弹×' + (s.bombMultiplier || 1)
@@ -269,5 +284,11 @@ function applyDdzSnapshot(s) {
     gameState.opPending = false;
     if (s.opSeat === gameState.myPosition) showOperationChoices(s.choices || []); else hideActions();
 }
-function backToLobby() { GameTable.backToLobby(); }
-function exitRoom() { GameTable.exitRoom(sendWsMessage); }
+
+function backToLobby() {
+    GameTable.backToLobby();
+}
+
+function exitRoom() {
+    GameTable.exitRoom(sendWsMessage);
+}

@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,8 +95,8 @@ public class ConfigLoader<T> {
 
         try (Stream<Path> stream = Files.list(dir)) {
             return stream.filter(p -> p.getFileName().toString().equals(expectedFileName))
-                         .findFirst()
-                         .orElse(null);
+                    .findFirst()
+                    .orElse(null);
         } catch (Exception e) {
             logger.error("扫描配置目录失败: {}", configDir, e);
             return null;

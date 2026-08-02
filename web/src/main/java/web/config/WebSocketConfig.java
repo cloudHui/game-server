@@ -14,20 +14,20 @@ import web.handler.MiniGameWebSocketHandler;
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
-	private final GameWebSocketHandler gameWebSocketHandler;
-	private final MiniGameWebSocketHandler miniGameWebSocketHandler;
+    private final GameWebSocketHandler gameWebSocketHandler;
+    private final MiniGameWebSocketHandler miniGameWebSocketHandler;
 
-	public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler,
-						   MiniGameWebSocketHandler miniGameWebSocketHandler) {
-		this.gameWebSocketHandler = gameWebSocketHandler;
-		this.miniGameWebSocketHandler = miniGameWebSocketHandler;
-	}
+    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler,
+                           MiniGameWebSocketHandler miniGameWebSocketHandler) {
+        this.gameWebSocketHandler = gameWebSocketHandler;
+        this.miniGameWebSocketHandler = miniGameWebSocketHandler;
+    }
 
-	@Override
-	public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-		registry.addHandler(gameWebSocketHandler, "/ws/game")
-				.setAllowedOrigins("*");
-		registry.addHandler(miniGameWebSocketHandler, "/ws/mini")
-				.setAllowedOrigins("*");
-	}
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(gameWebSocketHandler, "/ws/game")
+                .setAllowedOrigins("*");
+        registry.addHandler(miniGameWebSocketHandler, "/ws/mini")
+                .setAllowedOrigins("*");
+    }
 }

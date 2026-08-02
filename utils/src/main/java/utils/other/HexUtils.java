@@ -7,9 +7,9 @@ public class HexUtils {
             -1, 10, 11, 12, 13, 14, 15};
 
     public static byte[] decodeHex(String input) {
-        if(input == null) {
+        if (input == null) {
             return null;
-        } else if((input.length() & 1) == 1) {
+        } else if ((input.length() & 1) == 1) {
             // 肯定是偶数位，奇数位转换失败：一个byte对应两个字符
             throw new IllegalArgumentException("hexUtils.fromHex.oddDigits");
         } else {
@@ -39,8 +39,10 @@ public class HexUtils {
 //            return result;
         }
     }
+
     /**
      * 字符获取十进制
+     *
      * @param index
      * @return
      */

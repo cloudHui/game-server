@@ -15,26 +15,26 @@ import tools.manager.ConnectHandle;
 @ProcessType(SMsg.ACK_ROOM_TABLES_MSG)
 @ProcessClass(ServerProto.AckRoomTables.class)
 public class AckRoomTablesHandle implements Handler, ConnectHandle {
-	private static final Logger logger = LoggerFactory.getLogger(AckRoomTablesHandle.class);
+    private static final Logger logger = LoggerFactory.getLogger(AckRoomTablesHandle.class);
 
-	@Override
-	public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
-		restore(message);
-		return true;
-	}
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        restore(message);
+        return true;
+    }
 
-	@Override
-	public void handle(Message message, Sender handler, int sequence, int transId) {
-		restore(message);
-	}
+    @Override
+    public void handle(Message message, Sender handler, int sequence, int transId) {
+        restore(message);
+    }
 
-	private void restore(Message message) {
-		try {
-			ServerProto.AckRoomTables ack = (ServerProto.AckRoomTables) message;
-			TableManager.getInstance().restoreTables(ack.getTablesList());
-			logger.info("收到Game桌子列表恢复, count: {}", ack.getTablesCount());
-		} catch (Exception e) {
-			logger.error("处理Game桌子列表失败", e);
-		}
-	}
+    private void restore(Message message) {
+        try {
+            ServerProto.AckRoomTables ack = (ServerProto.AckRoomTables) message;
+            TableManager.getInstance().restoreTables(ack.getTablesList());
+            logger.info("收到Game桌子列表恢复, count: {}", ack.getTablesCount());
+        } catch (Exception e) {
+            logger.error("处理Game桌子列表失败", e);
+        }
+    }
 }

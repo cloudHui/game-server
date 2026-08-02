@@ -1,8 +1,8 @@
 package game.manager.table.state;
 
 import game.manager.table.Table;
-import game.manager.table.tractor.TractorTable;
 import game.manager.table.tractor.TractorDealService;
+import game.manager.table.tractor.TractorTable;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 
@@ -12,16 +12,16 @@ import msg.registor.enums.TableState;
 @ProcessEnum(TableState.START_ANI)
 public class DefaultHandle extends AbstractTableHandle {
 
-	@Override
-	public boolean handle(Table table) {
-		if (table instanceof TractorTable) {
-			return TractorDealService.onTiming((TractorTable) table);
-		}
-		return super.handle(table);
-	}
+    @Override
+    public boolean handle(Table table) {
+        if (table instanceof TractorTable) {
+            return TractorDealService.onTiming((TractorTable) table);
+        }
+        return super.handle(table);
+    }
 
-	@Override
-	protected void overTime(Table table) {
-		table.upNextState();
-	}
+    @Override
+    protected void overTime(Table table) {
+        table.upNextState();
+    }
 }

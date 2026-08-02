@@ -13,8 +13,8 @@ public class DnsheDdnsService {
     private static final String API_KEY = "你的_X-API-Key";
     private static final String API_SECRET = "你的_X-API-Secret";
 
-    private static final String SUB_DOMAIN = "home";       
-    private static final String ROOT_DOMAIN = "bbroot.com"; 
+    private static final String SUB_DOMAIN = "home";
+    private static final String ROOT_DOMAIN = "bbroot.com";
 
     // 检查公网IP的间隔时间（5分钟）
     private static final long CHECK_INTERVAL = 5 * 60 * 1000;
@@ -22,29 +22,29 @@ public class DnsheDdnsService {
 
     //https://my.dnshe.com/index.php?m=domain_hub&view=domains 谷歌账号获取
     private static final String API_URL = "https://api005.dnshe.com/index.php?m=domain_hub&endpoint=subdomains&action=update";
-    
+
     // 公共 IP 查询接口，按稳定性排序
     private static final String[] LOOKUP_SERVICES = {
-        "https://api.icanhazip.com",
-        "https://ifconfig.me/ip",
-        "https://ident.me"
+            "https://api.icanhazip.com",
+            "https://ifconfig.me/ip",
+            "https://ident.me"
     };
 
     private static String lastIp = "";
 
     public static void main(String[] args) {
         System.out.println("[DDNS] DNSHE 动态域名解析守护进程已启动...");
-        
+
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 // 1. 获取当前外网 IP
                 String currentIp = getPublicIp();
-                
+
                 if (currentIp != null) {
                     // 2. 检查 IP 是否有变动
                     if (!currentIp.equals(lastIp)) {
                         System.out.printf("[DDNS] 检测到公网 IP 发生变化: %s -> %s%n", lastIp, currentIp);
-                        
+
                         // 3. 调用 DNSHE 接口更新域名解析
                         if (updateDnsheRecord(currentIp)) {
                             lastIp = currentIp; // 更新成功，记录当前 IP
@@ -83,7 +83,7 @@ public class DnsheDdnsService {
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
-                
+
                 // 显式指定 UTF_8 编码防止老旧系统环境乱码
                 try (BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
                     String ip = rd.readLine();
@@ -111,8 +111,8 @@ public class DnsheDdnsService {
         try {
             URL url = new URL(API_URL);
             conn = (HttpURLConnection) url.openConnection();
-            
-            conn.setRequestMethod("POST"); 
+
+            conn.setRequestMethod("POST");
             conn.setDoOutput(true);
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
@@ -125,8 +125,8 @@ public class DnsheDdnsService {
 
             // 构建 JSON 请求体
             String jsonBody = String.format(
-                "{\"domain\":\"%s\",\"subdomain\":\"%s\",\"type\":\"A\",\"value\":\"%s\"}",
-                ROOT_DOMAIN, SUB_DOMAIN, newIp
+                    "{\"domain\":\"%s\",\"subdomain\":\"%s\",\"type\":\"A\",\"value\":\"%s\"}",
+                    ROOT_DOMAIN, SUB_DOMAIN, newIp
             );
 
             try (OutputStream os = conn.getOutputStream()) {
@@ -136,21 +136,21 @@ public class DnsheDdnsService {
             }
 
             int responseCode = conn.getResponseCode();
-            
+
             // 采用更优雅的方式兼容读取正确流或错误流
             try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream(), 
+                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream(),
                     StandardCharsets.UTF_8))) {
-                
+
                 StringBuilder response = new StringBuilder();
                 String responseLine;
                 while ((responseLine = br.readLine()) != null) {
                     response.append(responseLine.trim());
                 }
-                
+
                 String responseStr = response.toString();
                 System.out.printf("[DNSHE API 响应] 状态码: %d, 返回内容: %s%n", responseCode, responseStr);
-                
+
                 // 健壮性判断：状态码必须是 200 且返回 JSON 包含 success
                 return responseCode == HttpURLConnection.HTTP_OK && responseStr.contains("success");
             }

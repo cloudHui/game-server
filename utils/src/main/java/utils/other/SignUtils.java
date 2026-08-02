@@ -1,22 +1,16 @@
 package utils.other;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.*;
 
 public class SignUtils {
 
@@ -30,11 +24,12 @@ public class SignUtils {
 
     /**
      * AES 加密—— 实名认证系统规则
+     *
      * @param content
      * @param key
      * @return
      */
-    public static String  encryptAu(String content, String key) {
+    public static String encryptAu(String content, String key) {
         try {
             byte[] hexStr = HexUtils.decodeHex(key.toCharArray());
             //加密算法：AES/GCM/PKCS5Padding
