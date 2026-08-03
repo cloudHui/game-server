@@ -62,29 +62,28 @@ public class ExcelToJavaGenerator {
      */
     public static void write(String javaName, String path, String packageSegment, List<Title> titleList) throws Exception {
         StringBuilder sb = new StringBuilder();
-        sb.append("package model.").append(packageSegment).append(";");
-        sb.append(" \n").append(" \n").append(" \n");
+        sb.append("package model.").append(packageSegment).append(";\n\n\n");
         sb.append("public class ").append(javaName).append(" implements java.io.Serializable {\n");
 
         for (Title title : titleList) {
             addProperty(sb, title);
         }
-        sb.append(" \n    // Getters and Setters\n");
+        sb.append("\n    // Getters and Setters\n");
         for (Title title : titleList) {
             addSetGet(sb, title);
         }
 
-        sb.append(" \n");
+        sb.append("\n");
         sb.append("    @Override").append("\n");
         sb.append("    public String toString").append("() {\n");
-        sb.append("        return \"").append(javaName).append("{\"+\n");
+        sb.append("        return \"").append(javaName).append("{\" +\n");
         for (Title title : titleList) {
-            sb.append("                \"     ").append(title.getName()).append("=\"+").append(title.getName()).append("+\n");
+            sb.append("                \"     ").append(title.getName()).append("=\" + ").append(title.getName()).append(" +\n");
         }
         sb.append("                '}';\n");
         sb.append("    }\n");
         sb.append("\n");
-        sb.append(" }\n");
+        sb.append("}\n");
         // 写入到Java文件
         doWrite(javaName, path, packageSegment, sb.toString());
         System.out.println(javaName + ".java 文件已生成。");
@@ -100,8 +99,10 @@ public class ExcelToJavaGenerator {
         String type = getTypeName(propertyType);
         String desc = title.getDes();
         javaCode.append("\n");
-        javaCode.append("    /** Excel列: ").append(propertyName)
-                .append("; ").append(desc == null ? "" : desc).append(" */\n");
+        javaCode.append("    /**\n");
+        javaCode.append("     * Excel列: ").append(propertyName)
+                .append("; ").append(desc == null ? "" : desc).append("\n");
+        javaCode.append("     */\n");
         javaCode.append("    private ").append(type).append(" ").append(propertyName).append(";\n");
     }
 
