@@ -38,9 +38,9 @@ function updateTrumpMeta(level, trump) {
     var suitMap = {0: '无主', 1: '方块', 2: '梅花', 3: '红桃', 4: '黑桃'};
     var el = document.getElementById('multipleInfo');
     if (el) {
-        el.textContent = '级牌 ' + (levelMap[gameState.levelRank] || gameState.levelRank)
-            + ' · 主 ' + (suitMap[gameState.trumpSuit] != null ? suitMap[gameState.trumpSuit] : '未定')
-            + ' · 闲分 ' + (gameState.defenderScore || 0);
+        el.textContent = '当前打 ' + (levelMap[gameState.levelRank] || gameState.levelRank)
+            + ' ｜ 主花色 ' + (suitMap[gameState.trumpSuit] != null ? suitMap[gameState.trumpSuit] : '未定')
+            + ' ｜ 闲分 ' + (gameState.defenderScore || 0);
     }
 }
 

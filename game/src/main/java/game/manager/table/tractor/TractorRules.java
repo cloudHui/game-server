@@ -218,31 +218,52 @@ public final class TractorRules {
 			int levelRank, int trumpSuit) {
 		if (play == null || lead == null || play.size() != lead.cards.size()) return false;
 		Combo parsed = analyze(play, levelRank, trumpSuit);
-		boolean sameGroup = true;
 		int gLead = lead.suitId;
-		for (Card c : play) {
-			if (suitGroup(c, levelRank, trumpSuit) != gLead) { sameGroup = false; break; }
-		}
 		List<Card> inLeadSuit = hand.stream()
 				.filter(c -> suitGroup(c, levelRank, trumpSuit) == gLead)
 				.collect(Collectors.toList());
-		if (!inLeadSuit.isEmpty()) {
-			if (!sameGroup) return false;
-			if (lead.type == ComboType.PAIR || lead.type == ComboType.TRACTOR) {
-				int needPairs = lead.type == ComboType.PAIR ? 1 : lead.tractorLen;
-				int havePairs = countPairs(inLeadSuit, levelRank, trumpSuit);
-				int mustPairs = Math.min(needPairs, havePairs);
-				return countPairs(play, levelRank, trumpSuit) >= mustPairs;
+		List<Card> playedLeadSuit = play.stream()
+				.filter(c -> suitGroup(c, levelRank, trumpSuit) == gLead)
+				.collect(Collectors.toList());
+		// 有几张同门必须先跟尽几张；同门不足时才可用其他花色补齐。
+		if (playedLeadSuit.size() != Math.min(play.size(), inLeadSuit.size())) return false;
+		if (lead.type == ComboType.PAIR || lead.type == ComboType.TRACTOR) {
+			int needPairs = lead.type == ComboType.PAIR ? 1 : lead.tractorLen;
+			if (lead.type == ComboType.TRACTOR
+					&& hasTractor(inLeadSuit, needPairs, levelRank, trumpSuit)) {
+				// 手牌有足长同门拖拉机时，必须按完整拖拉机跟出。
+				return parsed != null && parsed.suitId == gLead
+						&& parsed.type == ComboType.TRACTOR && parsed.tractorLen == needPairs;
 			}
-			return true;
+			int mustPairs = Math.min(needPairs, countPairs(inLeadSuit, levelRank, trumpSuit));
+			return countPairs(playedLeadSuit, levelRank, trumpSuit) >= mustPairs;
 		}
-		// 无该门：张数相同；若出主牌杀，须同型（有拖拉机须用拖拉机毙）
+		if (!inLeadSuit.isEmpty()) return true;
+		// 无该门：若整手出主牌杀，须同型（有拖拉机须用拖拉机毙）
 		if (parsed != null && parsed.suitId == 0) {
 			if (parsed.type != lead.type) return false;
 			if (lead.type == ComboType.TRACTOR && parsed.tractorLen != lead.tractorLen) return false;
 			return true;
 		}
 		return play.size() == lead.cards.size();
+	}
+
+	private static boolean hasTractor(List<Card> cards, int length, int levelRank, int trumpSuit) {
+		Map<Integer, Long> cnt = cards.stream().collect(Collectors.groupingBy(
+				c -> tractorStepKey(c, levelRank, trumpSuit), TreeMap::new, Collectors.counting()));
+		int run = 0;
+		Integer previous = null;
+		for (Map.Entry<Integer, Long> entry : cnt.entrySet()) {
+			if (entry.getValue() < 2) {
+				run = 0;
+				previous = null;
+				continue;
+			}
+			run = previous != null && entry.getKey() == previous + 1 ? run + 1 : 1;
+			if (run >= length) return true;
+			previous = entry.getKey();
+		}
+		return false;
 	}
 
 	private static int countPairs(List<Card> cards, int levelRank, int trumpSuit) {

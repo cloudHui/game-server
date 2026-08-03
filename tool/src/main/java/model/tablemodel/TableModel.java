@@ -1,118 +1,74 @@
-package model.tablemodel;
-
-
+package model.tablemodel; 
+ 
+ 
 public class TableModel implements java.io.Serializable {
 
-    /**
-     * Excel列: id; 主键
-     */
+    /** Excel列: id; 主键 */
     private int id;
 
-    /**
-     * Excel列: type; 类型(1麻将2斗地主)
-     */
+    /** Excel列: type; 类型(1麻将2斗地主) */
     private int type;
 
-    /**
-     * Excel列: seatNum; 座位数量
-     */
+    /** Excel列: seatNum; 座位数量 */
     private int seatNum;
 
-    /**
-     * Excel列: cardNum; 牌数量
-     */
+    /** Excel列: cardNum; 牌数量 */
     private int cardNum;
 
-    /**
-     * Excel列: exCardNum; 额外牌数量
-     */
+    /** Excel列: exCardNum; 额外牌数量 */
     private int exCardNum;
 
-    /**
-     * Excel列: baseScore; 底分
-     */
+    /** Excel列: baseScore; 底分 */
     private int baseScore;
 
-    /**
-     * Excel列: maxFan; 番数上限(麻将用)
-     */
+    /** Excel列: maxFan; 番数上限(麻将用) */
     private int maxFan;
 
-    /**
-     * Excel列: allowChi; 允许吃(麻将用 0关1开)
-     */
+    /** Excel列: allowChi; 允许吃(麻将用 0关1开) */
     private int allowChi;
 
-    /**
-     * Excel列: allowDianPao; 允许点炮(麻将用 0关1开)
-     */
+    /** Excel列: allowDianPao; 允许点炮(麻将用 0关1开) */
     private int allowDianPao;
 
-    /**
-     * Excel列: allowPeng; 0.0
-     */
+    /** Excel列: allowPeng; 0.0 */
     private int allowPeng;
 
-    /**
-     * Excel列: allowGang; 0.0
-     */
+    /** Excel列: allowGang; 0.0 */
     private int allowGang;
 
-    /**
-     * Excel列: allowHu; 0.0
-     */
+    /** Excel列: allowHu; 0.0 */
     private int allowHu;
 
-    /**
-     * Excel列: allowSevenPairs; 0.0
-     */
+    /** Excel列: allowSevenPairs; 0.0 */
     private int allowSevenPairs;
 
-    /**
-     * Excel列: gameSubType; 0.0
-     */
+    /** Excel列: gameSubType; 0.0 */
     private int gameSubType;
 
-    /**
-     * Excel列: gangScore; 0.0
-     */
+    /** Excel列: gangScore; 0.0 */
     private int gangScore;
 
-    /**
-     * Excel列: allowGangMing; allowGangMing
-     */
+    /** Excel列: allowGangMing; allowGangMing */
     private int allowGangMing;
 
-    /**
-     * Excel列: allowGangAn; allowGangAn
-     */
+    /** Excel列: allowGangAn; allowGangAn */
     private int allowGangAn;
 
-    /**
-     * Excel列: allowGangBu; allowGangBu
-     */
+    /** Excel列: allowGangBu; allowGangBu */
     private int allowGangBu;
 
-    /**
-     * Excel列: totalRounds; totalRounds
-     */
+    /** Excel列: totalRounds; totalRounds */
     private int totalRounds;
 
-    /**
-     * Excel列: autoNextRound; autoNextRound
-     */
+    /** Excel列: autoNextRound; autoNextRound */
     private int autoNextRound;
 
-    /**
-     * Excel列: autoPlay; 超时自动(0关1开)
-     */
+    /** Excel列: autoPlay; 超时自动(0关1开) */
     private int autoPlay;
 
-    /**
-     * Excel列: allowMultiHu; 一炮多响(0截胡1开)
-     */
+    /** Excel列: allowMultiHu; 一炮多响(0截胡1开) */
     private int allowMultiHu;
-
+ 
     // Getters and Setters
     public int getId() {
         return id;
@@ -290,33 +246,33 @@ public class TableModel implements java.io.Serializable {
         this.allowMultiHu = allowMultiHu;
     }
 
-
+ 
     @Override
     public String toString() {
-        return "TableModel{" +
-                "     id=" + id +
-                "     type=" + type +
-                "     seatNum=" + seatNum +
-                "     cardNum=" + cardNum +
-                "     exCardNum=" + exCardNum +
-                "     baseScore=" + baseScore +
-                "     maxFan=" + maxFan +
-                "     allowChi=" + allowChi +
-                "     allowDianPao=" + allowDianPao +
-                "     allowPeng=" + allowPeng +
-                "     allowGang=" + allowGang +
-                "     allowHu=" + allowHu +
-                "     allowSevenPairs=" + allowSevenPairs +
-                "     gameSubType=" + gameSubType +
-                "     gangScore=" + gangScore +
-                "     allowGangMing=" + allowGangMing +
-                "     allowGangAn=" + allowGangAn +
-                "     allowGangBu=" + allowGangBu +
-                "     totalRounds=" + totalRounds +
-                "     autoNextRound=" + autoNextRound +
-                "     autoPlay=" + autoPlay +
-                "     allowMultiHu=" + allowMultiHu +
+        return "TableModel{"+
+                "     id="+id+
+                "     type="+type+
+                "     seatNum="+seatNum+
+                "     cardNum="+cardNum+
+                "     exCardNum="+exCardNum+
+                "     baseScore="+baseScore+
+                "     maxFan="+maxFan+
+                "     allowChi="+allowChi+
+                "     allowDianPao="+allowDianPao+
+                "     allowPeng="+allowPeng+
+                "     allowGang="+allowGang+
+                "     allowHu="+allowHu+
+                "     allowSevenPairs="+allowSevenPairs+
+                "     gameSubType="+gameSubType+
+                "     gangScore="+gangScore+
+                "     allowGangMing="+allowGangMing+
+                "     allowGangAn="+allowGangAn+
+                "     allowGangBu="+allowGangBu+
+                "     totalRounds="+totalRounds+
+                "     autoNextRound="+autoNextRound+
+                "     autoPlay="+autoPlay+
+                "     allowMultiHu="+allowMultiHu+
                 '}';
     }
 
-}
+ }

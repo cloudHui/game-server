@@ -161,6 +161,38 @@ public class TractorRulesTest {
 	}
 
 	@Test
+	public void followPairUsesOneSameSuitCardThenPadsAnotherSuit() {
+		int level = CardConst.ER_VAL;
+		int trump = 3;
+		TractorRules.Combo lead = TractorRules.analyze(cards(105, 105), level, trump);
+		List<Card> hand = cards(107, 209, 210);
+		assertTrue(TractorRules.isLegalFollow(cards(107, 209), lead, hand, level, trump));
+		assertFalse("有同门牌必须先跟出", TractorRules.isLegalFollow(cards(209, 210), lead, hand, level, trump));
+	}
+
+	@Test
+	public void followTractorMustUseCompleteTractorWhenAvailable() {
+		int level = CardConst.ER_VAL;
+		int trump = 3;
+		TractorRules.Combo lead = TractorRules.analyze(cards(103, 103, 104, 104), level, trump);
+		List<Card> hand = cards(105, 105, 106, 106, 108, 108);
+		assertTrue(TractorRules.isLegalFollow(cards(105, 105, 106, 106), lead, hand, level, trump));
+		assertFalse("有完整拖拉机不能改出两副散对",
+				TractorRules.isLegalFollow(cards(105, 105, 108, 108), lead, hand, level, trump));
+	}
+
+	@Test
+	public void followTractorPadsAfterExhaustingSameSuit() {
+		int level = CardConst.ER_VAL;
+		int trump = 3;
+		TractorRules.Combo lead = TractorRules.analyze(cards(103, 103, 104, 104), level, trump);
+		List<Card> hand = cards(105, 105, 107, 209, 210);
+		assertTrue(TractorRules.isLegalFollow(cards(105, 105, 107, 209), lead, hand, level, trump));
+		assertFalse("同门单牌必须先跟尽",
+				TractorRules.isLegalFollow(cards(105, 105, 209, 210), lead, hand, level, trump));
+	}
+
+	@Test
 	public void handOrderResortsWhenTrumpChanges() {
 		int level = CardConst.ER_VAL;
 		List<Card> hand = new java.util.ArrayList<>(Arrays.asList(
