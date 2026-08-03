@@ -2,13 +2,8 @@
  * 扑克牌桌共用渲染与结算。
  * 各玩法覆盖：roleBadgeHtml、showOperationChoices；四人桌另覆写座位相关函数。
  */
-function cardMeta(cardId) {
-    return PokerCard.cardMeta(cardId);
-}
-
-function createCardFace(cardId) {
-    return PokerCard.createCardFace(cardId);
-}
+function cardMeta(cardId) { return PokerCard.cardMeta(cardId); }
+function createCardFace(cardId) { return PokerCard.createCardFace(cardId); }
 
 function layoutMyCards() {
     var container = document.getElementById('myCards');
@@ -76,12 +71,13 @@ function renderMyCards() {
         card.dataset.index = i;
         card.style.zIndex = String(i + 1);
         card.appendChild(createCardFace(cardId));
-        card.onclick = (function (value) {
-            return function (ev) {
-                ev.stopPropagation();
-                toggleCard(value, Number(this.dataset.index));
-            };
-        })(cardId);
+        // 单击切换；拖选由 bindPokerHandSelect 统一处理
+        card.onmousedown = (function(value, idx) {
+            return function(ev) { beginPokerDragSelect(ev, value, idx); };
+        })(cardId, i);
+        card.ontouchstart = (function(value, idx) {
+            return function(ev) { beginPokerDragSelect(ev, value, idx); };
+        })(cardId, i);
         row.appendChild(card);
     }
     container.innerHTML = '';
@@ -89,6 +85,112 @@ function renderMyCards() {
     gameState.dealFlashIds = [];
     layoutMyCards();
     renderPlayerLabels();
+    bindPokerHandSelect();
+}
+
+/** 点非牌面区域放下已选牌；牌面上按下拖动松手后提起经过的牌（可智能成牌型） */
+var _pokerSelectBound = false;
+var _pokerDrag = null;
+var _pokerIgnoreClickUntil = 0;
+
+function clearPokerSelection() {
+    if (gameState.selectedCardIndexes) gameState.selectedCardIndexes.clear();
+    if (gameState.selectedCards) gameState.selectedCards.clear();
+    renderMyCards();
+}
+
+function bindPokerHandSelect() {
+    if (_pokerSelectBound) return;
+    _pokerSelectBound = true;
+    document.addEventListener('click', function (ev) {
+        if (Date.now() < _pokerIgnoreClickUntil) return;
+        if (!gameState || !gameState.myCards || !gameState.myCards.length) return;
+        if (ev.target.closest && ev.target.closest('#myCards .card')) return;
+        if (ev.target.closest && ev.target.closest('#actionBar')) return;
+        if (ev.target.closest && ev.target.closest('.settle-overlay')) return;
+        var hasSel = (gameState.selectedCards && gameState.selectedCards.size)
+            || (gameState.selectedCardIndexes && gameState.selectedCardIndexes.size);
+        if (hasSel) clearPokerSelection();
+    }, true);
+    document.addEventListener('mousemove', onPokerDragMove);
+    document.addEventListener('mouseup', endPokerDragSelect);
+    document.addEventListener('touchmove', onPokerDragMove, { passive: false });
+    document.addEventListener('touchend', endPokerDragSelect);
+}
+
+function beginPokerDragSelect(ev, cardValue, cardIndex) {
+    if (ev.type === 'mousedown' && ev.button !== 0) return;
+    if (ev.cancelable) ev.preventDefault();
+    _pokerDrag = {
+        startIndex: cardIndex,
+        visited: {},
+        moved: false,
+        startX: ev.clientX || (ev.touches && ev.touches[0] && ev.touches[0].clientX) || 0,
+        startY: ev.clientY || (ev.touches && ev.touches[0] && ev.touches[0].clientY) || 0
+    };
+    _pokerDrag.visited[cardIndex] = true;
+}
+
+function onPokerDragMove(ev) {
+    if (!_pokerDrag) return;
+    var pt = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+    if (Math.abs(pt.clientX - _pokerDrag.startX) + Math.abs(pt.clientY - _pokerDrag.startY) > 6) {
+        _pokerDrag.moved = true;
+    }
+    if (!_pokerDrag.moved) return;
+    if (ev.cancelable) ev.preventDefault();
+    var el = document.elementFromPoint(pt.clientX, pt.clientY);
+    var cardEl = el && el.closest ? el.closest('#myCards .card') : null;
+    if (!cardEl) return;
+    var idx = Number(cardEl.dataset.index);
+    if (isNaN(idx)) return;
+    _pokerDrag.visited[idx] = true;
+}
+
+function endPokerDragSelect(ev) {
+    if (!_pokerDrag) return;
+    var drag = _pokerDrag;
+    _pokerDrag = null;
+    var indexes = Object.keys(drag.visited).map(Number).sort(function (a, b) { return a - b; });
+    if (!drag.moved) {
+        // 单击：切换单张；吞掉随后 click，避免与清空逻辑冲突
+        _pokerIgnoreClickUntil = Date.now() + 80;
+        toggleCard(gameState.myCards[drag.startIndex], drag.startIndex);
+        return;
+    }
+    _pokerIgnoreClickUntil = Date.now() + 120;
+    // 拖选：默认提起经过的牌；玩法可覆写为最长合法牌型
+    var picked = indexes.map(function (i) { return gameState.myCards[i]; });
+    if (typeof window.pokerSmartSelectFromDrag === 'function') {
+        picked = window.pokerSmartSelectFromDrag(picked) || picked;
+    }
+    applyPokerPickedCards(picked);
+}
+
+function applyPokerPickedCards(picked) {
+    if (gameState.selectedCardIndexes) {
+        gameState.selectedCardIndexes.clear();
+        var remainIdx = picked.slice();
+        for (var i = 0; i < gameState.myCards.length; i++) {
+            var at = remainIdx.indexOf(gameState.myCards[i]);
+            if (at >= 0) {
+                gameState.selectedCardIndexes.add(i);
+                remainIdx.splice(at, 1);
+            }
+        }
+    } else {
+        gameState.selectedCards.clear();
+        var remain = picked.slice();
+        for (var j = 0; j < gameState.myCards.length; j++) {
+            var v = gameState.myCards[j];
+            var pos = remain.indexOf(v);
+            if (pos >= 0) {
+                gameState.selectedCards.add(v);
+                remain.splice(pos, 1);
+            }
+        }
+    }
+    renderMyCards();
 }
 
 function renderDizhuCards(cardValues) {
@@ -132,14 +234,14 @@ function playedAreaIds() {
 }
 
 function clearAllPlayedAreas() {
-    playedAreaIds().forEach(function (id) {
+    playedAreaIds().forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '';
     });
 }
 
 function clearPassHints() {
-    playedAreaIds().forEach(function (id) {
+    playedAreaIds().forEach(function(id) {
         var el = document.getElementById(id);
         if (el && el.querySelector('.pass-hint')) el.innerHTML = '';
     });
@@ -172,7 +274,7 @@ function renderPlayedCards(roleId, cardValues) {
     var target = playedTargetForRole(roleId);
     if (!target) return;
     target.innerHTML = '';
-    (cardValues || []).forEach(function (value) {
+    (cardValues || []).forEach(function(value) {
         var face = createCardFace(value);
         face.classList.add('played-face');
         target.appendChild(face);
@@ -191,9 +293,7 @@ function showBidHint(roleId, text) {
     target.innerHTML = '<div class="pass-hint">' + text + '</div>';
 }
 
-function roleBadgeHtml(roleId) {
-    return '';
-}
+function roleBadgeHtml(roleId) { return ''; }
 
 function renderPlayerLabels() {
     var bottom = document.getElementById('playerBottom');
@@ -224,7 +324,7 @@ function renderOpponentHands() {
     var seatNum = gameState.seatNum || 3;
     renderPlayerLabels();
     if (seatNum >= 4) {
-        ['Top', 'Left', 'Right'].forEach(function (s) {
+        ['Top', 'Left', 'Right'].forEach(function(s) {
             var info = document.getElementById('player' + s);
             var cards = document.getElementById('cards' + s);
             if (info) info.innerHTML = '<span class="name">等待加入</span>';
@@ -297,7 +397,7 @@ function highlightActivePlayer(position, waitSeconds) {
     var ids = seatNum >= 4
         ? ['playerTop', 'playerLeft', 'playerRight', 'playerBottom']
         : ['playerLeft', 'playerRight', 'playerBottom'];
-    ids.forEach(function (id) {
+    ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.className = 'player-info';
     });
@@ -322,9 +422,7 @@ function highlightActivePlayer(position, waitSeconds) {
 function stopOperationCountdown() {
     if (gameState.operationTimer) clearInterval(gameState.operationTimer);
     gameState.operationTimer = null;
-    document.querySelectorAll('.operation-countdown').forEach(function (el) {
-        el.remove();
-    });
+    document.querySelectorAll('.operation-countdown').forEach(function(el) { el.remove(); });
 }
 
 function startOperationCountdown(target, waitSeconds) {
@@ -333,7 +431,6 @@ function startOperationCountdown(target, waitSeconds) {
     var badge = document.createElement('span');
     badge.className = 'operation-countdown';
     target.appendChild(badge);
-
     function tick() {
         badge.textContent = left + '秒';
         if (left <= 0) {
@@ -343,7 +440,6 @@ function startOperationCountdown(target, waitSeconds) {
         }
         left--;
     }
-
     tick();
     gameState.operationTimer = setInterval(tick, 1000);
 }
@@ -374,16 +470,11 @@ function showActionButtons(type) {
     }
 }
 
-function hideActions() {
-    GameTable.hideActions();
-}
-
-function showCenterMsg(msg, duration) {
-    GameTable.showCenterMsg(msg, duration);
-}
+function hideActions() { GameTable.hideActions(); }
+function showCenterMsg(msg, duration) { GameTable.showCenterMsg(msg, duration); }
 
 function sortPokerByValue(cards) {
-    cards.sort(function (a, b) {
+    cards.sort(function(a, b) {
         var va = a % 100, vb = b % 100;
         if (va !== vb) return va - vb;
         return Math.floor(a / 100) - Math.floor(b / 100);
@@ -426,8 +517,11 @@ function fillRemainHandFaces(remainPlayers) {
     var rows = wrap.querySelectorAll('.settle-hand-cards');
     var ri = 0;
     for (var i = 0; i < remainPlayers.length; i++) {
-        var cards = remainPlayers[i].cards || [];
+        var cards = (remainPlayers[i].cards || []).slice();
         if (!cards.length) continue;
+        // 小结算余牌按手牌序展示
+        if (typeof window.pokerSortSettleCards === 'function') window.pokerSortSettleCards(cards);
+        else sortPokerByValue(cards);
         var box = rows[ri++];
         if (!box) continue;
         for (var c = 0; c < cards.length; c++) {
@@ -449,9 +543,7 @@ function showSettle(title, meta, rowsHtml, remainPlayers, landlordId) {
     fillRemainHandFaces(remainPlayers);
 }
 
-function closeSettle() {
-    GameTable.closeSettle();
-}
+function closeSettle() { GameTable.closeSettle(); }
 
 function appendOpChoice(bar, choice, map) {
     var conf = map[choice.choice];
@@ -459,10 +551,8 @@ function appendOpChoice(bar, choice, map) {
     var btn = document.createElement('button');
     btn.className = 'action-btn ' + conf.cls;
     btn.textContent = conf.text;
-    btn.onclick = (function (code) {
-        return function () {
-            doOp(code);
-        };
+    btn.onclick = (function(code) {
+        return function() { doOp(code); };
     })(choice.choice);
     bar.appendChild(btn);
 }

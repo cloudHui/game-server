@@ -5,29 +5,25 @@ body {
     overflow: hidden;
     user-select: none;
 }
-
 .table-bg {
     position: relative;
     width: 100vw;
     height: 100vh;
     background: radial-gradient(ellipse at center, #2a5a2a 0%, #1a3a1a 70%);
 }
-
 .wall-info {
     position: absolute;
     top: 52px;
     left: 12px;
     transform: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255,255,255,0.7);
     font-size: 12px;
     z-index: 50;
 }
-
 .player-area {
     position: absolute;
     text-align: center;
 }
-
 .player-bottom {
     bottom: 8px;
     left: 0;
@@ -40,7 +36,6 @@ body {
     padding: 0 8px;
     overflow: visible;
 }
-
 .player-top {
     top: 58px;
     left: 50%;
@@ -48,11 +43,9 @@ body {
     z-index: 30;
     max-width: min(92%, calc(var(--game-w, 100vw) * 0.88));
 }
-
 .player-top .opponent-hand-row {
     max-width: min(92%, calc(var(--game-w, 100vw) * 0.88));
 }
-
 .player-left {
     left: 8px;
     top: 48%;
@@ -60,7 +53,6 @@ body {
     z-index: 25;
     text-align: left;
 }
-
 .player-right {
     right: 8px;
     top: 48%;
@@ -68,7 +60,6 @@ body {
     z-index: 25;
     text-align: right;
 }
-
 .player-info {
     position: relative;
     color: white;
@@ -78,44 +69,27 @@ body {
     border: 2px solid transparent; /* 预留边框位，active 时不撑宽 */
     border-radius: 8px;
     box-sizing: border-box;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
 }
-
-.player-left .player-info {
-    text-align: left;
-}
-
-.player-right .player-info {
-    text-align: right;
-}
-
-.player-info .name {
-    color: #ffd700;
-    font-weight: bold;
-}
-
+.player-left .player-info { text-align: left; }
+.player-right .player-info { text-align: right; }
+.player-info .name { color: #ffd700; font-weight: bold; }
 .player-info .tile-count {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0,0,0,0.5);
     padding: 2px 10px;
     border-radius: 10px;
     font-size: 12px;
     margin-left: 8px;
 }
-
 .player-info.active {
     color: #fff3cd;
     border-color: #ffd54f;
     box-shadow: 0 0 0 2px rgba(255, 213, 79, .22), 0 0 16px rgba(255, 193, 7, .75);
     animation: mj-active-seat-pulse 1s ease-in-out infinite alternate;
 }
-
 @keyframes mj-active-seat-pulse {
-    from {
-        filter: brightness(1);
-    }
-    to {
-        filter: brightness(1.35);
-    }
+    from { filter: brightness(1); }
+    to { filter: brightness(1.35); }
 }
 
 /* 手牌：始终单排；宽度不够时由 JS 强制横屏并缩放牌面，禁止出框 */
@@ -133,7 +107,6 @@ body {
     overflow: hidden;
     box-sizing: border-box;
 }
-
 .my-hand-row {
     display: flex;
     flex-wrap: nowrap;
@@ -145,7 +118,6 @@ body {
     overflow: hidden;
     box-sizing: border-box;
 }
-
 .my-exposed {
     display: flex;
     flex-wrap: nowrap;
@@ -156,42 +128,33 @@ body {
     min-height: 0;
     flex-shrink: 0;
 }
-
-.my-exposed:empty {
-    display: none;
-    margin-left: 0;
-}
-
+.my-exposed:empty { display: none; margin-left: 0; }
 .exposed-set {
     display: flex;
     gap: 2px;
     padding: 2px 4px;
     position: relative;
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(0,0,0,0.18);
     border-radius: 6px;
 }
-
 .exposed-set .tile {
     width: calc(var(--mj-tile-w, 32px) * 0.72);
     height: calc(var(--mj-tile-h, 44px) * 0.72);
     cursor: default;
 }
-
 .exposed-set .tile-back {
     width: calc(var(--mj-tile-w, 32px) * 0.72);
     height: calc(var(--mj-tile-h, 44px) * 0.72);
     border-radius: 2px;
     background: linear-gradient(165deg, #3d9a55 0%, #1f6b38 55%, #15532c 100%);
     border: 1px solid #0f3d22;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px rgba(0,0,0,0.3);
 }
-
 .exposed-set .tile.from-claim {
     position: relative;
-    box-shadow: 0 0 0 3px #ffd54f, 0 2px 8px rgba(255, 112, 67, 0.8);
+    box-shadow: 0 0 0 3px #ffd54f, 0 2px 8px rgba(255,112,67,0.8);
     transform: translateY(-3px);
 }
-
 .exposed-set .tile.from-claim::before {
     content: attr(data-source-arrow);
     position: absolute;
@@ -203,10 +166,9 @@ body {
     font-size: 22px;
     line-height: 1;
     font-weight: 900;
-    text-shadow: 0 1px 3px #000, 0 0 5px rgba(255, 193, 7, .8);
+    text-shadow: 0 1px 3px #000, 0 0 5px rgba(255,193,7,.8);
     pointer-events: none;
 }
-
 .exposed-src {
     position: absolute;
     top: -10px;
@@ -215,57 +177,45 @@ body {
     font-size: 10px;
     line-height: 1;
     color: #ffe082;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0,0,0,0.55);
     padding: 1px 4px;
     border-radius: 4px;
     white-space: nowrap;
     pointer-events: none;
 }
-
 .exposed-set.gang-stack {
     min-width: calc(var(--mj-tile-w, 32px) * 2.3);
     min-height: calc(var(--mj-tile-h, 44px) * 0.98);
     align-items: flex-end;
 }
-
-.gang-base {
-    display: flex;
-    gap: 2px;
-    align-items: flex-end;
-}
-
+.gang-base { display: flex; gap: 2px; align-items: flex-end; }
 .exposed-set.gang-stack .gang-top {
     position: absolute;
     left: 50%;
     top: -1px;
     transform: translateX(-50%);
     z-index: 2;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, .45);
+    box-shadow: 0 2px 4px rgba(0,0,0,.45);
 }
-
 .settle-hand-cards {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 2px;
 }
-
 .settle-hand-cards .tile {
     width: 22px;
     height: 30px;
     cursor: default;
 }
-
 .settle-hand-cards .exposed-set {
     margin-left: 10px;
 }
-
 .settle-hand-cards .exposed-set .tile,
 .settle-hand-cards .exposed-set .tile-back {
     width: 20px;
     height: 28px;
 }
-
 .settle-badge {
     display: inline-block;
     margin-left: 4px;
@@ -275,7 +225,6 @@ body {
     border-radius: 4px;
     padding: 1px 5px;
 }
-
 .settle-hu-badge {
     display: inline-block;
     margin-left: 6px;
@@ -286,7 +235,6 @@ body {
     font-size: 12px;
     font-weight: 800;
 }
-
 .settle-hand-cards .settle-win-tile {
     margin-left: 12px;
     box-shadow: 0 0 0 2px #c62828, 0 2px 6px rgba(198, 40, 40, .35);
@@ -301,61 +249,38 @@ body {
     transition: transform 0.15s;
     flex-shrink: 0;
     background: linear-gradient(180deg, #fffdf6 0%, #f0e6d0 100%);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 0 0 1px #c9b896;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), inset 0 0 0 1px #c9b896;
     overflow: hidden;
     border: 1px solid #b8a888;
 }
-
 .my-tiles .tile {
     width: var(--mj-tile-w, 32px);
     height: var(--mj-tile-h, 44px);
 }
-
 .my-tiles .tile-drawn {
     margin-left: var(--mj-drawn-gap, 6px);
 }
-
 .my-tiles .tile-flash {
     animation: mj-tile-flash 0.45s ease;
 }
-
 @keyframes mj-tile-flash {
-    0% {
-        filter: brightness(1.55);
-        transform: translateY(-4px);
-    }
-    100% {
-        filter: none;
-        transform: none;
-    }
+    0% { filter: brightness(1.55); transform: translateY(-4px); }
+    100% { filter: none; transform: none; }
 }
-
 .my-tiles .tile-face {
     font-size: var(--mj-face, 14px);
 }
-
-.my-tiles .tile-face .mj-rank {
-    font-size: var(--mj-face, 14px);
-}
-
-.my-tiles .tile-face .mj-suit {
-    font-size: calc(var(--mj-face, 14px) * 0.85);
-}
-
-.my-tiles .tile-face .mj-honor {
-    font-size: calc(var(--mj-face, 14px) * 1.35);
-}
-
+.my-tiles .tile-face .mj-rank { font-size: var(--mj-face, 14px); }
+.my-tiles .tile-face .mj-suit { font-size: calc(var(--mj-face, 14px) * 0.85); }
+.my-tiles .tile-face .mj-honor { font-size: calc(var(--mj-face, 14px) * 1.35); }
 .my-tiles .mj-bamboo {
     width: calc(var(--mj-tile-w, 32px) * 0.12);
     height: calc(var(--mj-tile-h, 44px) * 0.22);
 }
-
 .my-tiles .mj-dot {
     width: calc(var(--mj-tile-w, 32px) * 0.16);
     height: calc(var(--mj-tile-w, 32px) * 0.16);
 }
-
 .tile img {
     width: 100%;
     height: 100%;
@@ -364,7 +289,6 @@ body {
     /* 牌图带透明边，必须用浅色底，避免透出成黑底 */
     background: #fffdf6;
 }
-
 .tile-face {
     width: 100%;
     height: 100%;
@@ -380,63 +304,27 @@ body {
     box-sizing: border-box;
     background: linear-gradient(180deg, #fffdf8, #f3ead8);
 }
-
-.tile-face.small {
-    font-size: 11px;
-    gap: 1px;
-}
-
-.tile-face .mj-rank {
-    font-size: 15px;
-    line-height: 1;
-}
-
-.tile-face .mj-suit {
-    font-size: 13px;
-    line-height: 1;
-}
-
-.tile-face .mj-rank.wan, .tile-face .mj-suit.wan {
-    color: #c62828;
-}
-
-.tile-face .mj-rank.tiao, .tile-face .mj-suit.tiao {
-    color: #2e7d32;
-}
-
-.tile-face .mj-rank.tong, .tile-face .mj-suit.tong {
-    color: #1565c0;
-}
-
+.tile-face.small { font-size: 11px; gap: 1px; }
+.tile-face .mj-rank { font-size: 15px; line-height: 1; }
+.tile-face .mj-suit { font-size: 13px; line-height: 1; }
+.tile-face .mj-rank.wan, .tile-face .mj-suit.wan { color: #c62828; }
+.tile-face .mj-rank.tiao, .tile-face .mj-suit.tiao { color: #2e7d32; }
+.tile-face .mj-rank.tong, .tile-face .mj-suit.tong { color: #1565c0; }
 .tile-face .mj-honor {
     font-size: 22px;
     font-weight: 800;
 }
-
-.tile-face .mj-honor.zhong {
-    color: #c62828;
-}
-
-.tile-face .mj-honor.fa {
-    color: #2e7d32;
-}
-
+.tile-face .mj-honor.zhong { color: #c62828; }
+.tile-face .mj-honor.fa { color: #2e7d32; }
 .tile-face .mj-honor.bai {
     color: #333;
     border: 2px solid #555;
-    width: 28px;
-    height: 28px;
+    width: 28px; height: 28px;
     border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-size: 16px;
 }
-
-.tile-face .mj-honor.feng {
-    color: #1565c0;
-}
-
+.tile-face .mj-honor.feng { color: #1565c0; }
 .mj-pattern {
     display: flex;
     flex-wrap: wrap;
@@ -446,11 +334,7 @@ body {
     width: 100%;
     min-height: 22px;
 }
-
-.mj-pattern.bamboo {
-    flex-direction: row;
-}
-
+.mj-pattern.bamboo { flex-direction: row; }
 .mj-bamboo {
     display: inline-block;
     width: 5px;
@@ -459,7 +343,6 @@ body {
     background: linear-gradient(90deg, #1b5e20, #66bb6a);
     box-shadow: inset 0 0 0 1px #0d3b12;
 }
-
 .mj-dot {
     display: inline-block;
     width: 8px;
@@ -468,21 +351,18 @@ body {
     background: radial-gradient(circle at 35% 35%, #ff8a80, #c62828 55%, #7f0000);
     box-shadow: 0 0 0 1px #5d0000;
 }
-
 .mj-pattern.dots .mj-dot:nth-child(odd) {
     background: radial-gradient(circle at 35% 35%, #81c784, #2e7d32 55%, #1b5e20);
 }
-
 .tile.selected {
     transform: translateY(calc(var(--mj-tile-h, 44px) * -0.32));
-    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 4px 10px rgba(255,215,0,0.5);
 }
-
 .tile:not(.selected):hover {
     transform: translateY(calc(var(--mj-tile-h, 44px) * -0.1));
 }
 
-/* 对手手牌区：各座位副露放在「该座位自己的右手边」 */
+/* 对手手牌区：对家副露在其右手；左右家为横牌一列（手牌上、副露下） */
 .opponent-hand-row {
     display: flex;
     flex-wrap: nowrap;
@@ -498,7 +378,6 @@ body {
     flex-direction: row;
     align-items: flex-end;
 }
-
 .opponent-tiles {
     display: flex;
     flex-direction: row;
@@ -510,7 +389,6 @@ body {
     min-width: 0;
     overflow: visible;
 }
-
 .opponent-tiles .tile-back {
     width: 22px;
     height: 30px;
@@ -519,38 +397,40 @@ body {
     border-radius: 2px;
     background: linear-gradient(165deg, #3d9a55 0%, #1f6b38 55%, #15532c 100%);
     border: 1px solid #0f3d22;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(0,0,0,0.35);
 }
+.opponent-tiles .tile-back:first-child { margin-left: 0; }
 
-.opponent-tiles .tile-back:first-child {
-    margin-left: 0;
-}
-
-/* 左家：竖叠手牌贴左缘，副露在下；勿居中以免名字区变宽带动手牌 */
-.player-left .opponent-hand-row {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    margin: 0;
-    max-width: none;
-}
-
-/* 右家：竖叠手牌贴右缘，副露在上 */
+/*
+ * SideSeatMeldLayout（左右家手牌/副露摆放规格）
+ * - 左右家同构，仅贴边不同（左贴左缘、右贴右缘）。
+ * - 牌面：横牌；布局：单一竖列自上而下，禁止旁开第二列。
+ * - 顺序：手牌列在上 → 空隙 → 副露列在下；多组副露继续往下叠。
+ * - 手牌：一列牌背，一张一排。
+ * - 副露：一组内一张一排（吃789=7排、8排、9排）；多组同列下接。
+ * - 吃牌：被吃张居中，两侧按点数有序（见 mahjong-exposed.js orderChiTiles）。
+ * - 碰：来源牌标中间张；杠：侧列竖叠，第四张叠中间。
+ * 短述：左右家同构横牌单列向下；手牌上、副露下；副露一张一排；吃牌claim居中两侧有序。
+ */
+.player-left .opponent-hand-row,
 .player-right .opponent-hand-row {
     flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-end;
     margin: 0;
     max-width: none;
 }
-
+.player-left .opponent-hand-row {
+    align-items: flex-start;
+}
+.player-right .opponent-hand-row {
+    align-items: flex-end;
+}
 .side-tiles {
     display: flex;
     flex-direction: column;
     align-items: center;
     flex: 0 0 auto;
 }
-
 .side-tiles .tile-back {
     width: 36px;
     height: 16px;
@@ -558,12 +438,9 @@ body {
     border-radius: 2px;
     background: linear-gradient(165deg, #3d9a55 0%, #1f6b38 55%, #15532c 100%);
     border: 1px solid #0f3d22;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px rgba(0,0,0,0.35);
 }
-
-.side-tiles .tile-back:first-child {
-    margin-top: 0;
-}
+.side-tiles .tile-back:first-child { margin-top: 0; }
 
 /* 副露容器：仅与手牌整组之间留空隙 */
 .opponent-exposed {
@@ -575,11 +452,7 @@ body {
     flex: 0 0 auto;
     max-width: none;
 }
-
-.opponent-exposed:empty {
-    display: none;
-    margin: 0;
-}
+.opponent-exposed:empty { display: none; margin: 0; }
 
 /* 对家副露：竖牌，在手牌左侧，组间留空隙 */
 .player-top .opponent-exposed {
@@ -587,18 +460,15 @@ body {
     margin-left: 0;
     align-items: flex-end;
 }
-
 .player-top .opponent-exposed .exposed-set {
     flex-direction: row;
     align-items: flex-end;
 }
-
 .player-top .opponent-exposed .exposed-set .tile,
 .player-top .opponent-exposed .exposed-set .tile-back {
     width: 20px;
     height: 28px;
 }
-
 .player-top .opponent-exposed .exposed-set .tile-face,
 .player-top .opponent-exposed .exposed-set .tile > img {
     position: relative;
@@ -608,20 +478,17 @@ body {
     top: auto;
     transform: none;
 }
-
 .player-top .opponent-exposed .exposed-set.gang-stack {
     min-width: calc(20px * 3.2);
     min-height: calc(28px * 1.15);
     align-items: flex-end;
 }
-
 .player-top .opponent-exposed .gang-base {
     display: flex;
     flex-direction: row;
     gap: 2px;
     align-items: flex-end;
 }
-
 .player-top .opponent-exposed .exposed-set.gang-stack .gang-top {
     left: 50%;
     right: auto;
@@ -629,35 +496,30 @@ body {
     transform: translateX(-50%);
 }
 
-/* 左右家副露：横倒；左家在手牌下、右家在手牌上，组间留空隙 */
-.player-left .opponent-exposed {
-    flex-flow: row nowrap;
+/* 左右家副露：与手牌同一竖列；每组/每张各占一排横牌，只往下叠 */
+.player-left .opponent-exposed,
+.player-right .opponent-exposed {
+    flex-flow: column nowrap;
     justify-content: flex-start;
     align-items: center;
-    margin: 14px 0 0 0;
+    margin: 12px 0 0 0;
+    gap: 8px;
 }
-
-.player-right .opponent-exposed {
-    flex-flow: row nowrap;
-    justify-content: flex-end;
-    align-items: center;
-    margin: 0 0 14px 0;
-}
-
 .player-left .opponent-exposed .exposed-set,
 .player-right .opponent-exposed .exposed-set {
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 2px;
 }
-
 .player-left .opponent-exposed .exposed-set .tile,
 .player-left .opponent-exposed .exposed-set .tile-back,
 .player-right .opponent-exposed .exposed-set .tile,
 .player-right .opponent-exposed .exposed-set .tile-back {
     width: 30px;
     height: 20px;
+    flex-shrink: 0;
 }
-
 .player-left .opponent-exposed .exposed-set .tile-face,
 .player-left .opponent-exposed .exposed-set .tile > img,
 .player-right .opponent-exposed .exposed-set .tile-face,
@@ -670,14 +532,24 @@ body {
     transform: rotate(90deg);
     transform-origin: center;
 }
-
+/* 侧家来源箭头贴牌左侧，避免竖列时被上下牌挡住 */
+.player-left .opponent-exposed .exposed-set .tile.from-claim,
+.player-right .opponent-exposed .exposed-set .tile.from-claim {
+    transform: none;
+}
+.player-left .opponent-exposed .exposed-set .tile.from-claim::before,
+.player-right .opponent-exposed .exposed-set .tile.from-claim::before {
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+}
 .player-left .opponent-exposed .exposed-set.gang-stack,
 .player-right .opponent-exposed .exposed-set.gang-stack {
-    min-width: 40px;
-    min-height: 64px;
+    min-width: 36px;
+    min-height: 72px;
     align-items: center;
 }
-
 .player-left .opponent-exposed .gang-base,
 .player-right .opponent-exposed .gang-base {
     display: flex;
@@ -685,15 +557,13 @@ body {
     align-items: center;
     gap: 2px;
 }
-
 .player-left .opponent-exposed .exposed-set.gang-stack .gang-top,
 .player-right .opponent-exposed .exposed-set.gang-stack .gang-top {
     left: auto;
-    right: -2px;
+    right: -3px;
     top: 50%;
     transform: translateY(-50%);
 }
-
 .discarded-area {
     position: absolute;
     width: min(340px, calc(var(--game-w, 100vw) * 0.42));
@@ -706,13 +576,11 @@ body {
     box-sizing: border-box;
     background: rgba(0, 0, 0, 0.06);
 }
-
 .discarded-center {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
-
 .operation-arrow {
     position: absolute;
     top: 50%;
@@ -729,23 +597,9 @@ body {
     text-shadow: 0 1px 4px #000, 0 0 8px rgba(255, 193, 7, .8);
     pointer-events: none;
 }
-
-.operation-arrow.visible {
-    display: flex;
-}
-
-.operation-arrow-glyph {
-    font-size: 32px;
-    line-height: 25px;
-    font-weight: 900;
-}
-
-.operation-arrow-label {
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
+.operation-arrow.visible { display: flex; }
+.operation-arrow-glyph { font-size: 32px; line-height: 25px; font-weight: 900; }
+.operation-arrow-label { font-size: 11px; font-weight: 700; white-space: nowrap; }
 .operation-countdown {
     position: absolute;
     left: 50%;
@@ -757,14 +611,13 @@ body {
     margin: 0;
     padding: 1px 6px;
     border-radius: 10px;
-    background: rgba(198, 40, 40, .9);
+    background: rgba(198,40,40,.9);
     color: #fff;
     font-size: 12px;
     font-weight: 700;
     pointer-events: none;
     white-space: nowrap;
 }
-
 .discarded-area .tile {
     width: 26px;
     height: 36px;
@@ -772,13 +625,11 @@ body {
     cursor: default;
     pointer-events: none;
 }
-
 .discarded-area .tile.tile-latest {
     box-shadow: 0 0 0 2px #ffd54f, 0 4px 10px rgba(255, 213, 79, 0.55);
     z-index: 5;
     filter: brightness(1.12);
 }
-
 .discarded-area .tile img {
     width: 100%;
     height: 100%;
@@ -798,7 +649,6 @@ body {
     justify-content: center;
     max-width: 92vw;
 }
-
 .action-btn {
     padding: 12px 28px;
     border: none;
@@ -808,44 +658,34 @@ body {
     font-weight: bold;
     transition: transform 0.2s;
 }
-
-.action-btn:hover {
-    transform: translateY(-2px);
-}
-
+.action-btn:hover { transform: translateY(-2px); }
 .btn-discard {
     background: linear-gradient(135deg, #c41e2a, #e63946);
     color: white;
 }
-
 .btn-pass {
     background: linear-gradient(135deg, #555, #777);
     color: white;
 }
-
 .btn-chi {
     background: linear-gradient(135deg, #e6a817, #ffd700);
     color: #333;
 }
-
 .btn-chi-tiles {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
 }
-
 .btn-chi-tiles .chi-label {
     font-size: 15px;
     font-weight: bold;
 }
-
 .btn-chi-tiles .chi-tiles {
     display: inline-flex;
     align-items: flex-end;
     gap: 2px;
 }
-
 .btn-chi-tiles .chi-face {
     width: calc(var(--mj-tile-w, 32px) * 0.28);
     height: calc(var(--mj-tile-h, 44px) * 0.28);
@@ -856,63 +696,36 @@ body {
     cursor: default;
     pointer-events: none;
 }
-
 .btn-chi-tiles .chi-face.chi-claim {
     box-shadow: 0 0 0 1px #c62828;
 }
-
 .btn-chi-tiles .chi-face .tile-face {
     font-size: 7px;
     padding: 1px;
     gap: 0;
 }
-
-.btn-chi-tiles .chi-face .mj-rank {
-    font-size: 7px;
-}
-
-.btn-chi-tiles .chi-face .mj-suit {
-    font-size: 6px;
-}
-
-.btn-chi-tiles .chi-face .mj-honor {
-    font-size: 8px;
-}
-
-.btn-chi-tiles .chi-face .mj-bamboo {
-    width: 2px;
-    height: 5px;
-}
-
-.btn-chi-tiles .chi-face .mj-dot {
-    width: 3px;
-    height: 3px;
-}
-
-.btn-chi-tiles .chi-face img {
-    background: #fffdf6;
-}
-
+.btn-chi-tiles .chi-face .mj-rank { font-size: 7px; }
+.btn-chi-tiles .chi-face .mj-suit { font-size: 6px; }
+.btn-chi-tiles .chi-face .mj-honor { font-size: 8px; }
+.btn-chi-tiles .chi-face .mj-bamboo { width: 2px; height: 5px; }
+.btn-chi-tiles .chi-face .mj-dot { width: 3px; height: 3px; }
+.btn-chi-tiles .chi-face img { background: #fffdf6; }
 .btn-peng {
     background: linear-gradient(135deg, #ff8c00, #ffa500);
     color: white;
 }
-
 .btn-gang {
     background: linear-gradient(135deg, #8b008b, #ba55d3);
     color: white;
 }
-
 .btn-hu {
     background: linear-gradient(135deg, #ff0000, #ff4444);
     color: white;
 }
-
 .btn-prepare {
     background: linear-gradient(135deg, #2196F3, #42A5F5);
     color: white;
 }
-
 .action-btn:disabled {
     background: #999;
     cursor: not-allowed;
@@ -927,103 +740,60 @@ body {
     color: #ffd700;
     font-size: 28px;
     font-weight: bold;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
     z-index: 60;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s;
 }
-
-.center-message.show {
-    opacity: 1;
-}
-
+.center-message.show { opacity: 1; }
 .settle-overlay {
     display: none;
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.62);
+    background: rgba(0,0,0,0.62);
     z-index: 80;
     align-items: center;
     justify-content: center;
 }
-
-.settle-overlay.show {
-    display: flex;
-}
-
+.settle-overlay.show { display: flex; }
 .settle-panel {
     width: min(420px, 92vw);
     background: #fffaf0;
     border-radius: 14px;
     padding: 22px 20px 16px;
     color: #1c2430;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
     text-align: center;
 }
-
-.settle-panel h3 {
-    font-size: 20px;
-    margin-bottom: 8px;
-    color: #1a4a7a;
-}
-
-.settle-panel .meta {
-    font-size: 13px;
-    color: #666;
-    margin-bottom: 12px;
-    line-height: 1.5;
-}
-
+.settle-panel h3 { font-size: 20px; margin-bottom: 8px; color: #1a4a7a; }
+.settle-panel .meta { font-size: 13px; color: #666; margin-bottom: 12px; line-height: 1.5; }
 .settle-panel .row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 4px;
-    border-bottom: 1px solid #eee;
-    font-size: 13px;
+    display: flex; justify-content: space-between;
+    padding: 6px 4px; border-bottom: 1px solid #eee; font-size: 13px;
 }
-
 .settle-panel button {
-    margin-top: 14px;
-    border: none;
-    background: #1565c0;
-    color: #fff;
-    padding: 9px 22px;
-    border-radius: 8px;
-    cursor: pointer;
+    margin-top: 14px; border: none; background: #1565c0; color: #fff;
+    padding: 9px 22px; border-radius: 8px; cursor: pointer;
 }
-
 .ws-status {
     position: absolute;
     top: 55px;
     right: 20px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255,255,255,0.7);
     z-index: 100;
 }
-
-.ws-status.connected {
-    color: #4caf50;
-}
-
-.ws-status.disconnected {
-    color: #f44336;
-}
+.ws-status.connected { color: #4caf50; }
+.ws-status.disconnected { color: #f44336; }
 
 @media (orientation: landscape) and (max-height: 500px) {
-    .action-bar {
-        bottom: 90px;
-    }
-
-    .player-top {
-        top: 48px;
-    }
+    .action-bar { bottom: 90px; }
+    .player-top { top: 48px; }
 }
-
 html.force-landscape .action-bar {
     bottom: calc(var(--mj-tile-h, 44px) + 72px);
 }
-
 html.force-landscape .player-top {
     top: 48px;
 }

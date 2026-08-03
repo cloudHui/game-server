@@ -135,6 +135,31 @@ public class TractorRulesTest {
 		assertEquals(517, hand.get(7).getId());
 	}
 
+	/** 跟拖拉机：有两对但不成连对时仍须出两对，避免卡死 */
+	@Test
+	public void followTractorAllowsNonConsecutivePairsWhenHaveEnough() {
+		int level = CardConst.ER_VAL;
+		int trump = 3;
+		TractorRules.Combo lead = TractorRules.analyze(cards(103, 103, 104, 104), level, trump);
+		assertNotNull(lead);
+		assertEquals(TractorRules.ComboType.TRACTOR, lead.type);
+		List<Card> hand = Arrays.asList(
+				new Card(105), new Card(105), new Card(107), new Card(107), new Card(109));
+		// 105对 + 107对，不连着，仍应合法
+		assertTrue(TractorRules.isLegalFollow(
+				Arrays.asList(new Card(105), new Card(105), new Card(107), new Card(107)),
+				lead, hand, level, trump));
+		// 只有一对时必须出该对 + 同色单牌
+		List<Card> handOnePair = Arrays.asList(
+				new Card(105), new Card(105), new Card(109), new Card(110), new Card(111));
+		assertTrue(TractorRules.isLegalFollow(
+				Arrays.asList(new Card(105), new Card(105), new Card(109), new Card(110)),
+				lead, handOnePair, level, trump));
+		assertFalse("有对却全出单牌不合法", TractorRules.isLegalFollow(
+				Arrays.asList(new Card(109), new Card(110), new Card(111), new Card(105)),
+				lead, handOnePair, level, trump));
+	}
+
 	@Test
 	public void handOrderResortsWhenTrumpChanges() {
 		int level = CardConst.ER_VAL;

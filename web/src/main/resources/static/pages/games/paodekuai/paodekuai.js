@@ -13,6 +13,7 @@ var gameState = {
     players: [],
     myPosition: -1,
     lastPlayedCards: [],
+    lastPlaySeat: -1,
     currentOp: null,
     opponentCounts: {},
     landlordId: 0,

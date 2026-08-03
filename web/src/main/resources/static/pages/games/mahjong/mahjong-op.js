@@ -135,12 +135,13 @@ function applyMahjongSnapshot(s) {
     (s.exposed || []).forEach(function (e) {
         if (!gameState.exposedBySeat[e.seat]) gameState.exposedBySeat[e.seat] = [];
         var parsed = parseExposedType(e.type);
+        // 快照若无单独 claim 字段：吃牌不猜测哪张是被吃，展示时按序排列；
+        // 碰/杠来源牌仍标中间张（appendExposedSet 内处理）。
         gameState.exposedBySeat[e.seat].push({
             kind: parsed.kind,
             tiles: e.tileIds || [],
             fromSeat: parsed.fromSeat,
-            claimTile: parsed.kind === 'chi' && e.tileIds && e.tileIds.length
-                ? e.tileIds[e.tileIds.length - 1] : undefined
+            claimTile: undefined
         });
     });
     gameState.wallLeft = s.wallLeft || 0;

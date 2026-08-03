@@ -58,6 +58,13 @@ function handleAckOp(data) {
     clearPassHints();
     renderPlayedCards(data.opFrom, cards);
     gameState.lastPlayedCards = cards.slice();
+    // 记录最大出牌座位：有人全过后再轮到他首出时才清桌面
+    for (var p = 0; p < gameState.players.length; p++) {
+        if (gameState.players[p].roleId === data.opFrom) {
+            gameState.lastPlaySeat = gameState.players[p].position;
+            break;
+        }
+    }
     if (data.opFrom === userId) {
         for (var i = 0; i < cards.length; i++) {
             var idx = gameState.myCards.indexOf(cards[i]);
@@ -78,7 +85,7 @@ function handleNotOp(data) {
     highlightActivePlayer(opSeat, data.wait);
     var choices = data.choice || [];
     // 操作按钮完全由服务器下发：管不上仅不出；首出/能管仅出牌。
-    // 注意：仅有出牌≠新一轮首出——能管上时同样没有不出，不能清掉上一手。
+    // 清牌时机：仅当又轮到上一手最大牌玩家首出时清桌面；普通人能管必管时保留最大牌。
     var hasPlay = false, hasPass = false, hasPrepare = false;
     for (var i = 0; i < choices.length; i++) {
         if (choices[i].choice === 6) hasPlay = true;
@@ -86,10 +93,11 @@ function handleNotOp(data) {
         if (choices[i].choice === 7) hasPrepare = true;
     }
     if (hasPlay && !hasPass) {
-        var hasPassHints = !!document.querySelector('.pass-hint');
         var hadLast = !!(gameState.lastPlayedCards && gameState.lastPlayedCards.length);
-        // 新首出：本轮已有人「不要」，或桌面尚无上一手（开局首出）
-        if (hasPassHints || !hadLast) {
+        var isNewLead = !hadLast
+            || (typeof gameState.lastPlaySeat === 'number' && gameState.lastPlaySeat >= 0
+                && opSeat === gameState.lastPlaySeat);
+        if (isNewLead) {
             clearAllPlayedAreas();
             clearPassHints();
             gameState.lastPlayedCards = [];
@@ -142,11 +150,8 @@ function handleNotResult(data) {
     }
     showSettle(title, meta, rows, players, 0);
     showCenterMsg(title, 2500);
-    if (!gameState.autoNextRound) {
-        showActionButtons('prepare');
-    } else {
-        hideActions();
-    }
+    // 始终可点准备；有人准备后服务端会让机器人自动准备
+    showActionButtons('prepare');
 }
 
 function handlePdkRoundResult(data) {
@@ -239,6 +244,7 @@ function applyDdzSnapshot(s) {
     gameState.selectedCards.clear();
     gameState.bottomCards = (s.bottomCards || []).slice();
     gameState.lastPlayedCards = (s.lastCards || []).slice();
+    gameState.lastPlaySeat = typeof s.lastPlaySeat === 'number' ? s.lastPlaySeat : -1;
     gameState.landlordId = 0;
     (s.players || []).forEach(function (p) {
         if (p.position === s.landlordSeat) gameState.landlordId = p.roleId;

@@ -159,11 +159,7 @@ function handleNotResult(data) {
     }
     showSettle(title, meta, rows, players, data.landlord_id);
     showCenterMsg(title, 2500);
-    if (!gameState.autoNextRound) {
-        showActionButtons('prepare');
-    } else {
-        hideActions();
-    }
+    showActionButtons('prepare');
 }
 
 function handleDdzRoundResult(data) {

@@ -1,5 +1,6 @@
 package game.manager.table.pdk;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -45,6 +46,17 @@ public class PdkRulesTest {
 		DdzHand last = PdkRules.analyze(cards(105)).get();
 		assertTrue("能管上单张时必须管，不下发不出", PdkRules.canBeat(cards(106, 108, 210), last));
 		assertFalse("管不上时只能不出，不下发出牌", PdkRules.canBeat(cards(103, 104, 203), last));
+	}
+
+	@Test
+	public void supportsTripleOneAndTripleTwo() {
+		DdzHand t1 = PdkRules.analyze(cards(105, 205, 305, 107)).get();
+		DdzHand t2 = PdkRules.analyze(cards(106, 206, 306, 108, 208)).get();
+		assertEquals(proto.ConstProto.CardType.TRIPLE_ONE, t1.getType());
+		assertEquals(proto.ConstProto.CardType.TRIPLE_DOUBLE, t2.getType());
+		assertTrue(PdkRules.canBeat(cards(106, 206, 306, 109), t1));
+		assertFalse("三带二不能压三带一", PdkRules.beats(t2, t1));
+		assertTrue(PdkRules.canBeat(cards(107, 207, 307, 110, 210), t2));
 	}
 
 	private static List<Card> cards(Integer... ids) {
