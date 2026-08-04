@@ -1,5 +1,7 @@
 # Web 页面迁移到标准 Vue 3 的完整计划
 
+> 本文只描述 Vue 3 迁移方案。Web 页面、按钮、请求、Gate 转发和渲染的详细说明见 [webreadme.md](webreadme.md) 及其细分文档。
+
 ## 1. 文档目标
 
 本文用于指导 `web` 模块从当前“静态 HTML + 原生 JavaScript + 局部直接引入 Vue 3”的形式，逐步迁移为标准的 Vue 3 工程，并说明迁移后的开发、测试、Maven 打包、部署、启动、验证和回滚方式。
@@ -431,7 +433,7 @@ frontend/dist             ──┘
 开发阶段只构建前端：
 
 ```bash
-cd /home/ec2-user/repos/Server/web/frontend
+cd web/frontend
 npm ci
 npm run type-check
 npm run test
@@ -441,7 +443,7 @@ npm run build
 构建完整项目：
 
 ```bash
-cd /home/ec2-user/repos/Server
+cd .
 mvn clean install -DskipTests
 ```
 
@@ -463,14 +465,14 @@ jar tf build/web/Web.jar | grep 'BOOT-INF/classes/static/'
 终端一运行 Java Web 后端：
 
 ```bash
-cd /home/ec2-user/repos/Server
+cd .
 ./scripts/ops.sh start web
 ```
 
 终端二运行 Vite：
 
 ```bash
-cd /home/ec2-user/repos/Server/web/frontend
+cd web/frontend
 npm run dev
 ```
 
@@ -483,7 +485,7 @@ npm run dev
 执行完整 Maven 构建后，通过 `Web.jar` 内的静态资源访问，不再启动 Vite：
 
 ```bash
-cd /home/ec2-user/repos/Server
+cd .
 ./scripts/ops.sh start web
 ./scripts/ops.sh status web
 ```
@@ -505,13 +507,13 @@ cd /home/ec2-user/repos/Server
 迁移完成后的交付物仍是：
 
 ```text
-/home/ec2-user/repos/Server/build/web/Web.jar
+build/web/Web.jar
 ```
 
 使用项目现有运维脚本管理：
 
 ```bash
-cd /home/ec2-user/repos/Server
+cd .
 ./scripts/ops.sh status web
 ./scripts/ops.sh restart web
 ```
