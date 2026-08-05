@@ -42,7 +42,7 @@ usage() {
 用法:
   $0 {start|stop|restart|status} [服务|all]
   $0 start-remaining     # 起尚未运行的游戏服（center/gate/lobby/game），受内存门禁
-  $0 build
+  $0 build [服务|all]
   $0 build-restart [服务|all]
   $0 monitor [刷新秒数|--once]
   $0 clean-logs
@@ -58,7 +58,9 @@ usage() {
   $0 monitor             # 默认每 1 秒清屏刷新
   $0 monitor 2           # 每 2 秒清屏刷新
   $0 monitor --once      # 只输出一次，不清屏
-  $0 build
+  $0 build web            # 只打包 web 及其必要依赖
+  $0 build-restart web    # 只打包并重启 web
+  $0 build                # 打包全部服务
   $0 nginx-apply www.example.com
 EOF
 }
@@ -305,7 +307,7 @@ cmd_restart() {
 
 cmd_build_restart() {
   local arg="${1:-all}"
-  cmd_build
+  cmd_build "$arg"
   cmd_restart "$arg"
 }
 
@@ -438,36 +440,62 @@ cmd_monitor() {
 }
 
 cmd_build() {
+  local arg="${1:-all}"
+  local targets
+  # 先复用服务参数校验，避免把任意内容传给 Maven。
+  # shellcheck disable=SC2207
+  targets=($(resolve_targets "$arg"))
   command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn"; exit 1; }
   cd "$ROOT"
-  echo "打包中（跳过测试）..."
-  mvn -q install -DskipTests
-  # Maven 的 copy-dependencies 会排除 com.cloud 内部模块；这里必须显式同步，
-  # 否则业务 JAR 更新后仍可能加载旧的 tool/utils/proto JAR。
-  local module jar svc lib
-  for module in utils proto tool; do
-    jar="$ROOT/$module/target/$module-1.0-SNAPSHOT.jar"
+  if [[ "$arg" == "all" ]]; then
+    echo "打包全部服务（跳过测试）..."
+    mvn -q install -DskipTests
+  else
+    echo "单独打包 $arg 及其必要依赖（跳过测试）..."
+    mvn -q -pl "$arg" -am install -DskipTests
+  fi
+
+  local svc jar
+  for svc in "${targets[@]}"; do
+    jar="$(svc_jar "$svc")"
     if [[ ! -f "$jar" ]]; then
-      echo "缺少内部模块产物: $jar" >&2
+      echo "缺少 $svc 打包产物: $jar" >&2
       return 1
     fi
-    for svc in center gate lobby game; do
+  done
+
+  # Maven 的 copy-dependencies 会排除 com.cloud 内部模块；这里必须显式同步，
+  # 否则业务 JAR 更新后仍可能加载旧的 tool/utils/proto JAR。
+  local module lib
+  for svc in "${targets[@]}"; do
+    [[ "$svc" == "web" ]] && continue
+    for module in utils proto tool; do
+      jar="$ROOT/$module/target/$module-1.0-SNAPSHOT.jar"
+      if [[ ! -f "$jar" ]]; then
+        echo "缺少内部模块产物: $jar" >&2
+        return 1
+      fi
       lib="$BUILD/$svc/lib"
       mkdir -p "$lib"
       cp -f "$jar" "$lib/$module-1.0-SNAPSHOT.jar"
     done
   done
 
-  if [[ ! -f "$BUILD/game/app.properties" ]]; then
+  if [[ " ${targets[*]} " == *" game "* && ! -f "$BUILD/game/app.properties" ]]; then
     cp "$ROOT/game/app.properties.example" "$BUILD/game/app.properties"
     echo "已创建游戏服外置配置: $BUILD/game/app.properties"
   fi
 
   # 校验改包后的运行时类确实来自最新 tool JAR。
-  if ! jar tf "$BUILD/center/lib/tool-1.0-SNAPSHOT.jar" | grep -q '^tools/ServerManager.class$'; then
-    echo "tool JAR 校验失败：未找到 tools/ServerManager.class" >&2
-    return 1
-  fi
+  for svc in "${targets[@]}"; do
+    [[ "$svc" == "web" ]] && continue
+    if ! jar tf "$BUILD/$svc/lib/tool-1.0-SNAPSHOT.jar" | grep -q '^tools/ServerManager.class$'; then
+      echo "$svc 的 tool JAR 校验失败：未找到 tools/ServerManager.class" >&2
+      return 1
+    fi
+  done
+
+  echo "打包完成: ${targets[*]}"
   echo "内部模块依赖已同步并校验: utils / proto / tool"
 
   # 刷新 tablemodel 配置（与当前 tool 类一致）
@@ -585,7 +613,7 @@ main() {
     restart) cmd_restart "$arg" ;;
     status) cmd_status "$arg" ;;
     monitor) cmd_monitor "${2:-1}" ;;
-    build) cmd_build ;;
+    build) cmd_build "$arg" ;;
     build-restart) cmd_build_restart "$arg" ;;
     clean-logs) cmd_clean_logs ;;
     nginx-apply) cmd_nginx_apply "${2:-}" ;;

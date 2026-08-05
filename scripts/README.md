@@ -11,3 +11,10 @@ Windows 推荐从仓库根目录执行 `deploy.bat`，或直接执行 `scripts\o
 - 域名模式会生成 Nginx 反代配置；DNS 解析仍需在域名服务商处完成
 
 Linux 继续使用 `scripts/ops.sh`，两端都只认 `build/<服务>/` 作为运行目录。
+
+Linux 可以单独打包、启停某个服务，例如：
+
+- `./scripts/ops.sh build web`：只打包 web 及其必要依赖
+- `./scripts/ops.sh start web`：只启动 web
+- `./scripts/ops.sh build-restart web`：只打包并重启 web
+- 服务参数支持 `center`、`gate`、`lobby`、`game`、`web` 和 `all`；省略时默认为 `all`

@@ -31,7 +31,34 @@
     var drag = null;
     var held = false;
     var raf = 0;
+    var resizeRaf = 0;
     document.getElementById('levelCount').textContent = levels.length;
+
+    /* 只调整画布的显示尺寸，不改变内部坐标和当前拼图状态。 */
+    function fitCanvas() {
+        var wrap = canvas.parentElement;
+        var availableWidth = wrap.clientWidth;
+        var availableHeight = wrap.clientHeight;
+        var scale;
+        if (!availableWidth || !availableHeight) return;
+        scale = Math.min(availableWidth / canvas.width, availableHeight / canvas.height);
+        canvas.style.width = Math.max(1, Math.floor(canvas.width * scale)) + 'px';
+        canvas.style.height = Math.max(1, Math.floor(canvas.height * scale)) + 'px';
+    }
+
+    function scheduleCanvasFit() {
+        if (resizeRaf) cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(function () {
+            resizeRaf = 0;
+            fitCanvas();
+        });
+    }
+
+    window.addEventListener('resize', scheduleCanvasFit);
+    window.addEventListener('orientationchange', scheduleCanvasFit);
+    if (window.ResizeObserver) {
+        new ResizeObserver(scheduleCanvasFit).observe(canvas.parentElement);
+    }
 
     function targetBounds() {
         var list = levels[state.level].placements;
@@ -325,6 +352,7 @@
         draw();
     };
 
+    fitCanvas();
     resetPieces();
     draw();
 })();
