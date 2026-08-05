@@ -111,17 +111,6 @@ var TangramView = (function () {
         var pl;
         var pts;
         var g;
-        var seen;
-        var key;
-        var s;
-        var sol;
-        var sel = (selected >= 0 && pieces[selected] && !pieces[selected].locked)
-            ? pieces[selected] : null;
-        var pose;
-        var ax;
-        var ay;
-        var center;
-        var snapRadius = sel ? TangramSnap.snapDistance(sel, snapPx) : snapPx;
 
         for (i = 0; i < list.length; i++) {
             pl = list[i];
@@ -130,43 +119,6 @@ var TangramView = (function () {
             drawPoly(ctx, pts, '#b0bec5', showHelpLines ? '#78909c' : null, 1.5);
         }
 
-        /* 吸附点按目标几何中心显示；全等块互换时使用所选块的匹配姿态。 */
-        seen = {};
-        for (s = 0; s < sols.length; s++) {
-            sol = sols[s];
-            for (i = 0; i < sol.length; i++) {
-                pl = sol[i];
-                if (TangramSnap.slotTaken(pieces, pl, templates)) continue;
-                if (sel) {
-                    if (!TangramSnap.sameShape(sel.id, pl.id)) continue;
-                    pose = TangramSnap.poseToMatch(sel.id, pl, templates);
-                    if (!pose || pose.score > 2) continue;
-                    center = centroid(worldPts({
-                        pts: sel.pts, x: pose.x, y: pose.y, rot: pose.rot
-                    }));
-                    ax = center[0];
-                    ay = center[1];
-                } else {
-                    center = centroid(worldPts({
-                        pts: templates[pl.id].pts, x: pl.x, y: pl.y, rot: pl.rot
-                    }));
-                    ax = center[0];
-                    ay = center[1];
-                }
-                key = Math.round(ax) + ':' + Math.round(ay);
-                if (seen[key]) continue;
-                seen[key] = true;
-                ctx.beginPath();
-                ctx.fillStyle = '#546e7a';
-                ctx.arc(ax, ay, 3.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.strokeStyle = '#37474f';
-                ctx.lineWidth = 1;
-                ctx.arc(ax, ay, snapRadius, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
     }
 
     function drawPieces(ctx, pieces, selected) {
@@ -185,13 +137,6 @@ var TangramView = (function () {
                 p.locked || i === selected ? 2.5 : 1
             );
             ctx.globalAlpha = 1;
-            if (i === selected && !p.locked) {
-                var selectedCenter = centroid(pts);
-                ctx.beginPath();
-                ctx.fillStyle = '#111';
-                ctx.arc(selectedCenter[0], selectedCenter[1], 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
         }
     }
 

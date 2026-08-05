@@ -57,7 +57,9 @@ var TangramGeometry = (function () {
 
     /**
      * 按“中心到最远顶点”定义拼块半径，取其 60% 作为手感范围。
-     * 30px 下限避免小块难放，45px 上限避免大三角形跨槽误吸。
+     * 默认 30px 下限避免小块难放，45px 限制按拼块尺寸计算出的范围。
+     * basePx 可以更大：响应式画布在手机上会被缩小，需要用它把屏幕距离
+     * 换算回画布坐标，否则 38 个画布像素在手机上只有十几像素的手感。
      */
     function snapDistance(piece, basePx) {
         var center = centroid(piece.pts);
@@ -66,7 +68,7 @@ var TangramGeometry = (function () {
             radius = Math.max(radius, Math.hypot(
                 piece.pts[i][0] - center[0], piece.pts[i][1] - center[1]));
         }
-        return Math.min(45, Math.max(basePx || 30, radius * 0.6));
+        return Math.max(basePx || 30, Math.min(45, radius * 0.6));
     }
 
     /** 双向累计每个顶点到另一多边形最近顶点的距离，0 表示完全重合。 */

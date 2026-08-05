@@ -229,6 +229,8 @@ expect(TangramSnap.trySnap(equivalentSquare, { placements: [squarePlacement] },
 
 var nearPose = squarePoses[0];
 var nearDistance = TangramSnap.snapDistance(templates[3], TangramData.SNAP_PX);
+expect(TangramSnap.snapDistance(templates[3], 100) === 100,
+  '窄屏换算后的吸附距离不应被 45px 上限截断');
 var nearSquare = {
   id: 3,
   pts: templates[3].pts,

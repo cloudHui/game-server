@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#080b24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>星河 2048</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/mini-base.js"></script>
+</head>
+<body>
+<main class="app">
+    <header>
+        <a class="icon-button" id="back" href="../index.html" aria-label="返回">‹</a>
+        <div class="brand"><span>星河</span><strong>2048</strong></div>
+        <button class="icon-button" id="sound" aria-label="声音开关">♪</button>
+    </header>
+
+    <section class="scorebar" aria-label="分数">
+        <div><small>当前分数</small><strong id="score">0</strong></div>
+        <div><small>最高分</small><strong id="best">0</strong></div>
+        <button id="undo">↶ 撤销</button>
+        <button id="restart">重新开始</button>
+    </section>
+
+    <section class="board-shell">
+        <div class="aurora"></div>
+        <div id="board" class="board" aria-label="2048 游戏棋盘"></div>
+        <div id="message" class="message" hidden>
+            <div class="message-card">
+                <div class="final-orb"></div>
+                <h2 id="messageTitle"></h2>
+                <p id="messageText"></p>
+                <div><button id="continue">继续探索</button><button id="retry">再来一局</button></div>
+            </div>
+        </div>
+    </section>
+
+    <p class="tip">上下左右滑动，让相同星体相遇合并</p>
+    <div class="legend"><span>✦</span><span>星尘</span><i></i><span>星球</span><i></i><span>星系</span><i></i><span>宇宙</span></div>
+</main>
+<script src="engine.js"></script>
+<script src="view.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 var TangramData = (function () {
     'use strict';
 
-    var SCALE = 1.2;
+    var SCALE = 1.35;
 
     var PIECES_BASE = [
         {id: 0, color: '#c62828', pts: [[0, 0], [220, 0], [110, 110]]},
@@ -150,7 +150,7 @@ var TangramData = (function () {
 
     return {
         SCALE: SCALE,
-        SNAP_PX: 30,
+        SNAP_PX: 38,
         PAD: 10,
         rotPoint: rotPoint,
         scaledTemplates: scaledTemplates,

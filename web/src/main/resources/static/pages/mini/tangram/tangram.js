@@ -29,6 +29,7 @@
     var completed = false;
 
     var drag = null;
+    var held = false;
     var raf = 0;
     document.getElementById('levelCount').textContent = levels.length;
 
@@ -66,6 +67,7 @@
             levels[state.level].placements, state.sameDirection);
         state.selected = -1;
         drag = null;
+        held = false;
         state.particles = [];
         startedAt = Date.now();
         completed = false;
@@ -116,12 +118,19 @@
         spawnStars(c[0], c[1], p.color);
     }
 
+    /* 保证窄屏上也有约 36 个屏幕像素的吸附范围。 */
+    function snapBasePx() {
+        var rect = canvas.getBoundingClientRect();
+        if (!rect.width) return SNAP_PX;
+        return Math.max(SNAP_PX, 36 * canvas.width / rect.width);
+    }
+
     function trySnap(p) {
-        return TangramSnap.trySnap(p, levels[state.level], state.pieces, SNAP_PX, onPieceLocked, templates);
+        return TangramSnap.trySnap(p, levels[state.level], state.pieces, snapBasePx(), onPieceLocked, templates);
     }
 
     function previewSnap(p) {
-        return TangramSnap.previewSnap(p, levels[state.level], state.pieces, SNAP_PX, templates);
+        return TangramSnap.previewSnap(p, levels[state.level], state.pieces, snapBasePx(), templates);
     }
 
     function updateStatus() {
@@ -145,8 +154,7 @@
                 });
             }
         } else {
-            el.textContent = '题目：' + levels[state.level].name + '（已拼对 ' + done + '/' +
-                state.pieces.length + '）方向正确且中心接近目标（约30-45px）会吸附；已吸附块不可再提起';
+            el.textContent = levels[state.level].name + ' · 已拼对 ' + done + '/' + state.pieces.length;
             el.style.color = '#1565c0';
         }
     }
@@ -201,6 +209,20 @@
         var i;
         var moved;
         var pieces = state.pieces;
+
+        /* 点击拿起后，下一次点击画板即在该处放下并尝试吸附。 */
+        if (held && state.selected >= 0) {
+            var heldPiece = pieces[state.selected];
+            heldPiece.x = p.x - drag.x;
+            heldPiece.y = p.y - drag.y;
+            TangramLayout.clampPieceInCanvas(heldPiece, canvas, PAD);
+            trySnap(heldPiece);
+            heldPiece.snapped = false;
+            held = false;
+            drag = null;
+            draw();
+            return;
+        }
         state.selected = -1;
         drag = null;
         for (i = pieces.length - 1; i >= 0; i--) {
@@ -213,7 +235,10 @@
             drag = {
                 pointerId: e.pointerId,
                 x: p.x - moved.x,
-                y: p.y - moved.y
+                y: p.y - moved.y,
+                startX: p.x,
+                startY: p.y,
+                moved: false
             };
             canvas.setPointerCapture(e.pointerId);
             break;
@@ -222,10 +247,12 @@
     });
 
     canvas.addEventListener('pointermove', function (e) {
-        if (state.selected < 0 || !drag || e.pointerId !== drag.pointerId) return;
+        if (state.selected < 0 || !drag) return;
+        if (!held && e.pointerId !== drag.pointerId) return;
         var p = pointer(e);
         var piece = state.pieces[state.selected];
         if (piece.locked) return;
+        if (!held && Math.hypot(p.x - drag.startX, p.y - drag.startY) > 6) drag.moved = true;
         piece.x = p.x - drag.x;
         piece.y = p.y - drag.y;
         previewSnap(piece);
@@ -234,6 +261,13 @@
 
     function endDrag(e, cancelled) {
         if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+        if (!cancelled && !drag.moved) {
+            if (e && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+            held = true;
+            drag.pointerId = null;
+            draw();
+            return;
+        }
         if (state.selected >= 0) {
             var piece = state.pieces[state.selected];
             TangramLayout.clampPieceInCanvas(piece, canvas, PAD);
@@ -242,6 +276,7 @@
         }
         if (e && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
         drag = null;
+        held = false;
         draw();
     }
 
@@ -261,7 +296,10 @@
         piece.x += before[0] - after[0];
         piece.y += before[1] - after[1];
         TangramLayout.clampPieceInCanvas(piece, canvas, PAD);
-        trySnap(piece);
+        if (trySnap(piece)) {
+            held = false;
+            drag = null;
+        }
         draw();
     };
 
