@@ -116,6 +116,7 @@
             won = true;
             save();
             view.showMessage(true);
+            MiniCelebrate.play({tone: 'milestone', title: '发现新宇宙！', note: '合成 2048，你太棒啦！', icon: '🚀'});
         } else if (!engine.movesAvailable(grid)) {
             view.showMessage(false);
         }

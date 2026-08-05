@@ -6,6 +6,8 @@
     <title>启蒙乐园 · 休闲</title>
     <script src="../../../shared/app-base.js"></script>
     <script src="../../../shared/mini-base.js"></script>
+    <link rel="stylesheet" href="../../../shared/mini-celebrate.css">
+    <script src="../../../shared/mini-celebrate.js"></script>
     <style>
         * {
             box-sizing: border-box
@@ -253,6 +255,7 @@
                     if (done === icons.length) {
                         msg.textContent = '全部配对完成！';
                         msg.style.color = '#2e7d32';
+                        MiniCelebrate.play({title: '全部配对成功！', note: '你的记忆力真棒！', icon: '🐰'});
                     }
                 } else {
                     setTimeout(function () {

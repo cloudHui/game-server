@@ -63,6 +63,9 @@
         if (checkWin(x, y, turn)) {
             finished = true;
             setStatus((turn === 1 ? '黑棋' : '白棋') + '获胜');
+            if (mode === 'local' || turn === myColor) {
+                MiniCelebrate.play({tone: mode === 'ai' ? 'milestone' : 'success', title: '五子连珠！', note: '你太棒啦！'});
+            }
             document.getElementById('resignBtn').disabled = true;
         } else {
             var full = true;
@@ -208,6 +211,7 @@
             var w = msg.data.winner;
             var text = w === 0 ? '和棋' : (w === myColor ? '你赢了' : '你输了');
             setStatus(text + (msg.data.reason ? '（' + msg.data.reason + '）' : ''));
+            if (w === myColor) MiniCelebrate.play({tone: 'milestone', title: '你赢啦！', note: '五子连珠，好厉害呀！'});
         } else if (msg.action === 'closed' && mode === 'online' && !finished) {
             setStatus('连接断开');
         }

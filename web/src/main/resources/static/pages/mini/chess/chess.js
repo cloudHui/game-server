@@ -205,6 +205,7 @@
             var win = msg.data.winner;
             var mine = iAmRed ? 'red' : 'black';
             setStatus((win === mine ? '你赢了' : (win ? '你输了' : '和棋')) + (msg.data.reason ? '（' + msg.data.reason + '）' : ''));
+            if (win === mine) MiniCelebrate.play({tone: 'milestone', title: '将军获胜！', note: '这一步走得真漂亮！'});
         }
     }
 
@@ -292,7 +293,10 @@
         if (tryMove(selected[0], selected[1], r, c)) {
             selected = null;
             draw();
-            if (finished) setStatus('将死，你赢了');
+            if (finished) {
+                setStatus('将死，你赢了');
+                MiniCelebrate.play({tone: 'milestone', title: '将军获胜！', note: '你太棒啦！'});
+            }
             else {
                 setStatus(ChessRules.isInCheck(board, false) ? '将军，电脑正在解将…' : '电脑思考中…');
                 setTimeout(aiMove, 180);

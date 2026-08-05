@@ -7,6 +7,8 @@
     <script src="../../../shared/app-base.js"></script>
     <script src="../../../shared/mini-base.js"></script>
     <script src="../../../shared/canvas-buffer.js"></script>
+    <link rel="stylesheet" href="../../../shared/mini-celebrate.css">
+    <script src="../../../shared/mini-celebrate.js"></script>
     <style>
         * {
             box-sizing: border-box
@@ -259,7 +261,7 @@
                     score++;
                     document.getElementById('score').textContent = score;
                     if (score >= 5) {
-                        alert('通关！答对 5 题');
+                        MiniCelebrate.play({title: '迷宫通关啦！', note: '连续答对 5 题，你太棒啦！', icon: '🦄'});
                         score = 0;
                         hp = 3;
                         document.getElementById('score').textContent = 0;

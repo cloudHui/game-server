@@ -3,6 +3,8 @@
 <head>
     <script src="../../../shared/app-base.js"></script>
     <script src="../../../shared/mini-base.js"></script>
+    <link rel="stylesheet" href="../../../shared/mini-celebrate.css">
+    <script src="../../../shared/mini-celebrate.js"></script>
     <style>.mini-back {
         display: inline-block;
         margin: 8px 0;
@@ -304,7 +306,11 @@
                 input.style.backgroundColor = "#f7a4a4"; // red
             }
         });
-        alert("You scored " + score + "/4!");
+        if (score >= 3) {
+            MiniCelebrate.play({title: '拼读闯关成功！', note: '答对 ' + score + '/4，你太棒啦！', icon: '🐣'});
+        } else {
+            alert("You scored " + score + "/4! Keep trying!");
+        }
     }
 
     const soundWords = ['cat', 'ship', 'zebra', 'ride', 'hope'];
@@ -318,7 +324,7 @@
     function checkGuess() {
         const guess = document.getElementById('guessWord').value.trim().toLowerCase();
         if (guess === currentWord) {
-            alert('🎉 Correct!');
+            MiniCelebrate.play({title: '答对啦！', note: '这个单词读得真好！', icon: '🐣'});
         } else {
             alert('❌ Try again! The correct word was: ' + currentWord);
         }

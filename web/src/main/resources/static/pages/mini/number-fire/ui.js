@@ -66,11 +66,15 @@
     NumberFireUi.prototype.showResult = function (score, passed) {
         var game = this.game;
         var title = passed ? (score >= 95 ? '太厉害了！' : '你太棒了！') : '再接再厉！';
-        w.NumberFireSpeech.speakPraise(title);
+        if (!passed && w.MiniCelebrate) {
+            w.MiniCelebrate.play({tone: 'encourage', title: title, note: '加油，再试一次就会更棒！', icon: '🌱'});
+        }
         w.MiniResult.show({
             title: title,
             pattern: game.level.name + ' · 得分 ' + score,
             elapsed: Math.max(0, game.level.timeLimit - game.remaining) + '秒',
+            celebrate: passed,
+            tone: score >= 95 ? 'milestone' : 'success',
             onNext: function () {
                 passed ? game.goNextLevel() : game.startLevel(game.levelIndex);
             }

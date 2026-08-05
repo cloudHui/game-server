@@ -328,6 +328,12 @@ class Game {
     endGame() {
         this.gameOver = true;
 
+        if (this.score >= 100 && window.MiniCelebrate) {
+            window.MiniCelebrate.play({tone: this.score >= 200 ? 'milestone' : 'success', title: '字母小达人！', note: `得到 ${this.score} 分，你太棒啦！`, icon: '🛩️'});
+        } else if (window.MiniCelebrate) {
+            window.MiniCelebrate.play({tone: 'encourage', title: '继续加油！', note: `这次得到 ${this.score} 分，再挑战一次吧！`, icon: '🌱'});
+        }
+
         // 停止计时器
         if (this.timerInterval) {
             clearInterval(this.timerInterval);

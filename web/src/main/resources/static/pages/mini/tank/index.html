@@ -6,6 +6,8 @@
     <title>坦克大战 · 休闲</title>
     <script src="../../../shared/app-base.js"></script>
     <script src="../../../shared/mini-base.js"></script>
+    <link rel="stylesheet" href="../../../shared/mini-celebrate.css">
+    <script src="../../../shared/mini-celebrate.js"></script>
     <style>
         :root {
             --bg0: #0f2a1c;
@@ -407,6 +409,7 @@
                 score += 200;
                 setHud();
                 setStatus('过关！进入第 ' + level + ' 关');
+                MiniCelebrate.play({title: '顺利过关！', note: '小小坦克手，你太棒啦！', icon: '🐻'});
                 resetLevel();
             }
         }
