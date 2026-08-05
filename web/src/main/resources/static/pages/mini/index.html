@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>休闲小游戏</title>
     <script src="../../shared/app-base.js"></script>
+    <link rel="stylesheet" href="../../shared/card-pager.css">
     <style>
         * {
             box-sizing: border-box
@@ -90,7 +91,8 @@
 <body>
 <header><h1>休闲小游戏</h1><a class="back" href="../../pages/lobby/entertainment.html">返回娱乐</a></header>
 <main>
-    <section class="grid">
+    <section class="grid paged-grid" data-card-pager data-page-desktop="6" data-page-short="3"
+             data-page-tablet="2" data-page-mobile="1">
         <article class="card">
             <div>
                 <div class="icon">🌌</div>
@@ -162,5 +164,6 @@
 <script>
     document.querySelector('a.back').href = appUrl('/pages/lobby/entertainment.html');
 </script>
+<script src="../../shared/card-pager.js"></script>
 </body>
 </html>

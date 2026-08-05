@@ -1,0 +1,39 @@
+.paged-grid > [hidden] {
+    display: none !important;
+}
+
+.card-pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 0;
+}
+
+.card-pager button {
+    min-width: 76px;
+    padding: 8px 13px;
+    border: 1px solid #cfd8dc;
+    border-radius: 7px;
+    color: #37474f;
+    background: #fff;
+    cursor: pointer;
+}
+
+.card-pager button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.card-pager-status {
+    min-width: 72px;
+    color: #607d8b;
+    text-align: center;
+    font-size: 13px;
+}
+
+@media (max-width: 600px) {
+    .card-pager {
+        margin-top: 12px;
+    }
+}

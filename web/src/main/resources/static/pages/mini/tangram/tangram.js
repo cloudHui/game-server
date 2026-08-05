@@ -145,11 +145,11 @@
         spawnStars(c[0], c[1], p.color);
     }
 
-    /* 保证窄屏上也有约 36 个屏幕像素的吸附范围。 */
+    /* 保证窄屏上也有约 40 个屏幕像素的吸附范围。 */
     function snapBasePx() {
         var rect = canvas.getBoundingClientRect();
         if (!rect.width) return SNAP_PX;
-        return Math.max(SNAP_PX, 36 * canvas.width / rect.width);
+        return Math.max(SNAP_PX, 40 * canvas.width / rect.width);
     }
 
     function trySnap(p) {
@@ -258,6 +258,12 @@
             if (pieces[i].locked) break;
             moved = pieces.splice(i, 1)[0];
             pieces.push(moved);
+            /* 点击提起时也主动尝试吸附；成功后无需进入拖动或悬持状态。 */
+            if (trySnap(moved)) {
+                state.selected = -1;
+                drag = null;
+                break;
+            }
             state.selected = pieces.length - 1;
             drag = {
                 pointerId: e.pointerId,
@@ -282,6 +288,14 @@
         if (!held && Math.hypot(p.x - drag.startX, p.y - drag.startY) > 6) drag.moved = true;
         piece.x = p.x - drag.x;
         piece.y = p.y - drag.y;
+        if (held && trySnap(piece)) {
+            piece.snapped = false;
+            held = false;
+            drag = null;
+            state.selected = -1;
+            draw();
+            return;
+        }
         previewSnap(piece);
         draw();
     });

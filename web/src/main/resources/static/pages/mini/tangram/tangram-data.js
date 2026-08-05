@@ -150,7 +150,7 @@ var TangramData = (function () {
 
     return {
         SCALE: SCALE,
-        SNAP_PX: 38,
+        SNAP_PX: 40,
         PAD: 10,
         rotPoint: rotPoint,
         scaledTemplates: scaledTemplates,

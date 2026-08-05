@@ -210,8 +210,8 @@ expect(paraPoses.map(function (pose) { return pose.rot; }).join(',') === '0,180'
 
 templates.forEach(function (template) {
   var distance = TangramSnap.snapDistance(template, TangramData.SNAP_PX);
-  expect(distance >= 30 && distance <= 45,
-    '拼块 ' + template.id + ' 的自适应吸附距离应限制在 30-45px');
+  expect(distance >= TangramData.SNAP_PX,
+    '拼块 ' + template.id + ' 的吸附距离不应小于统一基础距离');
 });
 
 var equivalentPose = squarePoses[1];

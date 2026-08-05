@@ -6,6 +6,7 @@
     <title>娱乐</title>
     <script src="../../shared/app-base.js"></script>
     <link rel="stylesheet" href="../../shared/lobby-home.css">
+    <link rel="stylesheet" href="../../shared/card-pager.css">
 </head>
 <body>
 <header>
@@ -24,7 +25,7 @@
             <p>各玩法独立房间与牌桌页，手机默认横屏。</p>
         </div>
     </div>
-    <section class="game-grid">
+    <section class="game-grid paged-grid" data-card-pager data-page-mobile="1">
         <article class="game-card ddz">
             <div>
                 <div class="game-icon">🃏</div>
@@ -52,5 +53,6 @@
     </section>
 </main>
 <script src="../lobby/session.js"></script>
+<script src="../../shared/card-pager.js"></script>
 </body>
 </html>

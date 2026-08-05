@@ -6,6 +6,7 @@
     <title>大厅</title>
     <script src="../../shared/app-base.js"></script>
     <link rel="stylesheet" href="../../shared/lobby-home.css">
+    <link rel="stylesheet" href="../../shared/card-pager.css">
 </head>
 <body>
 <header>
@@ -25,7 +26,7 @@
         </div>
         <a class="admin-link" href="../../pages/admin/admin.html" id="adminLink" style="display:none">管理后台 →</a>
     </div>
-    <section class="game-grid cols-2">
+    <section class="game-grid cols-2 paged-grid" data-card-pager data-page-mobile="1">
         <article class="game-card ent">
             <div>
                 <div class="game-icon">🎮</div>
@@ -45,5 +46,6 @@
     </section>
 </main>
 <script src="./session.js"></script>
+<script src="../../shared/card-pager.js"></script>
 </body>
 </html>

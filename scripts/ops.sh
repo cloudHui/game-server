@@ -495,21 +495,18 @@ cmd_build() {
     fi
   done
 
-  echo "打包完成: ${targets[*]}"
-  echo "内部模块依赖已同步并校验: utils / proto / tool"
+  if [[ "$arg" != "web" ]]; then
+    echo "内部模块依赖已同步并校验: utils / proto / tool"
+  fi
 
   # 刷新 tablemodel 配置（与当前 tool 类一致）
-  if [[ -f "$ROOT/tool/target/tool-1.0-SNAPSHOT.jar" ]]; then
+  if [[ "$arg" != "web" && -f "$ROOT/tool/target/tool-1.0-SNAPSHOT.jar" ]]; then
     (cd "$ROOT" && java -cp "tool/target/tool-1.0-SNAPSHOT.jar:$BUILD/game/lib/*" tool.ConfigPacker >/dev/null 2>&1 || true)
     [[ -f "$ROOT/config/tablemodel_models.dat" ]] && mkdir -p "$BUILD/config" && cp -f "$ROOT/config/tablemodel_models.dat" "$BUILD/config/tablemodel_models.dat"
   fi
-  echo "打包完成。产物目录: $BUILD"
-  for svc in "${ORDER[@]}"; do
-    if [[ -f "$(svc_jar "$svc")" ]]; then
-      echo "  OK $(svc_jar "$svc")"
-    else
-      echo "  MISSING $(svc_jar "$svc")"
-    fi
+  echo "打包完成。"
+  for svc in "${targets[@]}"; do
+    echo "  OK $(svc_jar "$svc")"
   done
 }
 

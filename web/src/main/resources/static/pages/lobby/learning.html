@@ -6,6 +6,7 @@
     <title>学习</title>
     <script src="../../shared/app-base.js"></script>
     <link rel="stylesheet" href="../../shared/lobby-home.css">
+    <link rel="stylesheet" href="../../shared/card-pager.css">
 </head>
 <body>
 <header>
@@ -25,7 +26,7 @@
         </div>
         <a class="admin-link" id="learningAdmin" href="../learning/admin.html" style="display:none">学习管理 →</a>
     </div>
-    <section class="game-grid cols-1">
+    <section class="game-grid cols-1 paged-grid" data-card-pager data-page-mobile="1">
         <article class="game-card learn">
             <div>
                 <div class="game-icon">📚</div>
@@ -45,5 +46,6 @@
         }
     })();
 </script>
+<script src="../../shared/card-pager.js"></script>
 </body>
 </html>
