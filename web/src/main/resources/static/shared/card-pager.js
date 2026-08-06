@@ -2,32 +2,16 @@
 (function () {
     'use strict';
 
-    function positive(value, fallback) {
-        value = parseInt(value, 10);
-        return value > 0 ? value : fallback;
-    }
-
-    function pageSize(grid) {
-        if (window.matchMedia('(max-width: 600px)').matches) {
-            return positive(grid.dataset.pageMobile, 1);
-        }
-        if (window.matchMedia('(max-width: 900px)').matches) {
-            return positive(grid.dataset.pageTablet, 2);
-        }
-        if (window.innerHeight <= 700) {
-            return positive(grid.dataset.pageShort, 3);
-        }
-        return positive(grid.dataset.pageDesktop, 6);
-    }
+    var PAGE_SIZE = 3;
 
     function setup(grid, index) {
         var items = Array.prototype.filter.call(grid.children, function (item) {
             return item.matches('article, .game-card, .card');
         });
-        if (!items.length) return;
+        if (items.length <= PAGE_SIZE) return;
 
         var key = 'card-page:' + location.pathname + ':' + index;
-        var current = positive(sessionStorage.getItem(key), 1);
+        var current = parseInt(sessionStorage.getItem(key), 10) || 1;
         var pager = document.createElement('nav');
         var previous = document.createElement('button');
         var status = document.createElement('span');
@@ -45,11 +29,10 @@
         grid.parentNode.insertBefore(pager, grid.nextSibling);
 
         function render() {
-            var size = pageSize(grid);
-            var pages = Math.max(1, Math.ceil(items.length / size));
+            var pages = Math.ceil(items.length / PAGE_SIZE);
             current = Math.min(Math.max(current, 1), pages);
             items.forEach(function (item, itemIndex) {
-                item.hidden = itemIndex < (current - 1) * size || itemIndex >= current * size;
+                item.hidden = itemIndex < (current - 1) * PAGE_SIZE || itemIndex >= current * PAGE_SIZE;
             });
             previous.disabled = current === 1;
             next.disabled = current === pages;
@@ -66,7 +49,6 @@
             current++;
             render();
         };
-        window.addEventListener('resize', render);
         render();
     }
 
