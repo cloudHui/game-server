@@ -1,9 +1,11 @@
 :root {
-    --blue: #409eff;
-    --ink: #303133;
-    --muted: #909399;
-    --line: #ebeef5;
-    --page: #f5f7fa;
+    --blue: #7357e8;
+    --primary: #7357e8;
+    --primary-dark: #5b40d2;
+    --ink: #29263b;
+    --muted: #757187;
+    --line: #e8e5f1;
+    --page: #f6f5fb;
 }
 
 * {
@@ -27,8 +29,8 @@ header {
     align-items: center;
     justify-content: space-between;
     color: #fff;
-    background: #304156;
-    box-shadow: 0 1px 4px #c5c8cc;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    box-shadow: 0 4px 14px rgba(91, 64, 210, .2);
 }
 
 h1 {
@@ -162,35 +164,35 @@ main {
 }
 
 .ent {
-    --card-color: #e6a23c;
+    --card-color: var(--primary);
 }
 
 .learn {
-    --card-color: #409eff;
+    --card-color: #8268ef;
 }
 
 .poker {
-    --card-color: #f56c6c;
+    --card-color: #6d55d9;
 }
 
 .mj {
-    --card-color: #409eff;
+    --card-color: #7357e8;
 }
 
 .mini {
-    --card-color: #67c23a;
+    --card-color: #5b40d2;
 }
 
 .ddz {
-    --card-color: #f56c6c;
+    --card-color: #8268ef;
 }
 
 .pdk {
-    --card-color: #e6a23c;
+    --card-color: #7357e8;
 }
 
 .tractor {
-    --card-color: #909399;
+    --card-color: #5b40d2;
 }
 
 .section-title {
