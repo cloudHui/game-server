@@ -13,6 +13,12 @@
     };
     var meta = META[gameType] || META[2];
     var gameName = meta.name;
+    var roomPage = 1;
+    function roomPageSize() {
+        if (window.innerWidth < 600) return 1;
+        if (window.innerWidth < 1000) return 2;
+        return 4;
+    }
     var OFFICIAL = meta.official;
     var SEAT_BY_ROOM = {
         1: 4, 11: 2, 12: 3, 9001: 4,
@@ -97,7 +103,11 @@
             return;
         }
         list.innerHTML = '';
-        rooms.forEach(function (room) {
+        var pageSize = roomPageSize();
+        var pageCount = Math.max(1, Math.ceil(rooms.length / pageSize));
+        roomPage = Math.min(Math.max(roomPage, 1), pageCount);
+        var start = (roomPage - 1) * pageSize;
+        rooms.slice(start, start + pageSize).forEach(function (room) {
             var card = document.createElement('article');
             card.className = 'room-card';
             var title = document.createElement('h2');
@@ -144,6 +154,30 @@
             card.appendChild(button);
             list.appendChild(card);
         });
+        var pager = document.getElementById('roomPager');
+        if (pageCount > 1) {
+            if (!pager) {
+                pager = document.createElement('nav');
+                pager.id = 'roomPager';
+                pager.className = 'room-pager';
+                list.parentNode.appendChild(pager);
+            }
+            pager.innerHTML = '<button type="button" data-room-page="prev">上一页</button>'
+                + '<span>' + roomPage + ' / ' + pageCount + '</span>'
+                + '<button type="button" data-room-page="next">下一页</button>';
+            pager.querySelector('[data-room-page="prev"]').disabled = roomPage === 1;
+            pager.querySelector('[data-room-page="next"]').disabled = roomPage === pageCount;
+            pager.querySelector('[data-room-page="prev"]').onclick = function () {
+                roomPage--;
+                renderRooms(rooms);
+            };
+            pager.querySelector('[data-room-page="next"]').onclick = function () {
+                roomPage++;
+                renderRooms(rooms);
+            };
+        } else if (pager) {
+            pager.remove();
+        }
     }
 
     function createAndEnter(roomId) {

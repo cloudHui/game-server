@@ -6,6 +6,8 @@
 
     function NumberFireUi(game) {
         this.game = game;
+        this.levelPage = 1;
+        this.levelPageSize = 12;
     }
 
     NumberFireUi.prototype.showLobby = function () {
@@ -26,7 +28,11 @@
         var game = this.game;
         var grid = document.getElementById('levelGrid');
         grid.innerHTML = '';
-        game.levels.forEach(function (lv, idx) {
+        var pageCount = Math.max(1, Math.ceil(game.levels.length / this.levelPageSize));
+        this.levelPage = Math.min(Math.max(this.levelPage, 1), pageCount);
+        var start = (this.levelPage - 1) * this.levelPageSize;
+        game.levels.slice(start, start + this.levelPageSize).forEach(function (lv, localIdx) {
+            var idx = start + localIdx;
             var locked = lv.id > game.progress.unlocked;
             var best = game.progress.best[lv.id];
             var btn = document.createElement('button');
@@ -40,6 +46,26 @@
             });
             grid.appendChild(btn);
         });
+        var pager = document.getElementById('levelPager');
+        if (!pager) {
+            pager = document.createElement('div');
+            pager.id = 'levelPager';
+            pager.className = 'level-pager';
+            grid.parentNode.appendChild(pager);
+        }
+        pager.innerHTML = '<button type="button" data-page="prev">上一页</button>'
+            + '<span>' + this.levelPage + ' / ' + pageCount + '</span>'
+            + '<button type="button" data-page="next">下一页</button>';
+        pager.querySelector('[data-page="prev"]').disabled = this.levelPage === 1;
+        pager.querySelector('[data-page="next"]').disabled = this.levelPage === pageCount;
+        pager.querySelector('[data-page="prev"]').onclick = function () {
+            game.ui.levelPage--;
+            game.ui.renderLevelGrid();
+        };
+        pager.querySelector('[data-page="next"]').onclick = function () {
+            game.ui.levelPage++;
+            game.ui.renderLevelGrid();
+        };
         document.getElementById('unlockHint').textContent =
             '已解锁 ' + Math.min(game.progress.unlocked, game.levels.length) + ' / ' + game.levels.length
             + ' 关 · 得分≥80 解锁下一关';

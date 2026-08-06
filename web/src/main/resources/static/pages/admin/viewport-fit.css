@@ -1,0 +1,9 @@
+html, body { width: 100%; min-height: 100%; overflow-x: hidden; }
+.wrap { width: min(1440px, calc(100% - 32px)); max-width: none; }
+.table-scroll { max-width: 100%; overflow-x: auto; }
+@media (max-height: 760px) {
+    .header { padding-top: 10px; padding-bottom: 10px; }
+    .wrap { margin-top: 12px; padding-bottom: 18px; }
+    .card { padding: 16px; margin-bottom: 12px; }
+    th, td { padding-top: 7px; padding-bottom: 7px; }
+}

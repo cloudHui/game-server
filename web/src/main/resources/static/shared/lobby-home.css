@@ -12,7 +12,9 @@
 
 body {
     margin: 0;
-    min-height: 100vh;
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
     font-family: "Microsoft YaHei", Arial, sans-serif;
     color: var(--ink);
     background: var(--page);
@@ -51,9 +53,10 @@ h1 {
 }
 
 main {
-    max-width: 1180px;
+    width: min(1440px, 100%);
+    min-height: calc(100dvh - 60px);
     margin: 0 auto;
-    padding: 24px 28px 48px;
+    padding: clamp(14px, 2.4vh, 28px) clamp(16px, 3vw, 48px) clamp(18px, 4vh, 48px);
 }
 
 .breadcrumb {
@@ -91,7 +94,7 @@ main {
 .game-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
+    gap: clamp(10px, 1.4vw, 22px);
 }
 
 .game-grid.cols-2 {
@@ -100,8 +103,8 @@ main {
 
 .game-card {
     position: relative;
-    min-height: 218px;
-    padding: 22px;
+    min-height: clamp(170px, 25vh, 280px);
+    padding: clamp(16px, 2vw, 28px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -222,7 +225,8 @@ main {
     }
 
     main {
-        padding: 18px 16px 34px;
+        min-height: calc(100dvh - 54px);
+        padding: 14px 16px 20px;
     }
 
     .game-grid, .game-grid.cols-2 {
@@ -230,7 +234,7 @@ main {
     }
 
     .game-card {
-        min-height: 178px;
+        min-height: clamp(150px, 22vh, 210px);
     }
 
     .welcome {

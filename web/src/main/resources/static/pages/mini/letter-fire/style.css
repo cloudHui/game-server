@@ -8,16 +8,17 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: hidden;
     overflow-x: hidden;
     background: linear-gradient(135deg, #a8e6cf, #dcedc1);
     font-family: 'Comic Sans MS', cursive, sans-serif;
 }
 
 .game-container {
-    width: min(860px, 100%);
+    width: min(1100px, 100%);
     max-width: 100vw;
-    margin: 16px auto;
+    margin: clamp(6px, 2vh, 16px) auto;
     text-align: center;
     background-color: rgba(255, 255, 255, 0.9);
     padding: 16px;
@@ -92,7 +93,9 @@ h1 {
 #gameCanvas {
     display: block;
     width: 100%;
-    max-width: 800px;
+    max-width: min(100%, 900px);
+    max-height: min(52dvh, 620px);
+    object-fit: contain;
     height: auto;
     margin: 0 auto;
     background-color: #fff;
@@ -286,4 +289,13 @@ button:active {
     .hint-mobile {
         display: block;
     }
+}
+
+@media (max-height: 700px) {
+    .game-container { padding: 8px 12px; }
+    h1 { margin-bottom: 6px; }
+    .fire-status { margin-bottom: 6px; }
+    .game-settings { margin: 8px 0; }
+    .controls { margin-top: 8px; }
+    button { padding: 7px 14px; }
 }
