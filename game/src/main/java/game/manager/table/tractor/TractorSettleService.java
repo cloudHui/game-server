@@ -44,7 +44,10 @@ public final class TractorSettleService {
 			scores[s] = ctx.isBankerTeam(s) ? delta : -delta;
 		}
 		int oldBanker = ctx.getBankerSeat();
-		int winnerSeat = bankerWin ? oldBanker : (oldBanker + 1) % 4;
+        int winnerSeat = bankerWin ? oldBanker : ctx.getRoundWinnerSeat();
+        if (winnerSeat < 0 || ctx.isBankerTeam(winnerSeat)) {
+            winnerSeat = (oldBanker + 1) % 4;
+        }
 		table.getGameResult().addRound(table.getCurrentRound(), winnerSeat, Math.abs(delta), scores, winType);
 		ScoreRepository.getInstance().saveRound(table);
 		ReplayRecorder replay = table.getReplayRecorder();
@@ -57,7 +60,8 @@ public final class TractorSettleService {
 		if (bankerWin) {
 			ctx.upgradeBankerTeam(upgrade);
 		} else {
-			int newBanker = (oldBanker + 1) % 4;
+            // 闲家胜利时由实际赢下最后一墩的座位接庄，而不是机械取庄家下家。
+            int newBanker = winnerSeat;
 			ctx.setBankerSeat(newBanker);
 			if (upgrade > 0) ctx.upgradeSeatTeam(newBanker, upgrade);
 		}

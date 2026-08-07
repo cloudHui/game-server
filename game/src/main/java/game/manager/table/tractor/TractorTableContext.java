@@ -45,6 +45,8 @@ public class TractorTableContext {
      * 当前实际持有未扣底牌的座位；反主后会变，-1 表示无人持底
      */
     private int bottomHolderSeat = -1;
+    /** 本局本轮是否已经完成庄家第一次扣底。 */
+    private boolean firstBuryDone;
 
     private TractorRules.Combo leadCombo;
     private final List<List<Card>> trickPlays = new ArrayList<>();
@@ -53,6 +55,8 @@ public class TractorTableContext {
     private GameProto.CardInfo lastPlayed = GameProto.CardInfo.getDefaultInstance();
     private int lastPlaySeat = -1;
     private int tricksDone;
+    /** 本局最后完成的一墩赢家；用于闲家获胜后的实际轮庄。 */
+    private int roundWinnerSeat = -1;
 
     /**
      * 当前庄家方级数
@@ -197,6 +201,14 @@ public class TractorTableContext {
         this.bottomHolderSeat = bottomHolderSeat;
     }
 
+    public boolean isFirstBuryDone() {
+        return firstBuryDone;
+    }
+
+    public void setFirstBuryDone(boolean firstBuryDone) {
+        this.firstBuryDone = firstBuryDone;
+    }
+
     public TractorRules.Combo getLeadCombo() {
         return leadCombo;
     }
@@ -245,6 +257,14 @@ public class TractorTableContext {
         tricksDone++;
     }
 
+    public int getRoundWinnerSeat() {
+        return roundWinnerSeat;
+    }
+
+    public void setRoundWinnerSeat(int roundWinnerSeat) {
+        this.roundWinnerSeat = roundWinnerSeat;
+    }
+
     public void resetTrick() {
         leadCombo = null;
         trickPlays.clear();
@@ -258,12 +278,14 @@ public class TractorTableContext {
         lastPlaySeat = -1;
         lastPlayed = GameProto.CardInfo.getDefaultInstance();
         tricksDone = 0;
+        roundWinnerSeat = -1;
         bidStrength = 0;
         bidSuit = 0;
         bidSeat = -1;
         bidPasses = 0;
         trumpSuit = 0;
         bottomHolderSeat = -1;
+        firstBuryDone = false;
         dealing = false;
         dealNextSeat = 0;
         dealPlayerCount = 0;

@@ -210,24 +210,26 @@ public final class TractorBidService {
     static void finalizeBid(TractorTable table) {
         TractorTableContext ctx = table.getTractor();
         if (ctx.getBidStrength() > 0 && ctx.getBidSeat() >= 0) {
-            ctx.setBankerSeat(ctx.getBidSeat());
+            // bidSeat 只是暂定庄家；首次成功扣底前不能锁定庄家。
             ctx.setTrumpSuit(ctx.getBidSuit());
         } else {
             ctx.setTrumpSuit(0);
             if (ctx.getBankerSeat() < 0) ctx.setBankerSeat(0);
         }
-        table.getCardPool().attachBottom(table, ctx.getBankerSeat());
-        table.getOp().setCurrOpSeat(ctx.getBankerSeat());
-        ctx.setTrickLeader(ctx.getBankerSeat());
+        int provisionalBanker = ctx.getBidSeat() >= 0 ? ctx.getBidSeat() : ctx.getBankerSeat();
+        table.getCardPool().attachBottom(table, provisionalBanker);
+        table.getOp().setCurrOpSeat(provisionalBanker);
+        ctx.setTrickLeader(provisionalBanker);
         notifyBury(table);
         table.upNextStateWithTime(TableState.IDLE_SHOW_CARD, System.currentTimeMillis());
-        logger.info("拖拉机定主结束 banker:{} trump:{} level:{}",
-                ctx.getBankerSeat(), ctx.getTrumpSuit(), ctx.getLevelRank());
+        logger.info("拖拉机定主结束 provisionalBanker:{} trump:{} level:{}",
+                provisionalBanker, ctx.getTrumpSuit(), ctx.getLevelRank());
     }
 
     public static void notifyBury(TractorTable table) {
         TractorTableContext ctx = table.getTractor();
-        int banker = ctx.getBankerSeat();
+        int banker = ctx.getBottomHolderSeat();
+        if (banker < 0) banker = ctx.getBidSeat() >= 0 ? ctx.getBidSeat() : ctx.getBankerSeat();
         table.getOp().clearChoiceMap();
         table.getOp().setCurrOpSeat(banker);
 
@@ -244,6 +246,7 @@ public final class TractorBidService {
             if (seat < 0 || seat == banker) continue;
             GameProto.NotOperation.Builder nb = notOp(seat, IdleShowCard.TRACTOR_BURY_SECONDS);
             addChoice(table, seat, nb, op(ConstProto.Operation.NOT_CALL));
+            // 扣底期间仍允许反主：单张只改花色，对子及以上反主后由反主者重新拿底。
             if (canOfferDeclare(u.getCards(), ctx)) {
                 addChoice(table, seat, nb, op(ConstProto.Operation.ROB));
             }
@@ -273,19 +276,26 @@ public final class TractorBidService {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
 
+        // 单张反主只改花色；对子及以上才获得重新摸底扣底权。
+        if (dec.strength < TractorRules.BID_PAIR) {
+            acceptBid(ctx, user.getSeated(), dec);
+            broadcastAck(table, userId, GameProto.OpInfo.newBuilder()
+                    .setChoice(ConstProto.Operation.ROB)
+                    .addOpCards(CardOps.toCardInfo(selected)).build());
+            return ConstProto.Result.SUCCESS_VALUE;
+        }
+
         acceptBid(ctx, user.getSeated(), dec);
-        ctx.setBankerSeat(user.getSeated());
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder()
                 .setChoice(ConstProto.Operation.ROB)
                 .addOpCards(CardOps.toCardInfo(selected)).build());
 
         table.getCardPool().attachBottom(table, user.getSeated());
         table.getOp().setCurrOpSeat(user.getSeated());
-        ctx.setTrickLeader(user.getSeated());
         notifyBury(table);
         table.upNextStateWithTime(TableState.IDLE_SHOW_CARD, System.currentTimeMillis());
-        logger.info("拖拉机反主换扣底 table:{} newBanker:{} suit:{}",
-                table.getTableId(), user.getSeated(), dec.suit);
+        logger.info("拖拉机反主重新扣底 table:{} holder:{} banker:{} suit:{}",
+                table.getTableId(), user.getSeated(), ctx.getBankerSeat(), dec.suit);
         return ConstProto.Result.SUCCESS_VALUE;
     }
 

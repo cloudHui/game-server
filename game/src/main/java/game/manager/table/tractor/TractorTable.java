@@ -94,7 +94,7 @@ public class TractorTable extends Table {
 
     private int applyBury(int userId, GameProto.OpInfo op) {
         TableUser user = getUsers().get(userId);
-        if (user == null || user.getSeated() != tractor.getBankerSeat()) {
+        if (user == null || user.getSeated() != tractor.getBottomHolderSeat()) {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         if (op.getChoice() != ConstProto.Operation.DISCARD && op.getChoice() != ConstProto.Operation.PLAY) {
@@ -104,7 +104,7 @@ public class TractorTable extends Table {
         for (GameProto.CardInfo ci : op.getOpCardsList()) {
             for (GameProto.Card c : ci.getCardsList()) ids.add(c.getValue());
         }
-        if (!cardPool.buryCards(this, tractor.getBankerSeat(), ids)) {
+        if (!cardPool.buryCards(this, tractor.getBottomHolderSeat(), ids)) {
             return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
         }
         // 放回 8 张后开始出牌

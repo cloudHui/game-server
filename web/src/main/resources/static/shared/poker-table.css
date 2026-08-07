@@ -305,8 +305,29 @@ body {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
+    min-width: 330px;
+    min-height: 50px;
+    justify-content: center;
+    align-items: center;
     gap: 16px;
     z-index: 50;
+}
+
+.played-cards .played-face {
+    position: relative;
+    display: inline-block;
+    margin-left: -18px;
+    transform-origin: 50% 100%;
+}
+
+.played-cards .played-face:first-child { margin-left: 0; }
+.played-cards .played-face:nth-child(odd) { transform: rotate(-4deg) translateY(2px); }
+.played-cards .played-face:nth-child(even) { transform: rotate(4deg); }
+.played-cards.trick-fade-out { animation: tractor-trick-fade .26s ease-out forwards; }
+
+@keyframes tractor-trick-fade {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 .action-btn {

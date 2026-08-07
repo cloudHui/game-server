@@ -59,6 +59,23 @@ public final class TractorSimpleAi {
 			pool = hand;
 		}
 
+		// 首出优先保留并打出完整对子；避免先拆对子，给后续反主/扣底留下组合。
+		Map<Integer, List<Card>> sameValue = new HashMap<>();
+		for (Card c : pool) {
+			int key = TractorRules.isJoker(c) ? c.getCardVal()
+					: c.getId() / 100 * 100 + c.getCardVal();
+			sameValue.computeIfAbsent(key, k -> new ArrayList<>()).add(c);
+		}
+		List<Card> bestPair = null;
+		for (List<Card> group : sameValue.values()) {
+			if (group.size() < 2) continue;
+			if (bestPair == null || TractorRules.power(group.get(0), level, trump)
+					< TractorRules.power(bestPair.get(0), level, trump)) {
+				bestPair = new ArrayList<>(group.subList(0, 2));
+			}
+		}
+		if (bestPair != null && !endgame) return bestPair;
+
 		Card best = null;
 		int bestKey = Integer.MAX_VALUE;
 		for (Card c : pool) {

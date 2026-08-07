@@ -175,6 +175,12 @@ public class TractorCardPool {
         table.getTractor().setBuriedCards(buriedIds);
         table.getTractor().setRevealedBottom(buriedIds);
         table.getTractor().setBottomHolderSeat(bankerSeat);
+        // 只有第一次成功放回 8 张后，亮主结果才正式成为庄家。
+        // 反主/重新摸底期间 bankerSeat 仍可能是上一轮的临时值。
+        TractorTableContext ctx = table.getTractor();
+        // 首次成功扣底才锁定庄家。之后反主只更换本次摸底者，庄家方不变。
+        if (!ctx.isFirstBuryDone()) ctx.setBankerSeat(bankerSeat);
+        ctx.setFirstBuryDone(true);
         if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
             ((PokerReplayRecorder) table.getReplayRecorder()).recordBury(bankerSeat, buriedIds);
         }

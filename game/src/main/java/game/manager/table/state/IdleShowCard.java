@@ -24,7 +24,9 @@ public class IdleShowCard extends AbstractTableHandle {
             return super.handle(table);
         }
         TractorTable t = (TractorTable) table;
-        int seat = t.getTractor().getBankerSeat();
+        // 亮主后的首次扣底可能尚未正式锁庄；反主重新摸底时也必须由持底者操作。
+        int seat = t.getTractor().getBottomHolderSeat();
+        if (seat < 0) seat = t.getTractor().getBankerSeat();
         TableUser u = table.getSeatUser(seat);
         long now = System.currentTimeMillis();
         long deadline = table.getStateStartTime() + TRACTOR_BURY_SECONDS * 1000L;

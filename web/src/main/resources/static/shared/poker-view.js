@@ -321,12 +321,12 @@ function renderPlayedCards(roleId, cardValues) {
     var values = cardValues || [];
     var count = values.length;
     var slot = target.id || '';
-    // 出牌区只保留牌值/数字的可读性，所有牌水平密集叠放，不再扇形展开。
     values.forEach(function(value, index) {
         var face = createCardFace(value);
         face.classList.add('played-face');
         target.appendChild(face);
     });
+    target.classList.remove('trick-fade-out');
 }
 
 function rememberPreviousHand(roleId, cards) {

@@ -241,11 +241,16 @@ public final class TractorRules {
 		if (!inLeadSuit.isEmpty()) return true;
 		// 无该门：若整手出主牌杀，须同型（有拖拉机须用拖拉机毙）
 		if (parsed != null && parsed.suitId == 0) {
-			if (parsed.type != lead.type) return false;
-			if (lead.type == ComboType.TRACTOR && parsed.tractorLen != lead.tractorLen) return false;
+			if (!sameShape(parsed, lead)) return false;
 			return true;
 		}
 		return play.size() == lead.cards.size();
+	}
+
+	/** 主牌杀牌也必须保持首牌的牌型、张数和拖拉机长度。 */
+	private static boolean sameShape(Combo a, Combo b) {
+		if (a == null || b == null || a.type != b.type || a.cards.size() != b.cards.size()) return false;
+		return a.type != ComboType.TRACTOR || a.tractorLen == b.tractorLen;
 	}
 
 	private static boolean hasTractor(List<Card> cards, int length, int levelRank, int trumpSuit) {
@@ -328,20 +333,17 @@ public final class TractorRules {
 		boolean bestTrump = currentBest.suitId == 0;
 		boolean leadTrump = lead.suitId == 0;
 		if (!leadTrump) {
-			if (inTrump && incoming.type == lead.type
-					&& (lead.type != ComboType.TRACTOR || incoming.tractorLen == lead.tractorLen)) {
+			if (inTrump && sameShape(incoming, lead)) {
 				if (!bestTrump) return true;
 				return incoming.strength > currentBest.strength;
 			}
 			if (incoming.suitId != lead.suitId) return false;
-			if (incoming.type != lead.type) return false;
-			if (lead.type == ComboType.TRACTOR && incoming.tractorLen != lead.tractorLen) return false;
+			if (!sameShape(incoming, lead)) return false;
 			return incoming.strength > currentBest.strength;
 		}
 		// 首家出主
 		if (!inTrump) return false;
-		if (incoming.type != lead.type) return false;
-		if (lead.type == ComboType.TRACTOR && incoming.tractorLen != lead.tractorLen) return false;
+		if (!sameShape(incoming, lead)) return false;
 		return incoming.strength > currentBest.strength;
 	}
 
@@ -460,7 +462,11 @@ public final class TractorRules {
 		List<Card> big = new ArrayList<>();
 		List<Card> small = new ArrayList<>();
 		Map<Integer, List<Card>> levelBySuit = new HashMap<>();
+		Map<Integer, Integer> suitCount = new HashMap<>();
 		for (Card c : hand) {
+			if (!isJoker(c) && c.getCardSuit() != null) {
+				suitCount.merge(c.getCardSuit().getId(), 1, Integer::sum);
+			}
 			if (c.isBigJoker()) big.add(c);
 			else if (c.isSmallJoker()) small.add(c);
 			else if (isLevelCard(c, levelRank) && c.getCardSuit() != null) {
@@ -477,7 +483,10 @@ public final class TractorRules {
 		if (beatsDeclare(smallPair, currentStrength, currentSuit)) {
 			return smallPair;
 		}
-		for (int suit = 4; suit >= 1; suit--) {
+		List<Integer> suitOrder = new ArrayList<>();
+		for (int suit = 1; suit <= 4; suit++) suitOrder.add(suit);
+		suitOrder.sort((a, b) -> Integer.compare(suitCount.getOrDefault(b, 0), suitCount.getOrDefault(a, 0)));
+		for (int suit : suitOrder) {
 			List<Card> cards = levelBySuit.get(suit);
 			BidDeclare pair = cards != null && cards.size() >= 2
 					? new BidDeclare(BID_PAIR, suit, cards.subList(0, 2)) : null;
@@ -485,7 +494,7 @@ public final class TractorRules {
 				return pair;
 			}
 		}
-		for (int suit = 4; suit >= 1; suit--) {
+		for (int suit : suitOrder) {
 			List<Card> cards = levelBySuit.get(suit);
 			BidDeclare single = cards != null && !cards.isEmpty()
 					? new BidDeclare(BID_SINGLE, suit, Collections.singletonList(cards.get(0))) : null;

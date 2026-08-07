@@ -265,6 +265,7 @@ public final class TractorPlayService {
             ctx.addDefenderScore(trickScore);
         }
         ctx.incTricksDone();
+        ctx.setRoundWinnerSeat(winSeat);
         boolean handsEmpty = true;
         for (TableUser u : table.getSeatUsers().values()) {
             if (!u.getCards().isEmpty()) {

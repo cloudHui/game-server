@@ -123,6 +123,17 @@ function handleAckOp(data) {
         var previousButton = document.getElementById('previousTrickBtn');
         if (previousButton) previousButton.hidden = false;
         gameState.trickDone = true;
+        // 四家完成后保留一秒，再统一淡出清除；下一墩不再依赖首家出牌触发清理。
+        clearTimeout(gameState.trickClearTimer);
+        gameState.trickClearTimer = setTimeout(function () {
+            document.querySelectorAll('.played-cards').forEach(function (el) {
+                if (el.children.length) el.classList.add('trick-fade-out');
+            });
+            setTimeout(function () {
+                clearAllPlayedAreas();
+                clearKillEffects();
+            }, 260);
+        }, 1000);
     }
 }
 
