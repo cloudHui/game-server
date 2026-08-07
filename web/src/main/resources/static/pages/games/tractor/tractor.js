@@ -32,7 +32,10 @@ var gameState = {
     trickPlays: {},
     trickCount: 0,
     trickDone: false,
-    defenderScore: 0
+    defenderScore: 0,
+    previousTrick: null,
+    previousTrickTimer: null,
+    bottomPeekTimer: null
 };
 
 GameTable.requireSessionOrRedirect(session);

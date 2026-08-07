@@ -36,6 +36,7 @@ function showTrickWinEffect(roleId, killed) {
 
 function handleAckOp(data) {
     gameState.opPending = false;
+    var oldScore = gameState.defenderScore || 0;
     gameState.defenderScore = data.baseScore || 0;
     updateTrumpMeta(data.robMultiplier, data.bombMultiplier);
     var cards = data.cards || [];
@@ -105,8 +106,35 @@ function handleAckOp(data) {
         var killed = mult >= 200;
         var winSeat = killed ? (mult - 200) : (mult - 100);
         showTrickWinEffect(roleIdBySeat(winSeat) || data.opFrom, killed);
+        var winnerId = roleIdBySeat(winSeat) || data.opFrom;
+        showTrickResult(winnerId, Math.max(0, (gameState.defenderScore || 0) - oldScore));
+        gameState.previousTrick = Object.keys(gameState.trickPlays).map(function (rid) {
+            return {roleId: Number(rid), cards: gameState.trickPlays[rid].slice()};
+        });
+        var previousButton = document.getElementById('previousTrickBtn');
+        if (previousButton) previousButton.hidden = false;
         gameState.trickDone = true;
     }
+}
+
+function showTrickResult(roleId, score) {
+    var target = playedTargetForRole(roleId);
+    if (!target) return;
+    var fx = document.createElement('div');
+    fx.className = 'trick-result-fx';
+    fx.innerHTML = '<span class="trick-arrow">▲</span> 最大' + (score > 0 ? ' · 闲家得 ' + score + ' 分' : '');
+    target.appendChild(fx);
+    setTimeout(function () { if (fx.parentNode) fx.remove(); }, 1100);
+}
+
+function showPreviousTrick() {
+    if (!gameState.previousTrick || !gameState.previousTrick.length) return;
+    clearTimeout(gameState.previousTrickTimer);
+    gameState.previousTrick.forEach(function (item) { renderPlayedCards(item.roleId, item.cards); });
+    gameState.previousTrickTimer = setTimeout(function () {
+        clearAllPlayedAreas();
+        Object.keys(gameState.trickPlays).forEach(function (rid) { renderPlayedCards(Number(rid), gameState.trickPlays[rid]); });
+    }, 1000);
 }
 
 function handleNotOp(data) {
@@ -180,7 +208,7 @@ function doOp(choice) {
         return;
     }
     if (choice === 13 && selected.length !== 8) {
-        showCenterMsg('请选择正好 8 张牌放回地下');
+        showCenterMsg(selected.length < 8 ? '还需选择 ' + (8 - selected.length) + ' 张牌' : '多选了 ' + (selected.length - 8) + ' 张牌');
         return;
     }
 

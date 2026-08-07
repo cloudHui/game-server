@@ -146,6 +146,7 @@ function handleNotCard(data) {
     renderDizhuCards(bottom);
     if (landlordCandidate && (bottom.length || maxCount > 25)) {
         gameState.landlordId = landlordCandidate;
+        renderDizhuCards(bottom);
     }
 
     // 扣底/拿底：直接刷新，不播发牌动画

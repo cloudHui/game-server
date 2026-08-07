@@ -13,6 +13,8 @@ import proto.ConstProto;
 import proto.GameProto;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -37,14 +39,86 @@ public final class TractorPlayService {
 
     public static void autoPlay(TractorTable table, int seat) {
         TableUser user = table.getSeatUser(seat);
-        if (user == null || user.getCards().isEmpty()) return;
+        if (user == null || user.getCards().isEmpty()) {
+            logger.warn("拖拉机自动出牌跳过: table:{} seat:{} user/cards missing", table.getTableId(), seat);
+            return;
+        }
         List<Card> play = TractorSimpleAi.decide(table, seat);
-        if (play == null || play.isEmpty()) return;
-        GameProto.CardInfo.Builder ci = GameProto.CardInfo.newBuilder();
-        for (Card c : play) ci.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
-        GameProto.OpInfo op = GameProto.OpInfo.newBuilder()
-                .setChoice(ConstProto.Operation.PLAY).addOpCards(ci.build()).build();
-        apply(table, user.getUserId(), op);
+        logger.info("拖拉机自动出牌: table:{} seat:{} hand:{} aiCards:{} lead:{}",
+                table.getTableId(), seat, user.getCards().size(), play == null ? 0 : play.size(),
+                table.getTractor().getLeadCombo() == null ? "none" : table.getTractor().getLeadCombo().type);
+        int result = tryPlay(table, user, play);
+        if (result == ConstProto.Result.SUCCESS_VALUE) return;
+        logger.warn("拖拉机AI出牌失败，进入兜底: table:{} seat:{} result:{}", table.getTableId(), seat, result);
+        for (List<Card> candidate : fallbackCandidates(table, user)) {
+            result = tryPlay(table, user, candidate);
+            if (result == ConstProto.Result.SUCCESS_VALUE) {
+                logger.warn("拖拉机兜底出牌成功: table:{} seat:{} cards:{}", table.getTableId(), seat, ids(candidate));
+                return;
+            }
+        }
+        logger.error("拖拉机兜底仍无合法出牌: table:{} seat:{} hand:{} lead:{}",
+                table.getTableId(), seat, ids(user.getCards()), table.getTractor().getLeadCombo());
+    }
+
+    private static int tryPlay(TractorTable table, TableUser user, List<Card> cards) {
+        if (cards == null || cards.isEmpty()) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        GameProto.CardInfo ci = CardOps.toCardInfo(cards);
+        GameProto.OpInfo op = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PLAY)
+                .addOpCards(ci).build();
+        return apply(table, user.getUserId(), op);
+    }
+
+    /** 兜底候选：先完整组合，再对子/单牌，最后任意同张数组合。 */
+    private static List<List<Card>> fallbackCandidates(TractorTable table, TableUser user) {
+        TractorTableContext ctx = table.getTractor();
+        TractorRules.Combo lead = ctx.getLeadCombo();
+        int need = lead == null ? 1 : lead.cards.size();
+        List<Card> hand = new ArrayList<>(user.getCards());
+        hand.sort(Comparator.comparingInt(c -> TractorRules.power(c, ctx.getLevelRank(), ctx.getTrumpSuit())));
+        List<List<Card>> out = new ArrayList<>();
+        if (lead == null) {
+            for (Card c : hand) out.add(Collections.singletonList(c));
+            // 甩牌是同门子集，不要求把该门手牌全部一次甩完；先尝试较大的子集，再逐步收敛。
+            for (int group = 0; group <= 4; group++) {
+                List<Card> same = new ArrayList<>();
+                for (Card c : hand) if (TractorRules.suitGroup(c, ctx.getLevelRank(), ctx.getTrumpSuit()) == group) same.add(c);
+                for (int size = same.size(); size >= 2; size--) addThrowSubsets(out, same, size);
+            }
+            return out;
+        }
+        List<Card> same = new ArrayList<>();
+        for (Card c : hand) if (TractorRules.suitGroup(c, ctx.getLevelRank(), ctx.getTrumpSuit()) == lead.suitId) same.add(c);
+        addCombinations(out, same, need, ctx, lead, true);
+        if (same.size() < need) addCombinations(out, hand, need, ctx, lead, false);
+        return out;
+    }
+
+    private static void addThrowSubsets(List<List<Card>> out, List<Card> src, int size) {
+        if (src.size() < size) return;
+        // 连续窗口覆盖常见甩牌组合，避免在双副牌残局做指数级全组合搜索。
+        for (int start = 0; start + size <= src.size(); start++) {
+            out.add(new ArrayList<>(src.subList(start, start + size)));
+        }
+    }
+
+    private static void addCombinations(List<List<Card>> out, List<Card> src, int need,
+                                         TractorTableContext ctx, TractorRules.Combo lead, boolean same) {
+        if (src.size() < need) return;
+        for (int start = 0; start + need <= src.size(); start++) {
+            List<Card> c = new ArrayList<>(src.subList(start, start + need));
+            if (same && lead.type == TractorRules.ComboType.TRACTOR) {
+                // 先尝试对子成组，再由 isLegalFollow 负责“对子不足时补单牌”。
+                c.sort(Comparator.comparingInt(x -> TractorRules.power(x, ctx.getLevelRank(), ctx.getTrumpSuit())));
+            }
+            out.add(c);
+        }
+    }
+
+    private static List<Integer> ids(List<Card> cards) {
+        List<Integer> ids = new ArrayList<>();
+        if (cards != null) for (Card c : cards) ids.add(c.getId());
+        return ids;
     }
 
     private static int applyPlay(TractorTable table, TableUser user, GameProto.OpInfo opInfo) {

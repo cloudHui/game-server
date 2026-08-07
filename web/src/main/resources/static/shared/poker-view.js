@@ -82,10 +82,25 @@ function renderMyCards() {
     }
     container.innerHTML = '';
     container.appendChild(frag);
+    renderSelectionStatus();
     gameState.dealFlashIds = [];
     layoutMyCards();
     renderPlayerLabels();
     bindPokerHandSelect();
+}
+
+function renderSelectionStatus() {
+    var bar = document.getElementById('actionBar');
+    if (!bar || gameState.opSeat !== gameState.myPosition) return;
+    var n = gameState.selectedCardIndexes ? gameState.selectedCardIndexes.size : gameState.selectedCards.size;
+    var old = document.getElementById('selectionStatus');
+    if (old) old.remove();
+    if (!n) return;
+    var tip = document.createElement('span');
+    tip.id = 'selectionStatus';
+    tip.className = 'selection-status';
+    tip.textContent = '已选 ' + n + ' 张';
+    bar.appendChild(tip);
 }
 
 /** 点非牌面区域放下已选牌；牌面上按下拖动松手后提起经过的牌（可智能成牌型） */
@@ -197,7 +212,24 @@ function renderDizhuCards(cardValues) {
     var box = document.getElementById('dizhuCards');
     if (!box) return;
     box.innerHTML = '';
-    if (!cardValues || !cardValues.length) return;
+    if (!cardValues || !cardValues.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.classList.add('bottom-card-back');
+    box.onclick = null;
+    if (gameState.landlordId === userId) {
+        box.onclick = function () {
+            box.classList.remove('bottom-card-back');
+            box.innerHTML = '';
+            cardValues.forEach(function (value) { var c = document.createElement('div'); c.className = 'card'; c.appendChild(createCardFace(value)); box.appendChild(c); });
+            clearTimeout(gameState.bottomPeekTimer);
+            gameState.bottomPeekTimer = setTimeout(function () { renderDizhuCards(cardValues); }, 2000);
+        };
+    }
+    var back = document.createElement('span');
+    back.className = 'bottom-card-back-mark';
+    back.textContent = '底';
+    box.appendChild(back);
+    return;
     var label = document.createElement('span');
     label.className = 'dizhu-label';
     label.textContent = '底牌';
@@ -392,6 +424,7 @@ function updatePlayers(players) {
 }
 
 function highlightActivePlayer(position, waitSeconds) {
+    gameState.opSeat = position;
     stopOperationCountdown();
     var seatNum = gameState.seatNum || 3;
     var ids = seatNum >= 4
@@ -433,6 +466,7 @@ function startOperationCountdown(target, waitSeconds) {
     target.appendChild(badge);
     function tick() {
         badge.textContent = left + '秒';
+        badge.classList.toggle('warning', left < 10);
         if (left <= 0) {
             clearInterval(gameState.operationTimer);
             gameState.operationTimer = null;

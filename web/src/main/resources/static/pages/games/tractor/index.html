@@ -29,7 +29,7 @@
         </button>
     </div>
     <div class="ws-status" id="wsStatus">连接中...</div>
-    <div class="dizhu-cards" id="dizhuCards"></div>
+    <button class="dizhu-cards" id="dizhuCards" type="button" aria-label="查看底牌"></button>
 
     <div class="player-area player-top">
         <div class="player-info" id="playerTop"><span class="name">等待加入</span></div>
@@ -48,6 +48,7 @@
     <div class="played-cards played-left" id="playedLeft"></div>
     <div class="played-cards played-right" id="playedRight"></div>
     <div class="played-cards played-bottom" id="playedBottom"></div>
+    <button class="previous-trick-btn" id="previousTrickBtn" type="button" onclick="showPreviousTrick()" hidden>上一轮</button>
     <div class="center-message" id="centerMsg"></div>
     <div class="settle-overlay" id="settleOverlay">
         <div class="settle-panel">
