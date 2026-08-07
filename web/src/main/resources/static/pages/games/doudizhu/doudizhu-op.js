@@ -39,6 +39,7 @@ function handleNotCard(data) {
     // 20 张视为地主（17+3 底牌）
     if (maxCount >= 20 && landlordCandidate) {
         gameState.landlordId = landlordCandidate;
+        renderDizhuCards(bottom);
     }
     sortHandCards(gameState.myCards);
     gameState.selectedCards.clear();
@@ -73,9 +74,11 @@ function handleAckOp(data) {
         return;
     }
     if (!cards.length) return;
+    rememberPreviousHand(gameState.lastPlayRoleId, gameState.lastPlayedCards);
     clearAllPlayedAreas();
     clearPassHints();
     renderPlayedCards(data.opFrom, cards);
+    gameState.lastPlayRoleId = data.opFrom;
     gameState.lastPlayedCards = cards.slice();
     if (data.opFrom === userId) {
         for (var i = 0; i < cards.length; i++) {

@@ -9,7 +9,8 @@ function layoutMyCards() {
     var container = document.getElementById('myCards');
     if (!container || !window.GameLandscape) return;
     var n = Math.max(gameState.layoutCardCount || gameState.myCards.length, 1);
-    var rows = n >= 18 ? 2 : 1;
+    // 普通玩法尽量保持一排；只有拖拉机允许在 18 张以上分两排。
+    var rows = window.pokerAllowTwoRows && n >= 18 ? 2 : 1;
     var rowCount = Math.ceil(n / rows);
     var pad = 24;
     var size = GameLandscape.forcePokerLandscape();
@@ -17,6 +18,12 @@ function layoutMyCards() {
     var cardW = rows === 2 ? Math.min(62, Math.max(48, Math.floor(avail / rowCount))) : 54;
     var overlap = 0;
     if (rowCount > 1) {
+        // 单排也按可用宽度压叠，保证普通玩法 20 张仍能完整落在牌区内。
+        if (rows === 1) {
+            overlap = Math.floor((avail - cardW) / (rowCount - 1) - cardW);
+            overlap = Math.max(-Math.floor(cardW * 0.82), Math.min(-8, overlap));
+        }
+        if (rows === 2) {
         overlap = Math.floor((avail - cardW) / (rowCount - 1) - cardW);
         overlap = Math.max(-Math.floor(cardW * 0.78), Math.min(-12, overlap));
         var total = cardW + (rowCount - 1) * (cardW + overlap);
@@ -24,6 +31,7 @@ function layoutMyCards() {
             cardW = Math.max(36, Math.floor(avail / (1 + (rowCount - 1) * 0.28)));
             overlap = Math.floor((avail - cardW) / (rowCount - 1) - cardW);
             overlap = Math.max(-Math.floor(cardW * 0.82), Math.min(-8, overlap));
+        }
         }
     }
     // 牌数较多的玩法可按页面设置缩放，避免两排手牌遮住桌面。
@@ -39,12 +47,12 @@ function layoutMyCards() {
     container.style.setProperty('--poker-corner', Math.max(7, Math.round(cardW * 0.17)) + 'px');
     container.style.setProperty('--poker-art', Math.max(16, Math.round(cardW * 0.5)) + 'px');
     var bar = document.getElementById('actionBar');
-    if (bar) bar.style.bottom = (cardH * rows + (rows === 2 ? 76 : 78)) + 'px';
+    // 操作栏使用 CSS 固定抬起位置，牌面重绘时不要跟着牌区跳动。
 }
 
 function renderMyCards() {
     var container = document.getElementById('myCards');
-    var useTwoRows = gameState.myCards.length >= 18;
+    var useTwoRows = window.pokerAllowTwoRows && gameState.myCards.length >= 18;
     container.className = 'my-cards' + (useTwoRows ? ' two-rows' : '');
     var frag = document.createDocumentFragment();
     var rowSize = useTwoRows ? Math.ceil(gameState.myCards.length / 2) : gameState.myCards.length;
@@ -118,6 +126,11 @@ function bindPokerHandSelect() {
     if (_pokerSelectBound) return;
     _pokerSelectBound = true;
     document.addEventListener('click', function (ev) {
+        var bottomBox = document.getElementById('dizhuCards');
+        if (bottomBox && bottomBox.classList.contains('bottom-card-open')
+                && !(ev.target.closest && ev.target.closest('#dizhuCards'))) {
+            renderDizhuCards(gameState.bottomCards || []);
+        }
         if (Date.now() < _pokerIgnoreClickUntil) return;
         if (!gameState || !gameState.myCards || !gameState.myCards.length) return;
         if (ev.target.closest && ev.target.closest('#myCards .card')) return;
@@ -211,35 +224,33 @@ function applyPokerPickedCards(picked) {
 function renderDizhuCards(cardValues) {
     var box = document.getElementById('dizhuCards');
     if (!box) return;
+    clearTimeout(gameState.bottomPeekTimer);
     box.innerHTML = '';
-    if (!cardValues || !cardValues.length) { box.hidden = true; return; }
+    if (!cardValues || !cardValues.length || gameState.landlordId !== userId) {
+        box.hidden = true;
+        return;
+    }
     box.hidden = false;
-    box.classList.add('bottom-card-back');
-    box.onclick = null;
-    if (gameState.landlordId === userId) {
-        box.onclick = function () {
-            box.classList.remove('bottom-card-back');
-            box.innerHTML = '';
-            cardValues.forEach(function (value) { var c = document.createElement('div'); c.className = 'card'; c.appendChild(createCardFace(value)); box.appendChild(c); });
-            clearTimeout(gameState.bottomPeekTimer);
-            gameState.bottomPeekTimer = setTimeout(function () { renderDizhuCards(cardValues); }, 2000);
-        };
-    }
-    var back = document.createElement('span');
-    back.className = 'bottom-card-back-mark';
-    back.textContent = '底';
-    box.appendChild(back);
-    return;
-    var label = document.createElement('span');
-    label.className = 'dizhu-label';
-    label.textContent = '底牌';
-    box.appendChild(label);
-    for (var i = 0; i < cardValues.length; i++) {
-        var card = document.createElement('div');
-        card.className = 'card';
-        card.appendChild(createCardFace(cardValues[i]));
-        box.appendChild(card);
-    }
+    box.classList.remove('bottom-card-open');
+    box.onclick = function (ev) {
+        ev.stopPropagation();
+        box.classList.add('bottom-card-open');
+        box.innerHTML = '';
+        var label = document.createElement('span');
+        label.className = 'dizhu-label';
+        label.textContent = '底牌';
+        box.appendChild(label);
+        cardValues.forEach(function (value) {
+            var card = document.createElement('div');
+            card.className = 'card';
+            card.appendChild(createCardFace(value));
+            box.appendChild(card);
+        });
+    };
+    var hint = document.createElement('span');
+    hint.className = 'bottom-card-hint';
+    hint.textContent = '查看底牌';
+    box.appendChild(hint);
 }
 
 function toggleCard(cardValue, cardIndex) {
@@ -306,11 +317,32 @@ function renderPlayedCards(roleId, cardValues) {
     var target = playedTargetForRole(roleId);
     if (!target) return;
     target.innerHTML = '';
-    (cardValues || []).forEach(function(value) {
+    target.classList.toggle('has-played-cards', !!(cardValues && cardValues.length));
+    var values = cardValues || [];
+    var count = values.length;
+    var slot = target.id || '';
+    // 出牌区只保留牌值/数字的可读性，所有牌水平密集叠放，不再扇形展开。
+    values.forEach(function(value, index) {
         var face = createCardFace(value);
         face.classList.add('played-face');
         target.appendChild(face);
     });
+}
+
+function rememberPreviousHand(roleId, cards) {
+    if (!cards || !cards.length) return;
+    gameState.previousHand = {roleId: roleId, cards: cards.slice()};
+    var btn = document.getElementById('previousHandBtn');
+    if (btn) btn.hidden = false;
+}
+
+function showPreviousHand() {
+    if (!gameState.previousHand) return;
+    renderPlayedCards(gameState.previousHand.roleId, gameState.previousHand.cards);
+    clearTimeout(gameState.previousHandTimer);
+    gameState.previousHandTimer = setTimeout(function () {
+        clearAllPlayedAreas();
+    }, 1500);
 }
 
 function showPassHint(roleId) {
@@ -597,4 +629,12 @@ function showOperationChoices(choices) {
     bar.style.display = 'flex';
     var map = window.pokerOpChoiceMap || {};
     for (var i = 0; i < choices.length; i++) appendOpChoice(bar, choices[i], map);
+    var canPlay = choices.some(function (item) { return item.choice === 6; });
+    if (canPlay && typeof window.pokerSuggestPlay === 'function') {
+        var hint = document.createElement('button');
+        hint.className = 'action-btn btn-hint';
+        hint.textContent = '提示';
+        hint.onclick = window.pokerSuggestPlay;
+        bar.appendChild(hint);
+    }
 }

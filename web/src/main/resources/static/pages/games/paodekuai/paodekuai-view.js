@@ -1,6 +1,27 @@
 /** 跑得快：仅出牌/不出；拖选优先提起最长合法牌型 */
 function pokerSettleTag() { return '余牌'; }
 
+window.pokerSuggestPlay = function () {
+    var cards = gameState.myCards.slice().sort(function (a, b) { return a - b; });
+    var last = gameState.lastPlayedCards || [];
+    var pick = cards.length ? [cards[0]] : [];
+    if (last.length) {
+        var need = last.length;
+        var lastRank = Math.max.apply(null, last.map(function (id) { return id % 100; }));
+        var same = cards.filter(function (id) { return id % 100 > lastRank; }).slice(0, need);
+        if (same.length === need) pick = same;
+        else {
+            var bomb = {};
+            cards.forEach(function (id) { var r = id % 100; (bomb[r] || (bomb[r] = [])).push(id); });
+            Object.keys(bomb).some(function (r) {
+                if (bomb[r].length >= 4) { pick = bomb[r].slice(0, 4); return true; }
+                return false;
+            });
+        }
+    }
+    applyPokerPickedCards(pick);
+};
+
 window.pokerOpChoiceMap = {
     6: { cls: 'btn-play', text: '出牌' },
     0: { cls: 'btn-pass', text: '不出' }

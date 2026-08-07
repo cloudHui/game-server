@@ -54,9 +54,11 @@ function handleAckOp(data) {
         return;
     }
     if (!cards.length) return;
+    rememberPreviousHand(gameState.lastPlayRoleId, gameState.lastPlayedCards);
     clearAllPlayedAreas();
     clearPassHints();
     renderPlayedCards(data.opFrom, cards);
+    gameState.lastPlayRoleId = data.opFrom;
     gameState.lastPlayedCards = cards.slice();
     // 记录最大出牌座位：有人全过后再轮到他首出时才清桌面
     for (var p = 0; p < gameState.players.length; p++) {

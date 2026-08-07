@@ -1,5 +1,6 @@
 /** 拖拉机手牌：主色排序、一次发完后的本地发牌动画 */
 window.pokerHandScale = 0.72;
+window.pokerAllowTwoRows = true;
 var DEAL_CARD_MS = 100;
 
 /**

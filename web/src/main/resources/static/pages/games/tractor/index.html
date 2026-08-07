@@ -16,7 +16,7 @@
     <script src="../../../shared/poker-view.js"></script>
     <meta name="screen-orientation" content="landscape">
 </head>
-<body>
+<body data-game-type="4">
 <div class="table-bg">
     <div class="top-bar">
         <span class="room-info" id="roomInfo">牌桌加载中...</span>
@@ -48,7 +48,7 @@
     <div class="played-cards played-left" id="playedLeft"></div>
     <div class="played-cards played-right" id="playedRight"></div>
     <div class="played-cards played-bottom" id="playedBottom"></div>
-    <button class="previous-trick-btn" id="previousTrickBtn" type="button" onclick="showPreviousTrick()" hidden>上一轮</button>
+    <button class="previous-trick-btn" id="previousTrickBtn" type="button" onclick="showPreviousTrick()" hidden>上一手</button>
     <div class="center-message" id="centerMsg"></div>
     <div class="settle-overlay" id="settleOverlay">
         <div class="settle-panel">

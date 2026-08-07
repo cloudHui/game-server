@@ -15,7 +15,7 @@
     <script src="../../../shared/poker-view.js"></script>
     <meta name="screen-orientation" content="landscape">
 </head>
-<body>
+<body data-game-type="2">
 <div class="table-bg">
     <!-- 顶栏 -->
     <div class="top-bar">
@@ -27,6 +27,7 @@
         <button class="back-btn" onclick="exitRoom()" style="margin-left:8px;background:rgba(198,40,40,0.85);">
             退出房间
         </button>
+        <button class="back-btn" id="previousHandBtn" onclick="showPreviousHand()" hidden>上一手</button>
     </div>
 
     <!-- WebSocket状态 -->

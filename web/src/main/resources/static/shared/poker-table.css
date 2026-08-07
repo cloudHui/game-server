@@ -96,7 +96,7 @@ body {
 }
 .operation-countdown.warning { background: #c62828; color: #fff; }
 .selection-status { color: #fff; font-size: 11px; padding: 4px 7px; opacity: .9; }
-.dizhu-cards { border: 0; cursor: default; }
+.dizhu-cards { border: 0; cursor: pointer; }
 .bottom-card-back { width: 38px; height: 52px; padding: 0; border-radius: 5px; background: repeating-linear-gradient(135deg,#214d7a 0 3px,#e7eef7 3px 5px); box-shadow: 0 1px 5px #0008; }
 .bottom-card-back-mark { display: grid; place-items: center; height: 100%; color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px #000; }
 
@@ -244,7 +244,7 @@ body {
     border-radius: 6px;
     position: relative;
     cursor: pointer;
-    transition: transform 0.15s, margin-bottom 0.15s;
+    transition: none;
     flex-shrink: 0;
     background: white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -258,9 +258,9 @@ body {
 }
 
 .played-face {
-    width: 52px;
-    height: 73px;
-    margin-left: -13px;
+    width: 40px;
+    height: 56px;
+    margin-left: -28px;
     border-radius: 5px;
     box-shadow: 0 2px 7px rgba(0, 0, 0, .35);
     overflow: hidden;
@@ -271,13 +271,11 @@ body {
 }
 
 .card.selected {
-    transform: translateY(calc(var(--ddz-card-h, 75px) * -0.3));
+    transform: translateY(-20px);
     box-shadow: 0 8px 20px rgba(255, 215, 0, 0.5);
 }
 
-.card:not(.selected):hover {
-    transform: translateY(calc(var(--ddz-card-h, 75px) * -0.08));
-}
+.card:not(.selected):hover { transform: none; }
 
 /* 对手的牌（背面）：后牌重叠前牌 4/5 */
 .opponent-cards {
@@ -318,11 +316,11 @@ body {
     font-size: 16px;
     cursor: pointer;
     font-weight: bold;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: none;
 }
 
 .action-btn:hover {
-    transform: translateY(-2px);
+    transform: none;
 }
 
 .btn-play {
@@ -440,8 +438,18 @@ body {
     display: flex;
     gap: 10px;
     z-index: 45;
-    min-height: 84px;
+    min-height: 32px;
     align-items: center;
+}
+
+.bottom-card-hint {
+    color: #ffe082;
+    font-size: 13px;
+    padding: 7px 13px;
+    border: 1px solid rgba(255,224,130,.7);
+    border-radius: 14px;
+    background: rgba(0,0,0,.25);
+    text-shadow: 0 1px 3px #000;
 }
 
 .dizhu-label {
@@ -495,10 +503,24 @@ body {
 }
 
 .played-cards .card {
-    width: 50px;
-    height: 70px;
+    width: 26px;
+    height: 37px;
     margin-left: 0;
     cursor: default;
+}
+
+.played-cards .played-face {
+    width: 40px;
+    height: 56px;
+    flex: 0 0 40px;
+}
+.played-cards.has-played-cards .played-face { margin-left: -28px; }
+.played-cards.has-played-cards .played-face:first-child { margin-left: 0; }
+
+body[data-game-type="2"] .played-cards,
+body[data-game-type="3"] .played-cards {
+    left: 50%; right: auto; top: 42%; bottom: auto;
+    transform: translate(-50%, -50%);
 }
 
 .played-cards .card:first-child {
@@ -588,6 +610,39 @@ body {
     }
 }
 
+@media (max-width: 640px) {
+    .played-cards .played-face {
+        width: 22px;
+        height: 31px;
+        flex-basis: 22px;
+    }
+}
+
 html.force-landscape .action-bar {
     bottom: calc(var(--ddz-card-h, 75px) + 78px);
+}
+
+/* 桌面出牌区：在密集叠放的基础上放大 40%，保证点数清楚。 */
+.played-cards .played-face {
+    width: 56px;
+    height: 78px;
+    flex-basis: 56px;
+    margin-left: -39px;
+}
+
+.played-cards .played-face:first-child,
+.played-cards.has-played-cards .played-face:first-child {
+    margin-left: 0;
+}
+
+.played-cards .played-face .card-corner {
+    font-size: 11px;
+}
+
+.played-cards .played-face .card-art.rank-large .big-rank {
+    font-size: 34px;
+}
+
+.played-cards .played-face .card-art.rank-large .big-suit {
+    font-size: 18px;
 }

@@ -60,7 +60,16 @@ function handleAckOp(data) {
         return;
     }
     if (choice === 13) {
-        showCenterMsg('扣底完成，开始出牌', 1200);
+        // 扣底请求的成功 ACK 与桌面广播都可能到达；只有广播确认后才清理本地选牌。
+        // 其他玩家收到的只是状态变化，不应显示“过”或普通“出牌”。
+        if (data.opFrom === userId) {
+            gameState.selectedCards.clear();
+            gameState.selectedCardIndexes.clear();
+            renderMyCards();
+            showCenterMsg('扣底完成，开始出牌', 1200);
+        } else {
+            showCenterMsg(findPlayerName(data.opFrom) + '正在扣底', 1200);
+        }
         return;
     }
     if (!cards.length) return;
@@ -155,6 +164,13 @@ function handleNotOp(data) {
     }
     if (hasPrepare) {
         showActionButtons('prepare');
+        return;
+    }
+    // 扣底只允许庄家看到“放回8张”，其余玩家只看状态提示。
+    if (choices.some(function (item) { return item.choice === 13; })
+            && opSeat !== gameState.myPosition) {
+        hideActions();
+        showCenterMsg(findPlayerName(roleIdBySeat(opSeat)) + '正在扣底', 1200);
         return;
     }
     if (gameState.myPosition >= 0 && opSeat === gameState.myPosition) {

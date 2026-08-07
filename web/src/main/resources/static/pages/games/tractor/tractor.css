@@ -68,6 +68,8 @@
     z-index: 35;
 }
 
+.played-cards .card { width: 26px; height: 37px; }
+
 .trick-result-fx {
     position: absolute;
     left: 50%;
@@ -83,9 +85,9 @@
 .trick-arrow { color: #ffeb3b; font-size: 18px; margin-right: 3px; }
 .previous-trick-btn {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    right: 12px;
+    top: 54px;
+    transform: none;
     z-index: 50;
     border: 1px solid rgba(255,255,255,.55);
     border-radius: 12px;
