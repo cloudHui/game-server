@@ -1,4 +1,4 @@
-/* Viewport policy: the shell never scrolls; long datasets keep their own list. */
+/* Viewport policy: the shell may grow and the page can scroll on short screens. */
 html, body, #app {
     width: 100%;
     overflow-x: hidden;
@@ -6,14 +6,10 @@ html, body, #app {
 
 .shell {
     min-height: 100dvh;
-    height: 100dvh;
-    overflow: hidden;
 }
 
 .content {
     width: min(1440px, calc(100% - 32px));
-    max-height: calc(100dvh - 72px);
-    overflow: hidden;
     padding-top: clamp(14px, 3vh, 32px);
     padding-bottom: clamp(16px, 4vh, 48px);
 }
@@ -24,7 +20,6 @@ html, body, #app {
 
 @media (max-height: 760px) and (min-width: 601px) {
     .topbar { height: 60px; }
-    .content { max-height: calc(100dvh - 60px); }
     .hero { min-height: 150px; padding: 24px 30px; }
     .stats-grid { margin: 14px 0 20px; }
     .section-title { margin: 18px 0 10px; }

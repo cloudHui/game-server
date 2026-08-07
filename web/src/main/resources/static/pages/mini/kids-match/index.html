@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小朋友连连看 🎮</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a href="../index.html" class="hall-back" title="返回小游戏列表" aria-label="返回小游戏列表"
+     style="position:fixed;top:10px;left:10px;z-index:99999;display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:999px;font-family:system-ui,-apple-system,'Microsoft YaHei',sans-serif;font-size:14px;font-weight:700;line-height:1;text-decoration:none;color:#fff;background:rgba(30,30,40,0.55);box-shadow:0 2px 10px rgba(0,0,0,0.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);">‹ 小游戏</a>
+  <div id="app">
+
+    <header>
+      <h1>连连看 🎮</h1>
+      <div id="hud">
+        <div class="hud-item">
+          <span class="hud-label">🗺 关卡</span>
+          <span id="level-num">1</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">🔗 已连</span>
+          <span id="pairs-display">0 / 3</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">🧩 已填</span>
+          <span id="cover-display">0 / 16</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">👆 步数</span>
+          <span id="moves-count">0</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="controls">
+      <div id="diff-select">
+        <button class="diff-btn active" data-diff="easy">🌱 简单 4×4</button>
+        <button class="diff-btn"        data-diff="medium">🌿 中等 6×6</button>
+        <button class="diff-btn"        data-diff="hard">🌳 困难 8×8</button>
+      </div>
+      <div id="action-btns">
+        <button id="btn-new">🎮 新关卡</button>
+        <button id="btn-hint">💡 提示</button>
+        <button id="btn-clear">🗑 清除全部</button>
+      </div>
+    </div>
+
+    <!-- board-container holds the canvas overlay + the grid -->
+    <div id="board-container">
+      <canvas id="line-canvas"></canvas>
+      <div id="board"></div>
+    </div>
+
+    <p id="tip">从一个图案拖到相同的图案画线。线不能交叉，而且要把<b>每个格子都填满</b>才算通关哦！😊</p>
+
+    <!-- Win overlay -->
+    <div id="win-overlay" class="hidden">
+      <div id="win-card">
+        <div id="win-emoji">🎉</div>
+        <h2>关卡通关！</h2>
+        <div id="win-stars"></div>
+        <p id="win-level"></p>
+        <p id="win-moves"></p>
+        <button id="btn-next">下一关 ▶</button>
+      </div>
+    </div>
+
+    <div id="toast" class="hidden"></div>
+
+  </div>
+  <script src="js/game.js"></script>
+</body>
+</html>
