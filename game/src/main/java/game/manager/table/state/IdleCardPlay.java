@@ -22,13 +22,14 @@ import org.slf4j.LoggerFactory;
 public class IdleCardPlay extends AbstractTableHandle {
 
     private static final Logger logger = LoggerFactory.getLogger(IdleCardPlay.class);
+    private static final long TRACTOR_LEAD_ROBOT_DELAY_MILLIS = 2_000L;
 
     @Override
     public boolean handle(Table table) {
         int seat = table.getOp().getCurrOpSeat();
         TableUser u = table.getSeatUser(seat);
         if (u != null && u.isRobot()
-                && System.currentTimeMillis() >= table.getStateStartTime() + randomRobotDelay()) {
+                && System.currentTimeMillis() >= table.getStateStartTime() + robotDelay(table)) {
             overTime(table);
             return false;
         }
@@ -37,6 +38,16 @@ public class IdleCardPlay extends AbstractTableHandle {
 
     private long randomRobotDelay() {
         return RobotOperationDelay.randomMillis();
+    }
+
+    private long robotDelay(Table table) {
+        long delay = randomRobotDelay();
+        if (table instanceof game.manager.table.tractor.TractorTable
+                && ((game.manager.table.tractor.TractorTable) table)
+                .getTractor().getLeadCombo() == null) {
+            return Math.max(delay, TRACTOR_LEAD_ROBOT_DELAY_MILLIS);
+        }
+        return delay;
     }
 
     @Override

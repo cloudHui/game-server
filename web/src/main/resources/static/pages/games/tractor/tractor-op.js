@@ -13,6 +13,17 @@ function clearKillEffects() {
     });
 }
 
+function cancelTrickClearTimer() {
+    clearTimeout(gameState.trickClearTimer);
+    clearTimeout(gameState.trickFadeTimer);
+    gameState.trickClearTimer = null;
+    gameState.trickFadeTimer = null;
+    gameState.trickClearToken = (gameState.trickClearToken || 0) + 1;
+    document.querySelectorAll('.played-cards.trick-fade-out').forEach(function (el) {
+        el.classList.remove('trick-fade-out');
+    });
+}
+
 function showKillEffect(roleId) {
     var target = playedTargetForRole(roleId);
     if (!target) return;
@@ -82,6 +93,8 @@ function handleAckOp(data) {
 
     // 上一墩四家已出完：等本墩首家出牌时再清门口
     if (gameState.trickDone) {
+        // 新墩已经开始，上一墩延迟清牌任务不得再碰桌面。
+        cancelTrickClearTimer();
         clearAllPlayedAreas();
         clearKillEffects();
         gameState.trickPlays = {};
@@ -124,14 +137,19 @@ function handleAckOp(data) {
         if (previousButton) previousButton.hidden = false;
         gameState.trickDone = true;
         // 四家完成后保留一秒，再统一淡出清除；下一墩不再依赖首家出牌触发清理。
-        clearTimeout(gameState.trickClearTimer);
+        cancelTrickClearTimer();
+        var clearToken = gameState.trickClearToken;
         gameState.trickClearTimer = setTimeout(function () {
+            gameState.trickClearTimer = null;
+            if (clearToken !== gameState.trickClearToken || !gameState.trickDone) return;
             document.querySelectorAll('.played-cards').forEach(function (el) {
                 if (el.children.length) el.classList.add('trick-fade-out');
             });
-            setTimeout(function () {
+            gameState.trickFadeTimer = setTimeout(function () {
+                if (clearToken !== gameState.trickClearToken || !gameState.trickDone) return;
                 clearAllPlayedAreas();
                 clearKillEffects();
+                gameState.trickFadeTimer = null;
             }, 260);
         }, 1000);
     }
@@ -204,6 +222,7 @@ function handleNotState(data) {
     document.getElementById('tableState').textContent = label || '等待中';
     gameState.dealing = data.state === 2;
     if (!label) {
+        cancelTrickClearTimer();
         stopDealAnim();
         gameState.trumpSuit = 0;
         gameState.trickPlays = {};
@@ -327,6 +346,7 @@ function applyDdzSnapshot(s) {
     });
 
     // 恢复本墩四人门口出牌
+    cancelTrickClearTimer();
     gameState.trickPlays = {};
     gameState.trickCount = 0;
     gameState.trickDone = false;

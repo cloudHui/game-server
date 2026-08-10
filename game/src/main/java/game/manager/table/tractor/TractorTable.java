@@ -79,9 +79,7 @@ public class TractorTable extends Table {
         }
         if (ts == TableState.IDLE_SHOW_CARD) {
             ConstProto.Operation choice = op.getChoice();
-            if (choice == ConstProto.Operation.ROB || choice == ConstProto.Operation.CALL
-                    || choice == ConstProto.Operation.NOT_CALL || choice == ConstProto.Operation.NOT_ROB
-                    || choice == ConstProto.Operation.PASS) {
+            if (choice == ConstProto.Operation.ROB) {
                 return TractorBidService.applyReverseDuringBury(this, userId, op);
             }
             return applyBury(userId, op);
@@ -175,6 +173,10 @@ public class TractorTable extends Table {
                 b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.CALL));
                 b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.ROB));
             }
+        }
+        // 扣底阶段允许其他座位同时反主；其个性化 choices 应在重连后直接展示。
+        if (getTableState() == TableState.IDLE_SHOW_CARD && b.getChoicesCount() > 0) {
+            b.setOpSeat(viewer.getSeated());
         }
         if (tractor.getLastPlayed() != null) b.setLastCards(tractor.getLastPlayed());
         return b.build();

@@ -244,13 +244,16 @@ public final class TractorBidService {
         for (TableUser u : table.getSeatUsers().values()) {
             int seat = u.getSeated();
             if (seat < 0 || seat == banker) continue;
-            GameProto.NotOperation.Builder nb = notOp(seat, IdleShowCard.TRACTOR_BURY_SECONDS);
-            addChoice(table, seat, nb, op(ConstProto.Operation.NOT_CALL));
             // 扣底期间仍允许反主：单张只改花色，对子及以上反主后由反主者重新拿底。
             if (canOfferDeclare(u.getCards(), ctx)) {
+                GameProto.NotOperation.Builder nb = notOp(seat, IdleShowCard.TRACTOR_BURY_SECONDS);
                 addChoice(table, seat, nb, op(ConstProto.Operation.ROB));
+                u.sendRoleMessage(nb.build(), GMsg.NOT_OP, table.getTableId());
+            } else {
+                // 无反主资格时只同步当前扣底座位，不提供“过”等无意义操作。
+                u.sendRoleMessage(notOp(banker, IdleShowCard.TRACTOR_BURY_SECONDS).build(),
+                        GMsg.NOT_OP, table.getTableId());
             }
-            u.sendRoleMessage(nb.build(), GMsg.NOT_OP, table.getTableId());
         }
     }
 
@@ -258,15 +261,11 @@ public final class TractorBidService {
         if (table.getTableState() != TableState.IDLE_SHOW_CARD) return ConstProto.Result.OP_CURR_ERROR_VALUE;
         TableUser user = table.getUsers().get(userId);
         TractorTableContext ctx = table.getTractor();
-        if (user == null || user.getSeated() == ctx.getBankerSeat()) {
+        if (user == null || user.getSeated() == ctx.getBottomHolderSeat()) {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         ConstProto.Operation choice = opInfo.getChoice();
-        if (isPass(choice)) {
-            broadcastAck(table, userId, op(ConstProto.Operation.NOT_CALL));
-            return ConstProto.Result.SUCCESS_VALUE;
-        }
-        if (choice != ConstProto.Operation.ROB && choice != ConstProto.Operation.CALL) {
+        if (choice != ConstProto.Operation.ROB) {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         List<Card> selected = CardOps.pullFromHand(user, CardOps.collectIds(opInfo));
