@@ -77,10 +77,15 @@ public class LobbyAdminHttp {
         }
 
         int requestId = ROBOT_REQUEST_ID.incrementAndGet();
-        TableModel model = TableModelJson.parse(TableModelJson.toJson(source));
-        model.setId(20000 + Math.abs(requestId % 1000000));
-        model.setTotalRounds(1);
-        model.setAutoNextRound(0);
+        TableModel model;
+        try {
+            model = AdminRobotMatchRules.create(source, body);
+        } catch (IllegalArgumentException error) {
+            writeJson(ex, 400, jsonError(400, error.getMessage()));
+            return;
+        }
+        // 每种玩法复用一个管理员测试模板槽位，避免反复测试累积运行时模板。
+        model.setId(30000 + sourceRoomId);
         lobby.manager.table.TableManager.getInstance().putRuntimeModel(model, "admin-robot-test");
         java.util.concurrent.CompletableFuture<ModelProto.RoomTableInfo> future =
                 AdminRobotMatchPending.create(requestId);
@@ -362,7 +367,6 @@ public class LobbyAdminHttp {
         sb.append(",\"autoNextRound\":").append(parseInt(body.get("autoNextRound"), 0));
         sb.append(",\"autoPlay\":").append(parseInt(body.get("autoPlay"), 0));
         sb.append(",\"allowMultiHu\":").append(parseInt(body.get("allowMultiHu"), 0));
-        sb.append(",\"disbandIfAllRobot\":").append(parseInt(body.get("disbandIfAllRobot"), 1));
         sb.append('}');
         return sb.toString();
     }

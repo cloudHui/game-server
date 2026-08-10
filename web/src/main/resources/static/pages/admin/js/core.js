@@ -27,7 +27,7 @@
     w.switchTab = function (name) {
         document.querySelectorAll('.tab').forEach(function (el) { el.classList.toggle('active', el.dataset.tab === name); });
         document.querySelectorAll('.panel').forEach(function (el) { el.classList.toggle('active', el.id === 'panel-' + name); });
-        var loaders = {users: w.loadUsers, tables: w.loadTables, records: w.loadReplays};
+        var loaders = {users: w.loadUsers, records: w.loadReplays};
         if (loaders[name]) loaders[name]();
     };
     w.doLogout = function () { localStorage.clear(); location.href = appUrl('/'); };
