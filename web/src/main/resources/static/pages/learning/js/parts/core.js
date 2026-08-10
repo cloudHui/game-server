@@ -201,7 +201,7 @@
             },
             goBack() {
                 if (this.view === 'home') {
-                    location.href = (typeof appUrl === 'function') ? appUrl('/pages/lobby/learning.html') : '../lobby/learning.html';
+                    location.href = (typeof appUrl === 'function') ? appUrl('/pages/lobby/index.html') : '../lobby/index.html';
                     return;
                 }
                 this.goHome();
