@@ -5,13 +5,7 @@
 (function () {
     var sessionId = localStorage.getItem('sessionId');
     var gameType = parseInt(document.body.dataset.gameType, 10);
-    var META = {
-        1: {name: '麻将', official: [1, 11, 12, 9001], page: '/pages/games/mahjong/index.html', defaultSeats: 4},
-        2: {name: '斗地主', official: [2, 9002, 9003], page: '/pages/games/doudizhu/index.html', defaultSeats: 3},
-        3: {name: '跑得快', official: [9010], page: '/pages/games/paodekuai/index.html', defaultSeats: 3},
-        4: {name: '拖拉机', official: [9011], page: '/pages/games/tractor/index.html', defaultSeats: 4}
-    };
-    var meta = META[gameType] || META[2];
+    var meta = RoomConfig.game(gameType);
     var gameName = meta.name;
     var roomPage = 1;
     function roomPageSize() {
@@ -19,12 +13,6 @@
         if (window.innerWidth < 1000) return 2;
         return 4;
     }
-    var OFFICIAL = meta.official;
-    var SEAT_BY_ROOM = {
-        1: 4, 11: 2, 12: 3, 9001: 4,
-        2: 3, 9002: 3, 9003: 3,
-        9010: 3, 9011: 4
-    };
     if (!sessionId) {
         window.location.href = appUrl('/');
         return;
@@ -37,32 +25,19 @@
     }
 
     function seatOf(roomId) {
-        return SEAT_BY_ROOM[Number(roomId)] || meta.defaultSeats;
+        return RoomConfig.seats(roomId, meta.defaultSeats);
     }
 
     function ruleTip(room) {
-        var seats = seatOf(room.roomId);
-        if (room.roomId === 9003) return '电脑快速房间 · 叫地主后逆时针抢/再抢 · 抢一次倍数翻倍';
-        if (room.roomId === 9002) return '经典斗地主 · ' + seats + '人 · 17张手牌 · 3张底牌 · 轮流叫/抢地主';
-        if (room.roomId === 9001) return '快速麻将 · ' + seats + '人满开 · 13张手牌 · 吃/碰/杠/胡 · 自动连局';
-        if (room.roomId === 2) return '经典斗地主 · ' + seats + '人 · 手动准备下一局';
-        if (room.roomId === 1) return '经典麻将 · ' + seats + '人满开 · 手动准备下一局';
-        if (room.roomId === 11 || room.roomId === 12) return '麻将 · ' + seats + '人满开 · 13张手牌 · 支持吃/碰/杠/胡';
-        if (room.roomId === 9010) return '跑得快 · ' + seats + '人 · 16张手牌 · 方块3先出 · 自动连局';
-        if (room.roomId === 9011) return '拖拉机 · ' + seats + '人 · 两副牌 · 级牌升级 · 自动连局';
-        if (gameType === 3) return '跑得快 · ' + seats + '人 · 16张手牌';
-        if (gameType === 4) return '拖拉机 · ' + seats + '人 · 两副牌';
-        if (gameType === 2) return '经典斗地主 · ' + seats + '人 · 17张手牌 · 3张底牌';
-        return '麻将 · ' + seats + '人满开 · 13张手牌 · 支持吃/碰/杠/胡';
+        return RoomConfig.ruleTip(room.roomId, gameType);
     }
 
     function isOfficial(roomId) {
-        return OFFICIAL.indexOf(Number(roomId)) >= 0;
+        return RoomConfig.isOfficial(roomId, gameType);
     }
 
     function isQuickRoom(roomId) {
-        return roomId === 9001 || roomId === 9002 || roomId === 9003
-            || roomId === 9010 || roomId === 9011;
+        return RoomConfig.isQuick(roomId);
     }
 
     window.loadRooms = function () {

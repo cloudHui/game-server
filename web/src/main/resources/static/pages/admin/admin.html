@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../games/mahjong/mahjong.css">
     <link rel="stylesheet" href="./replay-player.css">
     <script src="../../shared/app-base.js"></script>
+    <script src="../../shared/room-config.js"></script>
 </head>
 <body class="page-theme">
 <div class="header">
@@ -186,9 +187,9 @@
                 </table>
             </div>
             <div class="form-row" style="justify-content:flex-end;">
-                <button class="btn btn-ghost" onclick="loadReplays(replayPage - 1)">上一页</button>
+                <button class="btn btn-ghost" onclick="changeReplayPage(-1)">上一页</button>
                 <span id="replayPageLabel" class="meta"></span>
-                <button class="btn btn-ghost" onclick="loadReplays(replayPage + 1)">下一页</button>
+                <button class="btn btn-ghost" onclick="changeReplayPage(1)">下一页</button>
             </div>
             <div class="msg" id="replayMsg"></div>
         </div>
@@ -223,6 +224,10 @@
 <script src="../../shared/mahjong-tile.js"></script>
 <script src="./replay-shell.js"></script>
 <script src="./replay-player.js"></script>
-<script src="./admin.js"></script>
+<script src="./js/core.js"></script>
+<script src="./js/invites.js"></script>
+<script src="./js/users.js"></script>
+<script src="./js/records.js"></script>
+<script src="./js/tables.js"></script>
 </body>
 </html>

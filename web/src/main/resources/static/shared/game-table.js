@@ -24,8 +24,7 @@
   }
 
   function isQuickRobotRoom(roomId) {
-    return roomId === 9001 || roomId === 9002 || roomId === 9003
-        || roomId === 9010 || roomId === 9011;
+    return w.RoomConfig ? w.RoomConfig.isQuick(roomId) : false;
   }
 
   function gamePageByType(gameType) {
