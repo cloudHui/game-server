@@ -117,6 +117,8 @@ public final class DdzSettleService {
 	private static void saveReplay(DdzTable table, TableUser winner, int settleFactor, String winType, int[] scores) {
 		ReplayRecorder replay = table.getReplayRecorder();
 		if (replay instanceof DdzReplayRecorder) {
+			replay.writeAuditEvent("结算 赢家座" + winner.getSeated() + " 类型 " + winType
+					+ " 最终倍数 " + settleFactor + " 各座得分 " + java.util.Arrays.toString(scores));
 			replay.writeSettlement(winner.getSeated(), settleFactor, winType, scores);
 			replay.save();
 		}

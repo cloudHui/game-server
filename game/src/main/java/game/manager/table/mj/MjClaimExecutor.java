@@ -38,6 +38,11 @@ public final class MjClaimExecutor {
 
         int tileId = ctx.getClaimTileId();
         int fromSeat = ctx.getClaimFromSeat();
+        MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
+        if (replay != null) {
+            TableUser actor = table.getSeatUser(seat);
+            replay.recordChoice(seat, choiceName(choice), actor != null && actor.isRobot() ? "机器人" : "玩家");
+        }
 
         switch (choice) {
             case MJ_HU:
@@ -53,6 +58,17 @@ public final class MjClaimExecutor {
             default:
                 logger.warn("无效的claim操作, table: {}, userId: {}, choice: {}", table.getTableId(), userId, choice);
                 return false;
+        }
+    }
+
+    private static String choiceName(ConstProto.Operation choice) {
+        switch (choice) {
+            case MJ_HU: return "胡";
+            case MJ_GANG: return "杠";
+            case MJ_PENG: return "碰";
+            case MJ_CHI: return "吃";
+            case MJ_PASS: return "过";
+            default: return choice.name();
         }
     }
 

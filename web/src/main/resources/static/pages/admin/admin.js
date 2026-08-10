@@ -1,5 +1,10 @@
 var sessionId = localStorage.getItem('sessionId');
 var isAdmin = localStorage.getItem('isAdmin') === '1';
+var robotMatchTypes = [
+    {roomId: 9001, name: '麻将（四人）'}, {roomId: 9002, name: '斗地主（叫地主）'},
+    {roomId: 9003, name: '斗地主（抢地主）'}, {roomId: 9010, name: '跑得快（三人）'},
+    {roomId: 9011, name: '拖拉机（四人两副）'}
+];
 if (!sessionId) {
     window.location.href = appUrl('/');
 }
@@ -7,6 +12,10 @@ if (!isAdmin) {
     alert('需要管理员账号');
     window.location.href = appUrl('/pages/lobby/index.html');
 }
+var robotMatchSelect = document.getElementById('robotMatchRoom');
+if (robotMatchSelect) robotMatchSelect.innerHTML = robotMatchTypes.map(function (item) {
+    return '<option value="' + item.roomId + '">' + item.name + '</option>';
+}).join('');
 
 function switchTab(name) {
     var tabs = document.querySelectorAll('.tab');
@@ -220,23 +229,66 @@ function loadTables() {
         });
 }
 
+var robotReplayPoll = null;
+function startRobotMatch() {
+    var roomId = Number(document.getElementById('robotMatchRoom').value);
+    var button = document.getElementById('robotMatchStart');
+    button.disabled = true;
+    setMsg('robotMatchMsg', '正在创建真实机器人对局…');
+    fetch(appUrl('/api/admin/robot-matches'), {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({sessionId: sessionId, roomId: roomId})
+    }).then(function (r) { return r.json(); }).then(function (data) {
+        button.disabled = false;
+        if (data.code !== 0) { setMsg('robotMatchMsg', data.msg || '启动失败', false); return; }
+        setMsg('robotMatchMsg', '验收桌 ' + data.tableId + ' 已启动，正在等待首个回放快照…', true);
+        loadTables(); waitForRobotReplay(String(data.tableId), 0);
+    }).catch(function () { button.disabled = false; setMsg('robotMatchMsg', '网络错误', false); });
+}
+
+function waitForRobotReplay(tableId, attempts) {
+    clearTimeout(robotReplayPoll);
+    fetch(appUrl('/api/admin/replays?sessionId=' + encodeURIComponent(sessionId) + '&page=1&size=100'))
+        .then(function (r) { return r.json(); }).then(function (data) {
+        var found = (data.replays || []).find(function (item) { return String(item.tableId) === tableId; });
+        if (found) { setMsg('robotMatchMsg', '已进入验收桌 ' + tableId + '。', true); openReplay(found.date, found.name); return; }
+        if (attempts >= 60) { setMsg('robotMatchMsg', '对局已启动，回放稍后可在战绩/回放中查看。', false); return; }
+        robotReplayPoll = setTimeout(function () { waitForRobotReplay(tableId, attempts + 1); }, 1000);
+    }).catch(function () { robotReplayPoll = setTimeout(function () { waitForRobotReplay(tableId, attempts + 1); }, 1500); });
+}
+
 var replayPage = 1;
+var replayTypes = {
+    mahjong: ['麻将', '荆门麻将', '卡五星'],
+    poker: ['斗地主', '跑得快', '拖拉机']
+};
+
+function changeReplayCategory() {
+    var category = document.getElementById('replayCategory').value;
+    var types = replayTypes[category] || [];
+    document.getElementById('replayGameType').innerHTML = '<option value="">全部子玩法</option>'
+        + types.map(function (type) { return '<option value="' + type + '">' + type + '</option>'; }).join('');
+    loadReplays(1);
+}
 
 function loadReplays(page) {
     replayPage = Math.max(page || 1, 1);
-    fetch(appUrl('/api/admin/replays?sessionId=' + encodeURIComponent(sessionId) + '&page=' + replayPage + '&size=20'))
+    var category = document.getElementById('replayCategory').value;
+    var gameType = document.getElementById('replayGameType').value;
+    fetch(appUrl('/api/admin/replays?sessionId=' + encodeURIComponent(sessionId) + '&page=' + replayPage + '&size=20'
+        + '&category=' + encodeURIComponent(category) + '&gameType=' + encodeURIComponent(gameType)))
         .then(function (r) {
             return r.json();
         })
         .then(function (data) {
             var body = document.getElementById('replayBody');
             if (data.code !== 0) {
-                body.innerHTML = '<tr><td colspan="6">' + (data.msg || '加载失败') + '</td></tr>';
+                body.innerHTML = '<tr><td colspan="7">' + (data.msg || '加载失败') + '</td></tr>';
                 return;
             }
             var list = data.replays || [];
             if (!list.length) {
-                body.innerHTML = '<tr><td colspan="6">暂无回放（对局结算后才会生成）</td></tr>';
+                body.innerHTML = '<tr><td colspan="7">暂无回放</td></tr>';
                 setMsg('replayMsg', '0 条', true);
                 loadRecords();
                 return;
@@ -246,7 +298,7 @@ function loadReplays(page) {
                 var r = list[i];
                 html += '<tr><td>' + r.date + '</td><td class="token">' + r.name + '</td><td>'
                     + (r.tableId || '-') + '</td><td>' + (r.round || '-') + '</td><td>'
-                    + (r.gameType || '-') + '</td><td><button class="btn btn-ghost" onclick="openReplay(\''
+                    + (r.gameType || '-') + '</td><td>' + (r.status || '-') + '</td><td><button class="btn btn-ghost" onclick="openReplay(\''
                     + r.date + '\',\'' + r.name + '\')">查看</button></td></tr>';
             }
             body.innerHTML = html;
@@ -262,7 +314,8 @@ function loadReplays(page) {
 function openReplayCode() {
     var code = document.getElementById('replayCode').value.trim();
     if (!code) return;
-    fetch(appUrl('/api/admin/replays/code?sessionId=' + encodeURIComponent(sessionId) + '&code=' + encodeURIComponent(code)))
+    var replayUrl = appUrl('/api/admin/replays/code?sessionId=' + encodeURIComponent(sessionId) + '&code=' + encodeURIComponent(code));
+    fetch(replayUrl)
         .then(function (r) {
             return r.json();
         }).then(function (data) {
@@ -272,7 +325,7 @@ function openReplayCode() {
         }
         document.getElementById('replayDetailCard').style.display = 'block';
         document.getElementById('replayDetailTitle').textContent = '回放 ' + data.date + '/' + data.name;
-        document.getElementById('replayContent').textContent = data.content || '';
+        ReplayPlayer.open(data, replayUrl);
     });
 }
 
@@ -290,8 +343,9 @@ function loadRecords() {
 }
 
 function openReplay(date, name) {
-    fetch(appUrl('/api/admin/replays/detail?sessionId=' + encodeURIComponent(sessionId)
-        + '&date=' + encodeURIComponent(date) + '&name=' + encodeURIComponent(name)))
+    var replayUrl = appUrl('/api/admin/replays/detail?sessionId=' + encodeURIComponent(sessionId)
+        + '&date=' + encodeURIComponent(date) + '&name=' + encodeURIComponent(name));
+    fetch(replayUrl)
         .then(function (r) {
             return r.json();
         })
@@ -303,7 +357,7 @@ function openReplay(date, name) {
             document.getElementById('replayDetailCard').style.display = 'block';
             document.getElementById('replayDetailTitle').textContent =
                 '回放 ' + data.date + '/' + data.name;
-            document.getElementById('replayContent').textContent = data.content || '';
+            ReplayPlayer.open(data, replayUrl);
         });
 }
 

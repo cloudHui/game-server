@@ -73,7 +73,10 @@ public final class PdkPlayService {
         }
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build());
         if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
-            ((PokerReplayRecorder) table.getReplayRecorder()).recordPass(user.getSeated());
+            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
+            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 过 → 客户端展示 过");
+            replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 过");
+            replay.recordPass(user.getSeated());
         }
         ctx.addPass();
         ctx.addPassSeat(user.getSeated());
@@ -85,6 +88,7 @@ public final class PdkPlayService {
         } else {
             table.getOp().moveToNextOp();
         }
+        if (table.getReplayRecorder() != null) table.getReplayRecorder().writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
         return ConstProto.Result.SUCCESS_VALUE;
     }
@@ -105,7 +109,12 @@ public final class PdkPlayService {
 
         ctx.markPlayed(user.getSeated());
         if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
-            ((PokerReplayRecorder) table.getReplayRecorder()).recordPlay(user.getSeated(), ids);
+            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
+            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌 → 客户端展示 出牌");
+            replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
+            replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
+                    + " 强度 " + hand.getStrengthKey() + " 长度 " + hand.getCards().size());
+            replay.recordPlay(user.getSeated(), ids);
         }
         broadcastAck(table, user.getUserId(), GameProto.OpInfo.newBuilder()
                 .setChoice(ConstProto.Operation.PLAY)
@@ -114,6 +123,9 @@ public final class PdkPlayService {
         ctx.setLastPlayed(hand.toCardInfo());
         ctx.setConsecutivePasses(0);
         ctx.setLastPlaySeat(user.getSeated());
+        if (table.getReplayRecorder() != null) {
+            table.getReplayRecorder().writeAuditEvent("当前最大方 座" + user.getSeated());
+        }
 
         if (user.getCards().isEmpty()) {
             ctx.recordFinish(user.getSeated());
@@ -121,8 +133,13 @@ public final class PdkPlayService {
             return ConstProto.Result.SUCCESS_VALUE;
         }
         table.getOp().moveToNextOp();
+        if (table.getReplayRecorder() != null) table.getReplayRecorder().writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
         return ConstProto.Result.SUCCESS_VALUE;
+    }
+
+    private static String source(TableUser user) {
+        return user.isRobot() ? "机器人" : "玩家";
     }
 
 

@@ -5,6 +5,16 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lobby.Lobby;
 import lobby.db.*;
+import lobby.client.ClientProto;
+import model.tablemodel.TableModel;
+import model.tablemodel.TableModelJson;
+import model.tablemodel.RobotRoomTemplates;
+import msg.registor.enums.ServerType;
+import msg.registor.message.SMsg;
+import net.connect.handle.ConnectHandler;
+import proto.ModelProto;
+import proto.ServerProto;
+import tools.manager.HandleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +25,8 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 邀请管理轻量 HTTP（仅 admin token 可访问；供 web 反代）
@@ -23,6 +35,7 @@ public class LobbyAdminHttp {
     private static final Logger logger = LoggerFactory.getLogger(LobbyAdminHttp.class);
 
     private HttpServer server;
+    private static final AtomicInteger ROBOT_REQUEST_ID = new AtomicInteger(-2000000000);
 
     public void start(int port) throws IOException {
         if (port <= 0) {
@@ -33,11 +46,63 @@ public class LobbyAdminHttp {
         server.createContext("/invites", this::handleInvites);
         server.createContext("/users", this::handleUsers);
         server.createContext("/tables", this::handleTables);
+        server.createContext("/robot-matches", this::handleRobotMatches);
         server.createContext("/records", this::handleRecords);
         server.createContext("/rooms/custom", this::handleCustomRoom);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         logger.info("Lobby admin HTTP 已启动: 127.0.0.1:{}", port);
+    }
+
+    private void handleRobotMatches(HttpExchange ex) throws IOException {
+        if (!authenticateAdmin(ex).isPresent()) {
+            writeJson(ex, 401, jsonError(401, "需要 admin 登录"));
+            return;
+        }
+        if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) {
+            writeJson(ex, 405, jsonError(405, "method not allowed"));
+            return;
+        }
+        Map<String, String> body = parseJsonObject(readBody(ex));
+        int sourceRoomId = parseInt(body.get("roomId"), RobotRoomTemplates.MAHJONG_ROOM_ID);
+        TableModel source = lobby.manager.table.TableManager.getInstance().getTableModel(sourceRoomId);
+        if (source == null || !RobotRoomTemplates.isRobotRoom(sourceRoomId)) {
+            writeJson(ex, 400, jsonError(400, "不支持的机器人验收玩法"));
+            return;
+        }
+        ConnectHandler gameServer = Lobby.getInstance().getServerManager().getServerClient(ServerType.Game);
+        if (gameServer == null) {
+            writeJson(ex, 503, jsonError(503, "Game 服务不可用"));
+            return;
+        }
+
+        int requestId = ROBOT_REQUEST_ID.incrementAndGet();
+        TableModel model = TableModelJson.parse(TableModelJson.toJson(source));
+        model.setId(20000 + Math.abs(requestId % 1000000));
+        model.setTotalRounds(1);
+        model.setAutoNextRound(0);
+        lobby.manager.table.TableManager.getInstance().putRuntimeModel(model, "admin-robot-test");
+        java.util.concurrent.CompletableFuture<ModelProto.RoomTableInfo> future =
+                AdminRobotMatchPending.create(requestId);
+        ModelProto.RoomRole role = ModelProto.RoomRole.newBuilder()
+                .setRoleId(requestId)
+                .setNickName(com.google.protobuf.ByteString.copyFromUtf8("管理员验收"))
+                .setAvatar(com.google.protobuf.ByteString.copyFromUtf8("TMJSON:" + TableModelJson.toJson(model)))
+                .build();
+        ServerProto.ReqCreateGameTable request = ServerProto.ReqCreateGameTable.newBuilder()
+                .setRoomId(model.getId()).setRoomRole(role).build();
+        try {
+            HandleManager.sendMsg(SMsg.REQ_CREATE_TABLE_MSG, request, gameServer,
+                    ClientProto.PARSER, Math.abs(requestId), requestId, true);
+            ModelProto.RoomTableInfo table = future.get(5, TimeUnit.SECONDS);
+            writeJson(ex, 200, "{\"code\":0,\"msg\":\"已启动\",\"tableId\":"
+                    + table.getTableId() + ",\"roomId\":" + table.getRoomId()
+                    + ",\"gameType\":" + table.getGameType() + "}");
+        } catch (Exception error) {
+            AdminRobotMatchPending.remove(requestId);
+            logger.error("启动管理员机器人验收局失败, roomId: {}", sourceRoomId, error);
+            writeJson(ex, 500, jsonError(500, "启动失败: " + error.getMessage()));
+        }
     }
 
     public void stop() {

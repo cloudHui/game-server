@@ -194,7 +194,18 @@ public final class TractorPlayService {
         if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
             List<Integer> ids = new ArrayList<>();
             for (Card card : selected) ids.add(card.getId());
-            ((PokerReplayRecorder) table.getReplayRecorder()).recordPlay(user.getSeated(), ids);
+            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
+            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌 → 客户端展示 出牌");
+            replay.writeAuditEvent("座" + user.getSeated() + " "
+                    + (user.isRobot() ? "机器人" : "玩家") + "选择 出牌 " + ids);
+            TractorRules.Combo combo = TractorRules.analyze(selected,
+                    table.getTractor().getLevelRank(), table.getTractor().getTrumpSuit());
+            if (combo != null) {
+                replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + combo.type.name()
+                        + " 花色组 " + combo.suitId + " 强度 " + combo.strength
+                        + (combo.type == TractorRules.ComboType.TRACTOR ? " 连对数 " + combo.tractorLen : ""));
+            }
+            replay.recordPlay(user.getSeated(), ids);
         }
         GameProto.CardInfo.Builder ci = GameProto.CardInfo.newBuilder().setType(proto.ConstProto.CardType.SINGLE);
         for (Card c : selected) ci.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
@@ -225,6 +236,12 @@ public final class TractorPlayService {
 
         if (!trickDone) {
             table.getOp().moveToNextOp();
+            if (table.getReplayRecorder() != null) {
+                int currentBest = TractorRules.winnerSeat(ctx.getTrickPlays(), ctx.getTrickSeats(),
+                        ctx.getLeadCombo(), level, trump);
+                table.getReplayRecorder().writeAuditEvent("当前最大方 座" + currentBest);
+                table.getReplayRecorder().writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
+            }
             table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
             return;
         }
@@ -257,12 +274,19 @@ public final class TractorPlayService {
         TractorTableContext ctx = table.getTractor();
         int winSeat = TractorRules.winnerSeat(ctx.getTrickPlays(), ctx.getTrickSeats(),
                 ctx.getLeadCombo(), ctx.getLevelRank(), ctx.getTrumpSuit());
+        if (table.getReplayRecorder() != null) {
+            table.getReplayRecorder().writeAuditEvent("本轮最大方 座" + winSeat);
+        }
         int trickScore = 0;
         for (List<Card> play : ctx.getTrickPlays()) {
             for (Card c : play) trickScore += TractorRules.scoreOf(c);
         }
         if (!ctx.isBankerTeam(winSeat)) {
             ctx.addDefenderScore(trickScore);
+        }
+        if (table.getReplayRecorder() != null) {
+            table.getReplayRecorder().writeAuditEvent("本墩得分 " + trickScore + "，赢家 座" + winSeat
+                    + "，闲家累计抓分 " + ctx.getDefenderScore());
         }
         ctx.incTricksDone();
         ctx.setRoundWinnerSeat(winSeat);
@@ -296,6 +320,10 @@ public final class TractorPlayService {
                         ? TractorRules.digMultiplierForPlay(winPlay, ctx.getLevelRank(), ctx.getTrumpSuit())
                         : TractorRules.digMultiplier(lastLead);
                 ctx.addDefenderScore(buriedScore * mult);
+                if (table.getReplayRecorder() != null) {
+                    table.getReplayRecorder().writeAuditEvent("抠底 底分 " + buriedScore + " 倍数 " + mult
+                            + " 增加 " + (buriedScore * mult) + "，闲家最终抓分 " + ctx.getDefenderScore());
+                }
             }
             TractorSettleService.finishGame(table);
             return;

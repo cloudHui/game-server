@@ -100,6 +100,15 @@ public class MjReplayRecorder extends BaseReplayRecorder {
         appendAction("座" + seat + " 超时过");
     }
 
+    public void recordOptions(int seat, List<String> options) {
+        appendAction("座" + seat + " 收到选项 " + String.join("/", options)
+                + " → 客户端展示 " + String.join("/", options));
+    }
+
+    public void recordChoice(int seat, String choice, String source) {
+        appendAction("座" + seat + " " + source + "选择 " + choice);
+    }
+
     /**
      * 记录流局
      */

@@ -52,6 +52,9 @@ public final class TractorSettleService {
 		ScoreRepository.getInstance().saveRound(table);
 		ReplayRecorder replay = table.getReplayRecorder();
 		if (replay != null) {
+			replay.writeAuditEvent("结算 闲家抓分 " + def + "，庄家方胜 " + bankerWin
+					+ "，升级 " + upgrade + "，赢家座" + winnerSeat
+					+ "，各座得分 " + java.util.Arrays.toString(scores));
 			replay.writeSettlement(winnerSeat, Math.abs(delta),
 					winType + "|闲抓" + def + "|主" + ctx.getTrumpSuit(), scores);
 			replay.save();

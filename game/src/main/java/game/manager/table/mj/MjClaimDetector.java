@@ -2,6 +2,7 @@ package game.manager.table.mj;
 
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
+import game.manager.table.replay.MjReplayRecorder;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
@@ -236,11 +237,30 @@ public final class MjClaimDetector {
         }
         notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_PASS).build());
 
+        if (table.getReplayRecorder() instanceof MjReplayRecorder) {
+            List<String> options = new ArrayList<>();
+            for (GameProto.OpInfo choice : notBuilder.getChoiceList()) {
+                options.add(choiceName(choice.getChoice()));
+            }
+            ((MjReplayRecorder) table.getReplayRecorder()).recordOptions(claim.getSeat(), options);
+        }
+
         for (GameProto.OpInfo choice : notBuilder.getChoiceList()) {
             table.getOp().addPosOpInfo(claim.getSeat(), choice);
         }
 
         // 当前响应座位对全桌可见，网页端据此更新操作指示；只有目标座位会显示操作按钮。
         table.sendTableMessage(notBuilder.build(), GMsg.MJ_TILE_NOT);
+    }
+
+    private static String choiceName(ConstProto.Operation choice) {
+        switch (choice) {
+            case MJ_HU: return "胡";
+            case MJ_GANG: return "杠";
+            case MJ_PENG: return "碰";
+            case MJ_CHI: return "吃";
+            case MJ_PASS: return "过";
+            default: return choice.name();
+        }
     }
 }

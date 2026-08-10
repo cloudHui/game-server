@@ -244,7 +244,8 @@ public abstract class Table {
      * 机器人模板允许全机器人桌开局；普通桌仍保持原有保护逻辑。
      */
     public boolean isRobotRoom() {
-        return RobotRoomTemplates.isRobotRoom(getRoomId());
+        return RobotRoomTemplates.isRobotRoom(getRoomId())
+                || (creator != null && creator.getRoleId() < 0);
     }
 
     /**

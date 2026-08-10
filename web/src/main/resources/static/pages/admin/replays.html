@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>我的回放</title>
     <link rel="stylesheet" href="./replay-viewport.css">
+    <link rel="stylesheet" href="../../shared/poker-card.css">
+    <link rel="stylesheet" href="../games/mahjong/mahjong.css">
+    <link rel="stylesheet" href="./replay-player.css">
     <style>
         body {
             font-family: Arial, "Microsoft YaHei", sans-serif;
@@ -80,14 +83,19 @@
             <th>回放码</th>
             <th>桌号</th>
             <th>玩法</th>
+            <th>状态</th>
             <th>操作</th>
         </tr>
         </thead>
         <tbody id="rows"></tbody>
     </table>
     <p id="msg" class="muted"></p>
-    <pre id="detail" style="display:none"></pre>
+    <div id="replayMount"></div>
 </div>
+<script src="../../shared/poker-card.js"></script>
+<script src="../../shared/mahjong-tile.js"></script>
+<script src="./replay-shell.js"></script>
+<script src="./replay-player.js"></script>
 <script>var sid = localStorage.getItem('sessionId'), page = 1;
 if (!sid) location.href = appUrl('/');
 
@@ -99,8 +107,8 @@ function load() {
         }
         var rows = d.replays || [];
         document.getElementById('rows').innerHTML = rows.length ? rows.map(function (x) {
-            return '<tr><td>' + x.date + '</td><td>' + x.replayCode + '</td><td>' + x.tableId + '</td><td>' + x.gameType + '</td><td><button onclick="openCode(\'' + x.replayCode + '\')">查看</button></td></tr>'
-        }).join('') : '<tr><td colspan="5">暂无回放</td></tr>';
+            return '<tr><td>' + x.date + '</td><td>' + x.replayCode + '</td><td>' + x.tableId + '</td><td>' + x.gameType + '</td><td>' + (x.status || '-') + '</td><td><button onclick="openCode(\'' + x.replayCode + '\')">查看</button></td></tr>'
+        }).join('') : '<tr><td colspan="6">暂无回放</td></tr>';
         msg('第 ' + d.page + ' 页，共 ' + d.total + ' 条');
     }).catch(function () {
         msg('网络错误')
@@ -114,14 +122,13 @@ function openCode(c) {
 
 function byCode() {
     var c = document.getElementById('code').value.trim();
-    fetch(appUrl('/api/replays/code?sessionId=' + encodeURIComponent(sid) + '&code=' + encodeURIComponent(c))).then(r => r.json()).then(d => {
+    var replayUrl = appUrl('/api/replays/code?sessionId=' + encodeURIComponent(sid) + '&code=' + encodeURIComponent(c));
+    fetch(replayUrl).then(r => r.json()).then(d => {
         if (d.code !== 0) {
             msg(d.msg);
             return
         }
-        var e = document.getElementById('detail');
-        e.style.display = 'block';
-        e.textContent = d.content || ''
+        ReplayPlayer.open(d, replayUrl)
     })
 }
 

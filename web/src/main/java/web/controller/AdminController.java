@@ -104,15 +104,28 @@ public class AdminController {
         return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
     }
 
+    @PostMapping("/robot-matches")
+    public ResponseEntity<Map<String, Object>> createRobotMatch(@RequestBody Map<String, Object> body) {
+        String sessionId = str(body.get("sessionId"));
+        UserService.UserInfo user = requireAdmin(sessionId);
+        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("roomId", body.get("roomId"));
+        Map<String, Object> result = lobbyAdminClient.createRobotMatch(user.getToken(), payload);
+        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+    }
+
     @GetMapping("/replays")
     public ResponseEntity<Map<String, Object>> replays(@RequestParam String sessionId,
                                                        @RequestParam(required = false, defaultValue = "1") int page,
-                                                       @RequestParam(required = false, defaultValue = "20") int size) {
+                                                       @RequestParam(required = false, defaultValue = "20") int size,
+                                                       @RequestParam(required = false, defaultValue = "") String category,
+                                                       @RequestParam(required = false, defaultValue = "") String gameType) {
         UserService.UserInfo user = requireAdmin(sessionId);
         if (user == null) {
             return ResponseEntity.ok(error(403, "需要管理员账号"));
         }
-        Map<String, Object> result = replayService.page(page, size);
+        Map<String, Object> result = replayService.page(page, size, category, gameType);
         result.put("code", 0);
         return ResponseEntity.ok(result);
     }

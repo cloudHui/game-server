@@ -50,6 +50,8 @@ public final class PdkSettleService {
 		ctx.setFirstSeat(winSeat);
 		ReplayRecorder replay = table.getReplayRecorder();
 		if (replay != null) {
+			replay.writeAuditEvent("结算 赢家座" + winSeat + " 剩余牌计分/关门翻倍，各座得分 "
+					+ java.util.Arrays.toString(scores));
 			replay.writeSettlement(winSeat, totalGain, "normal", scores);
 			replay.save();
 		}

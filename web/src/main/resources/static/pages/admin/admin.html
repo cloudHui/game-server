@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="./admin.css">
     <link rel="stylesheet" href="./viewport-fit.css">
     <link rel="stylesheet" href="../../shared/theme.css">
+    <link rel="stylesheet" href="../../shared/poker-card.css">
+    <link rel="stylesheet" href="../games/mahjong/mahjong.css">
+    <link rel="stylesheet" href="./replay-player.css">
     <script src="../../shared/app-base.js"></script>
 </head>
 <body class="page-theme">
@@ -109,6 +112,15 @@
 
     <div id="panel-tables" class="panel">
         <div class="card">
+            <h2 style="margin-top:0;">全机器人规则验收</h2>
+            <div class="meta">机器人立即坐满并使用真实服务端规则完成一局；可实时观看，结束后保留完整回放。</div>
+            <div class="form-row">
+                <select id="robotMatchRoom"></select>
+                <button class="btn" id="robotMatchStart" onclick="startRobotMatch()">开始并观看</button>
+            </div>
+            <div class="msg" id="robotMatchMsg"></div>
+        </div>
+        <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                 <h2 style="margin:0;">在线桌子</h2>
                 <button class="btn btn-ghost" onclick="loadTables()">刷新</button>
@@ -128,7 +140,7 @@
                     </thead>
                     <tbody id="tableBody">
                     <tr>
-                        <td colspan="6">切换到此页后加载</td>
+                        <td colspan="7">切换到此页后加载</td>
                     </tr>
                     </tbody>
                 </table>
@@ -144,11 +156,15 @@
                 <button class="btn btn-ghost" onclick="loadReplays()">刷新</button>
             </div>
             <div class="form-row">
+                <select id="replayCategory" onchange="changeReplayCategory()">
+                    <option value="">全部牌类</option><option value="mahjong">麻将牌类</option><option value="poker">扑克牌类</option>
+                </select>
+                <select id="replayGameType" onchange="loadReplays(1)"><option value="">全部子玩法</option></select>
                 <input id="replayCode" placeholder="输入回放码，例如 2026-07-21/90001_1.txt">
                 <button class="btn btn-ghost" onclick="openReplayCode()">打开回放</button>
                 <button class="btn btn-ghost" onclick="loadReplays(1)">刷新全部</button>
             </div>
-            <div class="meta">管理员列表展示全部回放并分页；回放码由日期和文件名组成。</div>
+            <div class="meta">先按麻将/扑克牌类筛选，再按具体子玩法分页查看全部回放。</div>
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
@@ -158,6 +174,7 @@
                         <th>桌号</th>
                         <th>局</th>
                         <th>玩法</th>
+                        <th>状态</th>
                         <th>操作</th>
                     </tr>
                     </thead>
@@ -198,13 +215,14 @@
                 </table>
             </div>
         </div>
-        <div class="card" id="replayDetailCard" style="display:none;">
-            <h2 id="replayDetailTitle">回放详情</h2>
-            <pre class="replay" id="replayContent"></pre>
-        </div>
+        <div id="replayMount"></div>
     </div>
 </div>
 
+<script src="../../shared/poker-card.js"></script>
+<script src="../../shared/mahjong-tile.js"></script>
+<script src="./replay-shell.js"></script>
+<script src="./replay-player.js"></script>
 <script src="./admin.js"></script>
 </body>
 </html>

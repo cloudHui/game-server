@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -58,11 +59,12 @@ public abstract class BaseReplayRecorder implements ReplayRecorder {
     }
 
     @Override
-    public void writeInitHands(Map<Integer, List<Integer>> hands) {
+    public synchronized void writeInitHands(Map<Integer, List<Integer>> hands) {
         sb.append("\n=== 初始发牌 ===\n");
         for (Map.Entry<Integer, List<Integer>> entry : hands.entrySet()) {
             sb.append("座").append(entry.getKey()).append(": ").append(formatList(entry.getValue())).append("\n");
         }
+        appendAction("回放状态 已发牌·进行中");
     }
 
     @Override
@@ -79,9 +81,24 @@ public abstract class BaseReplayRecorder implements ReplayRecorder {
      * 保存回放文件到磁盘，每天清理一次7天前的旧文件
      */
     @Override
-    public void save() {
+    public synchronized void save() {
         if (finalized) return;
         finalized = true;
+        sb.append("\n回放状态: 已结算\n");
+        persist();
+    }
+
+    @Override
+    public synchronized void checkpoint() {
+        if (!finalized) persist();
+    }
+
+    @Override
+    public void writeAuditEvent(String event) {
+        appendAction(event);
+    }
+
+    private void persist() {
         try {
             String jarDir = getJarDir();
             SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd");
@@ -90,10 +107,17 @@ public abstract class BaseReplayRecorder implements ReplayRecorder {
             File dir = new File(dirPath);
             if (!dir.exists()) dir.mkdirs();
             File file = new File(dir, tableId + "_" + round + ".txt");
-            try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
+            File temp = new File(dir, file.getName() + ".tmp");
+            try (Writer writer = new OutputStreamWriter(Files.newOutputStream(temp.toPath()), StandardCharsets.UTF_8)) {
                 writer.write(sb.toString());
             }
-            logger.info("回放文件已保存: {}", file.getAbsolutePath());
+            try {
+                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            logger.debug("回放快照已保存: {}", file.getAbsolutePath());
             if (!today.equals(lastCleanupDate)) {
                 lastCleanupDate = today;
                 cleanOldReplays(jarDir);
@@ -167,7 +191,10 @@ public abstract class BaseReplayRecorder implements ReplayRecorder {
         return b.append("]").toString();
     }
 
-    protected void appendAction(String action) {
-        sb.append("[").append(++actionIndex).append("] ").append(action).append("\n");
+    protected synchronized void appendAction(String action) {
+        String time = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
+        sb.append("[").append(++actionIndex).append("][").append(time).append("] ")
+                .append(action).append("\n");
+        checkpoint();
     }
 }

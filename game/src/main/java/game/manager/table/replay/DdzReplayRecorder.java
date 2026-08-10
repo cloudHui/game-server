@@ -47,6 +47,7 @@ public class DdzReplayRecorder extends BaseReplayRecorder {
         sb.append("\n=== 底牌 ===\n");
         sb.append("地主: 座").append(landlordSeat).append("\n");
         sb.append("底牌: ").append(formatList(bottomCards)).append("\n");
+        appendAction("座" + landlordSeat + " 获得底牌 " + formatList(bottomCards));
     }
 
     /**

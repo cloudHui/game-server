@@ -2,6 +2,7 @@ package lobby.client.handle.server.game;
 
 import com.google.protobuf.Message;
 import lobby.client.handle.role.PendingCreateJoin;
+import lobby.admin.AdminRobotMatchPending;
 import lobby.client.handle.role.ReqJoinTableHandle;
 import lobby.manager.User;
 import lobby.manager.UserManager;
@@ -30,6 +31,11 @@ public class CreateTableHandler implements ConnectHandle {
         if (tableInfo == null) {
             PendingCreateJoin.take(userId);
             logger.warn("创建桌子信息注册失败, userId: {}", userId);
+            return;
+        }
+        if (userId < 0 && AdminRobotMatchPending.complete(userId, ack.getTables())) {
+            logger.info("管理员机器人验收桌创建完成, requestId: {}, tableId: {}",
+                    userId, ack.getTables().getTableId());
             return;
         }
         User user = UserManager.getInstance().getUser(userId);

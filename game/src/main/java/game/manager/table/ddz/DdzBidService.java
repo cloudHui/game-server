@@ -122,6 +122,9 @@ public final class DdzBidService {
 
         ReplayRecorder replay = table.getReplayRecorder();
         if (replay instanceof DdzReplayRecorder) {
+            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 不叫/叫1分/叫2分/叫3分 → 客户端展示");
+            replay.writeAuditEvent("座" + user.getSeated() + " " + (user.isRobot() ? "机器人" : "玩家")
+                    + "选择 " + (score > 0 ? "叫" + score + "分" : "不叫"));
             if (score > 0) {
                 ((DdzReplayRecorder) replay).recordBid(user.getSeated(), score);
             } else {
@@ -193,6 +196,9 @@ public final class DdzBidService {
 
         ReplayRecorder replay = table.getReplayRecorder();
         if (replay instanceof DdzReplayRecorder) {
+            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 抢地主/不抢 → 客户端展示");
+            replay.writeAuditEvent("座" + user.getSeated() + " " + (user.isRobot() ? "机器人" : "玩家")
+                    + "选择 " + (cv == ConstProto.Operation.ROB_VALUE ? "抢地主" : "不抢"));
             if (cv == ConstProto.Operation.ROB_VALUE) {
                 ((DdzReplayRecorder) replay).recordRob(user.getSeated());
             } else {

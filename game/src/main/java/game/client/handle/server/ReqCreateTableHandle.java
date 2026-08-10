@@ -35,7 +35,12 @@ public class ReqCreateTableHandle implements Handler {
             return true;
         }
         Game.getInstance().getTableManager().createTableAsync(roomId, role)
-                .whenComplete((table, error) -> sendCreateResponse(sender, clientId, mapId, sequence, table, error));
+                .whenComplete((table, error) -> {
+                    if (error == null && table != null && role.getRoleId() < 0) {
+                        table.execute(table::fillRobotSeats);
+                    }
+                    sendCreateResponse(sender, clientId, mapId, sequence, table, error);
+                });
         return true;
     }
 

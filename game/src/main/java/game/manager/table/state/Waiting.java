@@ -141,5 +141,6 @@ public class Waiting extends AbstractTableHandle {
             hands.put(entry.getKey(), tileIds);
         }
         replay.writeInitHands(hands);
+        replay.checkpoint();
     }
 }

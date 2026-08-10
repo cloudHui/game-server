@@ -56,6 +56,10 @@ public class LobbyAdminClient {
         return get("/tables", token);
     }
 
+    public Map<String, Object> createRobotMatch(String token, Map<String, Object> body) {
+        return post("/robot-matches", token, body);
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> createCustomRoom(String token, Map<String, Object> body) {
         return post("/rooms/custom", token, body);

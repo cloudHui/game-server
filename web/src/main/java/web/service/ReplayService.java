@@ -61,9 +61,22 @@ public class ReplayService {
     }
 
     public Map<String, Object> page(int page, int pageSize) {
+        return page(page, pageSize, "", "");
+    }
+
+    public Map<String, Object> page(int page, int pageSize, String category, String gameType) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
         List<Map<String, Object>> all = listReplays(100000);
+        String safeCategory = category == null ? "" : category.trim();
+        String safeGameType = gameType == null ? "" : gameType.trim();
+        if (!safeCategory.isEmpty() || !safeGameType.isEmpty()) {
+            all = all.stream().filter(item -> (safeCategory.isEmpty()
+                            || safeCategory.equals(String.valueOf(item.get("category"))))
+                    && (safeGameType.isEmpty()
+                            || safeGameType.equals(String.valueOf(item.get("gameType")))))
+                    .collect(Collectors.toList());
+        }
         int from = Math.min((safePage - 1) * safeSize, all.size());
         int to = Math.min(from + safeSize, all.size());
         Map<String, Object> result = new HashMap<>();
@@ -72,6 +85,8 @@ public class ReplayService {
         result.put("total", all.size());
         result.put("hasNext", to < all.size());
         result.put("replays", all.subList(from, to));
+        result.put("category", safeCategory);
+        result.put("gameType", safeGameType);
         return result;
     }
 
@@ -190,20 +205,27 @@ public class ReplayService {
         String tableId = "";
         String round = "";
         String gameType = "";
+        String status = "进行中/异常中断";
         try {
             List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
             for (String line : lines) {
                 if (line.startsWith("桌号:")) tableId = line.substring(3).trim();
                 else if (line.startsWith("玩法:")) gameType = line.substring(3).trim();
                 else if (line.startsWith("当前局:")) round = line.substring(4).trim();
-                if (!tableId.isEmpty() && !gameType.isEmpty() && !round.isEmpty()) break;
+                else if (line.startsWith("回放状态:")) status = line.substring(5).trim();
             }
         } catch (IOException ignored) {
         }
         m.put("tableId", tableId);
         m.put("round", round);
         m.put("gameType", gameType);
+        m.put("category", isMahjong(gameType) ? "mahjong" : "poker");
+        m.put("status", status);
         return m;
+    }
+
+    private boolean isMahjong(String gameType) {
+        return gameType != null && (gameType.contains("麻将") || "卡五星".equals(gameType));
     }
 
     private Path resolveRoot() {

@@ -338,7 +338,10 @@ public final class TractorBidService {
         if (actor != null && table.getReplayRecorder() instanceof PokerReplayRecorder) {
             String action = op.getChoice() == ConstProto.Operation.CALL ? "亮主"
                     : op.getChoice() == ConstProto.Operation.ROB ? "反主" : "过";
-            ((PokerReplayRecorder) table.getReplayRecorder()).recordDeclare(
+            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
+            replay.writeAuditEvent("座" + actor.getSeated() + " 收到选项 亮主/反主/过 → 客户端展示");
+            replay.writeAuditEvent("座" + actor.getSeated() + " " + (actor.isRobot() ? "机器人" : "玩家") + "选择 " + action);
+            replay.recordDeclare(
                     actor.getSeated(), action, CardOps.collectIds(op));
         }
         int trumpShow = ctx.getBidStrength() > 0 ? ctx.getBidSuit() : Math.max(0, ctx.getTrumpSuit());
