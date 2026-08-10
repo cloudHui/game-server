@@ -22,10 +22,13 @@
         Admin.get('/replays?page=' + page + '&size=20&category=' + encodeURIComponent(category) + '&gameType=' + encodeURIComponent(gameType)).then(function (data) {
             var body = document.getElementById('replayBody'), list = data.replays || [];
             if (data.code !== 0) return void (body.innerHTML = '<tr><td colspan="7">' + (data.msg || '加载失败') + '</td></tr>');
+            page = Math.max(Number(data.page) || 1, 1);
             body.innerHTML = list.length ? list.map(function (row) {
                 return '<tr><td>' + row.date + '</td><td class="token">' + row.name + '</td><td>' + (row.tableId || '-') + '</td><td>' + (row.round || '-') + '</td><td>' + (row.gameType || '-') + '</td><td>' + (row.status || '-') + '</td><td><button class="btn btn-ghost" onclick="openReplay(\'' + row.date + '\',\'' + row.name + '\')">查看</button></td></tr>';
             }).join('') : '<tr><td colspan="7">暂无回放</td></tr>';
-            document.getElementById('replayPageLabel').textContent = '第 ' + data.page + ' 页 / 共 ' + data.total + ' 条';
+            document.getElementById('replayPageLabel').textContent = '第 ' + page + ' / ' + (data.pageCount || 1) + ' 页 · 共 ' + data.total + ' 条';
+            document.getElementById('replayPrevPage').disabled = page <= 1;
+            document.getElementById('replayNextPage').disabled = !data.hasNext;
             Admin.msg('replayMsg', '本页 ' + list.length + ' 条', true); loadRecords();
         }).catch(function () { Admin.msg('replayMsg', '网络错误', false); });
     }

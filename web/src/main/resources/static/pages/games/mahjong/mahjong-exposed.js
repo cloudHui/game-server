@@ -57,27 +57,7 @@ function findClaimTileIndex(tiles, claimTile) {
  * 短述：吃牌 claim 居中、两侧按点数有序。
  */
 function orderChiTiles(tiles, claimTile) {
-  if (!tiles || !tiles.length) return [];
-  var list = tiles.slice();
-  if (list.length !== 3 || claimTile == null) {
-    list.sort(function (a, b) { return a - b; });
-    return list;
-  }
-  var others = [];
-  var used = false;
-  for (var i = 0; i < list.length; i++) {
-    if (!used && list[i] === claimTile) {
-      used = true;
-      continue;
-    }
-    others.push(list[i]);
-  }
-  if (others.length !== 2) {
-    list.sort(function (a, b) { return a - b; });
-    return list;
-  }
-  others.sort(function (a, b) { return a - b; });
-  return [others[0], claimTile, others[1]];
+  return TableSeatView.orderChi(tiles, claimTile);
 }
 
 /**
@@ -88,52 +68,16 @@ function orderChiTiles(tiles, claimTile) {
 function appendExposedSet(container, set, opt) {
   opt = opt || {};
   var parsed = parseExposedType(set.type || set.kind || '');
-  var kind = set.kind || parsed.kind;
-  var fromSeat = set.fromSeat != null ? set.fromSeat : parsed.fromSeat;
-  var ownerSeat = opt.ownerSeat != null ? opt.ownerSeat : gameState.myPosition;
-  var group = document.createElement('div');
-  var isGang = kind === 'anGang' || kind === 'mingGang' || kind === 'buGang';
-  group.className = 'exposed-set' + (kind === 'anGang' ? ' an-gang' : '')
-      + (isGang ? ' gang-stack' : '');
-  var rawTiles = set.tiles || set.tileIds || [];
-  // 吃：被吃牌居中有序；碰：来源牌标在中间那张
-  var tiles = kind === 'chi' ? orderChiTiles(rawTiles, set.claimTile) : rawTiles.slice();
-  var markIdx = 0;
-  if (kind === 'chi') markIdx = tiles.length === 3 ? 1 : findClaimTileIndex(tiles, set.claimTile);
-  else if (kind === 'peng') markIdx = Math.min(1, Math.max(0, tiles.length - 1));
-  if (isGang) {
-    var base = document.createElement('div');
-    base.className = 'gang-base';
-    for (var g = 0; g < 3; g++) {
-      if (kind === 'anGang') {
-        var hidden = document.createElement('div');
-        hidden.className = 'tile-back';
-        base.appendChild(hidden);
-      } else {
-        var baseTile = MahjongTile.createTileEl(tiles[g] || tiles[0], { small: true });
-        if (kind === 'buGang' && g === 1) markClaimSource(baseTile, ownerSeat, fromSeat);
-        base.appendChild(baseTile);
-      }
-    }
-    group.appendChild(base);
-    var topTile;
-    if (kind === 'anGang' && !opt.revealAnGang) {
-      topTile = document.createElement('div');
-      topTile.className = 'tile-back';
-    } else {
-      topTile = MahjongTile.createTileEl(tiles[3] || tiles[0], { small: true });
-    }
-    topTile.className += ' gang-top';
-    if (kind === 'mingGang') markClaimSource(topTile, ownerSeat, fromSeat);
-    group.appendChild(topTile);
-  } else {
-    for (var j = 0; j < tiles.length; j++) {
-      var tile = MahjongTile.createTileEl(tiles[j], { small: true });
-      if (fromSeat >= 0 && j === markIdx) markClaimSource(tile, ownerSeat, fromSeat);
-      group.appendChild(tile);
-    }
-  }
-  container.appendChild(group);
+  TableSeatView.appendMahjongSet(container, {
+    kind: set.kind || parsed.kind,
+    tiles: set.tiles || set.tileIds || [],
+    fromSeat: set.fromSeat != null ? set.fromSeat : parsed.fromSeat,
+    claimTile: set.claimTile
+  }, {
+    ownerSeat: opt.ownerSeat != null ? opt.ownerSeat : gameState.myPosition,
+    revealAnGang: opt.revealAnGang,
+    sourceArrow: exposedSourceArrow
+  });
 }
 
 function resolveGangKind(seat, tileId) {

@@ -39,7 +39,7 @@
     function blockClick(e) {
         e.preventDefault();
         e.stopPropagation();
-        alert('联网服务尚未启动，敬请期待');
+        AppDialog.alert('联网服务尚未启动，敬请期待');
     }
 
     async function refresh() {

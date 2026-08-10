@@ -158,8 +158,7 @@
             return;
         }
         if (!isAdmin) {
-            alert('需要管理员账号');
-            location.href = appUrl('/pages/lobby/index.html');
+            AppDialog.alert('需要管理员账号').then(function () { location.href = appUrl('/pages/lobby/index.html'); });
             return;
         }
 

@@ -25,6 +25,9 @@ const state = sandbox.window.ReplayPlayer._inspect(replay, '荆门麻将', 5);
 assert.deepStrictEqual(Array.from(state.hands[0]), [12, 12, 12, 21]);
 assert.deepStrictEqual(Array.from(state.hands[1]), [32, 33]);
 assert.deepStrictEqual(Array.from(state.exposed[1]), [11, 11, 11]);
+assert.strictEqual(state.exposedSets[1][0].kind, 'peng');
+assert.deepStrictEqual(Array.from(state.exposedSets[1][0].tiles), [11, 11, 11]);
+assert.strictEqual(state.exposedSets[1][0].fromSeat, 0);
 assert.strictEqual(state.nextSeat, 1);
 assert.strictEqual(state.bestSeat, 0);
 

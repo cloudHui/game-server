@@ -309,7 +309,7 @@
         if (score >= 3) {
             MiniCelebrate.play({title: '拼读闯关成功！', note: '答对 ' + score + '/4，你太棒啦！', icon: '🐣'});
         } else {
-            alert("You scored " + score + "/4! Keep trying!");
+            AppDialog.alert("You scored " + score + "/4! Keep trying!");
         }
     }
 
@@ -326,7 +326,7 @@
         if (guess === currentWord) {
             MiniCelebrate.play({title: '答对啦！', note: '这个单词读得真好！', icon: '🐣'});
         } else {
-            alert('❌ Try again! The correct word was: ' + currentWord);
+            AppDialog.alert('❌ Try again! The correct word was: ' + currentWord);
         }
     }
 </script>

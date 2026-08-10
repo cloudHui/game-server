@@ -246,7 +246,7 @@
             document.getElementById('hp').textContent = hp;
             player = {x: 1, y: 1};
             if (hp <= 0) {
-                alert('生命耗尽，重新开始');
+                AppDialog.alert('生命耗尽，重新开始');
                 score = 0;
                 hp = 3;
                 document.getElementById('score').textContent = 0;
@@ -273,9 +273,8 @@
                 } else {
                     hp--;
                     document.getElementById('hp').textContent = hp;
-                    alert('答错了，再想想：' + question.text);
                     if (hp <= 0) {
-                        alert('生命耗尽，重新开始');
+                        AppDialog.alert('生命耗尽，重新开始');
                         score = 0;
                         hp = 3;
                         document.getElementById('score').textContent = 0;
@@ -283,6 +282,7 @@
                         genMaze();
                         makeQuestion();
                     } else {
+                        AppDialog.alert('答错了，再想想：' + question.text);
                         player = {x: 1, y: 1};
                     }
                 }

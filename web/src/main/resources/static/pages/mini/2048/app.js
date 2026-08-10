@@ -162,8 +162,8 @@
     document.getElementById('undo').onclick = undo;
     document.getElementById('retry').onclick = restart;
     document.getElementById('continue').onclick = view.hideMessage;
-    document.getElementById('restart').onclick = function () {
-        if (confirm('确定重新开始这一局吗？')) restart();
+    document.getElementById('restart').onclick = async function () {
+        if (await AppDialog.confirm('确定重新开始这一局吗？')) restart();
     };
     document.getElementById('sound').onclick = function () {
         sound = !sound;

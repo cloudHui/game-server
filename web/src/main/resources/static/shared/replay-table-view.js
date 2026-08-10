@@ -7,21 +7,20 @@
 
     function shell() {
         return '<div class="replay-table table-bg" id="replayTable">'
-            + '<div class="player-area player-top replay-seat" data-slot="top"><div class="player-info"><span class="name"></span></div><div class="replay-hand"></div><div class="replay-exposed"></div></div>'
-            + '<div class="player-area player-left replay-seat" data-slot="left"><div class="player-info"><span class="name"></span></div><div class="replay-hand"></div><div class="replay-exposed"></div></div>'
-            + '<div class="player-area player-right replay-seat" data-slot="right"><div class="player-info"><span class="name"></span></div><div class="replay-hand"></div><div class="replay-exposed"></div></div>'
-            + '<div class="player-area player-bottom replay-seat" data-slot="bottom"><div class="player-info"><span class="name"></span></div><div class="replay-hand"></div><div class="replay-exposed"></div></div>'
+            + seatShell('top') + seatShell('left') + seatShell('right') + seatShell('bottom')
             + '<div class="replay-discards" id="replayDiscards"></div>'
             + '<div class="replay-center"><div id="replayEventCards" class="replay-event-cards"></div><div id="replayEvent" class="replay-event"></div><div id="replayDecision" class="replay-decision"></div><span id="replayStep"></span></div>'
             + '<div class="replay-waiting" id="replayWaiting" hidden><strong>正在进入实时对局</strong><span id="replayWaitingText">等待首个回放事件…</span></div></div>';
     }
 
+    function seatShell(slot) {
+        return '<div class="player-area player-' + slot + ' replay-seat" data-slot="' + slot + '">'
+            + '<div class="player-info"><span class="name"></span></div>'
+            + '<div class="replay-hand-row"><div class="replay-hand"></div><div class="replay-exposed"></div></div></div>';
+    }
+
     function slotFor(seat, viewSeat, seatCount) {
-        var rel = (seat - viewSeat + seatCount) % seatCount;
-        if (rel === 0) return 'bottom';
-        if (seatCount === 2) return 'top';
-        if (seatCount === 3) return rel === 1 ? 'right' : 'left';
-        return ['bottom', 'right', 'top', 'left'][rel];
+        return TableSeatView.slotFor(seat, viewSeat, seatCount);
     }
 
     function seatElement(seat, viewSeat, seatCount) {

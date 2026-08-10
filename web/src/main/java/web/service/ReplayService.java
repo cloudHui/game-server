@@ -65,7 +65,6 @@ public class ReplayService {
     }
 
     public Map<String, Object> page(int page, int pageSize, String category, String gameType) {
-        int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
         List<Map<String, Object>> all = listReplays(100000);
         String safeCategory = category == null ? "" : category.trim();
@@ -77,12 +76,15 @@ public class ReplayService {
                             || safeGameType.equals(String.valueOf(item.get("gameType")))))
                     .collect(Collectors.toList());
         }
-        int from = Math.min((safePage - 1) * safeSize, all.size());
+        int pageCount = Math.max(1, (all.size() + safeSize - 1) / safeSize);
+        int safePage = Math.min(Math.max(page, 1), pageCount);
+        int from = (safePage - 1) * safeSize;
         int to = Math.min(from + safeSize, all.size());
         Map<String, Object> result = new HashMap<>();
         result.put("page", safePage);
         result.put("pageSize", safeSize);
         result.put("total", all.size());
+        result.put("pageCount", pageCount);
         result.put("hasNext", to < all.size());
         result.put("replays", all.subList(from, to));
         result.put("category", safeCategory);
@@ -97,10 +99,14 @@ public class ReplayService {
             Path file = resolveRoot().resolve(String.valueOf(item.get("date"))).resolve(String.valueOf(item.get("name")));
             if (containsUser(file, userId)) visible.add(item);
         }
-        int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
-        int from = Math.min((safePage - 1) * safeSize, visible.size());
+        int pageCount = Math.max(1, (visible.size() + safeSize - 1) / safeSize);
+        int safePage = Math.min(Math.max(page, 1), pageCount);
+        int from = (safePage - 1) * safeSize;
         int to = Math.min(from + safeSize, visible.size());
+        result.put("page", safePage);
+        result.put("pageSize", safeSize);
+        result.put("pageCount", pageCount);
         result.put("total", visible.size());
         result.put("hasNext", to < visible.size());
         result.put("replays", visible.subList(from, to));

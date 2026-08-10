@@ -1,0 +1,19 @@
+/* 正式对局与只读回放共用的麻将手牌/副露结构。 */
+.opponent-hand-row,.my-hand-row{display:flex;flex-wrap:nowrap;justify-content:center;align-items:flex-end;gap:0;box-sizing:border-box}
+.player-left .opponent-hand-row,.player-right .opponent-hand-row{flex-direction:column;justify-content:flex-start;margin:0;max-width:none}
+.player-left .opponent-hand-row{align-items:flex-start}.player-right .opponent-hand-row{align-items:flex-end}
+.side-tiles{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+.opponent-exposed{display:flex;flex-flow:row nowrap;justify-content:flex-start;align-items:flex-end;gap:6px;flex:0 0 auto;max-width:none}
+.opponent-exposed:empty,.my-exposed:empty{display:none;margin:0}
+.exposed-set{display:flex;gap:2px;padding:2px 4px;position:relative;background:rgba(0,0,0,.18);border-radius:6px}
+.exposed-set .tile{cursor:default}.exposed-set .tile-back{border-radius:2px;background:linear-gradient(165deg,#3d9a55 0%,#1f6b38 55%,#15532c 100%);border:1px solid #0f3d22;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 1px 2px rgba(0,0,0,.3)}
+.exposed-set .tile.from-claim{position:relative;box-shadow:0 0 0 3px #ffd54f,0 2px 8px rgba(255,112,67,.8)}
+.exposed-set .tile.from-claim::before{content:attr(data-source-arrow);position:absolute;z-index:8;color:#ffe082;font-size:16px;font-weight:900;text-shadow:0 1px 3px #000;pointer-events:none}
+.exposed-set.gang-stack{position:relative;align-items:flex-end}.gang-base{display:flex;gap:2px;align-items:flex-end}.exposed-set.gang-stack .gang-top{position:absolute;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.45)}
+.player-left .opponent-exposed,.player-right .opponent-exposed{flex-flow:column nowrap;justify-content:flex-start;align-items:center;margin:12px 0 0;gap:8px}
+.player-left .opponent-exposed .exposed-set,.player-right .opponent-exposed .exposed-set{flex-direction:column;justify-content:flex-start;align-items:center;gap:2px}
+.player-left .opponent-exposed .exposed-set .tile,.player-left .opponent-exposed .exposed-set .tile-back,.player-right .opponent-exposed .exposed-set .tile,.player-right .opponent-exposed .exposed-set .tile-back{width:30px;height:20px;flex-shrink:0}
+.player-left .opponent-exposed .exposed-set .tile-face,.player-left .opponent-exposed .exposed-set .tile>img,.player-right .opponent-exposed .exposed-set .tile-face,.player-right .opponent-exposed .exposed-set .tile>img{position:absolute;width:20px;height:30px;left:5px;top:-5px;transform:rotate(90deg);transform-origin:center}
+.player-left .opponent-exposed .exposed-set.gang-stack,.player-right .opponent-exposed .exposed-set.gang-stack{min-width:36px;min-height:72px;align-items:center}
+.player-left .opponent-exposed .gang-base,.player-right .opponent-exposed .gang-base{flex-direction:column;align-items:center;gap:2px}
+.player-left .opponent-exposed .exposed-set.gang-stack .gang-top,.player-right .opponent-exposed .exposed-set.gang-stack .gang-top{left:auto;right:-3px;top:50%;transform:translateY(-50%)}

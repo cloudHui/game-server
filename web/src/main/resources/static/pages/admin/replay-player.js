@@ -12,8 +12,17 @@
             var seat=ReplayTableView.seatElement(s,viewSeat,model.seatCount);seat.hidden=false;seat.setAttribute('data-seat',s);seat.classList.toggle('active',!!actor&&+actor[1]===s);
             seat.classList.toggle('next',model.nextSeat===s);seat.classList.toggle('best',model.bestSeat===s);
             seat.querySelector('.name').textContent='座'+s+' '+(model.players[s]||'');
-            var hand=seat.querySelector('.replay-hand');(model.hands[s]||[]).forEach(function(id){hand.appendChild(face(id))});
-            var shown=seat.querySelector('.replay-exposed');(model.exposed[s]||[]).forEach(function(id){shown.appendChild(face(id))});
+            var hand=seat.querySelector('.replay-hand'),shown=seat.querySelector('.replay-exposed');
+            if(isMj()){
+                seat.querySelector('.replay-hand-row').className='replay-hand-row';
+                hand.className='replay-hand '+(seat.classList.contains('player-bottom')?'my-tiles':seat.classList.contains('player-top')?'opponent-tiles':'side-tiles');
+                shown.className='replay-exposed '+(seat.classList.contains('player-bottom')?'my-exposed':'opponent-exposed');
+                TableSeatView.renderFaces(hand,model.hands[s]||[],'mahjong',false);
+                TableSeatView.renderMahjongSets(shown,model.exposedSets[s]||[],{ownerSeat:s,revealAnGang:false});
+            }else{
+                hand.className='replay-hand '+(seat.classList.contains('player-bottom')?'my-cards':'opponent-cards');shown.className='replay-exposed';
+                TableSeatView.renderFaces(hand,model.hands[s]||[],'poker',false);shown.innerHTML='';
+            }
         }
         document.getElementById('replayEvent').textContent=current?('#'+current.index+' '+current.time+' '+current.text):'初始发牌';
         var decision=document.getElementById('replayDecision');if(decision){var context='';if(current){

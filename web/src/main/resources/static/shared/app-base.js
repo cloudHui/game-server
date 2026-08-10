@@ -1,5 +1,124 @@
 /** 兼容随机 context-path：本机根路径为空，外网为 /{随机路径} */
 (function (w) {
+    /** 生产页面错误脱敏：控制台保留定位信息，但不输出站点地址、部署前缀或凭据。 */
+    (function () {
+        var location = w.location || {};
+        var origin = String(location.origin || '');
+        var host = String(location.host || '');
+        var firstPath = String(location.pathname || '').split('/').filter(Boolean)[0] || '';
+        var sensitive = /([?&](?:sessionId|token|invite|password|authorization|code)=)[^&#\s]*/ig;
+        function escapeRegExp(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function sanitizeText(value) {
+            var text = String(value == null ? '' : value);
+            text = text.replace(sensitive, '$1[已隐藏]');
+            text = text.replace(/\b(?:https?|wss?):\/\/[^\s/]+/ig, '[站点]');
+            if (origin) text = text.split(origin).join('[站点]');
+            if (host) text = text.replace(new RegExp(escapeRegExp(host), 'ig'), '[站点]');
+            if (firstPath) text = text.replace(new RegExp('/' + escapeRegExp(firstPath) + '(?=/|\\b)', 'g'), '');
+            return text;
+        }
+        function sanitize(value, depth, seen) {
+            depth = depth || 0;
+            if (typeof value === 'string') return sanitizeText(value);
+            if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
+            if (value instanceof Error) return {name: value.name, message: sanitizeText(value.message), stack: sanitizeText(value.stack || '')};
+            if (typeof value !== 'object' || depth >= 4) return sanitizeText(value);
+            seen = seen || [];
+            if (seen.indexOf(value) >= 0) return '[循环引用]';
+            seen.push(value);
+            var copy = Array.isArray(value) ? [] : {};
+            Object.keys(value).slice(0, 50).forEach(function (key) {
+                copy[key] = /password|token|session|authorization|invite/i.test(key)
+                    ? '[已隐藏]' : sanitize(value[key], depth + 1, seen);
+            });
+            seen.pop();
+            return copy;
+        }
+        var consoleObject = w.console;
+        if (consoleObject) {
+            ['log', 'info', 'warn', 'error', 'debug'].forEach(function (name) {
+                if (typeof consoleObject[name] !== 'function') return;
+                var original = consoleObject[name].bind(consoleObject);
+                consoleObject[name] = function () {
+                    original.apply(null, Array.prototype.map.call(arguments, function (arg) { return sanitize(arg); }));
+                };
+            });
+        }
+        w.addEventListener('error', function (event) {
+            if (event.target && event.target !== w) {
+                consoleObject && consoleObject.error('[资源加载失败]', String(event.target.tagName || 'RESOURCE').toLowerCase());
+            } else {
+                consoleObject && consoleObject.error('[页面运行错误]', sanitizeText(event.message || '未知错误'),
+                    sanitizeText(event.filename || '').replace(/^.*\//, '') + ':' + (event.lineno || 0) + ':' + (event.colno || 0));
+            }
+            if (event.preventDefault) event.preventDefault();
+        }, true);
+        w.addEventListener('unhandledrejection', function (event) {
+            consoleObject && consoleObject.error('[未处理的异步错误]', sanitize(event.reason));
+            if (event.preventDefault) event.preventDefault();
+        });
+        w.AppErrorPrivacy = {sanitizeText: sanitizeText, sanitize: sanitize};
+    })();
+
+    /** 若依式公共消息/确认/表单浮层；所有接口均返回 Promise。 */
+    (function () {
+        var activeResolve = null;
+        function ensure() {
+            var mask = document.getElementById('app-dialog-mask');
+            if (mask) return mask;
+            var style = document.createElement('style');
+            style.textContent = '.app-dialog-mask{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.48)}.app-dialog-mask[hidden]{display:none}.app-dialog{width:min(430px,100%);overflow:hidden;border-radius:6px;background:#fff;color:#303133;box-shadow:0 16px 46px #0005;font:14px/1.5 "PingFang SC","Microsoft YaHei",sans-serif}.app-dialog-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid #ebeef5}.app-dialog-head strong{font-size:16px}.app-dialog-x{border:0;background:none;color:#909399;font-size:24px;cursor:pointer}.app-dialog-body{padding:20px}.app-dialog-message{white-space:pre-wrap;word-break:break-word}.app-dialog-field{margin-top:14px}.app-dialog-field:first-child{margin-top:0}.app-dialog-field label{display:block;margin-bottom:6px;color:#606266;font-size:13px}.app-dialog-field input,.app-dialog-field select{display:block;width:100%;height:38px;padding:0 11px;border:1px solid #dcdfe6;border-radius:4px;background:#fff;color:#303133;font-size:14px;box-sizing:border-box}.app-dialog-error{min-height:18px;padding-top:6px;color:#f56c6c;font-size:12px}.app-dialog-foot{display:flex;justify-content:flex-end;gap:10px;padding:10px 20px 18px}.app-dialog-foot button{min-width:72px;padding:8px 15px;border:1px solid #dcdfe6;border-radius:4px;background:#fff;color:#606266;cursor:pointer}.app-dialog-foot .primary{border-color:#409eff;background:#409eff;color:#fff}';
+            document.head.appendChild(style);
+            mask = document.createElement('div'); mask.id = 'app-dialog-mask'; mask.className = 'app-dialog-mask'; mask.hidden = true;
+            mask.innerHTML = '<section class="app-dialog" role="dialog" aria-modal="true"><header class="app-dialog-head"><strong></strong><button class="app-dialog-x" type="button" aria-label="关闭">×</button></header><div class="app-dialog-body"></div><footer class="app-dialog-foot"><button class="cancel" type="button">取消</button><button class="primary" type="button">确定</button></footer></section>';
+            document.body.appendChild(mask);
+            mask.querySelector('.app-dialog-x').onclick = mask.querySelector('.cancel').onclick = function () { finish(null); };
+            mask.onclick = function (event) { if (event.target === mask) finish(null); };
+            return mask;
+        }
+        function finish(value) {
+            var mask = document.getElementById('app-dialog-mask'); if (mask) mask.hidden = true;
+            var resolve = activeResolve; activeResolve = null; if (resolve) resolve(value);
+        }
+        function open(opt) {
+            opt = opt || {};
+            if (activeResolve) finish(null);
+            var mask = ensure(), body = mask.querySelector('.app-dialog-body'), cancel = mask.querySelector('.cancel');
+            mask.querySelector('.app-dialog-head strong').textContent = opt.title || '提示';
+            body.innerHTML = '';
+            if (opt.message) { var message = document.createElement('div'); message.className = 'app-dialog-message'; message.textContent = opt.message; body.appendChild(message); }
+            (opt.fields || []).forEach(function (field) {
+                var row = document.createElement('div'); row.className = 'app-dialog-field';
+                var label = document.createElement('label'); label.textContent = field.label || field.name; row.appendChild(label);
+                var input = field.options ? document.createElement('select') : document.createElement('input');
+                input.dataset.field = field.name; input.type = field.type || 'text';
+                if (field.min != null) input.min = field.min; if (field.max != null) input.max = field.max;
+                (field.options || []).forEach(function (value) { var option = document.createElement('option'); option.value = value; option.textContent = value; input.appendChild(option); });
+                input.value = field.value == null ? '' : field.value;
+                row.appendChild(input); body.appendChild(row);
+            });
+            var error = document.createElement('div'); error.className = 'app-dialog-error'; body.appendChild(error);
+            cancel.hidden = opt.cancel === false; mask.hidden = false;
+            return new Promise(function (resolve) {
+                activeResolve = resolve;
+                mask.querySelector('.primary').onclick = function () {
+                    if (!(opt.fields || []).length) return finish(true);
+                    var values = {};
+                    body.querySelectorAll('[data-field]').forEach(function (input) { values[input.dataset.field] = input.type === 'number' ? Number(input.value) : input.value; });
+                    var problem = opt.validate && opt.validate(values); if (problem) { error.textContent = problem; return; }
+                    finish(values);
+                };
+                var first = body.querySelector('input,select'); if (first) setTimeout(function () { first.focus(); }, 0);
+            });
+        }
+        w.AppDialog = {
+            alert: function (message, title) { return open({title: title || '提示', message: String(message || ''), cancel: false}); },
+            confirm: function (message, title) { return open({title: title || '确认操作', message: String(message || '')}).then(function (v) { return v === true; }); },
+            prompt: function (label, value, title) { return open({title: title || '请输入', fields: [{name: 'value', label: label, value: value == null ? '' : value}]}).then(function (v) { return v ? v.value : null; }); },
+            form: open
+        };
+    })();
+
     var parts = w.location.pathname.split('/').filter(Boolean);
     var base = '';
     if (parts.length && parts[0].indexOf('.') < 0) {

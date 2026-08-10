@@ -186,9 +186,9 @@
                 </table>
             </div>
             <div class="form-row" style="justify-content:flex-end;">
-                <button class="btn btn-ghost" onclick="changeReplayPage(-1)">上一页</button>
+                <button id="replayPrevPage" class="btn btn-ghost" onclick="changeReplayPage(-1)">上一页</button>
                 <span id="replayPageLabel" class="meta"></span>
-                <button class="btn btn-ghost" onclick="changeReplayPage(1)">下一页</button>
+                <button id="replayNextPage" class="btn btn-ghost" onclick="changeReplayPage(1)">下一页</button>
             </div>
             <div class="msg" id="replayMsg"></div>
         </div>
@@ -219,8 +219,31 @@
     </div>
 </div>
 
+<div id="reactivateInviteDialog" class="admin-popover" hidden>
+    <section class="admin-dialog" role="dialog" aria-labelledby="reactivateInviteTitle">
+        <header class="admin-dialog-header">
+            <h3 id="reactivateInviteTitle">重新激活邀请链接</h3>
+            <button type="button" class="admin-dialog-close" aria-label="关闭" onclick="closeReactivateInvite()">×</button>
+        </header>
+        <div class="admin-dialog-body">
+            <div class="admin-dialog-tip">保留历史使用记录，从现在起追加新的有效期和可用次数。</div>
+            <label for="reactivateExpiresDays">有效期</label>
+            <div class="admin-input-suffix"><input id="reactivateExpiresDays" type="number" min="0" step="1" value="7"><span>天</span></div>
+            <div class="admin-field-help">填写 0 表示永久有效</div>
+            <label for="reactivateAdditionalUses">追加可用次数</label>
+            <div class="admin-input-suffix"><input id="reactivateAdditionalUses" type="number" min="1" step="1" value="1"><span>次</span></div>
+            <div id="reactivateInviteError" class="admin-dialog-error"></div>
+        </div>
+        <footer class="admin-dialog-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeReactivateInvite()">取消</button>
+            <button id="reactivateInviteSubmit" type="button" class="btn" onclick="submitReactivateInvite()">确定</button>
+        </footer>
+    </section>
+</div>
+
 <script src="../../shared/poker-card.js"></script>
 <script src="../../shared/mahjong-tile.js"></script>
+<script src="../../shared/table-seat-view.js"></script>
 <script src="../../shared/replay-model.js"></script>
 <script src="../../shared/replay-table-view.js"></script>
 <script src="./replay-shell.js"></script>

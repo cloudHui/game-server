@@ -88,6 +88,35 @@ public class InviteRepository {
         }
     }
 
+    /**
+     * 重新激活邀请码。保留历史使用次数，并从当前时间起追加有效期和可用次数。
+     */
+    public boolean reactivate(String token, Long expiresAt, int additionalUses) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+        int uses = additionalUses <= 0 ? 1 : additionalUses;
+        String sql = "UPDATE invite SET enabled = 1, expires_at = ?, max_uses = used_count + ? WHERE token = ?";
+        try (Connection conn = database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (expiresAt != null) {
+                ps.setLong(1, expiresAt);
+            } else {
+                ps.setObject(1, null);
+            }
+            ps.setInt(2, uses);
+            ps.setString(3, token);
+            boolean updated = ps.executeUpdate() > 0;
+            if (updated) {
+                logger.info("重新激活邀请码, token={}, additionalUses={}", mask(token), uses);
+            }
+            return updated;
+        } catch (SQLException e) {
+            logger.error("reactivate 失败, token={}", mask(token), e);
+            return false;
+        }
+    }
+
     public Optional<InviteEntity> peekValid(String token) {
         if (token == null || token.isEmpty()) {
             return Optional.empty();

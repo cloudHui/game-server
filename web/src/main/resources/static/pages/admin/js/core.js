@@ -3,8 +3,8 @@
     var sessionId = localStorage.getItem('sessionId');
     if (!sessionId) return void (location.href = appUrl('/'));
     if (localStorage.getItem('isAdmin') !== '1') {
-        alert('需要管理员账号');
-        return void (location.href = appUrl('/pages/lobby/index.html'));
+        AppDialog.alert('需要管理员账号').then(function () { location.href = appUrl('/pages/lobby/index.html'); });
+        return;
     }
     function request(path, options) {
         options = options || {};

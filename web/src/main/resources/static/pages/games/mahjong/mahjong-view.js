@@ -137,17 +137,7 @@ function toggleTile(index) {
 function renderCardBacks(containerId, count) {
     var container = document.getElementById(containerId);
     if (!container) return;
-    count = Math.max(0, Number(count) || 0);
-    var kids = container.children;
-    if (kids.length === count) return;
-    while (kids.length > count) {
-        container.removeChild(container.lastChild);
-    }
-    while (kids.length < count) {
-        var back = document.createElement('div');
-        back.className = 'tile-back';
-        container.appendChild(back);
-    }
+    TableSeatView.renderBacks(container, count, 'mahjong');
 }
 
 /**

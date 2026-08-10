@@ -134,7 +134,7 @@
         localStorage.removeItem('tableId');
         w.location.href = appUrl(roomListPage());
       } else {
-        alert((resp && resp.msg) || '退出房间失败');
+        AppDialog.alert((resp && resp.msg) || '退出房间失败');
       }
     });
   }

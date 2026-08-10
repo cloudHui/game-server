@@ -146,8 +146,8 @@ function dashboard(nav) {
                 {
                     class: "btn ghost",
                     style: "color:#ef4444",
-                    onclick: () => {
-                        if (window.confirm("Reset all progress on this device? This can’t be undone.")) {
+                    onclick: async () => {
+                        if (await AppDialog.confirm("Reset all progress on this device? This can’t be undone.")) {
                             reset();
                             nav.menu();
                         }

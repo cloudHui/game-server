@@ -203,7 +203,7 @@ createApp({
             this.form = JSON.parse(JSON.stringify(user));
         },
         async resetPassword(user) {
-            if (!confirm(`把 ${user.name} 的密码重置为123456？`)) return;
+            if (!await AppDialog.confirm(`把 ${user.name} 的密码重置为123456？`)) return;
             try {
                 const r = await this.api(`admin/users/${user.id}/reset-password`, {method: 'POST'});
                 this.notify(r.message);
@@ -212,7 +212,7 @@ createApp({
             }
         },
         async deleteUser(user) {
-            if (!confirm(`确定删除用户 ${user.name} 及其学习记录和错题？`)) return;
+            if (!await AppDialog.confirm(`确定删除用户 ${user.name} 及其学习记录和错题？`)) return;
             try {
                 await this.api(`admin/users/${user.id}`, {method: 'DELETE'});
                 await this.loadUsers();
@@ -237,7 +237,7 @@ createApp({
             this.form = JSON.parse(JSON.stringify(word));
         },
         async deleteWord(word) {
-            if (!confirm(`删除“${word.character}”？`)) return;
+            if (!await AppDialog.confirm(`删除“${word.character}”？`)) return;
             try {
                 await this.api(`admin/words/${word.id}`, {method: 'DELETE'});
                 this.words = await this.api('admin/words');
@@ -251,7 +251,7 @@ createApp({
             this.form = JSON.parse(JSON.stringify(item));
         },
         async deleteContent(item) {
-            if (!confirm(`删除“${item.title}”？`)) return;
+            if (!await AppDialog.confirm(`删除“${item.title}”？`)) return;
             try {
                 await this.api(`admin/content/${item.id}`, {method: 'DELETE'});
                 this.contents = await this.api('admin/content');
@@ -265,7 +265,7 @@ createApp({
             this.form = JSON.parse(JSON.stringify(item));
         },
         async deleteTemplate(item) {
-            if (!confirm('删除这个文字题模板？')) return;
+            if (!await AppDialog.confirm('删除这个文字题模板？')) return;
             try {
                 await this.api(`admin/templates/${item.id}`, {method: 'DELETE'});
                 this.templates = await this.api('admin/templates');
@@ -317,16 +317,12 @@ createApp({
                 this.notify('请先选择用户');
                 return;
             }
-            const subject = prompt('学科', '数学');
-            if (subject === null) return;
-            const module = prompt('模块名称', '管理员补录');
-            if (module === null) return;
-            const total = Number(prompt('完成数量', '1'));
-            const correct = Number(prompt('正确数量', '1'));
-            if (!Number.isFinite(total) || !Number.isFinite(correct) || total < 0 || correct < 0 || correct > total) {
-                this.notify('数量填写不正确');
-                return;
-            }
+            const values = await AppDialog.form({title: '添加学习记录', fields: [
+                {name: 'subject', label: '学科', value: '数学'}, {name: 'module', label: '模块名称', value: '管理员补录'},
+                {name: 'total', label: '完成数量', type: 'number', value: 1, min: 0}, {name: 'correct', label: '正确数量', type: 'number', value: 1, min: 0}
+            ], validate: v => !Number.isFinite(v.total) || !Number.isFinite(v.correct) || v.total < 0 || v.correct < 0 || v.correct > v.total ? '数量填写不正确' : ''});
+            if (!values) return;
+            const {subject, module, total, correct} = values;
             try {
                 await this.api(`admin/records/${this.selectedUser}`, {
                     method: 'POST',
@@ -343,12 +339,12 @@ createApp({
                 this.notify('请先选择用户');
                 return;
             }
-            const subject = prompt('学科', '数学');
-            if (subject === null) return;
-            const question = prompt('题目或汉字', '');
-            if (!question) return;
-            const correctAnswer = prompt('正确答案', '');
-            if (correctAnswer === null) return;
+            const values = await AppDialog.form({title: '添加错题', fields: [
+                {name: 'subject', label: '学科', value: '数学'}, {name: 'question', label: '题目或汉字', value: ''},
+                {name: 'correctAnswer', label: '正确答案', value: ''}
+            ], validate: v => !v.question ? '请填写题目或汉字' : ''});
+            if (!values) return;
+            const {subject, question, correctAnswer} = values;
             try {
                 await this.api(`admin/mistakes/${this.selectedUser}`, {
                     method: 'POST',
@@ -361,10 +357,12 @@ createApp({
             }
         },
         async editRecord(item) {
-            const module = prompt('模块名称', item.module);
-            if (module === null) return;
-            const total = Number(prompt('完成数量', item.total));
-            const correct = Number(prompt('正确数量', item.correct));
+            const values = await AppDialog.form({title: '编辑学习记录', fields: [
+                {name: 'module', label: '模块名称', value: item.module}, {name: 'total', label: '完成数量', type: 'number', value: item.total, min: 0},
+                {name: 'correct', label: '正确数量', type: 'number', value: item.correct, min: 0}
+            ], validate: v => v.correct > v.total ? '正确数量不能大于完成数量' : ''});
+            if (!values) return;
+            const {module, total, correct} = values;
             try {
                 await this.api(`admin/records/${this.selectedUser}/${item.id}`, {
                     method: 'PUT',
@@ -376,7 +374,7 @@ createApp({
             }
         },
         async deleteRecord(item) {
-            if (!confirm('删除这条学习记录？')) return;
+            if (!await AppDialog.confirm('删除这条学习记录？')) return;
             try {
                 await this.api(`admin/records/${this.selectedUser}/${item.id}`, {method: 'DELETE'});
                 await this.loadUserData();
@@ -385,10 +383,12 @@ createApp({
             }
         },
         async editMistake(item) {
-            const answer = prompt('正确答案', item.correctAnswer);
-            if (answer === null) return;
-            const status = prompt('状态：待复习/复习中/基本掌握/已掌握', item.status);
-            if (status === null) return;
+            const values = await AppDialog.form({title: '编辑错题', fields: [
+                {name: 'answer', label: '正确答案', value: item.correctAnswer},
+                {name: 'status', label: '状态', value: item.status, options: ['待复习', '复习中', '基本掌握', '已掌握']}
+            ]});
+            if (!values) return;
+            const {answer, status} = values;
             try {
                 await this.api(`admin/mistakes/${this.selectedUser}/${item.id}`, {
                     method: 'PUT',
@@ -400,7 +400,7 @@ createApp({
             }
         },
         async deleteMistake(item) {
-            if (!confirm('删除这条错题？')) return;
+            if (!await AppDialog.confirm('删除这条错题？')) return;
             try {
                 await this.api(`admin/mistakes/${this.selectedUser}/${item.id}`, {method: 'DELETE'});
                 await this.loadUserData();
@@ -429,7 +429,7 @@ createApp({
             }
         },
         async deleteResource(item) {
-            if (!confirm(`删除 ${item.path}？`)) return;
+            if (!await AppDialog.confirm(`删除 ${item.path}？`)) return;
             try {
                 await this.api('resources?path=' + encodeURIComponent(item.path), {method: 'DELETE'});
                 this.resources = await this.api('resources');
@@ -445,7 +445,7 @@ createApp({
             }
         },
         async sendReport() {
-            if (!confirm('立即发送今天的统计邮件？')) return;
+            if (!await AppDialog.confirm('立即发送今天的统计邮件？')) return;
             try {
                 const r = await this.api('admin/report/send', {method: 'POST'});
                 this.notify(r.message);

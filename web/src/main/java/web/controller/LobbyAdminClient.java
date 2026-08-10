@@ -42,6 +42,11 @@ public class LobbyAdminClient {
     }
 
     @SuppressWarnings("unchecked")
+    public Map<String, Object> reactivateInvite(String token, Map<String, Object> body) {
+        return post("/invites/reactivate", token, body);
+    }
+
+    @SuppressWarnings("unchecked")
     public Map<String, Object> listUsers(String token) {
         return get("/users", token);
     }

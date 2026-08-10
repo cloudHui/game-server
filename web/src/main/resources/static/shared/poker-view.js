@@ -71,21 +71,13 @@ function renderMyCards() {
         var cardId = gameState.myCards[i];
         var flash = flashBag[cardId] > 0;
         if (flash) flashBag[cardId]--;
-        var card = document.createElement('div');
         var selected = gameState.selectedCardIndexes
             ? gameState.selectedCardIndexes.has(i) : gameState.selectedCards.has(cardId);
-        card.className = 'card' + (selected ? ' selected' : '')
-            + (flash ? ' deal-in' : '');
-        card.dataset.index = i;
-        card.style.zIndex = String(i + 1);
-        card.appendChild(createCardFace(cardId));
-        // 单击切换；拖选由 bindPokerHandSelect 统一处理
-        card.onmousedown = (function(value, idx) {
-            return function(ev) { beginPokerDragSelect(ev, value, idx); };
-        })(cardId, i);
-        card.ontouchstart = (function(value, idx) {
-            return function(ev) { beginPokerDragSelect(ev, value, idx); };
-        })(cardId, i);
+        var card = TableSeatView.createPokerCard(cardId, {
+            selected: selected, flash: flash, index: i,
+            onMouseDown: (function(value, idx) { return function(ev) { beginPokerDragSelect(ev, value, idx); }; })(cardId, i),
+            onTouchStart: (function(value, idx) { return function(ev) { beginPokerDragSelect(ev, value, idx); }; })(cardId, i)
+        });
         row.appendChild(card);
     }
     container.innerHTML = '';
@@ -374,13 +366,7 @@ function renderPlayerLabels() {
 function renderCardBacks(containerId, count) {
     var container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = '';
-    var show = Math.min(count, (gameState.seatNum || 3) >= 4 ? 12 : count);
-    for (var i = 0; i < show; i++) {
-        var back = document.createElement('div');
-        back.className = 'card-back';
-        container.appendChild(back);
-    }
+    TableSeatView.renderBacks(container, count, 'poker', (gameState.seatNum || 3) >= 4 ? 12 : 0);
 }
 
 function renderOpponentHands() {

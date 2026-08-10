@@ -70,6 +70,21 @@ public class AdminController {
         return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
     }
 
+    @PostMapping("/invites/reactivate")
+    public ResponseEntity<Map<String, Object>> reactivate(@RequestBody Map<String, Object> body) {
+        String sessionId = str(body.get("sessionId"));
+        UserService.UserInfo user = requireAdmin(sessionId);
+        if (user == null) {
+            return ResponseEntity.ok(error(403, "需要管理员账号"));
+        }
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("token", str(body.get("token")));
+        payload.put("expiresDays", body.get("expiresDays") == null ? 7 : body.get("expiresDays"));
+        payload.put("additionalUses", body.get("additionalUses") == null ? 1 : body.get("additionalUses"));
+        Map<String, Object> result = lobbyAdminClient.reactivateInvite(user.getToken(), payload);
+        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+    }
+
     @GetMapping("/users")
     public ResponseEntity<Map<String, Object>> users(@RequestParam String sessionId) {
         UserService.UserInfo user = requireAdmin(sessionId);

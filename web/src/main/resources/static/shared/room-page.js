@@ -181,11 +181,11 @@
                             }
                         });
                         if (mine) goTable(mine, roomId);
-                        else alert((data && data.msg) || '创建房间失败');
+                        else AppDialog.alert((data && data.msg) || '创建房间失败');
                     });
             })
             .catch(function () {
-                alert('网络错误，请重试');
+                AppDialog.alert('网络错误，请重试');
             });
     }
 

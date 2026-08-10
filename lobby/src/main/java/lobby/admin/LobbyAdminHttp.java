@@ -259,6 +259,8 @@ public class LobbyAdminHttp {
             String path = ex.getRequestURI().getPath();
             if (path.endsWith("/revoke")) {
                 revokeInvite(ex);
+            } else if (path.endsWith("/reactivate")) {
+                reactivateInvite(ex);
             } else {
                 createInvite(ex, admin.get());
             }
@@ -308,6 +310,23 @@ public class LobbyAdminHttp {
             return;
         }
         boolean ok = Lobby.getInstance().getInviteRepository().revoke(token);
+        writeJson(ex, 200, ok ? "{\"code\":0,\"msg\":\"ok\"}" : jsonError(404, "邀请码不存在"));
+    }
+
+    private void reactivateInvite(HttpExchange ex) throws IOException {
+        Map<String, String> body = parseJsonObject(readBody(ex));
+        String token = body.get("token");
+        if (token == null || token.isEmpty()) {
+            writeJson(ex, 400, jsonError(400, "缺少 token"));
+            return;
+        }
+        int expiresDays = parseInt(body.get("expiresDays"), 7);
+        int additionalUses = parseInt(body.get("additionalUses"), 1);
+        Long expiresAt = expiresDays > 0
+                ? System.currentTimeMillis() + expiresDays * 24L * 60 * 60 * 1000
+                : null;
+        boolean ok = Lobby.getInstance().getInviteRepository()
+                .reactivate(token, expiresAt, additionalUses);
         writeJson(ex, 200, ok ? "{\"code\":0,\"msg\":\"ok\"}" : jsonError(404, "邀请码不存在"));
     }
 

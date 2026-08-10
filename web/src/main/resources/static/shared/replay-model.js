@@ -36,7 +36,7 @@
         return {
             content: content, code: code, type: gameType || '', players: players,
             seatCount: Math.max(1, Object.keys(players).length, Object.keys(hands).length),
-            initial: hands, events: events, pos: -1, hands: {}, exposed: {}, discards: [],
+            initial: hands, events: events, pos: -1, hands: {}, exposed: {}, exposedSets: {}, discards: [],
             lastDiscard: 0, nextSeat: -1, bestSeat: -1
         };
     }
@@ -68,6 +68,10 @@
             var seat = meld[1], kind = meld[2];
             var ids = meld[3][0] === '[' ? meld[3].slice(1, -1).split(',').filter(Boolean).map(Number) : [+meld[3]];
             model.exposed[seat] = model.exposed[seat] || [];
+            model.exposedSets[seat] = model.exposedSets[seat] || [];
+            var from = event.text.match(/\(座(\d+)出\)/);
+            var kindName = {吃: 'chi', 碰: 'peng', 明杠: 'mingGang', 暗杠: 'anGang', 补杠: 'buGang'}[kind];
+            var setTiles;
             if (kind === '吃') {
                 var skipped = false;
                 ids.forEach(function (id) {
@@ -75,10 +79,26 @@
                     else removeOne(model, seat, id);
                 });
                 model.exposed[seat] = model.exposed[seat].concat(ids);
+                setTiles = ids.slice();
             } else {
                 var removeCount = kind === '碰' ? 2 : (kind === '明杠' ? 3 : (kind === '暗杠' ? 4 : 1));
                 for (var i = 0; i < removeCount; i++) removeOne(model, seat, ids[0]);
                 for (var j = 0; j < (kind === '碰' ? 3 : 4); j++) model.exposed[seat].push(ids[0]);
+                setTiles = [];
+                for (var k = 0; k < (kind === '碰' ? 3 : 4); k++) setTiles.push(ids[0]);
+            }
+            if (kind === '补杠') {
+                var upgraded = false;
+                (model.exposedSets[seat] || []).forEach(function (set) {
+                    if (!upgraded && set.kind === 'peng' && set.tiles[0] === ids[0]) {
+                        set.kind = 'buGang'; set.tiles.push(ids[0]); upgraded = true;
+                    }
+                });
+                if (!upgraded) model.exposedSets[seat].push({kind: kindName, tiles: setTiles, fromSeat: -1, claimTile: ids[0]});
+            } else {
+                model.exposedSets[seat].push({kind: kindName, tiles: setTiles,
+                    fromSeat: kind === '暗杠' ? -1 : (from ? +from[1] : model.discards.length ? model.discards[model.discards.length - 1].seat : -1),
+                    claimTile: model.lastDiscard || ids[0]});
             }
             if (kind !== '暗杠' && model.discards.length && model.discards[model.discards.length - 1].id === model.lastDiscard) model.discards.pop();
         }
@@ -95,6 +115,7 @@
     function rebuild(model, pos) {
         model.hands = cloneHands(model.initial);
         model.exposed = {};
+        model.exposedSets = {};
         model.discards = [];
         model.lastDiscard = 0;
         model.nextSeat = -1;
@@ -107,7 +128,8 @@
 
     function inspect(content, gameType, pos) {
         var model = rebuild(parse(content, 'test', gameType), pos);
-        return {hands: cloneHands(model.hands), exposed: cloneHands(model.exposed), nextSeat: model.nextSeat, bestSeat: model.bestSeat, pos: model.pos};
+        return {hands: cloneHands(model.hands), exposed: cloneHands(model.exposed), exposedSets: model.exposedSets,
+            nextSeat: model.nextSeat, bestSeat: model.bestSeat, pos: model.pos};
     }
 
     w.ReplayModel = {parse: parse, rebuild: rebuild, inspect: inspect, sortHand: sortHand};
