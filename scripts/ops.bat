@@ -111,8 +111,11 @@ cd /d "%ROOT%"
 where mvn >nul 2>&1 || (echo 未找到 Maven，请先配置 PATH。& exit /b 1)
 echo.
 echo [打包] Maven install（跳过测试）...
-mvn -q install -DskipTests
+echo Maven 开始时间: %DATE% %TIME%
+echo 下面实时显示 Maven 完整输出，可直接看到当前编译模块和停留位置。
+mvn --batch-mode --show-version install -DskipTests
 if errorlevel 1 (echo Maven 打包失败。& exit /b 1)
+echo Maven 编译完成时间: %DATE% %TIME%
 
 for %%S in (center gate lobby game web) do if not exist "%BUILD%\%%S" mkdir "%BUILD%\%%S"
 if not exist "%BUILD%\center\Center.jar" (echo 缺少 build\center\Center.jar& exit /b 1)

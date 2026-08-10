@@ -442,18 +442,39 @@ cmd_monitor() {
 cmd_build() {
   local arg="${1:-all}"
   local targets
+  local build_started_epoch build_finished_epoch build_elapsed build_status
   # 先复用服务参数校验，避免把任意内容传给 Maven。
   # shellcheck disable=SC2207
   targets=($(resolve_targets "$arg"))
   command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn"; exit 1; }
   cd "$ROOT"
+  build_started_epoch="$(date +%s)"
+  echo "Maven 开始时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+  echo "下面实时显示 Maven 完整输出，可直接看到当前编译模块和停留位置。"
   if [[ "$arg" == "all" ]]; then
-    echo "打包全部服务（跳过测试）..."
-    mvn -q install -DskipTests
+    echo "执行: mvn --batch-mode --show-version install -DskipTests"
+    if mvn --batch-mode --show-version install -DskipTests; then
+      build_status=0
+    else
+      build_status=$?
+    fi
   else
-    echo "单独打包 $arg 及其必要依赖（跳过测试）..."
-    mvn -q -pl "$arg" -am install -DskipTests
+    echo "执行: mvn --batch-mode --show-version -pl $arg -am install -DskipTests"
+    if mvn --batch-mode --show-version -pl "$arg" -am install -DskipTests; then
+      build_status=0
+    else
+      build_status=$?
+    fi
   fi
+  build_finished_epoch="$(date +%s)"
+  build_elapsed=$((build_finished_epoch - build_started_epoch))
+  if [[ "$build_status" -ne 0 ]]; then
+    printf 'Maven 打包失败（退出码 %s），耗时 %02d:%02d:%02d\n' \
+      "$build_status" $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60)) >&2
+    return "$build_status"
+  fi
+  printf 'Maven 编译完成，耗时 %02d:%02d:%02d；开始校验和同步产物。\n' \
+    $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60))
 
   local svc jar
   for svc in "${targets[@]}"; do
@@ -504,7 +525,10 @@ cmd_build() {
     (cd "$ROOT" && java -cp "tool/target/tool-1.0-SNAPSHOT.jar:$BUILD/game/lib/*" tool.ConfigPacker >/dev/null 2>&1 || true)
     [[ -f "$ROOT/config/tablemodel_models.dat" ]] && mkdir -p "$BUILD/config" && cp -f "$ROOT/config/tablemodel_models.dat" "$BUILD/config/tablemodel_models.dat"
   fi
-  echo "打包完成。"
+  build_finished_epoch="$(date +%s)"
+  build_elapsed=$((build_finished_epoch - build_started_epoch))
+  printf '打包全部完成: %s，总耗时 %02d:%02d:%02d\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" \
+    $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60))
   for svc in "${targets[@]}"; do
     echo "  OK $(svc_jar "$svc")"
   done
