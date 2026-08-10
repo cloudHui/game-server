@@ -28,5 +28,5 @@
         return document.querySelector('#replayTable [data-slot="' + slotFor(seat, viewSeat, seatCount) + '"]');
     }
 
-    w.ReplayTableView = {shell: shell, seatElement: seatElement, slotFor: slotFor};
+    w.ReplayTableView = {shell: shell, seatElement: seatElement};
 })(window);

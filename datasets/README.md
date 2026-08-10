@@ -15,12 +15,10 @@
 从已解压原料重新生成：
 
 ```bash
-python3 scripts/import-datasets.py hanzi /path/to/makemeahanzi-master datasets/characters
-python3 scripts/import-datasets.py ecdict /path/to/ecdict-master datasets/dictionary
-python3 scripts/import-datasets.py poetry /path/to/chinese-poetry-master datasets/poetry.jsonl
-python3 scripts/import-datasets.py english /path/to/english-for-kids-master datasets/english-kids
+python3 scripts/learning/import-datasets.py hanzi /path/to/makemeahanzi-master datasets/characters
+python3 scripts/learning/import-datasets.py ecdict /path/to/ecdict-master datasets/dictionary
+python3 scripts/learning/import-datasets.py poetry /path/to/chinese-poetry-master datasets/poetry.jsonl
+python3 scripts/learning/import-datasets.py english /path/to/english-for-kids-master datasets/english-kids
 # 仅重建诗词分片索引：
-python3 scripts/import-datasets.py poetry-index /var/lib/family-learning/datasets/poetry.jsonl
-# 重建常用词美音包 + 儿童图卡分类元数据（需 espeak-ng、lame）：
-python3 scripts/build-english-vocab.py --limit 5000
+python3 scripts/learning/import-datasets.py poetry-index /var/lib/family-learning/datasets/poetry.jsonl
 ```

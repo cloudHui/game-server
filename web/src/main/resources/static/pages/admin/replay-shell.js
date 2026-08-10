@@ -12,7 +12,6 @@
         + '<div class="replay-controls"><button onclick="ReplayPlayer.move(-1)">上一步</button><button id="replayPlay" onclick="ReplayPlayer.toggle()">播放</button><button onclick="ReplayPlayer.move(1)">下一步</button>'
         + '<select id="replaySpeed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select>'
         + '<input id="replayRange" type="range" min="0" value="0" oninput="ReplayPlayer.seek(Number(this.value)-1)"></div>'
-        + '<button class="replay-log-button" id="replayLogButton" onclick="ReplayPlayer.toggleLog()">对局日志</button>'
+        + '<button class="replay-log-button" onclick="ReplayPlayer.toggleLog()">对局日志</button>'
         + '<div class="replay-log-mask" id="replayLogMask" onclick="ReplayPlayer.closeLog(event)"><section class="replay-log-panel" onclick="event.stopPropagation()"><div class="replay-log-title"><strong>对局日志</strong><button onclick="ReplayPlayer.closeLog()">关闭</button></div><div class="replay-log" id="replayLog"></div><details class="replay-raw"><summary>原始审计文本</summary><pre id="replayRaw"></pre></details></section></div></div></div>';
-    w.ReplayShell = {mount: mount};
 })(window);

@@ -3,10 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const source = fs.readFileSync(path.resolve(__dirname,
-    '../../main/resources/static/pages/admin/replay-player.js'), 'utf8');
 const sandbox = {window: {}};
-vm.runInNewContext(source, sandbox);
+['../../main/resources/static/shared/replay-model.js',
+    '../../main/resources/static/pages/admin/replay-player.js'].forEach(file => {
+    vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, file), 'utf8'), sandbox);
+});
 
 const replay = [
     '座0: userId=-100001, nick=RobotAlpha',
@@ -35,8 +36,13 @@ const poker = [
     '[4] 本轮最大方 座3'
 ].join('\n');
 const pokerState = sandbox.window.ReplayPlayer._inspect(poker, '拖拉机', 3);
-assert.deepStrictEqual(Array.from(pokerState.hands[0]), [101, 103, 201, 203]);
+assert.deepStrictEqual(Array.from(pokerState.hands[0]), [101, 201, 103, 203]);
 assert.strictEqual(pokerState.nextSeat, 2);
 assert.strictEqual(pokerState.bestSeat, 3);
+
+const pdk = '座0: [211,313,406,312,106,311,403,315,105,207,208,104,405,109,408,205]';
+const pdkState = sandbox.window.ReplayPlayer._inspect(pdk, '跑得快', -1);
+assert.deepStrictEqual(Array.from(pdkState.hands[0]),
+    [403,104,105,205,405,106,406,207,208,408,109,211,311,312,313,315]);
 
 console.log('replay-player tests passed');

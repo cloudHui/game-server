@@ -8,7 +8,21 @@ window.pokerSuggestPlay = function () {
     if (last.length) {
         var need = last.length;
         var lastRank = Math.max.apply(null, last.map(function (id) { return id % 100; }));
-        var same = cards.filter(function (id) { return id % 100 > lastRank; }).slice(0, need);
+        var same = [];
+        var lastIsGroup = last.every(function (id) { return id % 100 === last[0] % 100; });
+        if (lastIsGroup && need > 1) {
+            var groups = {};
+            cards.forEach(function (id) { var rank = id % 100; (groups[rank] || (groups[rank] = [])).push(id); });
+            Object.keys(groups).map(Number).sort(function (a, b) { return a - b; }).some(function (rank) {
+                if (rank > lastRank && groups[rank].length >= need) {
+                    same = groups[rank].slice(0, need);
+                    return true;
+                }
+                return false;
+            });
+        } else {
+            same = cards.filter(function (id) { return id % 100 > lastRank; }).slice(0, need);
+        }
         if (same.length === need) pick = same;
         else {
             var bomb = {};
