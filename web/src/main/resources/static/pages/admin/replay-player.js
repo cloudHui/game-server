@@ -1,6 +1,6 @@
 (function(w){
     'use strict';
-    var timer=null, liveTimer=null, liveUrl='', model=null;
+    var timer=null, liveTimer=null, liveUrl='', model=null, viewSeat=0;
     function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
     function parse(content, code, gameType){
         var lines=(content||'').split(/\r?\n/), hands={}, events=[], players={};
@@ -38,6 +38,7 @@
         var current=model.pos>=0?model.events[model.pos]:null, actor=current&&current.text.match(/^座(\d+)/);
         for(var s=0;s<4;s++){
             var seat=document.querySelector('#replayPlayer .s'+s);seat.style.display=s<model.seatCount?'block':'none';seat.classList.toggle('active',!!actor&&+actor[1]===s);
+            for(var p=0;p<4;p++)seat.classList.toggle('p'+p,p===(s-viewSeat+model.seatCount)%model.seatCount);
             seat.classList.toggle('next',model.nextSeat===s);seat.classList.toggle('best',model.bestSeat===s);
             seat.querySelector('.replay-seat-name').textContent='座'+s+' '+(model.players[s]||'');
             var hand=seat.querySelector('.replay-hand');hand.innerHTML='';(model.hands[s]||[]).forEach(function(id){hand.appendChild(face(id))});
@@ -60,6 +61,7 @@
     function open(data, url){
         if(timer){clearInterval(timer);timer=null}model=parse(data.content,data.replayCode||data.date+'/'+data.name,data.gameType);
         var root=document.getElementById('replayPlayer');root.classList.add('active');document.getElementById('replayRange').max=model.events.length;document.getElementById('replayCodeLabel').textContent=model.code;
+        var selector=document.getElementById('replayViewSeat');selector.innerHTML='';for(var s=0;s<model.seatCount;s++){var option=document.createElement('option');option.value=s;option.textContent='座'+s+' '+(model.players[s]||'');selector.appendChild(option)}viewSeat=Math.min(viewSeat,model.seatCount-1);selector.value=viewSeat;
         document.getElementById('replayRaw').textContent=model.content;document.getElementById('replayLog').innerHTML=model.events.map(function(e){return '<div>#'+e.index+' '+esc(e.time)+' '+esc(e.text)+'</div>'}).join('');seek(-1);armLive(url,data.status);
     }
     function armLive(url,status){
@@ -72,9 +74,10 @@
     }
     function copyCode(){navigator.clipboard.writeText(model.code)}
     function latest(){if(model)seek(model.events.length-1)}
+    function changeViewSeat(seat){if(!model)return;viewSeat=Math.max(0,Math.min(seat,model.seatCount-1));render()}
     function close(){if(timer){clearInterval(timer);timer=null}if(liveTimer){clearInterval(liveTimer);liveTimer=null}liveUrl='';var card=document.getElementById('replayDetailCard');if(card){card.style.display='none';card.classList.remove('replay-overlay')}var root=document.getElementById('replayPlayer');if(root)root.classList.remove('theater');document.body.classList.remove('replay-watching')}
     function theater(){var card=document.getElementById('replayDetailCard'),root=document.getElementById('replayPlayer');if(card){card.style.display='block';card.classList.add('replay-overlay')}if(root)root.classList.add('theater');document.body.classList.add('replay-watching')}
     function inspect(content,gameType,pos){model=parse(content,'test',gameType);rebuild(pos);return {hands:cloneHands(model.hands),exposed:cloneHands(model.exposed),nextSeat:model.nextSeat,bestSeat:model.bestSeat,pos:model.pos}}
-    w.ReplayPlayer={open:function(data,url){open(data,url);theater()},toggle:toggle,seek:function(n){seek(n)},move:function(n){seek(model.pos+n)},latest:latest,close:close,copyCode:copyCode,_inspect:inspect};
+    w.ReplayPlayer={open:function(data,url){open(data,url);theater()},toggle:toggle,seek:function(n){seek(n)},move:function(n){seek(model.pos+n)},latest:latest,viewSeat:changeViewSeat,close:close,copyCode:copyCode,_inspect:inspect};
     if(typeof document!=='undefined')document.addEventListener('keydown',function(e){if(!document.body.classList.contains('replay-watching'))return;if(e.key==='Escape')close();else if(e.key===' '){e.preventDefault();toggle()}else if(e.key==='ArrowLeft')seek(model.pos-1);else if(e.key==='ArrowRight')seek(model.pos+1);else if(e.key==='End')latest()});
 })(window);

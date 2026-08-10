@@ -7,7 +7,7 @@
         + '<button class="btn btn-ghost" onclick="ReplayPlayer.latest()">追到最新</button> '
         + '<button class="btn btn-danger" onclick="ReplayPlayer.close()">结束观看并退出</button></div></div>'
         + '<div class="replay-player" id="replayPlayer"><div class="replay-controls">'
-        + '<strong id="replayCodeLabel"></strong><button class="replay-copy" onclick="ReplayPlayer.copyCode()">复制回放码</button></div>'
+        + '<strong id="replayCodeLabel"></strong><label class="replay-view-label">观看座位 <select id="replayViewSeat" onchange="ReplayPlayer.viewSeat(Number(this.value))"></select></label><button class="replay-copy" onclick="ReplayPlayer.copyCode()">复制回放码</button></div>'
         + '<div class="replay-table">'
         + [2, 1, 3, 0].map(function (seat) { return '<div class="replay-seat s' + seat + '"><span class="replay-seat-name"></span><div class="replay-hand"></div></div>'; }).join('')
         + '<div class="replay-center"><div id="replayEventCards" class="replay-event-cards"></div><div id="replayEvent" class="replay-event"></div><div id="replayDecision" class="replay-decision"></div><span id="replayStep"></span></div></div>'
