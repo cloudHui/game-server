@@ -15,7 +15,7 @@
 <body class="page-theme">
 <div class="header">
     <h1>管理后台</h1>
-    <div>
+    <div class="header-actions">
         <a href="../learning/admin.html">学习管理</a>
         <a href="./terminal.html">服务器终端</a>
         <a href="../../pages/lobby/index.html">回大厅</a>
@@ -52,11 +52,11 @@
             <div class="msg" id="createMsg"></div>
         </div>
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="card-heading">
                 <h2 style="margin:0;">邀请列表</h2>
                 <button class="btn btn-ghost" onclick="loadInvites()">刷新</button>
             </div>
-            <div style="overflow-x:auto;">
+            <div class="table-scroll">
                 <table>
                     <thead>
                     <tr>
@@ -81,12 +81,12 @@
 
     <div id="panel-users" class="panel">
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="card-heading">
                 <h2 style="margin:0;">玩家列表</h2>
                 <button class="btn btn-ghost" onclick="loadUsers()">刷新</button>
             </div>
             <div class="meta" id="usersMeta"></div>
-            <div style="overflow-x:auto;">
+            <div class="table-scroll">
                 <table>
                     <thead>
                     <tr>
@@ -121,12 +121,12 @@
             <div class="msg" id="robotMatchMsg"></div>
         </div>
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="card-heading">
                 <h2 style="margin:0;">在线桌子</h2>
                 <button class="btn btn-ghost" onclick="loadTables()">刷新</button>
             </div>
             <div class="meta" id="tablesMeta"></div>
-            <div style="overflow-x:auto;">
+            <div class="table-scroll">
                 <table>
                     <thead>
                     <tr>
@@ -151,7 +151,7 @@
 
     <div id="panel-records" class="panel">
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="card-heading">
                 <h2 style="margin:0;">战绩 / 回放记录</h2>
                 <button class="btn btn-ghost" onclick="loadReplays()">刷新</button>
             </div>
@@ -165,7 +165,7 @@
                 <button class="btn btn-ghost" onclick="loadReplays(1)">刷新全部</button>
             </div>
             <div class="meta">先按麻将/扑克牌类筛选，再按具体子玩法分页查看全部回放。</div>
-            <div style="overflow-x:auto;">
+            <div class="table-scroll">
                 <table>
                     <thead>
                     <tr>
@@ -195,7 +195,7 @@
         <div class="card">
             <h2>落库战绩</h2>
             <div class="meta">游戏结算后按玩家、局次和累计分数保存到 SQLite。</div>
-            <div style="overflow-x:auto;">
+            <div class="table-scroll">
                 <table>
                     <thead>
                     <tr>
