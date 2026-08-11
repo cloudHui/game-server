@@ -31,6 +31,8 @@ public class TableUser {
     private int gateId;
     private int seated = -1;
     private boolean robot;
+    private boolean webHeartbeatManaged;
+    private long lastWebHeartbeatAt;
     private final List<Card> cards;
     // private long diamond;
 
@@ -57,6 +59,22 @@ public class TableUser {
 
     public void setRobot(boolean robot) {
         this.robot = robot;
+    }
+
+    /** 记录网页牌桌心跳，并恢复该连接对应的在线状态。 */
+    public void recordWebHeartbeat(long now) {
+        webHeartbeatManaged = true;
+        lastWebHeartbeatAt = now;
+        setOnLine(true);
+    }
+
+    /** 判断已启用网页心跳的玩家是否超过允许的静默时间。 */
+    public boolean isWebHeartbeatExpired(long now, long timeoutMillis) {
+        return webHeartbeatManaged && now - lastWebHeartbeatAt > timeoutMillis;
+    }
+
+    public boolean isWebHeartbeatManaged() {
+        return webHeartbeatManaged;
     }
 
     public int getUserId() {

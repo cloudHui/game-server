@@ -4,6 +4,7 @@ function sortHandCards(cards) {
 }
 
 function handleNotCard(data) {
+    GameTable.noteRoundStarted();
     // 发牌通知：自己有牌值；roleId=0 为桌面底牌；他人牌值为0但张数有效
     if (!data || !data.nCards) return;
     gameState.myCards = [];
@@ -123,9 +124,9 @@ function handleNotOp(data) {
 }
 
 function handleNotState(data) {
+    if (data) GameTable.renderRoundInfo(data.currentRound, data.totalRounds);
     if (data && data.state === TABLE_STATE_DIS) {
-        gameWs.stopReconnect();
-        GameTable.backToLobby();
+        GameTable.handleTableDestroyed(gameWs);
         return;
     }
     if (data.state === 1) {
@@ -166,6 +167,7 @@ function handleNotResult(data) {
 }
 
 function handleDdzRoundResult(data) {
+    GameTable.noteRoundCompleted(data && data.round);
     if (!data) return;
     var totals = data.totalScores || [];
     for (var i = 0; i < totals.length; i++) {
@@ -180,17 +182,7 @@ function handleDdzRoundResult(data) {
 }
 
 function handleNotGameResult(data) {
-    if (!data) return;
-    var title = '总结算';
-    var meta = '完成 ' + (data.completedRounds || 0) + ' / ' + (data.totalRounds || 0) + ' 局';
-    var rows = '';
-    var totals = data.totalScores || [];
-    for (var i = 0; i < totals.length; i++) {
-        rows += '<div class="row"><span>座位 ' + totals[i].seat + '</span><span>'
-            + totals[i].score + ' 分</span></div>';
-    }
-    showSettle(title, meta, rows);
-    showActionButtons('prepare');
+    GameTable.showScoreFinal(data, gameWs);
 }
 
 function doOp(choice) {

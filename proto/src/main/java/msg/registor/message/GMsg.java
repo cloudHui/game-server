@@ -60,4 +60,7 @@ public class GMsg {
 
 	@ClassField(value = GameProto.AckTableSnapshot.class, des = "只读牌桌快照回复")
 	public static final int ACK_TABLE_SNAPSHOT = CMsg.GAME_TYPE | 16;
+
+	@ClassField(value = GameProto.ReqTableHeartbeat.class, des = "网页牌桌心跳")
+	public static final int REQ_TABLE_HEARTBEAT = CMsg.GAME_TYPE | 17;
 }

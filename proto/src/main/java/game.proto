@@ -29,6 +29,11 @@ message AckLeaveTable {
     TableInfo tableInfo = 2;
 }
 
+// 浏览器牌桌心跳：仅用于确认网页仍在当前桌内活动。
+message ReqTableHeartbeat {
+    int64 table_id = 1;
+}
+
 //发牌
 message NotCard{
     repeated NCardsInfo nCards = 1;
@@ -46,6 +51,8 @@ message NotTableState{
     int32 state = 1;//桌子状态
     int64 stateStart = 2;//状态开始时间
     int32 stateDuration = 3;//状态持续时间(s)
+    int32 currentRound = 4;
+    int32 totalRounds = 5;
 }
 
 //请求操作
@@ -149,6 +156,8 @@ message TableInfo{
     int64 tableId = 2;
     int32 landlord = 3;
     CardInfo lastCard = 4;//上一次出的牌
+    int32 currentRound = 5;
+    int32 totalRounds = 6;
 }
 
 message Player{

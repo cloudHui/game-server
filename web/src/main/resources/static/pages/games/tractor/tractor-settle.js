@@ -21,6 +21,7 @@ function handleNotResult(data) {
 }
 
 function handleTractorRoundResult(data) {
+    GameTable.noteRoundCompleted(data && data.round);
     if (!data) return;
     var totals = data.totalScores || [];
     for (var i = 0; i < totals.length; i++) {
@@ -35,15 +36,5 @@ function handleTractorRoundResult(data) {
 }
 
 function handleNotGameResult(data) {
-    if (!data) return;
-    var rows = '';
-    var totals = data.totalScores || [];
-    for (var i = 0; i < totals.length; i++) {
-        rows += '<div class="row"><span>座位 ' + totals[i].seat + '</span><span>'
-            + totals[i].score + ' 分</span></div>';
-    }
-    showSettle('总结算',
-        '完成 ' + (data.completedRounds || 0) + ' / ' + (data.totalRounds || 0) + ' 局',
-        rows);
-    showActionButtons('prepare');
+    GameTable.showScoreFinal(data, gameWs);
 }

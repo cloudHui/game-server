@@ -61,6 +61,7 @@ public abstract class Table {
      * 本桌运行时托管（补机器人后开启，勿改共享 TableModel）
      */
     private boolean runtimeAutoPlay;
+    private boolean closing;
 
     protected Table(long tableId, TableModel model, ModelProto.RoomRole creator) {
         this.tableId = tableId;
@@ -188,6 +189,34 @@ public abstract class Table {
         return false;
     }
 
+    public boolean hasOnlineHumanPlayer() {
+        for (TableUser u : users.values()) {
+            if (!u.isRobot() && u.isOnline()) return true;
+        }
+        return false;
+    }
+
+    /** 网页心跳超时且没有其他在线真人时，本桌可以安全结束。 */
+    public boolean hasExpiredWebPlayersOnly(long now, long timeoutMillis) {
+        boolean expired = false;
+        for (TableUser user : users.values()) {
+            if (user.isRobot()) continue;
+            if (user.isWebHeartbeatExpired(now, timeoutMillis)) {
+                expired = true;
+            } else if (!user.isWebHeartbeatManaged() || user.isOnline()) {
+                return false;
+            }
+        }
+        return expired;
+    }
+
+    /** 原子标记桌子进入结束流程，避免相邻 tick 重复发送总结算。 */
+    public boolean beginClosing() {
+        if (closing) return false;
+        closing = true;
+        return true;
+    }
+
     public boolean isAllRobot() {
         if (users.isEmpty()) return false;
         for (TableUser u : users.values()) {
@@ -253,8 +282,7 @@ public abstract class Table {
      */
     public void notifySeatPlayers() {
         GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder();
-        response.setTableInfo(GameProto.TableInfo.newBuilder()
-                .setTableId(tableId).setRoomId(getRoomId()).build());
+        response.setTableInfo(buildTableInfo());
         for (TableUser tableUser : users.values()) {
             response.addPlayers(GameProto.Player.newBuilder()
                     .setPosition(tableUser.getSeated())
@@ -266,6 +294,22 @@ public abstract class Table {
                     .build());
         }
         sendTableMessage(response.build(), msg.registor.message.GMsg.ACK_ENTER_TABLE_MSG);
+    }
+
+    /** 构建所有入桌、离桌和座位推送共用的桌信息。 */
+    public GameProto.TableInfo buildTableInfo() {
+        return GameProto.TableInfo.newBuilder()
+                .setTableId(tableId).setRoomId(getRoomId())
+                .setCurrentRound(currentRound).setTotalRounds(tableModel.getTotalRounds())
+                .build();
+    }
+
+    /** 构建带局数信息的统一状态通知，供开局、重连和解散链路复用。 */
+    public GameProto.NotTableState buildStateNotification(int state, long start, int duration) {
+        return GameProto.NotTableState.newBuilder()
+                .setState(state).setStateStart(start).setStateDuration(duration)
+                .setCurrentRound(currentRound).setTotalRounds(tableModel.getTotalRounds())
+                .build();
     }
 
     // ======================== 状态转换 ========================
@@ -358,6 +402,7 @@ public abstract class Table {
         try {
             TraceContext.setTableId(tableId);
             MetricsCollector.getInstance().incrementCounter("game.table_loops");
+            if (game.manager.table.state.TableHeartbeatLifecycle.closeExpiredRobotRoom(this)) return;
             TableStateHandleManager.handle(this);
         } catch (Exception e) {
             logger.error("桌子循环执行异常, tableId: {}", tableId, e);

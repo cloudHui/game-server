@@ -140,9 +140,8 @@ public class MjTable extends Table {
         }
 
         // 3. 同步状态
-        GameProto.NotTableState stateNot = GameProto.NotTableState.newBuilder()
-                .setState(getTableState().getId()).setStateStart(getStateStartTime())
-                .setStateDuration(getTableState().getOverTime()).build();
+        GameProto.NotTableState stateNot = buildStateNotification(getTableState().getId(),
+                getStateStartTime(), getTableState().getOverTime());
         user.sendRoleMessage(stateNot, GMsg.NOT_TABLE_STATE, getTableId());
 
         // 4. 同步赖子

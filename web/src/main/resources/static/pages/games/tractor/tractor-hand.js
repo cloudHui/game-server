@@ -116,6 +116,7 @@ function playLocalDealAnim(fullMine, opponentCounts, opts) {
 }
 
 function handleNotCard(data) {
+    GameTable.noteRoundStarted();
     if (!data || !data.nCards) return;
     var mine = [];
     var opponentCounts = {};

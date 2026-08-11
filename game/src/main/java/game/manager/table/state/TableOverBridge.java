@@ -7,6 +7,8 @@ import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
 import proto.ConstProto;
 import proto.GameProto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 小结算阶段（TABLE_OVER）：展示约 15 秒后进入下一局或总结算散桌。
@@ -16,6 +18,7 @@ import proto.GameProto;
  */
 @ProcessEnum(TableState.TABLE_OVER)
 public class TableOverBridge extends AbstractTableHandle {
+    private static final Logger logger = LoggerFactory.getLogger(TableOverBridge.class);
 
     @Override
     public boolean handle(Table table) {
@@ -35,6 +38,12 @@ public class TableOverBridge extends AbstractTableHandle {
 
     @Override
     protected void overTime(Table table) {
+        if (shouldEndRobotRoom(table)) {
+            logger.info("机器人房真人均已离线，结束对局, tableId: {}, round: {}",
+                    table.getTableId(), table.getCurrentRound());
+            TableSettleSupport.sendFinalResultAndRemove(table);
+            return;
+        }
         // 15 秒小结算结束：自动开下一局（autoNextRound/机器人房），否则总结算并散桌。
         if (canContinueNextRound(table)) {
             autoReadyForNextRound(table);
@@ -45,6 +54,10 @@ public class TableOverBridge extends AbstractTableHandle {
             }
         }
         TableSettleSupport.sendFinalResultAndRemove(table);
+    }
+
+    private static boolean shouldEndRobotRoom(Table table) {
+        return table.isRobotRoom() && table.hasHumanPlayer() && !table.hasOnlineHumanPlayer();
     }
 
     /**

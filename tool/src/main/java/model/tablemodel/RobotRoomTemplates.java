@@ -34,9 +34,8 @@ public final class RobotRoomTemplates {
     }
 
     public static TableModel douDiZhu() {
-        // totalRounds 取较大值：小结算 15 秒后自动连局，地主连庄优先叫牌。
         return TableModelJson.parse("{\"id\":9002,\"type\":2,\"seatNum\":3,\"cardNum\":17,"
-                + "\"exCardNum\":3,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":100,"
+                + "\"exCardNum\":3,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":4,"
                 + "\"autoNextRound\":1,\"autoPlay\":1}");
     }
 
@@ -44,7 +43,7 @@ public final class RobotRoomTemplates {
      * 电脑快速房间：叫地主后立即进入逆时针抢/再抢。
      */
     public static TableModel douDiZhuRob() {
-        return TableModelJson.parse("{\"id\":9003,\"type\":2,\"seatNum\":3,\"cardNum\":17,\"exCardNum\":3,\"baseScore\":1,\"maxFan\":16,\"gameSubType\":1,\"totalRounds\":100,\"autoNextRound\":1,\"autoPlay\":1}");
+        return TableModelJson.parse("{\"id\":9003,\"type\":2,\"seatNum\":3,\"cardNum\":17,\"exCardNum\":3,\"baseScore\":1,\"maxFan\":16,\"gameSubType\":1,\"totalRounds\":4,\"autoNextRound\":1,\"autoPlay\":1}");
     }
 
     /**
@@ -52,7 +51,7 @@ public final class RobotRoomTemplates {
      */
     public static TableModel paoDeKuai() {
         return TableModelJson.parse("{\"id\":9010,\"type\":3,\"seatNum\":3,\"cardNum\":16,"
-                + "\"exCardNum\":0,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":100,"
+                + "\"exCardNum\":0,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":4,"
                 + "\"autoNextRound\":1,\"autoPlay\":1}");
     }
 
@@ -61,7 +60,7 @@ public final class RobotRoomTemplates {
      */
     public static TableModel tractor() {
         return TableModelJson.parse("{\"id\":9011,\"type\":4,\"seatNum\":4,\"cardNum\":25,"
-                + "\"exCardNum\":8,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":100,"
+                + "\"exCardNum\":8,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":4,"
                 + "\"autoNextRound\":1,\"autoPlay\":1}");
     }
 

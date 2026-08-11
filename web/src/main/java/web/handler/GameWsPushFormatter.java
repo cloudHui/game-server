@@ -50,8 +50,11 @@ final class GameWsPushFormatter {
             return formatAckOp((GameProto.AckOp) proto);
         }
         if (proto instanceof GameProto.NotTableState) {
+            GameProto.NotTableState state = (GameProto.NotTableState) proto;
             Map<String, Object> m = new HashMap<>();
-            m.put("state", ((GameProto.NotTableState) proto).getState());
+            m.put("state", state.getState());
+            m.put("currentRound", state.getCurrentRound());
+            m.put("totalRounds", state.getTotalRounds());
             return m;
         }
         if (proto instanceof GameProto.NotResult) {
@@ -95,6 +98,8 @@ final class GameWsPushFormatter {
         result.put("roomId", tableInfo.getRoomId());
         result.put("tableId", tableInfo.getTableId());
         result.put("landlord", tableInfo.getLandlord());
+        result.put("currentRound", tableInfo.getCurrentRound());
+        result.put("totalRounds", tableInfo.getTotalRounds());
         return result;
     }
 

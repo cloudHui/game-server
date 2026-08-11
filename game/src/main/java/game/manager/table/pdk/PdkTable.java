@@ -82,11 +82,8 @@ public class PdkTable extends Table {
         int seat = user.getSeated();
         if (seat < 0) return;
         cardPool.sendInitCardNotice(getSeatUsers());
-        GameProto.NotTableState stateNot = GameProto.NotTableState.newBuilder()
-                .setState(getTableState().getId())
-                .setStateStart(getStateStartTime())
-                .setStateDuration(getTableState().getOverTime())
-                .build();
+        GameProto.NotTableState stateNot = buildStateNotification(getTableState().getId(),
+                getStateStartTime(), getTableState().getOverTime());
         user.sendRoleMessage(stateNot, GMsg.NOT_STATE, getTableId());
         TableState ts = getTableState();
         if (ts == TableState.IDLE_CARD || ts == TableState.CARD) {

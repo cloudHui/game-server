@@ -40,8 +40,7 @@ public class ReqLeaveTableHandle implements Handler {
                 int result = processLeave(clientId, table);
                 if (result == ConstProto.Result.SUCCESS_VALUE) {
                     GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
-                            .setTableInfo(GameProto.TableInfo.newBuilder()
-                                    .setTableId(table.getTableId()).setRoomId(table.getRoomId()).build())
+                            .setTableInfo(table.buildTableInfo())
                             .build();
                     sender.sendMessage(clientId, GMsg.ACK_LEAVE, mapId, response, sequence);
                 } else {

@@ -51,10 +51,9 @@ var gameState = {
 
 GameTable.requireSessionOrRedirect(session);
 document.getElementById('myName').textContent = nickname;
-document.getElementById('roomInfo').textContent = '桌号: ' + tableId;
-
 var gameWs = GameTable.createGameWs({
     sessionId: sessionId,
+    tableId: tableId,
     onAuthed: function () {
         console.info('[麻将连接认证]', {
             tableId: tableId, userId: userId,
@@ -105,8 +104,7 @@ function enterTable() {
         if (resp.code === 0 && resp.data) {
             updatePlayers(resp.data.players || []);
             if (resp.data.tableInfo) {
-                document.getElementById('roomInfo').textContent =
-                    '桌号: ' + resp.data.tableInfo.tableId;
+                gameState.roomId = GameTable.applyTableInfo(resp.data.tableInfo, gameState.roomId);
             }
             showActionButtons('waiting');
         } else {

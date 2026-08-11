@@ -5,7 +5,6 @@ import game.client.GameClient;
 import game.db.DatabaseExecutorManager;
 import game.db.ScoreRepository;
 import game.manager.TableManager;
-import game.manager.table.RobotOperationDelay;
 import game.manager.thread.GameThreadPoolManager;
 import msg.registor.HandleTypeRegister;
 import msg.registor.enums.ServerType;
@@ -20,6 +19,7 @@ import threadtutil.timer.Timer;
 import threadtutil.utils.TimeUtils;
 import tools.ServerClientManager;
 import tools.ServerManager;
+import game.config.GameRuntimeConfig;
 import utils.config.ConfigurationManager;
 import utils.metrics.MetricsCollector;
 import utils.metrics.MetricsHttpServer;
@@ -286,9 +286,9 @@ public class Game {
      */
     private void initializeGameManagers() {
         tableManager = new TableManager();
-        RobotOperationDelay.reload();
-        registerTimer(60_000L, 60_000L, -1, ignored -> {
-            RobotOperationDelay.reload();
+        GameRuntimeConfig.initialize();
+        registerTimer(1_000L, 1_000L, -1, ignored -> {
+            GameRuntimeConfig.reloadIfDue();
             return false;
         }, null);
         logger.info("游戏管理器初始化完成");

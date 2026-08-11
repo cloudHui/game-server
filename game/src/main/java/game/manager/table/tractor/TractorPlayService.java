@@ -44,8 +44,9 @@ public final class TractorPlayService {
             return;
         }
         List<Card> play = TractorSimpleAi.decide(table, seat);
-        logger.info("拖拉机自动出牌: table:{} seat:{} hand:{} aiCards:{} lead:{}",
-                table.getTableId(), seat, user.getCards().size(), play == null ? 0 : play.size(),
+        logger.info("拖拉机自动出牌: table:{} seat:{} userId:{} robot:{} online:{} hand:{} aiCards:{} lead:{}",
+                table.getTableId(), seat, user.getUserId(), user.isRobot(), user.isOnline(),
+                user.getCards().size(), play == null ? 0 : play.size(),
                 table.getTractor().getLeadCombo() == null ? "none" : table.getTractor().getLeadCombo().type);
         int result = tryPlay(table, user, play);
         if (result == ConstProto.Result.SUCCESS_VALUE) return;

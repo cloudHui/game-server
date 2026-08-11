@@ -3083,6 +3083,485 @@ public final class GameProto {
 
   }
 
+  public interface ReqTableHeartbeatOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:proto.ReqTableHeartbeat)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>int64 table_id = 1;</code>
+     * @return The tableId.
+     */
+    long getTableId();
+  }
+  /**
+   * <pre>
+   * 浏览器牌桌心跳：仅用于确认网页仍在当前桌内活动。
+   * </pre>
+   *
+   * Protobuf type {@code proto.ReqTableHeartbeat}
+   */
+  public static final class ReqTableHeartbeat extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:proto.ReqTableHeartbeat)
+      ReqTableHeartbeatOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use ReqTableHeartbeat.newBuilder() to construct.
+    private ReqTableHeartbeat(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private ReqTableHeartbeat() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new ReqTableHeartbeat();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return proto.GameProto.internal_static_proto_ReqTableHeartbeat_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return proto.GameProto.internal_static_proto_ReqTableHeartbeat_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              proto.GameProto.ReqTableHeartbeat.class, proto.GameProto.ReqTableHeartbeat.Builder.class);
+    }
+
+    public static final int TABLE_ID_FIELD_NUMBER = 1;
+    private long tableId_;
+    /**
+     * <code>int64 table_id = 1;</code>
+     * @return The tableId.
+     */
+    @java.lang.Override
+    public long getTableId() {
+      return tableId_;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (tableId_ != 0L) {
+        output.writeInt64(1, tableId_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (tableId_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(1, tableId_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof proto.GameProto.ReqTableHeartbeat)) {
+        return super.equals(obj);
+      }
+      proto.GameProto.ReqTableHeartbeat other = (proto.GameProto.ReqTableHeartbeat) obj;
+
+      if (getTableId()
+          != other.getTableId()) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + TABLE_ID_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getTableId());
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static proto.GameProto.ReqTableHeartbeat parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(proto.GameProto.ReqTableHeartbeat prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * <pre>
+     * 浏览器牌桌心跳：仅用于确认网页仍在当前桌内活动。
+     * </pre>
+     *
+     * Protobuf type {@code proto.ReqTableHeartbeat}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:proto.ReqTableHeartbeat)
+        proto.GameProto.ReqTableHeartbeatOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return proto.GameProto.internal_static_proto_ReqTableHeartbeat_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return proto.GameProto.internal_static_proto_ReqTableHeartbeat_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                proto.GameProto.ReqTableHeartbeat.class, proto.GameProto.ReqTableHeartbeat.Builder.class);
+      }
+
+      // Construct using proto.GameProto.ReqTableHeartbeat.newBuilder()
+      private Builder() {
+
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        tableId_ = 0L;
+
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return proto.GameProto.internal_static_proto_ReqTableHeartbeat_descriptor;
+      }
+
+      @java.lang.Override
+      public proto.GameProto.ReqTableHeartbeat getDefaultInstanceForType() {
+        return proto.GameProto.ReqTableHeartbeat.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public proto.GameProto.ReqTableHeartbeat build() {
+        proto.GameProto.ReqTableHeartbeat result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public proto.GameProto.ReqTableHeartbeat buildPartial() {
+        proto.GameProto.ReqTableHeartbeat result = new proto.GameProto.ReqTableHeartbeat(this);
+        result.tableId_ = tableId_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof proto.GameProto.ReqTableHeartbeat) {
+          return mergeFrom((proto.GameProto.ReqTableHeartbeat)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(proto.GameProto.ReqTableHeartbeat other) {
+        if (other == proto.GameProto.ReqTableHeartbeat.getDefaultInstance()) return this;
+        if (other.getTableId() != 0L) {
+          setTableId(other.getTableId());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
+        try {
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                tableId_ = input.readInt64();
+
+                break;
+              } // case 8
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.unwrapIOException();
+        } finally {
+          onChanged();
+        } // finally
+        return this;
+      }
+
+      private long tableId_ ;
+      /**
+       * <code>int64 table_id = 1;</code>
+       * @return The tableId.
+       */
+      @java.lang.Override
+      public long getTableId() {
+        return tableId_;
+      }
+      /**
+       * <code>int64 table_id = 1;</code>
+       * @param value The tableId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTableId(long value) {
+        
+        tableId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int64 table_id = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTableId() {
+        
+        tableId_ = 0L;
+        onChanged();
+        return this;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:proto.ReqTableHeartbeat)
+    }
+
+    // @@protoc_insertion_point(class_scope:proto.ReqTableHeartbeat)
+    private static final proto.GameProto.ReqTableHeartbeat DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new proto.GameProto.ReqTableHeartbeat();
+    }
+
+    public static proto.GameProto.ReqTableHeartbeat getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<ReqTableHeartbeat>
+        PARSER = new com.google.protobuf.AbstractParser<ReqTableHeartbeat>() {
+      @java.lang.Override
+      public ReqTableHeartbeat parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
+      }
+    };
+
+    public static com.google.protobuf.Parser<ReqTableHeartbeat> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ReqTableHeartbeat> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public proto.GameProto.ReqTableHeartbeat getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   public interface NotCardOrBuilder extends
       // @@protoc_insertion_point(interface_extends:proto.NotCard)
       com.google.protobuf.MessageOrBuilder {
@@ -4974,6 +5453,18 @@ public final class GameProto {
      * @return The stateDuration.
      */
     int getStateDuration();
+
+    /**
+     * <code>int32 currentRound = 4;</code>
+     * @return The currentRound.
+     */
+    int getCurrentRound();
+
+    /**
+     * <code>int32 totalRounds = 5;</code>
+     * @return The totalRounds.
+     */
+    int getTotalRounds();
   }
   /**
    * <pre>
@@ -5064,6 +5555,28 @@ public final class GameProto {
       return stateDuration_;
     }
 
+    public static final int CURRENTROUND_FIELD_NUMBER = 4;
+    private int currentRound_;
+    /**
+     * <code>int32 currentRound = 4;</code>
+     * @return The currentRound.
+     */
+    @java.lang.Override
+    public int getCurrentRound() {
+      return currentRound_;
+    }
+
+    public static final int TOTALROUNDS_FIELD_NUMBER = 5;
+    private int totalRounds_;
+    /**
+     * <code>int32 totalRounds = 5;</code>
+     * @return The totalRounds.
+     */
+    @java.lang.Override
+    public int getTotalRounds() {
+      return totalRounds_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -5087,6 +5600,12 @@ public final class GameProto {
       if (stateDuration_ != 0) {
         output.writeInt32(3, stateDuration_);
       }
+      if (currentRound_ != 0) {
+        output.writeInt32(4, currentRound_);
+      }
+      if (totalRounds_ != 0) {
+        output.writeInt32(5, totalRounds_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -5107,6 +5626,14 @@ public final class GameProto {
       if (stateDuration_ != 0) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, stateDuration_);
+      }
+      if (currentRound_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, currentRound_);
+      }
+      if (totalRounds_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, totalRounds_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -5129,6 +5656,10 @@ public final class GameProto {
           != other.getStateStart()) return false;
       if (getStateDuration()
           != other.getStateDuration()) return false;
+      if (getCurrentRound()
+          != other.getCurrentRound()) return false;
+      if (getTotalRounds()
+          != other.getTotalRounds()) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -5147,6 +5678,10 @@ public final class GameProto {
           getStateStart());
       hash = (37 * hash) + STATEDURATION_FIELD_NUMBER;
       hash = (53 * hash) + getStateDuration();
+      hash = (37 * hash) + CURRENTROUND_FIELD_NUMBER;
+      hash = (53 * hash) + getCurrentRound();
+      hash = (37 * hash) + TOTALROUNDS_FIELD_NUMBER;
+      hash = (53 * hash) + getTotalRounds();
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -5285,6 +5820,10 @@ public final class GameProto {
 
         stateDuration_ = 0;
 
+        currentRound_ = 0;
+
+        totalRounds_ = 0;
+
         return this;
       }
 
@@ -5314,6 +5853,8 @@ public final class GameProto {
         result.state_ = state_;
         result.stateStart_ = stateStart_;
         result.stateDuration_ = stateDuration_;
+        result.currentRound_ = currentRound_;
+        result.totalRounds_ = totalRounds_;
         onBuilt();
         return result;
       }
@@ -5371,6 +5912,12 @@ public final class GameProto {
         if (other.getStateDuration() != 0) {
           setStateDuration(other.getStateDuration());
         }
+        if (other.getCurrentRound() != 0) {
+          setCurrentRound(other.getCurrentRound());
+        }
+        if (other.getTotalRounds() != 0) {
+          setTotalRounds(other.getTotalRounds());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
@@ -5412,6 +5959,16 @@ public final class GameProto {
 
                 break;
               } // case 24
+              case 32: {
+                currentRound_ = input.readInt32();
+
+                break;
+              } // case 32
+              case 40: {
+                totalRounds_ = input.readInt32();
+
+                break;
+              } // case 40
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -5553,6 +6110,68 @@ public final class GameProto {
       public Builder clearStateDuration() {
         
         stateDuration_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int currentRound_ ;
+      /**
+       * <code>int32 currentRound = 4;</code>
+       * @return The currentRound.
+       */
+      @java.lang.Override
+      public int getCurrentRound() {
+        return currentRound_;
+      }
+      /**
+       * <code>int32 currentRound = 4;</code>
+       * @param value The currentRound to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCurrentRound(int value) {
+        
+        currentRound_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 currentRound = 4;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCurrentRound() {
+        
+        currentRound_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int totalRounds_ ;
+      /**
+       * <code>int32 totalRounds = 5;</code>
+       * @return The totalRounds.
+       */
+      @java.lang.Override
+      public int getTotalRounds() {
+        return totalRounds_;
+      }
+      /**
+       * <code>int32 totalRounds = 5;</code>
+       * @param value The totalRounds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTotalRounds(int value) {
+        
+        totalRounds_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 totalRounds = 5;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTotalRounds() {
+        
+        totalRounds_ = 0;
         onChanged();
         return this;
       }
@@ -16625,6 +17244,18 @@ public final class GameProto {
      * <code>.proto.CardInfo lastCard = 4;</code>
      */
     proto.GameProto.CardInfoOrBuilder getLastCardOrBuilder();
+
+    /**
+     * <code>int32 currentRound = 5;</code>
+     * @return The currentRound.
+     */
+    int getCurrentRound();
+
+    /**
+     * <code>int32 totalRounds = 6;</code>
+     * @return The totalRounds.
+     */
+    int getTotalRounds();
   }
   /**
    * Protobuf type {@code proto.TableInfo}
@@ -16737,6 +17368,28 @@ public final class GameProto {
       return getLastCard();
     }
 
+    public static final int CURRENTROUND_FIELD_NUMBER = 5;
+    private int currentRound_;
+    /**
+     * <code>int32 currentRound = 5;</code>
+     * @return The currentRound.
+     */
+    @java.lang.Override
+    public int getCurrentRound() {
+      return currentRound_;
+    }
+
+    public static final int TOTALROUNDS_FIELD_NUMBER = 6;
+    private int totalRounds_;
+    /**
+     * <code>int32 totalRounds = 6;</code>
+     * @return The totalRounds.
+     */
+    @java.lang.Override
+    public int getTotalRounds() {
+      return totalRounds_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -16763,6 +17416,12 @@ public final class GameProto {
       if (lastCard_ != null) {
         output.writeMessage(4, getLastCard());
       }
+      if (currentRound_ != 0) {
+        output.writeInt32(5, currentRound_);
+      }
+      if (totalRounds_ != 0) {
+        output.writeInt32(6, totalRounds_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -16787,6 +17446,14 @@ public final class GameProto {
       if (lastCard_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, getLastCard());
+      }
+      if (currentRound_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, currentRound_);
+      }
+      if (totalRounds_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(6, totalRounds_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -16814,6 +17481,10 @@ public final class GameProto {
         if (!getLastCard()
             .equals(other.getLastCard())) return false;
       }
+      if (getCurrentRound()
+          != other.getCurrentRound()) return false;
+      if (getTotalRounds()
+          != other.getTotalRounds()) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -16836,6 +17507,10 @@ public final class GameProto {
         hash = (37 * hash) + LASTCARD_FIELD_NUMBER;
         hash = (53 * hash) + getLastCard().hashCode();
       }
+      hash = (37 * hash) + CURRENTROUND_FIELD_NUMBER;
+      hash = (53 * hash) + getCurrentRound();
+      hash = (37 * hash) + TOTALROUNDS_FIELD_NUMBER;
+      hash = (53 * hash) + getTotalRounds();
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -16976,6 +17651,10 @@ public final class GameProto {
           lastCard_ = null;
           lastCardBuilder_ = null;
         }
+        currentRound_ = 0;
+
+        totalRounds_ = 0;
+
         return this;
       }
 
@@ -17010,6 +17689,8 @@ public final class GameProto {
         } else {
           result.lastCard_ = lastCardBuilder_.build();
         }
+        result.currentRound_ = currentRound_;
+        result.totalRounds_ = totalRounds_;
         onBuilt();
         return result;
       }
@@ -17070,6 +17751,12 @@ public final class GameProto {
         if (other.hasLastCard()) {
           mergeLastCard(other.getLastCard());
         }
+        if (other.getCurrentRound() != 0) {
+          setCurrentRound(other.getCurrentRound());
+        }
+        if (other.getTotalRounds() != 0) {
+          setTotalRounds(other.getTotalRounds());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
@@ -17118,6 +17805,16 @@ public final class GameProto {
 
                 break;
               } // case 34
+              case 40: {
+                currentRound_ = input.readInt32();
+
+                break;
+              } // case 40
+              case 48: {
+                totalRounds_ = input.readInt32();
+
+                break;
+              } // case 48
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -17380,6 +18077,68 @@ public final class GameProto {
           lastCard_ = null;
         }
         return lastCardBuilder_;
+      }
+
+      private int currentRound_ ;
+      /**
+       * <code>int32 currentRound = 5;</code>
+       * @return The currentRound.
+       */
+      @java.lang.Override
+      public int getCurrentRound() {
+        return currentRound_;
+      }
+      /**
+       * <code>int32 currentRound = 5;</code>
+       * @param value The currentRound to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCurrentRound(int value) {
+        
+        currentRound_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 currentRound = 5;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCurrentRound() {
+        
+        currentRound_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int totalRounds_ ;
+      /**
+       * <code>int32 totalRounds = 6;</code>
+       * @return The totalRounds.
+       */
+      @java.lang.Override
+      public int getTotalRounds() {
+        return totalRounds_;
+      }
+      /**
+       * <code>int32 totalRounds = 6;</code>
+       * @param value The totalRounds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTotalRounds(int value) {
+        
+        totalRounds_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 totalRounds = 6;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTotalRounds() {
+        
+        totalRounds_ = 0;
+        onChanged();
+        return this;
       }
       @java.lang.Override
       public final Builder setUnknownFields(
@@ -32170,6 +32929,11 @@ public final class GameProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_proto_AckLeaveTable_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_proto_ReqTableHeartbeat_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_proto_ReqTableHeartbeat_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_proto_NotCard_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -32315,84 +33079,88 @@ public final class GameProto {
       "\001(\0132\020.proto.TableInfo\" \n\rReqLeaveTable\022\017" +
       "\n\007tableId\030\001 \001(\014\"T\n\rAckLeaveTable\022\036\n\007play" +
       "ers\030\001 \003(\0132\r.proto.Player\022#\n\ttableInfo\030\002 " +
-      "\001(\0132\020.proto.TableInfo\",\n\007NotCard\022!\n\006nCar" +
-      "ds\030\001 \003(\0132\021.proto.NCardsInfo\"K\n\014NotOperat" +
-      "ion\022\014\n\004wait\030\001 \001(\005\022\016\n\006opSeat\030\002 \001(\005\022\035\n\006cho" +
-      "ice\030\003 \003(\0132\r.proto.OpInfo\"I\n\rNotTableStat" +
-      "e\022\r\n\005state\030\001 \001(\005\022\022\n\nstateStart\030\002 \001(\003\022\025\n\r" +
-      "stateDuration\030\003 \001(\005\"\"\n\005ReqOp\022\031\n\002op\030\001 \001(\013" +
-      "2\r.proto.OpInfo\"$\n\020ReqTableSnapshot\022\020\n\010t" +
-      "able_id\030\001 \001(\003\"\227\001\n\016SnapshotPlayer\022\017\n\007role" +
-      "_id\030\001 \001(\005\022\014\n\004seat\030\002 \001(\005\022\014\n\004nick\030\003 \001(\014\022\016\n" +
-      "\006online\030\004 \001(\010\022\023\n\013total_score\030\005 \001(\005\022\r\n\005ca" +
-      "rds\030\006 \003(\005\022\022\n\ncard_count\030\007 \001(\005\022\020\n\010landlor" +
-      "d\030\010 \001(\010\"B\n\017SnapshotDiscard\022\014\n\004seat\030\001 \001(\005" +
-      "\022\017\n\007tile_id\030\002 \001(\005\022\020\n\010sequence\030\003 \001(\003\"?\n\017S" +
-      "napshotExposed\022\014\n\004seat\030\001 \001(\005\022\014\n\004type\030\002 \001" +
-      "(\014\022\020\n\010tile_ids\030\003 \003(\005\"\303\005\n\020AckTableSnapsho" +
-      "t\022\020\n\010table_id\030\001 \001(\003\022\021\n\tgame_type\030\002 \001(\005\022\017" +
-      "\n\007version\030\003 \001(\003\022\r\n\005round\030\004 \001(\005\022\r\n\005state\030" +
-      "\005 \001(\005\022\023\n\013state_start\030\006 \001(\003\022\026\n\016state_dura" +
-      "tion\030\007 \001(\005\022&\n\007players\030\010 \003(\0132\025.proto.Snap" +
-      "shotPlayer\022\017\n\007op_seat\030\t \001(\005\022\036\n\007choices\030\n" +
-      " \003(\0132\r.proto.OpInfo\022(\n\010discards\030\013 \003(\0132\026." +
-      "proto.SnapshotDiscard\022\'\n\007exposed\030\014 \003(\0132\026" +
-      ".proto.SnapshotExposed\022\022\n\ndrawn_tile\030\r \001" +
-      "(\005\022\034\n\024pending_discard_tile\030\016 \001(\005\022\034\n\024pend" +
-      "ing_discard_seat\030\017 \001(\005\022\021\n\twall_left\030\020 \001(" +
-      "\005\022\022\n\nlaizi_tile\030\021 \001(\005\022\027\n\017laizi_flip_tile" +
-      "\030\022 \001(\005\022\023\n\013dealer_seat\030\023 \001(\005\022\024\n\014bottom_ca" +
-      "rds\030\024 \003(\005\022#\n\nlast_cards\030\025 \001(\0132\017.proto.Ca" +
-      "rdInfo\022\026\n\016last_play_seat\030\026 \001(\005\022\022\n\npass_s" +
-      "eats\030\027 \003(\005\022\025\n\rlandlord_seat\030\030 \001(\005\022\022\n\nbas" +
-      "e_score\030\031 \001(\005\022\026\n\016rob_multiplier\030\032 \001(\005\022\027\n" +
-      "\017bomb_multiplier\030\033 \001(\005\022\032\n\022current_multip" +
-      "lier\030\034 \001(\005\"\241\001\n\005AckOp\022\031\n\002op\030\001 \001(\0132\r.proto" +
-      ".OpInfo\022\014\n\004opId\030\002 \001(\005\022\016\n\006opFrom\030\003 \001(\005\022\022\n" +
-      "\nbase_score\030\004 \001(\005\022\026\n\016rob_multiplier\030\005 \001(" +
-      "\005\022\027\n\017bomb_multiplier\030\006 \001(\005\022\032\n\022current_mu" +
-      "ltiplier\030\007 \001(\005\"\314\001\n\tNotResult\022\016\n\006winner\030\001" +
-      " \001(\005\022 \n\010rPlayers\030\002 \003(\0132\016.proto.RPlayer\022\023" +
-      "\n\013landlord_id\030\003 \001(\005\022\020\n\010win_team\030\004 \001(\005\022\022\n" +
-      "\nbase_score\030\005 \001(\005\022\026\n\016rob_multiplier\030\006 \001(" +
-      "\005\022\016\n\006spring\030\007 \001(\010\022\023\n\013anti_spring\030\010 \001(\010\022\025" +
-      "\n\rsettle_factor\030\t \001(\005\"L\n\006OpInfo\022 \n\006choic" +
-      "e\030\001 \001(\0162\020.proto.Operation\022 \n\007opCards\030\002 \003" +
-      "(\0132\017.proto.CardInfo\"a\n\tTableInfo\022\016\n\006room" +
-      "Id\030\001 \001(\005\022\017\n\007tableId\030\002 \001(\003\022\020\n\010landlord\030\003 " +
-      "\001(\005\022!\n\010lastCard\030\004 \001(\0132\017.proto.CardInfo\"h" +
-      "\n\006Player\022\016\n\006roleId\030\001 \001(\005\022\020\n\010position\030\002 \001" +
-      "(\005\022\016\n\006avatar\030\003 \001(\014\022\020\n\010nickName\030\004 \001(\014\022\032\n\005" +
-      "cards\030\005 \003(\0132\013.proto.Card\"5\n\007RPlayer\022\016\n\006r" +
-      "oleId\030\001 \001(\005\022\032\n\005cards\030\005 \003(\0132\013.proto.Card\"" +
-      "E\n\010CardInfo\022\032\n\005cards\030\001 \003(\0132\013.proto.Card\022" +
-      "\035\n\004type\030\002 \001(\0162\017.proto.CardType\"&\n\004Card\022\r" +
-      "\n\005value\030\001 \001(\005\022\017\n\007replace\030\002 \001(\005\"8\n\nNCards" +
-      "Info\022\016\n\006roleId\030\001 \001(\005\022\032\n\005cards\030\002 \003(\0132\013.pr" +
-      "oto.Card\"\265\001\n\nNotMjState\022\016\n\006opSeat\030\001 \001(\005\022" +
-      "\016\n\006tileId\030\002 \001(\005\022 \n\006action\030\003 \001(\0162\020.proto." +
-      "Operation\022\014\n\004wait\030\004 \001(\005\022\035\n\006choice\030\005 \003(\0132" +
-      "\r.proto.OpInfo\022\020\n\010wallLeft\030\006 \001(\005\022\020\n\010from" +
-      "Seat\030\007 \001(\005\022\024\n\014exposedTiles\030\010 \003(\005\"\370\001\n\016Not" +
-      "RoundResult\022\r\n\005round\030\001 \001(\005\022\022\n\nwinnerSeat" +
-      "\030\002 \001(\005\022\013\n\003fan\030\003 \001(\005\022$\n\nseatScores\030\004 \003(\0132" +
-      "\020.proto.SeatScore\022\017\n\007winType\030\005 \001(\014\022\'\n\013se" +
-      "atExposed\030\006 \003(\0132\022.proto.SeatExposed\022\036\n\005h" +
-      "ands\030\007 \003(\0132\017.proto.HandInfo\022\017\n\007winTile\030\010" +
-      " \001(\005\022%\n\013totalScores\030\t \003(\0132\020.proto.SeatSc" +
-      "ore\"P\n\010HandInfo\022\014\n\004seat\030\001 \001(\005\022\021\n\thandTil" +
-      "es\030\002 \003(\005\022#\n\007exposed\030\003 \003(\0132\022.proto.Expose" +
-      "dInfo\"(\n\tSeatScore\022\014\n\004seat\030\001 \001(\005\022\r\n\005scor" +
-      "e\030\002 \001(\005\"@\n\013SeatExposed\022\014\n\004seat\030\001 \001(\005\022#\n\007" +
-      "exposed\030\002 \003(\0132\022.proto.ExposedInfo\",\n\013Exp" +
-      "osedInfo\022\014\n\004type\030\001 \001(\014\022\017\n\007tileIds\030\002 \003(\005\"" +
-      "\211\001\n\rNotGameResult\022\023\n\013totalRounds\030\001 \001(\005\022\027" +
-      "\n\017completedRounds\030\002 \001(\005\022%\n\013totalScores\030\003" +
-      " \003(\0132\020.proto.SeatScore\022#\n\006rounds\030\004 \003(\0132\023" +
-      ".proto.RoundSummary\"u\n\014RoundSummary\022\r\n\005r" +
-      "ound\030\001 \001(\005\022\022\n\nwinnerSeat\030\002 \001(\005\022\013\n\003fan\030\003 " +
-      "\001(\005\022\017\n\007winType\030\004 \001(\014\022$\n\nseatScores\030\005 \003(\013" +
-      "2\020.proto.SeatScoreB\013B\tGameProtob\006proto3"
+      "\001(\0132\020.proto.TableInfo\"%\n\021ReqTableHeartbe" +
+      "at\022\020\n\010table_id\030\001 \001(\003\",\n\007NotCard\022!\n\006nCard" +
+      "s\030\001 \003(\0132\021.proto.NCardsInfo\"K\n\014NotOperati" +
+      "on\022\014\n\004wait\030\001 \001(\005\022\016\n\006opSeat\030\002 \001(\005\022\035\n\006choi" +
+      "ce\030\003 \003(\0132\r.proto.OpInfo\"t\n\rNotTableState" +
+      "\022\r\n\005state\030\001 \001(\005\022\022\n\nstateStart\030\002 \001(\003\022\025\n\rs" +
+      "tateDuration\030\003 \001(\005\022\024\n\014currentRound\030\004 \001(\005" +
+      "\022\023\n\013totalRounds\030\005 \001(\005\"\"\n\005ReqOp\022\031\n\002op\030\001 \001" +
+      "(\0132\r.proto.OpInfo\"$\n\020ReqTableSnapshot\022\020\n" +
+      "\010table_id\030\001 \001(\003\"\227\001\n\016SnapshotPlayer\022\017\n\007ro" +
+      "le_id\030\001 \001(\005\022\014\n\004seat\030\002 \001(\005\022\014\n\004nick\030\003 \001(\014\022" +
+      "\016\n\006online\030\004 \001(\010\022\023\n\013total_score\030\005 \001(\005\022\r\n\005" +
+      "cards\030\006 \003(\005\022\022\n\ncard_count\030\007 \001(\005\022\020\n\010landl" +
+      "ord\030\010 \001(\010\"B\n\017SnapshotDiscard\022\014\n\004seat\030\001 \001" +
+      "(\005\022\017\n\007tile_id\030\002 \001(\005\022\020\n\010sequence\030\003 \001(\003\"?\n" +
+      "\017SnapshotExposed\022\014\n\004seat\030\001 \001(\005\022\014\n\004type\030\002" +
+      " \001(\014\022\020\n\010tile_ids\030\003 \003(\005\"\303\005\n\020AckTableSnaps" +
+      "hot\022\020\n\010table_id\030\001 \001(\003\022\021\n\tgame_type\030\002 \001(\005" +
+      "\022\017\n\007version\030\003 \001(\003\022\r\n\005round\030\004 \001(\005\022\r\n\005stat" +
+      "e\030\005 \001(\005\022\023\n\013state_start\030\006 \001(\003\022\026\n\016state_du" +
+      "ration\030\007 \001(\005\022&\n\007players\030\010 \003(\0132\025.proto.Sn" +
+      "apshotPlayer\022\017\n\007op_seat\030\t \001(\005\022\036\n\007choices" +
+      "\030\n \003(\0132\r.proto.OpInfo\022(\n\010discards\030\013 \003(\0132" +
+      "\026.proto.SnapshotDiscard\022\'\n\007exposed\030\014 \003(\013" +
+      "2\026.proto.SnapshotExposed\022\022\n\ndrawn_tile\030\r" +
+      " \001(\005\022\034\n\024pending_discard_tile\030\016 \001(\005\022\034\n\024pe" +
+      "nding_discard_seat\030\017 \001(\005\022\021\n\twall_left\030\020 " +
+      "\001(\005\022\022\n\nlaizi_tile\030\021 \001(\005\022\027\n\017laizi_flip_ti" +
+      "le\030\022 \001(\005\022\023\n\013dealer_seat\030\023 \001(\005\022\024\n\014bottom_" +
+      "cards\030\024 \003(\005\022#\n\nlast_cards\030\025 \001(\0132\017.proto." +
+      "CardInfo\022\026\n\016last_play_seat\030\026 \001(\005\022\022\n\npass" +
+      "_seats\030\027 \003(\005\022\025\n\rlandlord_seat\030\030 \001(\005\022\022\n\nb" +
+      "ase_score\030\031 \001(\005\022\026\n\016rob_multiplier\030\032 \001(\005\022" +
+      "\027\n\017bomb_multiplier\030\033 \001(\005\022\032\n\022current_mult" +
+      "iplier\030\034 \001(\005\"\241\001\n\005AckOp\022\031\n\002op\030\001 \001(\0132\r.pro" +
+      "to.OpInfo\022\014\n\004opId\030\002 \001(\005\022\016\n\006opFrom\030\003 \001(\005\022" +
+      "\022\n\nbase_score\030\004 \001(\005\022\026\n\016rob_multiplier\030\005 " +
+      "\001(\005\022\027\n\017bomb_multiplier\030\006 \001(\005\022\032\n\022current_" +
+      "multiplier\030\007 \001(\005\"\314\001\n\tNotResult\022\016\n\006winner" +
+      "\030\001 \001(\005\022 \n\010rPlayers\030\002 \003(\0132\016.proto.RPlayer" +
+      "\022\023\n\013landlord_id\030\003 \001(\005\022\020\n\010win_team\030\004 \001(\005\022" +
+      "\022\n\nbase_score\030\005 \001(\005\022\026\n\016rob_multiplier\030\006 " +
+      "\001(\005\022\016\n\006spring\030\007 \001(\010\022\023\n\013anti_spring\030\010 \001(\010" +
+      "\022\025\n\rsettle_factor\030\t \001(\005\"L\n\006OpInfo\022 \n\006cho" +
+      "ice\030\001 \001(\0162\020.proto.Operation\022 \n\007opCards\030\002" +
+      " \003(\0132\017.proto.CardInfo\"\214\001\n\tTableInfo\022\016\n\006r" +
+      "oomId\030\001 \001(\005\022\017\n\007tableId\030\002 \001(\003\022\020\n\010landlord" +
+      "\030\003 \001(\005\022!\n\010lastCard\030\004 \001(\0132\017.proto.CardInf" +
+      "o\022\024\n\014currentRound\030\005 \001(\005\022\023\n\013totalRounds\030\006" +
+      " \001(\005\"h\n\006Player\022\016\n\006roleId\030\001 \001(\005\022\020\n\010positi" +
+      "on\030\002 \001(\005\022\016\n\006avatar\030\003 \001(\014\022\020\n\010nickName\030\004 \001" +
+      "(\014\022\032\n\005cards\030\005 \003(\0132\013.proto.Card\"5\n\007RPlaye" +
+      "r\022\016\n\006roleId\030\001 \001(\005\022\032\n\005cards\030\005 \003(\0132\013.proto" +
+      ".Card\"E\n\010CardInfo\022\032\n\005cards\030\001 \003(\0132\013.proto" +
+      ".Card\022\035\n\004type\030\002 \001(\0162\017.proto.CardType\"&\n\004" +
+      "Card\022\r\n\005value\030\001 \001(\005\022\017\n\007replace\030\002 \001(\005\"8\n\n" +
+      "NCardsInfo\022\016\n\006roleId\030\001 \001(\005\022\032\n\005cards\030\002 \003(" +
+      "\0132\013.proto.Card\"\265\001\n\nNotMjState\022\016\n\006opSeat\030" +
+      "\001 \001(\005\022\016\n\006tileId\030\002 \001(\005\022 \n\006action\030\003 \001(\0162\020." +
+      "proto.Operation\022\014\n\004wait\030\004 \001(\005\022\035\n\006choice\030" +
+      "\005 \003(\0132\r.proto.OpInfo\022\020\n\010wallLeft\030\006 \001(\005\022\020" +
+      "\n\010fromSeat\030\007 \001(\005\022\024\n\014exposedTiles\030\010 \003(\005\"\370" +
+      "\001\n\016NotRoundResult\022\r\n\005round\030\001 \001(\005\022\022\n\nwinn" +
+      "erSeat\030\002 \001(\005\022\013\n\003fan\030\003 \001(\005\022$\n\nseatScores\030" +
+      "\004 \003(\0132\020.proto.SeatScore\022\017\n\007winType\030\005 \001(\014" +
+      "\022\'\n\013seatExposed\030\006 \003(\0132\022.proto.SeatExpose" +
+      "d\022\036\n\005hands\030\007 \003(\0132\017.proto.HandInfo\022\017\n\007win" +
+      "Tile\030\010 \001(\005\022%\n\013totalScores\030\t \003(\0132\020.proto." +
+      "SeatScore\"P\n\010HandInfo\022\014\n\004seat\030\001 \001(\005\022\021\n\th" +
+      "andTiles\030\002 \003(\005\022#\n\007exposed\030\003 \003(\0132\022.proto." +
+      "ExposedInfo\"(\n\tSeatScore\022\014\n\004seat\030\001 \001(\005\022\r" +
+      "\n\005score\030\002 \001(\005\"@\n\013SeatExposed\022\014\n\004seat\030\001 \001" +
+      "(\005\022#\n\007exposed\030\002 \003(\0132\022.proto.ExposedInfo\"" +
+      ",\n\013ExposedInfo\022\014\n\004type\030\001 \001(\014\022\017\n\007tileIds\030" +
+      "\002 \003(\005\"\211\001\n\rNotGameResult\022\023\n\013totalRounds\030\001" +
+      " \001(\005\022\027\n\017completedRounds\030\002 \001(\005\022%\n\013totalSc" +
+      "ores\030\003 \003(\0132\020.proto.SeatScore\022#\n\006rounds\030\004" +
+      " \003(\0132\023.proto.RoundSummary\"u\n\014RoundSummar" +
+      "y\022\r\n\005round\030\001 \001(\005\022\022\n\nwinnerSeat\030\002 \001(\005\022\013\n\003" +
+      "fan\030\003 \001(\005\022\017\n\007winType\030\004 \001(\014\022$\n\nseatScores" +
+      "\030\005 \003(\0132\020.proto.SeatScoreB\013B\tGameProtob\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -32423,158 +33191,164 @@ public final class GameProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_AckLeaveTable_descriptor,
         new java.lang.String[] { "Players", "TableInfo", });
-    internal_static_proto_NotCard_descriptor =
+    internal_static_proto_ReqTableHeartbeat_descriptor =
       getDescriptor().getMessageTypes().get(4);
+    internal_static_proto_ReqTableHeartbeat_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_proto_ReqTableHeartbeat_descriptor,
+        new java.lang.String[] { "TableId", });
+    internal_static_proto_NotCard_descriptor =
+      getDescriptor().getMessageTypes().get(5);
     internal_static_proto_NotCard_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotCard_descriptor,
         new java.lang.String[] { "NCards", });
     internal_static_proto_NotOperation_descriptor =
-      getDescriptor().getMessageTypes().get(5);
+      getDescriptor().getMessageTypes().get(6);
     internal_static_proto_NotOperation_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotOperation_descriptor,
         new java.lang.String[] { "Wait", "OpSeat", "Choice", });
     internal_static_proto_NotTableState_descriptor =
-      getDescriptor().getMessageTypes().get(6);
+      getDescriptor().getMessageTypes().get(7);
     internal_static_proto_NotTableState_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotTableState_descriptor,
-        new java.lang.String[] { "State", "StateStart", "StateDuration", });
+        new java.lang.String[] { "State", "StateStart", "StateDuration", "CurrentRound", "TotalRounds", });
     internal_static_proto_ReqOp_descriptor =
-      getDescriptor().getMessageTypes().get(7);
+      getDescriptor().getMessageTypes().get(8);
     internal_static_proto_ReqOp_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_ReqOp_descriptor,
         new java.lang.String[] { "Op", });
     internal_static_proto_ReqTableSnapshot_descriptor =
-      getDescriptor().getMessageTypes().get(8);
+      getDescriptor().getMessageTypes().get(9);
     internal_static_proto_ReqTableSnapshot_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_ReqTableSnapshot_descriptor,
         new java.lang.String[] { "TableId", });
     internal_static_proto_SnapshotPlayer_descriptor =
-      getDescriptor().getMessageTypes().get(9);
+      getDescriptor().getMessageTypes().get(10);
     internal_static_proto_SnapshotPlayer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SnapshotPlayer_descriptor,
         new java.lang.String[] { "RoleId", "Seat", "Nick", "Online", "TotalScore", "Cards", "CardCount", "Landlord", });
     internal_static_proto_SnapshotDiscard_descriptor =
-      getDescriptor().getMessageTypes().get(10);
+      getDescriptor().getMessageTypes().get(11);
     internal_static_proto_SnapshotDiscard_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SnapshotDiscard_descriptor,
         new java.lang.String[] { "Seat", "TileId", "Sequence", });
     internal_static_proto_SnapshotExposed_descriptor =
-      getDescriptor().getMessageTypes().get(11);
+      getDescriptor().getMessageTypes().get(12);
     internal_static_proto_SnapshotExposed_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SnapshotExposed_descriptor,
         new java.lang.String[] { "Seat", "Type", "TileIds", });
     internal_static_proto_AckTableSnapshot_descriptor =
-      getDescriptor().getMessageTypes().get(12);
+      getDescriptor().getMessageTypes().get(13);
     internal_static_proto_AckTableSnapshot_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_AckTableSnapshot_descriptor,
         new java.lang.String[] { "TableId", "GameType", "Version", "Round", "State", "StateStart", "StateDuration", "Players", "OpSeat", "Choices", "Discards", "Exposed", "DrawnTile", "PendingDiscardTile", "PendingDiscardSeat", "WallLeft", "LaiziTile", "LaiziFlipTile", "DealerSeat", "BottomCards", "LastCards", "LastPlaySeat", "PassSeats", "LandlordSeat", "BaseScore", "RobMultiplier", "BombMultiplier", "CurrentMultiplier", });
     internal_static_proto_AckOp_descriptor =
-      getDescriptor().getMessageTypes().get(13);
+      getDescriptor().getMessageTypes().get(14);
     internal_static_proto_AckOp_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_AckOp_descriptor,
         new java.lang.String[] { "Op", "OpId", "OpFrom", "BaseScore", "RobMultiplier", "BombMultiplier", "CurrentMultiplier", });
     internal_static_proto_NotResult_descriptor =
-      getDescriptor().getMessageTypes().get(14);
+      getDescriptor().getMessageTypes().get(15);
     internal_static_proto_NotResult_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotResult_descriptor,
         new java.lang.String[] { "Winner", "RPlayers", "LandlordId", "WinTeam", "BaseScore", "RobMultiplier", "Spring", "AntiSpring", "SettleFactor", });
     internal_static_proto_OpInfo_descriptor =
-      getDescriptor().getMessageTypes().get(15);
+      getDescriptor().getMessageTypes().get(16);
     internal_static_proto_OpInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_OpInfo_descriptor,
         new java.lang.String[] { "Choice", "OpCards", });
     internal_static_proto_TableInfo_descriptor =
-      getDescriptor().getMessageTypes().get(16);
+      getDescriptor().getMessageTypes().get(17);
     internal_static_proto_TableInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_TableInfo_descriptor,
-        new java.lang.String[] { "RoomId", "TableId", "Landlord", "LastCard", });
+        new java.lang.String[] { "RoomId", "TableId", "Landlord", "LastCard", "CurrentRound", "TotalRounds", });
     internal_static_proto_Player_descriptor =
-      getDescriptor().getMessageTypes().get(17);
+      getDescriptor().getMessageTypes().get(18);
     internal_static_proto_Player_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_Player_descriptor,
         new java.lang.String[] { "RoleId", "Position", "Avatar", "NickName", "Cards", });
     internal_static_proto_RPlayer_descriptor =
-      getDescriptor().getMessageTypes().get(18);
+      getDescriptor().getMessageTypes().get(19);
     internal_static_proto_RPlayer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_RPlayer_descriptor,
         new java.lang.String[] { "RoleId", "Cards", });
     internal_static_proto_CardInfo_descriptor =
-      getDescriptor().getMessageTypes().get(19);
+      getDescriptor().getMessageTypes().get(20);
     internal_static_proto_CardInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_CardInfo_descriptor,
         new java.lang.String[] { "Cards", "Type", });
     internal_static_proto_Card_descriptor =
-      getDescriptor().getMessageTypes().get(20);
+      getDescriptor().getMessageTypes().get(21);
     internal_static_proto_Card_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_Card_descriptor,
         new java.lang.String[] { "Value", "Replace", });
     internal_static_proto_NCardsInfo_descriptor =
-      getDescriptor().getMessageTypes().get(21);
+      getDescriptor().getMessageTypes().get(22);
     internal_static_proto_NCardsInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NCardsInfo_descriptor,
         new java.lang.String[] { "RoleId", "Cards", });
     internal_static_proto_NotMjState_descriptor =
-      getDescriptor().getMessageTypes().get(22);
+      getDescriptor().getMessageTypes().get(23);
     internal_static_proto_NotMjState_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotMjState_descriptor,
         new java.lang.String[] { "OpSeat", "TileId", "Action", "Wait", "Choice", "WallLeft", "FromSeat", "ExposedTiles", });
     internal_static_proto_NotRoundResult_descriptor =
-      getDescriptor().getMessageTypes().get(23);
+      getDescriptor().getMessageTypes().get(24);
     internal_static_proto_NotRoundResult_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotRoundResult_descriptor,
         new java.lang.String[] { "Round", "WinnerSeat", "Fan", "SeatScores", "WinType", "SeatExposed", "Hands", "WinTile", "TotalScores", });
     internal_static_proto_HandInfo_descriptor =
-      getDescriptor().getMessageTypes().get(24);
+      getDescriptor().getMessageTypes().get(25);
     internal_static_proto_HandInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_HandInfo_descriptor,
         new java.lang.String[] { "Seat", "HandTiles", "Exposed", });
     internal_static_proto_SeatScore_descriptor =
-      getDescriptor().getMessageTypes().get(25);
+      getDescriptor().getMessageTypes().get(26);
     internal_static_proto_SeatScore_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SeatScore_descriptor,
         new java.lang.String[] { "Seat", "Score", });
     internal_static_proto_SeatExposed_descriptor =
-      getDescriptor().getMessageTypes().get(26);
+      getDescriptor().getMessageTypes().get(27);
     internal_static_proto_SeatExposed_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SeatExposed_descriptor,
         new java.lang.String[] { "Seat", "Exposed", });
     internal_static_proto_ExposedInfo_descriptor =
-      getDescriptor().getMessageTypes().get(27);
+      getDescriptor().getMessageTypes().get(28);
     internal_static_proto_ExposedInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_ExposedInfo_descriptor,
         new java.lang.String[] { "Type", "TileIds", });
     internal_static_proto_NotGameResult_descriptor =
-      getDescriptor().getMessageTypes().get(28);
+      getDescriptor().getMessageTypes().get(29);
     internal_static_proto_NotGameResult_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_NotGameResult_descriptor,
         new java.lang.String[] { "TotalRounds", "CompletedRounds", "TotalScores", "Rounds", });
     internal_static_proto_RoundSummary_descriptor =
-      getDescriptor().getMessageTypes().get(29);
+      getDescriptor().getMessageTypes().get(30);
     internal_static_proto_RoundSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_RoundSummary_descriptor,

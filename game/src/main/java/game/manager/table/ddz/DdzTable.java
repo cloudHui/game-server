@@ -109,11 +109,8 @@ public class DdzTable extends Table {
         cardPool.sendInitCardNotice(getSeatUsers());
 
         // 2. 同步桌子状态
-        GameProto.NotTableState stateNot = GameProto.NotTableState.newBuilder()
-                .setState(getTableState().getId())
-                .setStateStart(getStateStartTime())
-                .setStateDuration(getTableState().getOverTime())
-                .build();
+        GameProto.NotTableState stateNot = buildStateNotification(getTableState().getId(),
+                getStateStartTime(), getTableState().getOverTime());
         user.sendRoleMessage(stateNot, GMsg.NOT_STATE, getTableId());
 
         // 3. 如果当前有出牌阶段的操作, 重新通知当前操作

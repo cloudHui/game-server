@@ -4,6 +4,9 @@
  */
 (function (w) {
   'use strict';
+  var displayedRound = 0;
+  var displayedTotalRounds = 0;
+  var completedRound = 0;
 
   function loadSession() {
     return {
@@ -50,6 +53,7 @@
    */
   function createGameWs(opts) {
     var ws = null;
+    var heartbeatTimer = null;
     var seqCounter = 0;
     var pending = {};
     var closed = false;
@@ -71,7 +75,9 @@
         console.info('[牌桌连接建立]');
         setWsStatus(true, '已连接');
         send('auth', { sessionId: opts.sessionId }, function (resp) {
-          if (resp.code === 0 && opts.onAuthed) opts.onAuthed(resp);
+          if (resp.code !== 0) return;
+          startHeartbeat();
+          if (opts.onAuthed) opts.onAuthed(resp);
         });
       };
       ws.onmessage = function (event) {
@@ -97,10 +103,57 @@
 
     function stopReconnect() {
       closed = true;
+      stopHeartbeat();
       if (ws) ws.onclose = null;
     }
 
+    /** 认证后立即发送并每十秒续发牌桌心跳，供 Game 判断网页是否仍存活。 */
+    function startHeartbeat() {
+      stopHeartbeat();
+      send('heartbeat', { tableId: opts.tableId });
+      heartbeatTimer = setInterval(function () {
+        send('heartbeat', { tableId: opts.tableId });
+      }, 10000);
+    }
+
+    /** 停止页面心跳，避免总结算或主动退出后继续维持桌内状态。 */
+    function stopHeartbeat() {
+      if (!heartbeatTimer) return;
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+
     return { connect: connect, send: send, stopReconnect: stopReconnect, getWs: function () { return ws; } };
+  }
+
+  /** 使用牌桌顶部现有弱化文字样式展示当前局数，不额外占用桌面空间。 */
+  function renderRoundInfo(currentRound, totalRounds) {
+    var el = document.getElementById('roundInfo');
+    if (!el) return;
+    var current = Number(currentRound || 0), total = Number(totalRounds || 0);
+    if (current > 0) displayedRound = current;
+    if (total > 0) displayedTotalRounds = total;
+    el.textContent = current > 0 && total > 0 ? ('第 ' + current + ' / ' + total + ' 局') : '牌桌加载中...';
+  }
+
+  /** 应用服务端桌信息并返回房间号，统一维护局数和本地房间上下文。 */
+  function applyTableInfo(info, fallbackRoomId) {
+    info = info || {};
+    renderRoundInfo(info.currentRound, info.totalRounds);
+    var roomId = Number(info.roomId || fallbackRoomId || 0);
+    if (roomId) localStorage.setItem('roomId', String(roomId));
+    return roomId;
+  }
+
+  /** 记录刚完成的局，供下一次发牌时准确推进顶部局数。 */
+  function noteRoundCompleted(round) {
+    completedRound = Math.max(completedRound, Number(round || 0));
+  }
+
+  /** 新一轮发牌时从已完成局数推进，不依赖各玩法重复维护局数。 */
+  function noteRoundStarted() {
+    if (!completedRound || completedRound < displayedRound) return;
+    renderRoundInfo(Math.min(completedRound + 1, displayedTotalRounds), displayedTotalRounds);
   }
 
   function showCenterMsg(msg, duration) {
@@ -150,6 +203,7 @@
   }
 
   var settleTimer = null;
+  var finalSettleVisible = false;
 
   function closeSettle() {
     var overlay = document.getElementById('settleOverlay');
@@ -201,6 +255,47 @@
     }, 1000);
   }
 
+  /** 展示不会被解散通知立即关闭的总结算，并提供唯一的返回入口。 */
+  function showFinalSettle(opt, gameWs) {
+    finalSettleVisible = true;
+    if (gameWs) gameWs.stopReconnect();
+    localStorage.removeItem('tableId');
+    showSettle(opt);
+    if (settleTimer) {
+      clearInterval(settleTimer);
+      settleTimer = null;
+    }
+    var cd = document.getElementById('settleCountdown');
+    if (cd) cd.textContent = '本桌已结束';
+    var bar = document.getElementById('actionBar');
+    if (bar) {
+      bar.innerHTML = '<button class="action-btn btn-prepare" type="button">返回房间列表</button>';
+      bar.style.display = 'flex';
+      bar.firstChild.onclick = backToLobby;
+    }
+  }
+
+  /** 使用所有玩法共用的座位总分结构展示总结算。 */
+  function showScoreFinal(data, gameWs) {
+    if (!data) return;
+    var rows = '';
+    (data.totalScores || []).forEach(function (item) {
+      rows += '<div class="row"><span>座位 ' + item.seat + '</span><span>' + item.score + ' 分</span></div>';
+    });
+    showFinalSettle({
+      title: '总结算',
+      meta: '完成 ' + (data.completedRounds || 0) + ' / ' + (data.totalRounds || 0) + ' 局',
+      rowsHtml: rows
+    }, gameWs);
+  }
+
+  /** 处理服务端解散通知；已有总结算时保留面板，否则立即返回房间列表。 */
+  function handleTableDestroyed(gameWs) {
+    if (gameWs) gameWs.stopReconnect();
+    localStorage.removeItem('tableId');
+    if (!finalSettleVisible) backToLobby();
+  }
+
   w.GameTable = {
     loadSession: loadSession,
     requireSessionOrRedirect: requireSessionOrRedirect,
@@ -211,9 +306,15 @@
     showCenterMsg: showCenterMsg,
     hideActions: hideActions,
     backToLobby: backToLobby,
+    renderRoundInfo: renderRoundInfo,
+    applyTableInfo: applyTableInfo,
+    noteRoundCompleted: noteRoundCompleted,
+    noteRoundStarted: noteRoundStarted,
     exitRoom: exitRoom,
     doPrepare: doPrepare,
     showSettle: showSettle,
+    showScoreFinal: showScoreFinal,
+    handleTableDestroyed: handleTableDestroyed,
     closeSettle: closeSettle
   };
 })(window);

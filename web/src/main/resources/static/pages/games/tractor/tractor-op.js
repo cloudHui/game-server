@@ -212,9 +212,9 @@ function handleNotOp(data) {
 }
 
 function handleNotState(data) {
+    if (data) GameTable.renderRoundInfo(data.currentRound, data.totalRounds);
     if (data && data.state === TABLE_STATE_DIS) {
-        gameWs.stopReconnect();
-        GameTable.backToLobby();
+        GameTable.handleTableDestroyed(gameWs);
         return;
     }
     var labels = {1: '游戏进行中', 2: '发牌中', 3: '亮主中', 4: '亮主中', 5: '扣底中', 6: '扣底中', 10: '小结算'};

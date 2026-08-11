@@ -102,6 +102,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "leave":
                     handleLeave(session, seq);
                     break;
+                case "heartbeat":
+                    handleHeartbeat(session, data);
+                    break;
                 default:
                     sendError(session, seq, "未知操作: " + action);
             }
@@ -149,6 +152,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         sendResponse(wsSession, "auth", seq, 0, "认证成功", null);
         logger.info("WebSocket认证成功, userId: {}, sessionId: {}", user.getUserId(), sessionId);
+    }
+
+    /** 将浏览器牌桌心跳透传给 Game；无回包以保持链路轻量。 */
+    private void handleHeartbeat(WebSocketSession wsSession, Map<String, Object> data) {
+        String sessionId = getSessionId(wsSession);
+        Number tableId = data == null ? null : (Number) data.get("tableId");
+        if (sessionId == null || tableId == null) return;
+        gateClient.send(sessionId, GMsg.REQ_TABLE_HEARTBEAT,
+                GameProto.ReqTableHeartbeat.newBuilder().setTableId(tableId.longValue()).build());
     }
 
     private void handleEnterTable(WebSocketSession wsSession, int seq, Map<String, Object> data) {

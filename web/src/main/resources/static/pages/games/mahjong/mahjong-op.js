@@ -185,6 +185,7 @@ function recordExposedFromAction(data) {
  * 摸牌不再提示「发牌完成」。
  */
 function handleNotCard(data) {
+    GameTable.noteRoundStarted();
     if (!data || !data.nCards) return;
     gameState.opPending = false;
     var prevLen = gameState.myTiles.length;
@@ -270,9 +271,9 @@ function handleNotOp(data) {
 }
 
 function handleNotState(data) {
+    if (data) GameTable.renderRoundInfo(data.currentRound, data.totalRounds);
     if (data && data.state === TABLE_STATE_DIS) {
-        gameWs.stopReconnect();
-        GameTable.backToLobby();
+        GameTable.handleTableDestroyed(gameWs);
         return;
     }
     document.getElementById('tableState').textContent =
@@ -344,6 +345,7 @@ function handleNotResult(data) {
 }
 
 function handleNotRoundResult(data) {
+    GameTable.noteRoundCompleted(data && data.round);
     if (!data) return;
     applyTotalScores(data.totalScores || []);
     var title = data.winnerSeat < 0 ? '流局' : ('第 ' + data.round + ' 局 · 胡');
@@ -474,17 +476,7 @@ function showSettle(title, meta, rowsHtml, handsHtml) {
 }
 
 function handleNotGameResult(data) {
-    if (!data) return;
-    var title = '总结算';
-    var meta = '完成 ' + (data.completedRounds || 0) + ' / ' + (data.totalRounds || 0) + ' 局';
-    var rows = '';
-    var totals = data.totalScores || [];
-    for (var i = 0; i < totals.length; i++) {
-        rows += '<div class="row"><span>座位 ' + totals[i].seat + '</span><span>'
-            + totals[i].score + ' 分</span></div>';
-    }
-    showSettle(title, meta, rows, '');
-    showActionButtons('prepare');
+    GameTable.showScoreFinal(data, gameWs);
 }
 
 function closeSettle() {

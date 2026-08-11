@@ -9,6 +9,7 @@ import msg.registor.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.handler.ClientHandler;
 import net.client.handler.WsClientHandler;
+import net.client.Sender;
 import net.connect.handle.ConnectHandler;
 import net.handler.Handler;
 import net.handler.Handlers;
@@ -70,31 +71,40 @@ public class ClientProto {
             logger.warn("channelHandler不是GateTcpClient类型, 实际类型: {}", channelHandler.getClass().getName());
             return false;
         }
+
+        if (handleLocalMessage(channelHandler, tcpMessage)) return true;
+
         GateTcpClient client = (GateTcpClient) channelHandler;
+        int clientId = client.getId();
+        int roleId = client.getRoleId();
+        long mapId = client.getMapId();
         int msgId = tcpMessage.getMessageId();
         int sequence = tcpMessage.getSequence();
 
-        setClientMap(tcpMessage, client);
-        ConnectHandler serverConnection = getTargetServerConnection(msgId, client);
+        tcpMessage.setClientId(roleId == 0 ? clientId : roleId);
+        tcpMessage.setMapId(mapId == -1 ? roleId : mapId);
+        ConnectHandler serverConnection = getTargetServerConnection(msgId, clientId, roleId, mapId);
         if (serverConnection == null) {
-            // 保留 ERROR，补关联字段便于跨服排查未知 msgId / 无连接
-            logger.error("无法找到目标服务器连接, msgId: {}, clientId: {}, roleId: {}, mapId: {}, sequence: {}",
-                    Integer.toHexString(msgId), client.getId(), client.getRoleId(), client.getMapId(), sequence);
-            return false;
+            logger.warn("消息无法路由, msgId: {}, clientId: {}, roleId: {}, mapId: {}, sequence: {}",
+                    Integer.toHexString(msgId), clientId, roleId, mapId, sequence);
+            return true;
         }
 
         return sendMessageToServer(serverConnection, tcpMessage, sequence, client);
     }
 
-    /**
-     * 设置链接id, 用户id,和桌子号
-     *
-     * @param tcpMessage 消息
-     * @param client     链接
-     */
-    private static void setClientMap(TCPMessage tcpMessage, GateTcpClient client) {
-        tcpMessage.setClientId(client.getRoleId() == 0 ? client.getId() : client.getRoleId());
-        tcpMessage.setMapId(client.getMapId() == -1 ? client.getRoleId() : client.getMapId());//没登陆是玩家id 登录后是桌子id
+    private static boolean handleLocalMessage(ChannelHandler channelHandler, TCPMessage tcpMessage) {
+        if (tcpMessage.getMessageId() >= CMsg.BASE_ID_INDEX) return false;
+        Handler handler = HANDLER_MAP.get(tcpMessage.getMessageId());
+        if (handler == null) return false;
+        try {
+            handler.handler((Sender) channelHandler, tcpMessage.getClientId(),
+                    PARSER.parser(tcpMessage.getMessageId(), tcpMessage.getMessage()),
+                    tcpMessage.getMapId(), tcpMessage.getSequence());
+        } catch (Exception e) {
+            logger.warn("处理本地消息失败, msgId: {}", Integer.toHexString(tcpMessage.getMessageId()), e);
+        }
+        return true;
     }
 
     /**
@@ -159,18 +169,14 @@ public class ClientProto {
     /**
      * 获取目标服务器连接；无法路由时打 ERROR 并带上客户端关联字段。
      */
-    private static ConnectHandler getTargetServerConnection(int msgId, GateTcpClient client) {
+    private static ConnectHandler getTargetServerConnection(int msgId, int clientId, int roleId, long mapId) {
         ServerType serverType = getServerTypeByMessageId(msgId);
-        if (serverType == null) {
-            logger.error("无法根据消息ID确定服务器类型, msgId: {}, clientId: {}, roleId: {}, mapId: {}",
-                    Integer.toHexString(msgId), client.getId(), client.getRoleId(), client.getMapId());
-            return null;
-        }
+        if (serverType == null) return null;
 
         ConnectHandler connection = Gate.getInstance().getServerManager().getServerClient(serverType);
         if (connection == null) {
             logger.warn("服务器连接不可用, serverType: {}, msgId: {}, clientId: {}, roleId: {}, mapId: {}",
-                    serverType, Integer.toHexString(msgId), client.getId(), client.getRoleId(), client.getMapId());
+                    serverType, Integer.toHexString(msgId), clientId, roleId, mapId);
         }
 
         return connection;

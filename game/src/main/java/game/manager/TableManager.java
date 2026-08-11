@@ -115,11 +115,8 @@ public class TableManager {
      * 通知仍在桌内的客户端桌子已解散，客户端收到后应清理桌面并返回大厅。
      */
     private void notifyPlayersTableDestroyed(Table table) {
-        GameProto.NotTableState notification = GameProto.NotTableState.newBuilder()
-                .setState(msg.registor.enums.TableState.TABLE_DIS.getId())
-                .setStateStart(System.currentTimeMillis())
-                .setStateDuration(0)
-                .build();
+        GameProto.NotTableState notification = table.buildStateNotification(
+                msg.registor.enums.TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
         for (TableUser user : table.getSeatUsers().values()) {
             try {
                 user.sendRoleMessage(notification, GMsg.NOT_TABLE_STATE, table.getTableId());

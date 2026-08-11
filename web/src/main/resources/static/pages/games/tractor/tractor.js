@@ -40,10 +40,9 @@ var gameState = {
 
 GameTable.requireSessionOrRedirect(session);
 document.getElementById('myName').textContent = nickname;
-document.getElementById('roomInfo').textContent = '桌号: ' + tableId;
-
 var gameWs = GameTable.createGameWs({
     sessionId: sessionId,
+    tableId: tableId,
     onAuthed: function () {
         enterTable();
     },
@@ -89,12 +88,7 @@ function enterTable() {
         if (resp.code === 0 && resp.data) {
             updatePlayers(resp.data.players || []);
             if (resp.data.tableInfo) {
-                document.getElementById('roomInfo').textContent =
-                    '桌号: ' + resp.data.tableInfo.tableId;
-                if (resp.data.tableInfo.roomId) {
-                    gameState.roomId = resp.data.tableInfo.roomId;
-                    localStorage.setItem('roomId', String(gameState.roomId));
-                }
+                gameState.roomId = GameTable.applyTableInfo(resp.data.tableInfo, gameState.roomId);
                 if (resp.data.tableInfo.landlord) {
                     gameState.landlordId = resp.data.tableInfo.landlord;
                 }

@@ -33,11 +33,8 @@ public final class TractorDealService {
             pool.sendInitCardNotice(table.getSeatUsers());
             TractorBidService.notifyDealBid(table);
             ctx.setLastDealTime(now);
-            table.sendTableMessage(GameProto.NotTableState.newBuilder()
-                    .setState(TableState.START_ANI.getId())
-                    .setStateStart(table.getStateStartTime())
-                    .setStateDuration((int) Math.ceil(DEAL_ANI_MS / 1000.0))
-                    .build(), GMsg.NOT_STATE);
+            table.sendTableMessage(table.buildStateNotification(TableState.START_ANI.getId(),
+                    table.getStateStartTime(), (int) Math.ceil(DEAL_ANI_MS / 1000.0)), GMsg.NOT_STATE);
             return false;
         }
 

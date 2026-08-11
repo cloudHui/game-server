@@ -116,10 +116,8 @@ public class TractorTable extends Table {
     public void syncGameState(TableUser user) {
         if (user.getSeated() < 0) return;
         cardPool.sendInitCardNotice(getSeatUsers());
-        user.sendRoleMessage(GameProto.NotTableState.newBuilder()
-                .setState(getTableState().getId())
-                .setStateStart(getStateStartTime())
-                .setStateDuration(tractorStateDuration()).build(), GMsg.NOT_STATE, getTableId());
+        user.sendRoleMessage(buildStateNotification(getTableState().getId(),
+                getStateStartTime(), tractorStateDuration()), GMsg.NOT_STATE, getTableId());
         TableState ts = getTableState();
         int opSeat = getOp().getCurrOpSeat();
         if (opSeat < 0) return;

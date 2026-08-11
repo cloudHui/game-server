@@ -95,8 +95,7 @@ public class ReqEnterTableHandle implements Handler {
 
     private GameProto.AckEnterTable buildEnterTableResponse(Table table) {
         GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder();
-        response.setTableInfo(GameProto.TableInfo.newBuilder()
-                .setTableId(table.getTableId()).setRoomId(table.getRoomId()).build());
+        response.setTableInfo(table.buildTableInfo());
         for (TableUser tableUser : table.getUsers().values()) {
             response.addPlayers(GameProto.Player.newBuilder()
                     .setPosition(tableUser.getSeated())
