@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家庭图片库</title><script src="../../shared/app-base.js"></script><link rel="stylesheet" href="../../shared/theme.css"><link rel="stylesheet" href="./photos.css"></head>
+<body class="page-theme"><header><h1>家庭图片库</h1><div class="header-actions"><span id="userName"></span><a href="../lobby/index.html">回大厅</a></div></header>
+<main><section class="upload-card"><div><h2>上传照片</h2><p>支持 JPEG、PNG、WebP，一次最多 20 张；原图保真归档。</p></div><div class="upload-actions"><label class="file-button">选择照片<input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><button id="uploadButton" disabled>开始上传</button></div><div id="selection" class="selection"></div><div id="message" class="message"></div></section>
+<div class="library-bar"><div><h2>拍摄时间线</h2><span id="summary"></span></div><button id="refreshButton" class="ghost">刷新</button></div><section id="gallery" class="gallery" aria-live="polite"></section><div id="empty" class="empty" hidden>还没有照片，上传第一张家庭照片吧。</div><nav class="pager"><button id="prevButton" class="ghost">上一页</button><span id="pageLabel"></span><button id="nextButton" class="ghost">下一页</button></nav></main>
+<div id="viewer" class="viewer" hidden><div class="viewer-top"><span id="viewerTitle"></span><button id="closeViewer" aria-label="关闭">×</button></div><div id="stage" class="stage"><img id="originalImage" alt="高清原图"></div><div class="viewer-tools"><button id="previousPhoto">上一张</button><button id="zoomOut">缩小</button><button id="zoomIn">放大</button><button id="rotatePhoto">旋转</button><button id="nextPhoto">下一张</button></div></div>
+<script src="./photos.js"></script></body></html>

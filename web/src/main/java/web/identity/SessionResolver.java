@@ -19,6 +19,8 @@ public class SessionResolver {
     public String resolve(HttpServletRequest request) {
         String header = request.getHeader("X-Session-Token");
         if (header != null && !header.trim().isEmpty()) return header.trim();
+        String parameter = request.getParameter("sessionId");
+        if (parameter != null && !parameter.trim().isEmpty()) return parameter.trim();
         Cookie[] cookies = request.getCookies();
         if (cookies == null) return null;
         for (Cookie cookie : cookies) {

@@ -27,3 +27,16 @@ Linux 可以单独打包、启停某个服务，例如：
 - `./scripts/ops.sh start web`：只启动 web
 - `./scripts/ops.sh build-restart web`：只打包并重启 web
 - 服务参数支持 `center`、`gate`、`lobby`、`game`、`web` 和 `all`；省略时默认为 `all`
+
+## 图片库存储
+
+图片库默认写入仓库根目录的 `data/photos/`。生产环境建议至少把原图归档放到容量较大的挂载盘：
+
+```bash
+PHOTO_ARCHIVE_DIR=/mnt/family-photos/archives
+```
+
+也可分别设置 `PHOTO_DATA_DIR`、`PHOTO_THUMBNAIL_DIR`、`PHOTO_CACHE_DIR`、
+`PHOTO_STAGING_DIR`。修改环境变量后需按正常发布流程重启 Web 才会生效。
+`nginx-apply` 生成的 Web 反代允许 500 MB 批量请求；Spring 仍限制单张 50 MB、
+单批最多 20 张，避免单文件绕过业务上限。

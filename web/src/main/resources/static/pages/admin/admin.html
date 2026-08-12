@@ -32,6 +32,7 @@
         <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
         <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
         <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
+        <button class="tab" data-tab="photos" onclick="switchTab('photos')">图片管理</button>
     </div>
 
     <div id="panel-invites" class="panel active">
@@ -217,6 +218,14 @@
         </div>
         <div id="replayMount"></div>
     </div>
+    <div id="panel-photos" class="panel">
+        <div class="card"><div class="card-heading"><h2>图片库设置</h2><button class="btn btn-ghost" onclick="loadPhotoAdmin()">刷新</button></div>
+            <div class="photo-admin-row"><div><label for="photoVisibility">全局查看范围</label><select id="photoVisibility"><option value="ALL">全部共享</option><option value="OWN">仅看自己</option></select></div><button class="btn" onclick="savePhotoVisibility()">保存设置</button><button class="btn btn-danger" onclick="clearPhotoCache()">清空高清缓存</button></div>
+            <div class="meta">管理员始终可查看全部图片；此设置同时作用于列表、缩略图和原图接口。</div><div id="photoAdminMsg" class="msg"></div>
+        </div>
+        <div class="card"><h2>存储概况</h2><div id="photoStats" class="photo-stats"></div><div class="table-scroll"><table><tbody id="photoPaths"></tbody></table></div></div>
+        <div class="card"><div class="card-heading"><h2>全部照片</h2><button class="btn btn-ghost" onclick="loadAdminPhotos(1)">刷新</button></div><div class="form-row photo-filter-row"><input id="photoOwnerFilter" placeholder="按上传用户名筛选"><button class="btn btn-ghost" onclick="loadAdminPhotos(1)">查询</button></div><div class="table-scroll"><table><thead><tr><th>缩略图</th><th>名称</th><th>拍摄时间</th><th>上传人</th><th>大小</th><th>操作</th></tr></thead><tbody id="adminPhotoBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div><div class="photo-admin-pager"><button class="btn btn-ghost" onclick="changeAdminPhotoPage(-1)">上一页</button><span id="adminPhotoPage" class="meta"></span><button class="btn btn-ghost" onclick="changeAdminPhotoPage(1)">下一页</button></div></div>
+    </div>
 </div>
 
 <div id="reactivateInviteDialog" class="admin-popover" hidden>
@@ -253,5 +262,6 @@
 <script src="./js/users.js"></script>
 <script src="./js/records.js"></script>
 <script src="./js/tables.js"></script>
+<script src="./js/photos.js"></script>
 </body>
 </html>

@@ -170,6 +170,7 @@ main {
 .learn {
     --card-color: #8268ef;
 }
+.photos { --card-color: #6248c7; }
 
 .poker {
     --card-color: #6d55d9;
