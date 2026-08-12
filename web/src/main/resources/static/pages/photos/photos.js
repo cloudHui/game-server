@@ -1,1 +1,69 @@
-(function(){'use strict';var token=localStorage.getItem('sessionId');if(!token){location.href=appUrl('/');return}var state={page:1,size:24,total:0,items:[],index:0,scale:1,rotate:0,x:0,y:0,url:null};var $=function(id){return document.getElementById(id)};var headers=function(json){var h={'X-Session-Token':token};if(json)h['Content-Type']='application/json';return h};function api(path,opt){opt=opt||{};opt.headers=Object.assign(headers(opt.body&&!(opt.body instanceof FormData)),opt.headers||{});return fetch(appUrl('/api/photos'+path),opt).then(async function(r){if(r.status===401){location.href=appUrl('/');throw Error('登录已失效')}if(!r.ok){var e=await r.json().catch(function(){return{msg:'请求失败'}});throw Error(e.msg||'请求失败')}return r.json()})}function esc(v){var d=document.createElement('div');d.textContent=v==null?'':v;return d.innerHTML}function date(v){return new Date(v).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}function source(v){return({EXIF_ORIGINAL:'相机拍摄',EXIF_DIGITIZED:'相机数字化',EXIF_MODIFIED:'相机时间',FILE_TIME:'文件时间',UPLOAD_TIME:'上传时间'})[v]||v}function load(){ $('gallery').innerHTML='<div class="empty">加载中...</div>';api('?page='+state.page+'&pageSize='+state.size).then(function(d){state.items=d.items||[];state.total=d.total||0;render()}).catch(showError)}function render(){var session=encodeURIComponent(token);$('gallery').innerHTML=state.items.map(function(p,i){return '<article class="photo-card"><img loading="lazy" decoding="async" data-index="'+i+'" src="'+appUrl(p.thumbnailUrl)+'?sessionId='+session+'" alt="'+esc(p.displayName)+'"><div class="photo-info"><p class="photo-name" title="'+esc(p.displayName)+'">'+esc(p.displayName)+'</p><div class="photo-meta">'+date(p.capturedAt)+' · '+source(p.capturedAtSource)+'<br>上传人：'+esc(p.ownerUsername)+'</div><div class="photo-actions"><button data-view="'+i+'">查看</button><button class="ghost" data-rename="'+p.id+'">改名</button><button class="danger" data-delete="'+p.id+'">删除</button></div></div></article>'}).join('');$('empty').hidden=state.total!==0;$('summary').textContent='共 '+state.total+' 张';var pages=Math.max(1,Math.ceil(state.total/state.size));$('pageLabel').textContent=state.page+' / '+pages;$('prevButton').disabled=state.page<=1;$('nextButton').disabled=state.page>=pages}function showError(e){$('message').textContent=e.message;$('message').className='message error'}$('fileInput').onchange=function(){var n=this.files.length;$('selection').textContent=n?'已选择 '+n+' 张照片':'';$('uploadButton').disabled=!n};$('uploadButton').onclick=function(){var files=$('fileInput').files;if(!files.length)return;var form=new FormData();Array.prototype.forEach.call(files,function(f){form.append('files',f)});this.disabled=true;$('message').textContent='正在上传，请稍候…';api('/upload',{method:'POST',body:form,headers:{'X-Session-Token':token}}).then(function(r){var failed=r.results.filter(function(x){return!x.success});$('message').className='message'+(failed.length?' error':'');$('message').textContent='成功 '+r.successCount+' 张'+(failed.length?'，失败 '+failed.length+' 张：'+failed.map(function(x){return x.filename+'（'+x.error+'）'}).join('；'):'');$('fileInput').value='';$('selection').textContent='';state.page=1;load()}).catch(showError).finally(function(){$('uploadButton').disabled=false})};$('gallery').onclick=function(e){var view=e.target.dataset.view;if(view==null&&e.target.tagName==='IMG')view=e.target.dataset.index;if(view!=null)return openViewer(Number(view));var id=e.target.dataset.rename;if(id){var p=state.items.find(function(x){return String(x.id)===id});var name=prompt('新的显示名称',p.displayName);if(name&&name.trim())api('/'+id,{method:'PATCH',body:JSON.stringify({displayName:name.trim()})}).then(load).catch(showError);return}id=e.target.dataset.delete;if(id&&confirm('确定删除这张照片？图片将从图库隐藏。'))api('/'+id,{method:'DELETE'}).then(load).catch(showError)};function transform(){ $('originalImage').style.transform='translate('+state.x+'px,'+state.y+'px) scale('+state.scale+') rotate('+state.rotate+'deg)'}function openViewer(i){state.index=i;state.scale=1;state.rotate=0;state.x=0;state.y=0;if(state.url)URL.revokeObjectURL(state.url);var p=state.items[i];$('viewer').hidden=false;$('viewerTitle').textContent=p.displayName;$('originalImage').removeAttribute('src');fetch(appUrl(p.originalUrl),{headers:headers()}).then(function(r){if(!r.ok)throw Error('原图读取失败');return r.blob()}).then(function(b){state.url=URL.createObjectURL(b);$('originalImage').src=state.url;transform()}).catch(function(e){$('viewerTitle').textContent=e.message})}function close(){ $('viewer').hidden=true;if(state.url){URL.revokeObjectURL(state.url);state.url=null}$('originalImage').removeAttribute('src')}$('closeViewer').onclick=close;$('zoomIn').onclick=function(){state.scale=Math.min(5,state.scale+.25);transform()};$('zoomOut').onclick=function(){state.scale=Math.max(.25,state.scale-.25);transform()};$('rotatePhoto').onclick=function(){state.rotate+=90;transform()};$('previousPhoto').onclick=function(){if(state.index>0)openViewer(state.index-1)};$('nextPhoto').onclick=function(){if(state.index<state.items.length-1)openViewer(state.index+1)};var drag=null;$('stage').onpointerdown=function(e){drag={x:e.clientX-state.x,y:e.clientY-state.y};this.setPointerCapture(e.pointerId)};$('stage').onpointermove=function(e){if(!drag)return;state.x=e.clientX-drag.x;state.y=e.clientY-drag.y;transform()};$('stage').onpointerup=function(){drag=null};$('prevButton').onclick=function(){if(state.page>1){state.page--;load()}};$('nextButton').onclick=function(){state.page++;load()};$('refreshButton').onclick=load;$('userName').textContent=localStorage.getItem('nickname')||localStorage.getItem('username')||'';load()})();
+(function () {
+    'use strict';
+    var token = localStorage.getItem('sessionId');
+    if (!token) { location.href = appUrl('/'); return; }
+    var state = { page: 1, size: 24, total: 0, items: [] };
+    var $ = function (id) { return document.getElementById(id); };
+    var headers = function (json) { var h = { 'X-Session-Token': token }; if (json) h['Content-Type'] = 'application/json'; return h; };
+    var viewer = PhotoViewer({ viewer: $('viewer'), stage: $('stage'), image: $('originalImage'), closeButton: $('closeViewer') });
+    var renderUploadTasks = PhotoUploadTaskList({ root: $('uploadTasks'), toggle: $('uploadTasksToggle'), text: $('uploadTasksText'), list: $('uploadTasksList') });
+    var uploader = PhotoUploader({ uploadUrl: appUrl('/api/photos/upload'), tasksUrl: appUrl('/api/photos/upload/tasks'), token: token, onChange: renderUploadTasks, onSettled: load });
+
+    function api(path, options) {
+        options = options || {};
+        options.headers = Object.assign(headers(options.body && !(options.body instanceof FormData)), options.headers || {});
+        return fetch(appUrl('/api/photos' + path), options).then(async function (response) {
+            if (response.status === 401) { location.href = appUrl('/'); throw Error('登录已失效'); }
+            if (!response.ok) { var error = await response.json().catch(function () { return { msg: '请求失败' }; }); throw Error(error.msg || '请求失败'); }
+            return response.json();
+        });
+    }
+    function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : value; return node.innerHTML; }
+    function date(value) { return new Date(value).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+    function source(value) { return ({ EXIF_ORIGINAL: '相机拍摄', EXIF_DIGITIZED: '相机数字化', EXIF_MODIFIED: '相机时间', FILE_TIME: '文件时间', UPLOAD_TIME: '上传时间' })[value] || value; }
+    function showError(error) { $('message').textContent = error.message; $('message').className = 'message error'; }
+    function load() {
+        $('gallery').innerHTML = '<div class="empty">加载中...</div>';
+        api('?page=' + state.page + '&pageSize=' + state.size).then(function (data) { state.items = data.items || []; state.total = data.total || 0; render(); }).catch(showError);
+    }
+    function render() {
+        var session = encodeURIComponent(token);
+        $('gallery').innerHTML = state.items.map(function (photo, index) {
+            return '<article class="photo-card"><img loading="lazy" decoding="async" data-index="' + index + '" src="' + appUrl(photo.thumbnailUrl) + '?sessionId=' + session + '" alt="' + esc(photo.displayName) + '"><div class="photo-info"><p class="photo-name" title="' + esc(photo.displayName) + '">' + esc(photo.displayName) + '</p><div class="photo-meta">' + date(photo.capturedAt) + ' · ' + source(photo.capturedAtSource) + '<br>上传人：' + esc(photo.ownerUsername) + '</div><div class="photo-actions"><button data-view="' + index + '">查看</button><button class="ghost" data-rename="' + photo.id + '">改名</button><button class="danger" data-delete="' + photo.id + '">删除</button></div></div></article>';
+        }).join('');
+        $('empty').hidden = state.total !== 0; $('summary').textContent = '共 ' + state.total + ' 张';
+        var pages = Math.max(1, Math.ceil(state.total / state.size)); $('pageLabel').textContent = state.page + ' / ' + pages;
+        $('prevButton').disabled = state.page <= 1; $('nextButton').disabled = state.page >= pages;
+    }
+    function openViewer(index) {
+        var photo = state.items[index], session = encodeURIComponent(token);
+        viewer.open(appUrl(photo.thumbnailUrl) + '?sessionId=' + session, appUrl(photo.originalUrl), headers());
+    }
+    $('fileInput').onchange = function () { var count = this.files.length; $('selection').textContent = count ? '已选择 ' + count + ' 张照片' : ''; $('uploadButton').disabled = !count; };
+    $('uploadButton').onclick = function () {
+        var button = this, files = $('fileInput').files; if (!files.length) return;
+        button.disabled = true; $('message').className = 'message'; $('message').textContent = '准备上传…';
+        uploader.start(files).then(function (tasks) {
+            var failed = tasks.filter(function (item) { return item.status === 'FAILED'; });
+            var success = tasks.filter(function (item) { return item.status === 'SUCCESS'; }).length;
+            $('message').className = 'message' + (failed.length ? ' error' : '');
+            $('message').textContent = '成功 ' + success + ' 张' + (failed.length ? '，失败 ' + failed.length + ' 张，点击上传任务查看' : '');
+            $('fileInput').value = ''; $('selection').textContent = ''; state.page = 1; load();
+        }).catch(showError).finally(function () { button.disabled = !$('fileInput').files.length; });
+    };
+    $('gallery').onclick = function (event) {
+        var view = event.target.dataset.view;
+        if (view == null && event.target.tagName === 'IMG') view = event.target.dataset.index;
+        if (view != null) { openViewer(Number(view)); return; }
+        var id = event.target.dataset.rename;
+        if (id) { var photo = state.items.find(function (item) { return String(item.id) === id; }); var name = prompt('新的显示名称', photo.displayName); if (name && name.trim()) api('/' + id, { method: 'PATCH', body: JSON.stringify({ displayName: name.trim() }) }).then(load).catch(showError); return; }
+        id = event.target.dataset.delete;
+        if (id && confirm('确定删除这张照片？图片将从图库隐藏。')) api('/' + id, { method: 'DELETE' }).then(load).catch(showError);
+    };
+    $('prevButton').onclick = function () { if (state.page > 1) { state.page--; load(); } };
+    $('nextButton').onclick = function () { state.page++; load(); };
+    $('refreshButton').onclick = load;
+    $('userName').textContent = localStorage.getItem('nickname') || localStorage.getItem('username') || '';
+    uploader.restore();
+    load();
+})();

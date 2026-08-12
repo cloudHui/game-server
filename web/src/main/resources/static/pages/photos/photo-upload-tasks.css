@@ -1,0 +1,14 @@
+.upload-tasks{margin-top:10px;border:1px solid #e4e7ed;border-radius:4px;background:#fff}
+.upload-tasks-summary{width:100%;height:34px;padding:0 10px;justify-content:space-between;border-radius:4px;background:#f5f7fa;color:#606266;font-size:13px}
+.upload-tasks-arrow{font-size:16px;transition:transform .2s}
+.upload-tasks.open .upload-tasks-arrow{transform:rotate(180deg)}
+.upload-file-list{max-height:190px;overflow-y:auto;padding:6px 10px}
+.upload-file-list__item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:7px 0;border-bottom:1px solid #ebeef5;color:#606266;font-size:12px}
+.upload-file-list__item:last-child{border-bottom:0}
+.upload-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#606266}
+.upload-file-status{white-space:nowrap;color:#909399}
+.upload-file-status.success{color:#67c23a}
+.upload-file-status.failed{color:#f56c6c}
+.upload-file-progress{grid-column:1/-1;height:3px;overflow:hidden;border-radius:2px;background:#ebeef5}
+.upload-file-progress span{display:block;height:100%;background:#409eff;transition:width .2s}
+.upload-file-error{grid-column:1/-1;overflow:hidden;color:#f56c6c;text-overflow:ellipsis;white-space:nowrap}
