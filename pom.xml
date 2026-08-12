@@ -17,6 +17,7 @@
         <module>lobby</module>
         <module>game</module>
         <module>web</module>
+        <module>manager</module>
     </modules>
 
     <build>
