@@ -6,13 +6,13 @@
     <groupId>com.cloud</groupId>
     <artifactId>manager</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>Server Manager</name>
+    <name>manager</name>
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <build>
-        <finalName>ServerManager</finalName>
+        <finalName>servermanager</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
