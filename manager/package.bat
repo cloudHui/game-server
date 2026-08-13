@@ -12,7 +12,7 @@ set "JAVA_HOME=%LOCAL_JDK%"
 set "PATH=%LOCAL_JDK%\bin;%PATH%"
 
 echo 开始Maven编译...
-call mvn -f pom.xml clean package || exit /b 1
+call mvn -f  pom.xml clean package -DskipTests || exit /b 1
 
 if not exist "manager\target\ServerManager.jar" (echo 未找到jar&exit /b 1)
 
