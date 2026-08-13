@@ -79,7 +79,10 @@ public class TractorTable extends Table {
         }
         if (ts == TableState.IDLE_SHOW_CARD) {
             ConstProto.Operation choice = op.getChoice();
-            if (choice == ConstProto.Operation.ROB) {
+            TableUser actor = getUsers().get(userId);
+            boolean isOtherSeat = actor != null && actor.getSeated() != tractor.getBottomHolderSeat();
+            if (choice == ConstProto.Operation.ROB
+                    || (isOtherSeat && TractorBidService.isPass(choice))) {
                 return TractorBidService.applyReverseDuringBury(this, userId, op);
             }
             return applyBury(userId, op);

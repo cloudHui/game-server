@@ -6,12 +6,12 @@ import {randInt, makeOptions, clamp} from "../util.js";
 
 export const meta = {
     id: "counting",
-    name: "Number Fuel",
-    short: "Counting",
+    name: "数一数",
+    short: "数数",
     icon: "●",
     color: "#22c55e",
     maxLevel: 7,
-    blurb: "Instantly recognizing how many (subitizing) — the root of number sense.",
+    blurb: "快速数清图案数量，培养数感。",
 };
 
 // Level controls the range of the quantity to recognize.
@@ -44,8 +44,8 @@ export function generate(level, rng) {
         level,
         prompt: grouped ? {type: "dots", count, grouped: 10} : {type: "dots", count},
         optionKind: "number",
-        promptText: "How many dots?",
-        say: "How many dots?",
+        promptText: "一共有几个圆点？",
+        say: "数一数，一共有几个圆点？",
         options,
         correctIndex,
     };

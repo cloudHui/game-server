@@ -119,31 +119,9 @@ public class DdzTable extends Table {
             DdzHand lastHand = ddz.getLastHand();
             int opSeat = getOp().getCurrOpSeat();
             if (opSeat >= 0) {
-                GameProto.OpInfo.Builder choiceBuilder = GameProto.OpInfo.newBuilder()
-                        .setChoice(ConstProto.Operation.PLAY);
-                if (lastHand != null) {
-                    GameProto.CardInfo.Builder cardInfoBuilder = GameProto.CardInfo.newBuilder()
-                            .setType(lastHand.getType());
-                    for (Card c : lastHand.getCards()) {
-                        cardInfoBuilder.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
-                    }
-                    choiceBuilder.addOpCards(cardInfoBuilder.build());
-                    // 有上一手牌时, 也给PASS选项
-                    GameProto.NotOperation notOp = GameProto.NotOperation.newBuilder()
-                            .setWait(TableState.IDLE_CARD.getOverTime())
-                            .setOpSeat(opSeat)
-                            .addChoice(choiceBuilder.build())
-                            .addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build())
-                            .build();
-                    user.sendRoleMessage(notOp, GMsg.NOT_OP, getTableId());
-                } else {
-                    GameProto.NotOperation notOp = GameProto.NotOperation.newBuilder()
-                            .setWait(TableState.IDLE_CARD.getOverTime())
-                            .setOpSeat(opSeat)
-                            .addChoice(choiceBuilder.build())
-                            .build();
-                    user.sendRoleMessage(notOp, GMsg.NOT_OP, getTableId());
-                }
+                user.sendRoleMessage(GameProto.NotOperation.newBuilder()
+                        .setWait(TableState.IDLE_CARD.getOverTime()).setOpSeat(opSeat)
+                        .addAllChoice(DdzOperationChoices.forTurn(lastHand)).build(), GMsg.NOT_OP, getTableId());
             }
         } else if (ts == TableState.IDLE_ROB || ts == TableState.ROB) {
             int opSeat = getOp().getCurrOpSeat();
@@ -170,10 +148,7 @@ public class DdzTable extends Table {
                 .addAllBottomCards(ddz.getRevealedBottomCards());
         if (viewer.getSeated() == getOp().getCurrOpSeat() && b.getChoicesCount() == 0) {
             if (getTableState() == TableState.IDLE_CARD || getTableState() == TableState.CARD) {
-                b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PLAY));
-                if (ddz.getLastHand() != null) {
-                    b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS));
-                }
+                b.addAllChoices(DdzOperationChoices.forTurn(ddz.getLastHand()));
             } else if (getTableState() == TableState.IDLE_ROB || getTableState() == TableState.ROB) {
                 b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.CALL));
             }

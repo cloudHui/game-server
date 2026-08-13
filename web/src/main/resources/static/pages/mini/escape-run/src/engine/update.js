@@ -78,7 +78,7 @@ function showUpdateToast(worker) {
     toast.innerHTML = '<span aria-hidden="true">🔄</span> New version — tap to update';
     toast.addEventListener("click", () => {
         toast.disabled = true;
-        toast.textContent = "Updating…";
+        toast.textContent = "正在更新…";
         // Reload as soon as the new worker takes over (it activates after
         // skipWaiting). This gives a single, all-new module graph.
         worker.addEventListener("statechange", () => {

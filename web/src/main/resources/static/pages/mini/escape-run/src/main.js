@@ -26,6 +26,7 @@ import {showReveal} from "./game/reveal.js";
 class App {
     constructor() {
         load();
+        if (window.MiniFeedback) window.MiniFeedback.setEnabled(get().settings.voice !== false);
         syncSystemPrefs();
         this.renderer = new Renderer(document.getElementById("game"));
         this.runner = null;
@@ -156,7 +157,7 @@ class App {
         if (!metas || !metas.length) return done();
         const [m, ...rest] = metas;
         showReveal({
-            title: "New road unlocked!",
+            title: "新道路已解锁！",
             name: m.name,
             icon: m.icon,
             swatch: m.color,

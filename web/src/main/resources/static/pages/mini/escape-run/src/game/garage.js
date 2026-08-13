@@ -12,20 +12,20 @@ export function showGarage(nav) {
     const render = () => {
         const st = get();
         const card = el("div", {class: "card sheet-scroll"}, [
-            el("h2", {text: "🚗 Garage"}),
-            el("div", {class: "chip"}, [el("span", {text: "★"}), `${st.stars} stars to spend`]),
-            el("h3", {text: "Characters", style: "align-self:flex-start;margin:6px 0 0"}),
+            el("h2", {text: "🚗 小车库"}),
+            el("div", {class: "chip"}, [el("span", {text: "★"}), `可使用 ${st.stars} 颗星`]),
+            el("h3", {text: "伙伴", style: "align-self:flex-start;margin:6px 0 0"}),
             ...characterList().map((c) => item("character", c, st, render)),
-            el("h3", {text: "Cars", style: "align-self:flex-start;margin:10px 0 0"}),
+            el("h3", {text: "小汽车", style: "align-self:flex-start;margin:10px 0 0"}),
             ...carList().map((c) => item("car", c, st, render)),
-            el("h3", {text: "Worlds", style: "align-self:flex-start;margin:10px 0 0"}),
+            el("h3", {text: "场景", style: "align-self:flex-start;margin:10px 0 0"}),
             ...worldList().map((w) => item("world", w, st, render)),
             el("button", {
                 class: "btn ghost", onclick: () => {
                     sfx.click();
                     nav.menu();
                 }
-            }, "← Back"),
+            }, "← 返回"),
         ]);
         showScreen(el("div", {class: "screen sheet"}, [card]));
     };
@@ -46,7 +46,7 @@ function item(kind, obj, st, rerender) {
 
     let action;
     if (equipped) {
-        action = el("span", {class: "chip", style: "background:#dcfce7;color:#166534", text: "Equipped"});
+        action = el("span", {class: "chip", style: "background:#dcfce7;color:#166534", text: "使用中"});
     } else if (owned) {
         action = el("button", {
             class: "btn ghost", onclick: () => {
@@ -54,7 +54,7 @@ function item(kind, obj, st, rerender) {
                 sfx.click();
                 rerender();
             }
-        }, "Use");
+        }, "使用");
     } else {
         const afford = st.stars >= obj.cost;
         action = el(

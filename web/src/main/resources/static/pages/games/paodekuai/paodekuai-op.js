@@ -44,7 +44,7 @@ function handleNotCard(data) {
     }
 }
 
-/** 出牌确认：只保留最后一手；过牌显示「不要」；同步手牌张数 */
+/** 出牌确认：只保留最后一手；过牌统一显示「过」；同步手牌张数 */
 function handleAckOp(data) {
     gameState.opPending = false;
     document.getElementById('multipleInfo').textContent = '跑得快';

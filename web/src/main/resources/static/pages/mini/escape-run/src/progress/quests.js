@@ -9,23 +9,23 @@ import {unlockedSkills} from "./unlocks.js";
 const TEMPLATES = [
     {
         type: "correct", make: (r) => ({target: 6 + Math.floor(r() * 6), reward: 4}),
-        label: (q) => `Answer ${q.target} questions correctly`, icon: "✔"
+        label: (q) => `正确回答 ${q.target} 道题`, icon: "✔"
     },
     {
         type: "sparks", make: (r) => ({target: 20 + Math.floor(r() * 20), reward: 4}),
-        label: (q) => `Collect ${q.target} sparks`, icon: "✦"
+        label: (q) => `收集 ${q.target} 颗星光`, icon: "✦"
     },
     {
         type: "missions", make: (r) => ({target: 2 + Math.floor(r() * 2), reward: 3}),
-        label: (q) => `Finish ${q.target} missions`, icon: "🏁"
+        label: (q) => `完成 ${q.target} 次闯关`, icon: "🏁"
     },
     {
         type: "threeStar", make: () => ({target: 1, reward: 5}),
-        label: () => `Earn a 3-star mission`, icon: "⭐"
+        label: () => `获得一次三星评价`, icon: "⭐"
     },
     {
         type: "skill", make: (r, skills) => ({target: 1, reward: 4, param: skills[Math.floor(r() * skills.length)]}),
-        label: (q) => `Practise ${skillMeta(q.param).name}`, icon: "🎯"
+        label: (q) => `练习${skillMeta(q.param).name}`, icon: "🎯"
     },
 ];
 

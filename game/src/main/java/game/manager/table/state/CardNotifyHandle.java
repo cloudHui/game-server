@@ -2,6 +2,8 @@ package game.manager.table.state;
 
 import game.manager.table.Table;
 import game.manager.table.ddz.DdzTable;
+import game.manager.table.ddz.DdzPlayService;
+import game.manager.table.ddz.DdzOperationChoices;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
@@ -31,22 +33,16 @@ public class CardNotifyHandle extends AbstractTableHandle {
         int seat = table.getOp().getCurrOpSeat();
         table.getOp().clearChoiceMap();
 
-        GameProto.OpInfo play = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PLAY).build();
-        table.getOp().addPosOpInfo(seat, play);
-
+        java.util.List<GameProto.OpInfo> choices = DdzOperationChoices.forTurn(ddzTable.getDdz().getLastHand());
         GameProto.NotOperation.Builder nb = GameProto.NotOperation.newBuilder()
                 .setWait(TableState.IDLE_CARD.getOverTime())
-                .setOpSeat(seat)
-                .addChoice(play);
+                .setOpSeat(seat).addAllChoice(choices);
+        for (GameProto.OpInfo choice : choices) table.getOp().addPosOpInfo(seat, choice);
 
-        if (ddzTable.getDdz().getLastHand() != null) {
-            GameProto.OpInfo pass = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build();
-            table.getOp().addPosOpInfo(seat, pass);
-            nb.addChoice(pass);
-        }
-
-        table.sendTableMessage(nb.build(), GMsg.NOT_OP);
         table.upNextState();
+        // 切到 IDLE_CARD 后再由服务端校验整副余牌；合法且能压过时直接打完。
+        if (DdzPlayService.autoPlayWholeHand(ddzTable, seat)) return false;
+        table.sendTableMessage(nb.build(), GMsg.NOT_OP);
         return false;
     }
 

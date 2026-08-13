@@ -20,15 +20,15 @@ export function showTrophies(nav) {
     );
 
     const card = el("div", {class: "card sheet-scroll"}, [
-        el("h2", {text: "🏆 Trophy Room"}),
-        el("div", {class: "chip"}, [el("span", {text: "🏅"}), `${count} / ${ACHIEVEMENTS.length} earned`]),
+        el("h2", {text: "🏆 奖杯室"}),
+        el("div", {class: "chip"}, [el("span", {text: "🏅"}), `已获得 ${count} / ${ACHIEVEMENTS.length}`]),
         grid,
         el("button", {
             class: "btn ghost", onclick: () => {
                 sfx.click();
                 nav.menu();
             }
-        }, "← Back"),
+        }, "← 返回"),
     ]);
     showScreen(el("div", {class: "screen sheet"}, [card]));
 }

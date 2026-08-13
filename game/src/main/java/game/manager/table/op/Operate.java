@@ -64,6 +64,11 @@ public class Operate {
         return posOp.get(seat);
     }
 
+    /** 清除单个座位的临时操作，不影响同时操作的其他玩家。 */
+    public void clearSeatOps(int seat) {
+        posOp.remove(seat);
+    }
+
     public Set<GameProto.OpInfo> getCurrChoice() {
         return posOp.get(currOpSeat);
     }

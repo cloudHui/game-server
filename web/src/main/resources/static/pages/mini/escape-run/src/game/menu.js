@@ -16,8 +16,8 @@ export function showMenu(nav) {
     const nm = skillMeta(next);
 
     const card = el("div", {class: "card sheet-scroll"}, [
-        el("h1", {class: "logo", text: "ESCAPE\nRUN"}),
-        el("p", {class: "tagline", text: "A math adventure for ages 6–8"}),
+        el("h1", {class: "logo", text: "小汽车\n比大小"}),
+        el("p", {class: "tagline", text: "适合 6–8 岁儿童的数学闯关"}),
         el("div", {class: "spacer"}),
         el(
             "button",
@@ -31,8 +31,8 @@ export function showMenu(nav) {
                 },
             },
             [
-                el("span", {text: "▶  Play"}),
-                el("span", {style: "font-size:14px;font-weight:800;opacity:.9", text: `Next: ${nm.icon} ${nm.name}`}),
+                el("span", {text: "▶ 开始闯关"}),
+                el("span", {style: "font-size:14px;font-weight:800;opacity:.9", text: `下一项：${nm.icon} ${nm.name}`}),
             ]
         ),
         el("div", {class: "row"}, [
@@ -41,16 +41,16 @@ export function showMenu(nav) {
                     sfx.click();
                     nav.map();
                 }
-            }, "🗺 Map"),
+            }, "🗺 闯关地图"),
             el("button", {
                 class: "btn secondary", onclick: () => {
                     sfx.click();
                     nav.garage();
                 }
-            }, "🚗 Garage"),
+            }, "🚗 小车库"),
         ]),
         el("div", {class: "row"}, [
-            menuButton("🌟 Goals", dailyOpen || questsLeft ? "•" : "", () => {
+            menuButton("🌟 今日目标", dailyOpen || questsLeft ? "•" : "", () => {
                 sfx.click();
                 nav.goals();
             }),
@@ -59,11 +59,11 @@ export function showMenu(nav) {
                     sfx.click();
                     nav.trophies();
                 }
-            }, "🏆 Trophies"),
+            }, "🏆 奖杯"),
         ]),
         el("div", {class: "row", style: "margin-top:4px"}, [
-            el("div", {class: "chip"}, [el("span", {text: "🔥"}), `${streak}-day streak`]),
-            el("div", {class: "chip"}, [el("span", {text: "★"}), `${st.stars} stars`]),
+            el("div", {class: "chip"}, [el("span", {text: "🔥"}), `连续 ${streak} 天`]),
+            el("div", {class: "chip"}, [el("span", {text: "★"}), `${st.stars} 颗星`]),
         ]),
         el(
             "button",
@@ -73,7 +73,7 @@ export function showMenu(nav) {
                     nav.parent();
                 }
             },
-            "👪 Grown-ups"
+            "👪 家长中心"
         ),
         el(
             "button",
@@ -83,9 +83,9 @@ export function showMenu(nav) {
                     nav.onboarding();
                 }
             },
-            "❔ How to play"
+            "❔ 游戏方法"
         ),
-        el("p", {class: "muted small", text: "No ads · No sign-in · Works offline · Your data stays on this device"}),
+        el("p", {class: "muted small", text: "无广告 · 可离线使用 · 游戏记录只保存在本设备"}),
     ]);
 
     showScreen(el("div", {class: "screen sheet"}, [card]));
@@ -109,8 +109,8 @@ function menuButton(label, badge, onclick) {
 export function showPause(runner) {
     const wrap = el("div", {id: "pause-screen", class: "screen sheet"}, [
         el("div", {class: "card"}, [
-            el("h2", {text: "Paused"}),
-            el("button", {class: "btn big good", onclick: () => runner.togglePause()}, "▶  Resume"),
+            el("h2", {text: "游戏暂停"}),
+            el("button", {class: "btn big good", onclick: () => runner.togglePause()}, "▶ 继续"),
             el(
                 "button",
                 {
@@ -119,7 +119,7 @@ export function showPause(runner) {
                         runner.onQuit();
                     }
                 },
-                "Quit to Menu"
+                "返回主菜单"
             ),
         ]),
     ]);
