@@ -103,6 +103,39 @@ public class DdzRulesTest {
     }
 
     @Test
+    public void wholeRemainingHandCanAutoPlayOnlyWhenLegalAndBeating() {
+        List<Card> pairSix = Arrays.asList(new Card(106), new Card(206));
+        DdzHand pairFive = DdzRules.analyze(Arrays.asList(new Card(105), new Card(205))).get();
+        DdzHand pairSeven = DdzRules.analyze(Arrays.asList(new Card(107), new Card(207))).get();
+        assertTrue(DdzPlayService.canPlayWholeHand(pairSix, null));
+        assertTrue(DdzPlayService.canPlayWholeHand(pairSix, pairFive));
+        assertFalse(DdzPlayService.canPlayWholeHand(pairSix, pairSeven));
+        assertFalse(DdzPlayService.canPlayWholeHand(
+                Arrays.asList(new Card(103), new Card(104)), null));
+    }
+
+    @Test
+    public void wholeRemainingStraightBombAndPlaneCanAutoPlay() {
+        assertTrue(DdzPlayService.canPlayWholeHand(Arrays.asList(
+                new Card(103),new Card(104),new Card(105),new Card(106),new Card(107)), null));
+        assertTrue(DdzPlayService.canPlayWholeHand(Arrays.asList(
+                new Card(108),new Card(208),new Card(308),new Card(408)), null));
+        // 333444 + 5、6：两段飞机带单。
+        assertTrue(DdzPlayService.canPlayWholeHand(Arrays.asList(
+                new Card(103),new Card(203),new Card(303),new Card(104),new Card(204),new Card(304),
+                new Card(105),new Card(106)), null));
+    }
+
+    @Test
+    public void operationChoicesNeverOfferPassToRoundLeader() {
+        assertEquals(1, DdzOperationChoices.forTurn(null).size());
+        assertEquals(proto.ConstProto.Operation.PLAY, DdzOperationChoices.forTurn(null).get(0).getChoice());
+        DdzHand previous = DdzRules.analyze(Arrays.asList(new Card(103))).get();
+        assertEquals(2, DdzOperationChoices.forTurn(previous).size());
+        assertEquals(proto.ConstProto.Operation.PASS, DdzOperationChoices.forTurn(previous).get(1).getChoice());
+    }
+
+    @Test
     public void testBeatsSameTypeCompareStrength() {
         DdzHand pair1 = DdzRules.analyze(Arrays.asList(new Card(110), new Card(210))).get();
         DdzHand pair2 = DdzRules.analyze(Arrays.asList(new Card(105), new Card(205))).get();

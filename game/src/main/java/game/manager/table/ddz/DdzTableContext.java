@@ -51,7 +51,7 @@ public class DdzTableContext {
      */
     private int visionLevel = AiVision.LEVEL_NORMAL;
     /**
-     * AI 智能等级：0=最笨(出最小/pass), 1=基础策略, 2=高级策略。支持运行时修改
+     * AI 智能等级：0=最笨，1=基础，2=高级，3=大师。支持运行时修改
      */
     private int aiLevel = AiVision.AI_MASTER;
     /**

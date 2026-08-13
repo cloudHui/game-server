@@ -34,7 +34,8 @@ export function showOnboarding(onDone) {
 
     const bubble = (mood, text, body, footer, voiceId) => {
         announce(text);
-        if (voiceId) playVoice(voiceId);
+        if (window.MiniFeedback) window.MiniFeedback.readGoal(text);
+        else if (voiceId) playVoice(voiceId);
         const card = el("div", {class: "card"}, [
             el("div", {class: "onb-hero"}, [
                 pipCanvas(84, mood, "#7c5cff"),
@@ -42,7 +43,7 @@ export function showOnboarding(onDone) {
             ]),
             body || null,
             footer,
-            el("button", {class: "btn ghost", onclick: finish}, "Skip"),
+            el("button", {class: "btn ghost", onclick: finish}, "跳过"),
         ]);
         showScreen(el("div", {class: "screen sheet"}, [card]));
     };
@@ -56,7 +57,7 @@ export function showOnboarding(onDone) {
                 "button",
                 {
                     class: "onb-lane",
-                    "aria-label": ["Left lane", "Middle lane", "Right lane"][i],
+                    "aria-label": ["左车道", "中间车道", "右车道"][i],
                     onclick: () => {
                         unlockAudio();
                         sfx.move();
@@ -82,11 +83,11 @@ export function showOnboarding(onDone) {
                     stepCollect();
                 }
             },
-            "Next"
+            "下一步"
         );
         bubble(
             "point",
-            "Hi! I'm Pip. Tap the left, middle and right lanes to steer your car!",
+            "你好！我是皮皮。依次点击左、中、右车道，试着控制小汽车！",
             track,
             next,
             "onb_steer"
@@ -103,7 +104,7 @@ export function showOnboarding(onDone) {
         ]);
         bubble(
             "cheer",
-            "Grab the stars to score — and steer around the cones!",
+            "收集星光可以得分，记得绕开路障！",
             demo,
             el("button", {
                 class: "btn good", onclick: () => {
@@ -111,7 +112,7 @@ export function showOnboarding(onDone) {
                     step = 2;
                     stepGate();
                 }
-            }, "Next"),
+            }, "下一步"),
             "onb_collect"
         );
     };
@@ -128,7 +129,7 @@ export function showOnboarding(onDone) {
                 step = 3;
                 stepReady();
             },
-        }, "Next");
+        }, "下一步");
         options.forEach((v) => {
             const b = el(
                 "button",
@@ -140,11 +141,12 @@ export function showOnboarding(onDone) {
                             b.classList.add("correct");
                             [...row.children].forEach((c) => (c.disabled = true));
                             done.classList.remove("hidden");
-                            announce("Yes! Three dots. You steer into the ‘3’ lane.");
+                            announce("答对了！有三个圆点，请驶入数字 3 的车道。");
+                            if (window.MiniFeedback) window.MiniFeedback.praise("很棒！");
                         } else {
                             sfx.wrong();
                             b.classList.add("wrong");
-                            announce("Not quite — count the dots and try again.");
+                            announce("还差一点，再数一数圆点并重试。");
                         }
                     },
                 },
@@ -154,7 +156,7 @@ export function showOnboarding(onDone) {
         });
         bubble(
             "point",
-            "When a question pops up, drive into the lane with the right answer. How many dots?",
+            "看到题目时，把小汽车开进正确答案的车道。这儿有几个圆点？",
             el("div", {class: "col", style: "gap:14px"}, [dots, row]),
             done,
             "onb_gate"
@@ -165,14 +167,14 @@ export function showOnboarding(onDone) {
     const stepReady = () => {
         bubble(
             "cheer",
-            "You've got it! Ready to race and learn? Let's go!",
+            "你已经学会了！准备好一边开车一边学数学了吗？出发吧！",
             null,
             el("button", {
                 class: "btn big good", onclick: () => {
                     sfx.click();
                     finish();
                 }
-            }, "▶  Start"),
+            }, "▶ 开始"),
             "onb_ready"
         );
     };

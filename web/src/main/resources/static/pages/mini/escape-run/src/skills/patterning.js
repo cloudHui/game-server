@@ -7,12 +7,12 @@ import {randInt, pick, shuffle, clamp, makeOptions} from "../util.js";
 
 export const meta = {
     id: "patterning",
-    name: "What's Next?",
-    short: "Patterns",
+    name: "找规律",
+    short: "规律",
     icon: "◇",
     color: "#7c5cff",
     maxLevel: 7,
-    blurb: "Recognising and extending patterns — early algebra & logic.",
+    blurb: "观察并延续图形或数字规律。",
 };
 
 const SHAPES = ["circle", "square", "triangle", "star"];
@@ -127,8 +127,8 @@ export function generate(level, rng) {
     return {
         skillId: "patterning",
         level,
-        promptText: "What comes next?",
-        say: "What comes next in the pattern?",
+        promptText: "下一个是什么？",
+        say: "观察规律，下一个是什么？",
         ...body,
     };
 }

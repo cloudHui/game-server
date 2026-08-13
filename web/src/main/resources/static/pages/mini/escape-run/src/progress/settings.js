@@ -15,6 +15,7 @@ export function setSetting(key, value) {
     get().settings[key] = value;
     save();
     applyAccessibility();
+    if (key === "voice" && window.MiniFeedback) window.MiniFeedback.setEnabled(value);
 }
 
 export function getSetting(key) {

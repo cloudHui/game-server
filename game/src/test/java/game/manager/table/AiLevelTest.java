@@ -8,11 +8,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-/** 第四档大师 AI 配置边界；斗地主/麻将默认高级，跑得快默认大师。 */
+/** 第四档大师 AI 配置边界；斗地主/跑得快默认大师，麻将默认高级。 */
 public class AiLevelTest {
 	@Test
 	public void defaultLevelRemainsAdvanced() {
-		assertEquals(AiVision.AI_ADVANCED, new DdzTableContext().getAiLevel());
+		assertEquals(AiVision.AI_MASTER, new DdzTableContext().getAiLevel());
 		assertEquals(AiVision.AI_ADVANCED, new MjTableContext().getAiLevel());
 		assertEquals(AiVision.AI_MASTER, new PdkTableContext().getAiLevel());
 	}

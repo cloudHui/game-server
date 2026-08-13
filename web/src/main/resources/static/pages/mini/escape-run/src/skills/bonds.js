@@ -6,12 +6,12 @@ import {randInt, makeOptions, clamp} from "../util.js";
 
 export const meta = {
     id: "bonds",
-    name: "Make It Whole",
-    short: "Number Bonds",
+    name: "凑成整十",
+    short: "数字组合",
     icon: "◑",
     color: "#ec4899",
     maxLevel: 7,
-    blurb: "Composing and decomposing numbers (e.g. make 10) — deep number sense.",
+    blurb: "练习数字的组成与拆分。",
 };
 
 function targetFor(level, rng) {
@@ -50,7 +50,7 @@ export function generate(level, rng) {
         prompt: {type: "bond", target, given},
         optionKind: "number",
         promptText: `${given} + ? = ${target}`,
-        say: `What makes ${target} with ${given}?`,
+        say: `${given} 加几等于 ${target}？`,
         options,
         correctIndex,
     };

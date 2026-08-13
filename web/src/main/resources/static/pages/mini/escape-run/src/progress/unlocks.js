@@ -19,11 +19,11 @@ export const BASE_UNLOCKED = [
 export const UNLOCK_RULES = {
     groups: {
         test: (s) => s.skills.arithmetic.level >= 4,
-        hint: "Reach Speed Math level 4 to open this road!",
+        hint: "加减法达到第 4 级即可解锁！",
     },
     fractions: {
         test: (s) => s.skills.groups.level >= 2 || s.skills.shapes.level >= 6,
-        hint: "Master Super Groups or Shape Shadows to open this road!",
+        hint: "乘除分组达到第 2 级，或认识图形达到第 6 级即可解锁！",
     },
 };
 
@@ -41,7 +41,7 @@ export function unlockedSkills(state) {
 }
 
 export function skillUnlockHint(id) {
-    return (UNLOCK_RULES[id] && UNLOCK_RULES[id].hint) || "Keep playing to open this road!";
+    return (UNLOCK_RULES[id] && UNLOCK_RULES[id].hint) || "继续闯关即可解锁这条道路！";
 }
 
 // Apply unlock rules to the (mutable) state. Returns the metas of skills opened

@@ -7,18 +7,18 @@ import {randInt, pick, shuffle, clamp} from "../util.js";
 
 export const meta = {
     id: "shapes",
-    name: "Shape Shadows",
-    short: "Shapes",
+    name: "认识图形",
+    short: "图形",
     icon: "▲",
     color: "#f43f5e",
     maxLevel: 7,
-    blurb: "Naming shapes, corners, shadows, solids and equal parts.",
+    blurb: "认识图形、角、影子、立体形状和平均分。",
 };
 
 const NAMEABLE = ["circle", "square", "triangle", "star", "rect", "oval"];
 const COLORS = ["#ef4444", "#5aa9ff", "#22c55e", "#f59e0b", "#a855f7", "#ec4899"];
 const CORNERS = {circle: 0, oval: 0, triangle: 3, square: 4, rect: 4, diamond: 4, star: 5};
-const NAME = {circle: "circle", square: "square", triangle: "triangle", star: "star", rect: "rectangle", oval: "oval"};
+const NAME = {circle: "圆形", square: "正方形", triangle: "三角形", star: "星形", rect: "长方形", oval: "椭圆形"};
 
 // Build 3 distinct object options + correctIndex (makeOptions is number-only).
 function objectOptions(rng, correct, pool, keyOf) {
@@ -49,8 +49,8 @@ function nameShape(level, rng) {
         level,
         prompt: {type: "shapename", name: target},
         optionKind: "shape",
-        promptText: `Tap the ${NAME[target]}`,
-        say: `Tap the ${NAME[target]}.`,
+        promptText: `选择${NAME[target]}`,
+        say: `请选择${NAME[target]}。`,
         options,
         correctIndex,
     };
@@ -67,8 +67,8 @@ function corners(level, rng) {
         level,
         prompt: {type: "showshape", shape},
         optionKind: "number",
-        promptText: "How many corners?",
-        say: "How many corners does this shape have?",
+        promptText: "这个图形有几个角？",
+        say: "这个图形有几个角？",
         options: opts,
         correctIndex: opts.indexOf(answer),
         pace: 0.85,
@@ -87,8 +87,8 @@ function silhouette(level, rng) {
         level,
         prompt: {type: "silhouette", shape: target, rot},
         optionKind: "shape",
-        promptText: "Which shape is the shadow?",
-        say: "Which shape made this shadow?",
+        promptText: "哪个图形能形成这个影子？",
+        say: "请选择能形成这个影子的图形。",
         options,
         correctIndex,
         pace: 0.85,
@@ -100,9 +100,9 @@ function silhouette(level, rng) {
 // stacks, so "which rolls?"/"which stacks?" would be wrong for it).
 function solids(level, rng) {
     const q = pick(rng, [
-        {text: "Which is round all over?", say: "Which one is round all over, like a ball?", answer: "ball"},
-        {text: "Which has only flat sides?", say: "Which one has only flat sides?", answer: "box"},
-        {text: "Which can roll and stack?", say: "Which one can both roll and stack?", answer: "can"},
+        {text: "哪一个像球一样到处都是圆的？", say: "哪一个像球一样到处都是圆的？", answer: "ball"},
+        {text: "哪一个只有平面？", say: "哪一个立体图形只有平面？", answer: "box"},
+        {text: "哪一个既能滚动又能叠放？", say: "哪一个既能滚动又能叠放？", answer: "can"},
     ]);
     const all = ["ball", "box", "can"];
     const options = shuffle(rng, all.map((solid) => ({solid})));
@@ -133,8 +133,8 @@ function equalParts(level, rng) {
         level,
         prompt: {type: "shapename", name: "equal"},
         optionKind: "part",
-        promptText: "Which is cut into 2 equal parts?",
-        say: "Which one is cut into two equal parts?",
+        promptText: "哪一个被平均分成两份？",
+        say: "哪一个被平均分成相等的两份？",
         options,
         correctIndex: options.findIndex((o) => Math.abs(o.cuts[0] - 0.5) < 0.001),
         pace: 0.85,
@@ -165,8 +165,8 @@ function compose(level, rng) {
         level,
         prompt: {type: "composite", name: target.name, parts: target.parts},
         optionKind: "pair",
-        promptText: "Which two shapes make this?",
-        say: `Which two shapes make this ${target.name}?`,
+        promptText: "哪两个图形能拼成它？",
+        say: "请选择能拼成目标图案的两个图形。",
         options,
         correctIndex,
         pace: 0.85,

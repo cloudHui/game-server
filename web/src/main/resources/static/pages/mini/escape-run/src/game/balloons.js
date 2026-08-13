@@ -72,15 +72,17 @@ export function showBalloonPop({onDone, countBy = null}) {
         el("div", {class: "timebar", "aria-hidden": "true"}, [timeBar]),
         field,
         chantEl,
-        el("div", {class: "chip"}, [el("span", {text: "★"}), " Bonus: ", totalEl]),
+        el("div", {class: "chip"}, [el("span", {text: "★"}), " 奖励：", totalEl]),
         el("button", {
             class: "btn good", onclick: () => {
                 sfx.click();
                 finish();
             }
-        }, "Continue"),
+        }, "继续"),
     ]);
-    announce(countBy ? `Bonus round! Pop the balloons and count by ${countBy}s.` : "Bonus round! Pop the balloons for extra stars.");
+    const goal = countBy ? `奖励环节！戳破气球，按 ${countBy} 个一组数数。` : "奖励环节！戳破气球获得更多星星。";
+    announce(goal);
+    if (window.MiniFeedback) window.MiniFeedback.readGoal(goal);
     showScreen(el("div", {class: "screen sheet"}, [card]));
 
     // Countdown — auto-continues (keeping whatever was popped) when it runs out.

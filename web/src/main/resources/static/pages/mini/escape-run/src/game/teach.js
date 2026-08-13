@@ -9,7 +9,7 @@ import {
     partition as drawPartition
 } from "../engine/renderer.js";
 
-const NAME = {circle: "circle", square: "square", triangle: "triangle", star: "star", rect: "rectangle", oval: "oval"};
+const NAME = {circle:"圆形",square:"正方形",triangle:"三角形",star:"星形",rect:"长方形",oval:"椭圆形"};
 const CORNERS = {circle: 0, oval: 0, triangle: 3, square: 4, rect: 4, diamond: 4, star: 5};
 
 const FONT = '"Segoe UI Rounded","SF Pro Rounded",ui-rounded,"Nunito",system-ui,sans-serif';
@@ -82,7 +82,7 @@ export function teachContent(ch) {
         case "pattern":
             return teachPattern(p, answer);
         default:
-            return {line: "Here's the answer.", node: null};
+            return {line: "正确答案在这里。", node: null};
     }
 }
 
@@ -91,49 +91,49 @@ export function hintLine(ch) {
     const p = ch.prompt || {};
     switch (p.type) {
         case "dots":
-            return p.grouped ? "Each full row is ten — count tens first, then the extras." : "Point and count each dot: 1, 2, 3…";
+            return p.grouped ? "每一整行有十个，先数整十，再数剩下的。" : "指着圆点逐个数：一、二、三……";
         case "expr":
-            return p.text.includes("+") ? "Start at the first number and count up." : "Start big and count back.";
+            return p.text.includes("+") ? "从第一个数字开始往后数。" : "从较大的数字开始往回数。";
         case "compare":
-            return ch.prompt.mode === "bigger" ? "Bigger numbers are further along when you count." : "Smaller numbers come first when you count.";
+            return ch.prompt.mode === "bigger" ? "数数时越往后的数字越大。" : "数数时越靠前的数字越小。";
         case "bond":
-            return `How many more do you add to ${p.given} to reach ${p.target}?`;
+            return `${p.given} 还要加几才能得到 ${p.target}？`;
         case "double":
-            return p.op === "double" ? "Add the number to itself." : "Split it into two equal parts.";
+            return p.op === "double" ? "把这个数字和它自己相加。" : "把它平均分成两份。";
         case "missing":
-            return "What number makes both sides match?";
+            return "填入哪个数字能让等号两边相等？";
         case "groups":
-            return `Count the bags: ${p.bags} groups of ${p.per}. Add them up.`;
+            return `数一数：${p.bags} 组，每组 ${p.per} 个，把它们合起来。`;
         case "share":
-            return `Deal the ${p.total} out onto ${p.plates} plates, one each, until they're gone.`;
+            return `把 ${p.total} 个逐个放进 ${p.plates} 个盘子，直到分完。`;
         case "gtext":
-            return p.text.includes("÷") ? "How many equal groups can you share it into?" : "Add the same number again and again.";
+            return p.text.includes("÷") ? "想一想可以平均分成多少组。" : "把相同的数字连续相加。";
         case "shapename":
-            return p.name === "equal" ? "Equal parts are exactly the same size." : "Look at the sides and corners.";
+            return p.name === "equal" ? "相等的两份大小完全一样。" : "仔细观察边和角。";
         case "showshape":
-            return "Count where two edges meet — those are the corners.";
+            return "两条边相交的地方就是角，数一数。";
         case "silhouette":
-            return "Match the outline — count its sides.";
+            return "对照轮廓，并数一数它的边。";
         case "solidq":
-            return "A ball is round all over; a box is all flat; a can is both.";
+            return "球到处都是圆的，盒子都是平面，圆柱既有平面也有曲面。";
         case "composite":
-            return "Look at the top piece and the bottom piece.";
+            return "分别观察上半部分和下半部分。";
         case "fairshare":
-            return "Fair means both parts are exactly the same size.";
+            return "平均分表示两份的大小完全一样。";
         case "onehalf":
-            return "One half is one of two equal parts.";
+            return "二分之一是相等两份中的一份。";
         case "onequarter":
-            return "One quarter is one of four equal parts.";
+            return "四分之一是相等四份中的一份。";
         case "partof":
-            return p.denom === 2 ? "Share them into 2 equal groups — count one group." : "Share them into 4 equal groups — count one group.";
+            return p.denom === 2 ? "平均分成两组，再数其中一组。" : "平均分成四组，再数其中一组。";
         case "comparefrac":
-            return "Fewer cuts make bigger pieces.";
+            return "分成的份数越少，每一份越大。";
         case "partshow":
-            return "Count the shaded parts out of the total parts.";
+            return "数一数总份数和涂色的份数。";
         case "pattern":
-            return "Look for the part that repeats.";
+            return "找出不断重复的部分。";
         default:
-            return "Take your time.";
+            return "慢慢想，不着急。";
     }
 }
 
@@ -164,13 +164,13 @@ function teachDots(count, grouped) {
     if (grouped) {
         const tens = Math.floor(count / 10);
         const ones = count % 10;
-        const tensWord = tens === 1 ? "1 ten" : `${tens} tens`;
+        const tensWord = `${tens} 个十`;
         const line = ones
-            ? `${tensWord} and ${ones} more makes ${count}.`
-            : `${tensWord} makes ${count}.`;
+            ? `${tensWord}再加 ${ones} 个，合起来是 ${count}。`
+            : `${tensWord}就是 ${count}。`;
         return {line, node};
     }
-    return {line: `Count them one by one — there are ${count}.`, node};
+    return {line: `逐个数一数，一共有 ${count} 个。`, node};
 }
 
 function teachExpr(text, answer) {
@@ -197,8 +197,8 @@ function teachExpr(text, answer) {
         }
     });
     const line = isAdd
-        ? `${a} and ${b} more makes ${answer}.`
-        : `${a} take away ${b} leaves ${answer}.`;
+        ? `${a} 加 ${b} 等于 ${answer}。`
+        : `${a} 减 ${b} 等于 ${answer}。`;
     return {line, node};
 }
 
@@ -221,7 +221,7 @@ function teachCompare(options, mode, correctIndex) {
         });
     });
     const target = options[correctIndex];
-    return {line: `${target} is the ${mode === "bigger" ? "biggest" : "smallest"}.`, node};
+    return {line: `${target} 是${mode === "bigger" ? "最大" : "最小"}的数字。`, node};
 }
 
 function teachBond(given, target) {
@@ -248,7 +248,7 @@ function teachBond(given, target) {
             }
         }
     });
-    return {line: `${given} and ${answer} more makes ${target}.`, node};
+    return {line: `${given} 加 ${answer} 等于 ${target}。`, node};
 }
 
 // Doubles/halves: two equal rows make the "same twice" idea visible.
@@ -264,8 +264,8 @@ function teachDouble(p, answer) {
     });
     const line =
         p.op === "double"
-            ? `${p.n} and ${p.n} makes ${answer}.`
-            : `${p.n} splits into ${answer} and ${answer}.`;
+            ? `${p.n} 加 ${p.n} 等于 ${answer}。`
+            : `${p.n} 平均分成两份，每份是 ${answer}。`;
     return {line, node};
 }
 
@@ -285,7 +285,7 @@ function teachMissing(p) {
                 dot(ctx, cx, cy, 10, hidden ? "#22c55e" : "#5aa9ff");
             }
         });
-        return {line: `${p.a} and ${p.b} more makes ${p.result}.`, node};
+        return {line: `${p.a} 加 ${p.b} 等于 ${p.result}。`, node};
     }
     // subtraction: a dots, the taken-away ones crossed out
     const gap = p.a > 10 ? 22 : 26;
@@ -305,7 +305,7 @@ function teachMissing(p) {
             }
         }
     });
-    return {line: `${p.a} take away ${p.b} leaves ${p.result}.`, node};
+    return {line: `${p.a} 减 ${p.b} 等于 ${p.result}。`, node};
 }
 
 // ---- Super Groups (× ÷) ----
@@ -331,7 +331,7 @@ function teachGroups(p, answer) {
                 for (let c = 0; c < cols && n < per; c++, n++) dot(ctx, dx0 + c * 13, dy0 + r * 13, 5, "#f59e0b");
         }
     });
-    return {line: `${bags} groups of ${per} is ${p.bags} + ${p.per}s… that makes ${answer}.`, node};
+    return {line: `${bags} 组，每组 ${per} 个，合起来是 ${answer} 个。`, node};
 }
 
 function teachShare(p, answer) {
@@ -357,7 +357,7 @@ function teachShare(p, answer) {
             }
         }
     });
-    return {line: `${p.total} shared onto ${plates} plates is ${answer} each.`, node};
+    return {line: `${p.total} 个平均分到 ${plates} 个盘子，每盘 ${answer} 个。`, node};
 }
 
 function teachGtext(p, answer) {
@@ -368,7 +368,7 @@ function teachGtext(p, answer) {
     }
     const d = p.text.match(/(\d+)\s*÷\s*(\d+)/);
     if (d) return teachShare({total: +d[1], plates: +d[2]}, answer);
-    return {line: `The answer is ${answer}.`, node: null};
+    return {line: `答案是 ${answer}。`, node: null};
 }
 
 // ---- Shape Shadows ----
@@ -378,10 +378,10 @@ function teachShapeName(p, ch) {
         const node = mini(90, 90, (ctx) =>
             drawPartition(ctx, t.style, 45, 45, 34, 2, [], {cuts: [0.5, 0.5], color: "#5aa9ff"})
         );
-        return {line: "Both parts are exactly the same size — that's equal.", node};
+        return {line: "两部分大小完全一样，这就是平均分。", node};
     }
     const node = mini(90, 90, (ctx) => drawShape(ctx, p.name, 45, 45, 34, "#f43f5e"));
-    return {line: `This is a ${NAME[p.name] || p.name}.`, node};
+    return {line: `这是${NAME[p.name] || p.name}。`, node};
 }
 
 function teachCorners(p, answer) {
@@ -392,7 +392,7 @@ function teachCorners(p, answer) {
         ctx.fillStyle = "#0b1026";
         for (const [x, y] of pts) dot(ctx, x, y, 5, "#0b1026");
     });
-    return {line: `A ${NAME[p.shape] || p.shape} has ${answer} corner${answer === 1 ? "" : "s"}.`, node};
+    return {line: `${NAME[p.shape] || p.shape}有 ${answer} 个角。`, node};
 }
 
 function cornerPoints(kind, cx, cy, r) {
@@ -408,16 +408,16 @@ function teachSilhouette(p, ch) {
         drawShape(ctx, p.shape, 45, 45, 32, "#0b1026", p.rot); // the shadow
         drawShape(ctx, p.shape, 115, 45, 32, "#f43f5e"); // the real shape
     });
-    return {line: `The shadow is a ${NAME[p.shape] || p.shape}.`, node};
+    return {line: `这个影子是${NAME[p.shape] || p.shape}。`, node};
 }
 
 function teachSolid(ch, answer) {
     const node = mini(90, 90, (ctx) => drawSolid(ctx, answer.solid, 45, 45, 30, "#5aa9ff"));
     const why = answer.solid === "ball"
-        ? "A ball is round all over, so it rolls every way."
+        ? "球到处都是圆的，所以能向各个方向滚动。"
         : answer.solid === "box"
-            ? "A box has only flat sides, so it stacks and never rolls."
-            : "A can has flat ends and a round side, so it can roll and stack.";
+            ? "盒子只有平面，所以可以叠放但不会滚动。"
+            : "圆柱两端是平面，侧面是曲面，所以既能滚动也能叠放。";
     return {line: why, node};
 }
 
@@ -426,7 +426,7 @@ function teachComposite(p) {
         drawShape(ctx, p.parts[1], 60, 34, 24, "#f59e0b");
         drawShape(ctx, p.parts[0], 60, 80, 28, "#5aa9ff");
     });
-    return {line: `A ${NAME[p.parts[0]] || p.parts[0]} and a ${NAME[p.parts[1]] || p.parts[1]} make it.`, node};
+    return {line: `${NAME[p.parts[0]] || p.parts[0]}和${NAME[p.parts[1]] || p.parts[1]}可以拼成它。`, node};
 }
 
 function teachFair(ch) {
@@ -434,17 +434,17 @@ function teachFair(ch) {
     const node = mini(100, 100, (ctx) =>
         drawPartition(ctx, t.style, 50, 50, 36, 2, [], {cuts: [0.5, 0.5], color: "#f97316"})
     );
-    return {line: "A fair share cuts it into two equal parts.", node};
+    return {line: "平均分会把它分成大小相等的两份。", node};
 }
 
 function teachNamedFraction(p, ch) {
     const t = ch.options[ch.correctIndex];
     const denom = t.cuts.length;
-    const word = denom === 2 ? "half" : "quarter";
+    const word = denom === 2 ? "二分之一" : "四分之一";
     const node = mini(100, 100, (ctx) =>
         drawPartition(ctx, t.style, 50, 50, 36, denom, t.shaded, {cuts: t.cuts, color: "#f97316"})
     );
-    return {line: `The shaded piece is one ${word} — 1 of ${denom} equal parts.`, node};
+    return {line: `涂色部分是${word}，也就是相等 ${denom} 份中的一份。`, node};
 }
 
 function teachPartOf(p, answer) {
@@ -464,8 +464,8 @@ function teachPartOf(p, answer) {
             }
         }
     });
-    const word = p.denom === 2 ? "half" : "a quarter";
-    return {line: `Share ${p.total} into ${p.denom} equal groups — ${word} is ${per}.`, node};
+    const word = p.denom === 2 ? "一半" : "四分之一";
+    return {line: `把 ${p.total} 平均分成 ${p.denom} 组，${word}是 ${per}。`, node};
 }
 
 function teachComparePieces(ch) {
@@ -477,7 +477,7 @@ function teachComparePieces(ch) {
             color: "#f97316"
         });
     });
-    return {line: "Cut into fewer pieces, each piece is bigger. One half beats one quarter.", node};
+    return {line: "分成的份数越少，每份越大，所以二分之一大于四分之一。", node};
 }
 
 function teachPartShow(p) {
@@ -487,7 +487,7 @@ function teachPartShow(p) {
     const node = mini(100, 100, (ctx) =>
         drawPartition(ctx, p.style, 50, 50, 36, p.denom, shaded, {cuts, color: "#f97316"})
     );
-    return {line: `${p.on} of ${p.denom} parts are shaded — that's ${label}.`, node};
+    return {line: `${p.denom} 份中有 ${p.on} 份涂色，所以是 ${label}。`, node};
 }
 
 function teachPattern(p, answer) {
@@ -508,13 +508,13 @@ function teachPattern(p, answer) {
             }
         });
     });
-    let line = "The pattern repeats — see what comes next.";
+    let line = "规律会重复，看看下一个是什么。";
     if (p.kind === "number") {
         const step = seq[1] - seq[0];
         line =
             step >= 0
-                ? `Each step adds ${step}. Next is ${answer}.`
-                : `Each step takes away ${-step}. Next is ${answer}.`;
+                ? `每一步增加 ${step}，下一个是 ${answer}。`
+                : `每一步减少 ${-step}，下一个是 ${answer}。`;
     }
     return {line, node};
 }

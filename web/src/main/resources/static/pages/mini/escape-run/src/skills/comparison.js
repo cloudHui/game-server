@@ -6,12 +6,12 @@ import {randInt, shuffle, clamp} from "../util.js";
 
 export const meta = {
     id: "comparison",
-    name: "Big & Small",
-    short: "Comparing",
+    name: "比大小",
+    short: "比较数字",
     icon: "⟩",
     color: "#5aa9ff",
     maxLevel: 7,
-    blurb: "Judging which number is larger/smaller — magnitude sense.",
+    blurb: "判断哪个数字更大或更小。",
 };
 
 function rangeFor(level) {
@@ -58,8 +58,8 @@ export function generate(level, rng) {
         level,
         prompt: {type: "compare", mode},
         optionKind: "number",
-        promptText: mode === "bigger" ? "Tap the BIGGER number" : "Tap the SMALLER number",
-        say: mode === "bigger" ? "Which number is bigger?" : "Which number is smaller?",
+        promptText: mode === "bigger" ? "选择最大的数字" : "选择最小的数字",
+        say: mode === "bigger" ? "哪个数字最大？" : "哪个数字最小？",
         options,
         correctIndex: options.indexOf(target),
     };

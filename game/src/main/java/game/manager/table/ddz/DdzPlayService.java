@@ -16,6 +16,7 @@ import proto.GameProto;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 斗地主出牌服务
@@ -61,6 +62,34 @@ public final class DdzPlayService {
         if (user == null) return false;
         GameProto.OpInfo op = DdzSimpleAi.decide(table, user);
         return apply(table, userId, op) == ConstProto.Result.SUCCESS_VALUE;
+    }
+
+    /**
+     * 若当前玩家的全部余牌本身就是一手合法牌并且能接上桌面牌，则整手自动打出。
+     * 规则判断集中在服务端，真人、机器人和不同前端保持一致。
+     */
+    public static boolean autoPlayWholeHand(DdzTable table, int seat) {
+        TableUser user = table.getSeatUser(seat);
+        if (user == null || !canPlayWholeHand(user.getCards(), table.getDdz().getLastHand())) return false;
+        List<Integer> ids = new ArrayList<>();
+        GameProto.CardInfo.Builder cards = GameProto.CardInfo.newBuilder();
+        for (Card card : user.getCards()) {
+            ids.add(card.getId());
+            cards.addCards(GameProto.Card.newBuilder().setValue(card.getId()));
+        }
+        ReplayRecorder replay = table.getReplayRecorder();
+        if (replay instanceof DdzReplayRecorder) {
+            ((DdzReplayRecorder) replay).recordAutoPlay(seat, ids);
+        }
+        logger.info("斗地主最后一手自动打出, tableId:{}, seat:{}, cards:{}", table.getTableId(), seat, ids);
+        GameProto.OpInfo op = GameProto.OpInfo.newBuilder()
+                .setChoice(ConstProto.Operation.PLAY).addOpCards(cards).build();
+        return apply(table, user.getUserId(), op) == ConstProto.Result.SUCCESS_VALUE;
+    }
+
+    static boolean canPlayWholeHand(List<Card> cards, DdzHand lastHand) {
+        Optional<DdzHand> whole = DdzRules.analyze(cards);
+        return whole.isPresent() && (lastHand == null || DdzRules.beats(whole.get(), lastHand));
     }
 
     /**

@@ -6,12 +6,12 @@ import {randInt, makeOptions, clamp} from "../util.js";
 
 export const meta = {
     id: "arithmetic",
-    name: "Speed Math",
-    short: "Add & Subtract",
+    name: "加减法",
+    short: "加法与减法",
     icon: "+",
     color: "#f59e0b",
     maxLevel: 7,
-    blurb: "Fast, accurate addition and subtraction.",
+    blurb: "快速准确地练习加法和减法。",
 };
 
 // Returns { max, allowSub } for a level.
@@ -33,13 +33,13 @@ function doubleHalf(level, rng) {
     if (isDouble) {
         n = randInt(rng, 2, 10);
         answer = n * 2;
-        text = `Double ${n}`;
-        say = `What is double ${n}?`;
+        text = `${n} 的两倍`;
+        say = `${n} 的两倍是多少？`;
     } else {
         n = randInt(rng, 2, 10) * 2;
         answer = n / 2;
-        text = `Half of ${n}`;
-        say = `What is half of ${n}?`;
+        text = `${n} 的一半`;
+        say = `${n} 的一半是多少？`;
     }
     // `n` itself is the classic misconception distractor (tapping the number shown)
     const distractors = [answer + 1, answer - 1, answer + 2, n, answer - 2].filter(
@@ -78,11 +78,11 @@ function missingNumber(level, rng) {
     const say =
         op === "+"
             ? slot === "a"
-                ? `What plus ${b} makes ${result}?`
-                : `${a} plus what makes ${result}?`
+                ? `几加 ${b} 等于 ${result}？`
+                : `${a} 加几等于 ${result}？`
             : slot === "a"
-                ? `What take away ${b} leaves ${result}?`
-                : `${a} take away what leaves ${result}?`;
+                ? `几减 ${b} 等于 ${result}？`
+                : `${a} 减几等于 ${result}？`;
     const distractors = [answer + 1, answer - 1, answer + 2, result, slot === "a" ? b : a].filter(
         (x) => x >= 0 && x !== answer
     );
@@ -127,7 +127,7 @@ export function generate(level, rng) {
         prompt: {type: "expr", text},
         optionKind: "number",
         promptText: `${text} = ?`,
-        say: `What is ${text.replace("−", "minus").replace("+", "plus")}?`,
+        say: `${a} ${sub ? "减" : "加"} ${b} 等于几？`,
         options,
         correctIndex,
     };

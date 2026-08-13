@@ -49,7 +49,7 @@ function handleNotCard(data) {
     showCenterMsg(bottom.length ? '地主亮牌' : '发牌完成');
 }
 
-/** 出牌确认：只保留最后一手；过牌显示「不要」；同步手牌张数 */
+/** 出牌确认：只保留最后一手；过牌统一显示「过」；同步手牌张数 */
 function handleAckOp(data) {
     gameState.opPending = false;
     if (data.currentMultiplier) {
@@ -117,6 +117,15 @@ function handleNotOp(data) {
     }
     if (gameState.myPosition >= 0 && opSeat === gameState.myPosition) {
         gameState.lastChoices = choices;
+        // 只剩最后一张时必然是合法单牌：自动打出，省去再次选牌和点击。
+        // 延迟一帧让本次操作通知先完成渲染，并用 opPending 防止重复推送。
+        if (hasPlay && gameState.myCards.length === 1 && !gameState.opPending) {
+            gameState.selectedCards.clear();
+            gameState.selectedCards.add(gameState.myCards[0]);
+            renderMyCards();
+            setTimeout(function () { if (!gameState.opPending) doOp(6); }, 0);
+            return;
+        }
         showOperationChoices(choices);
     } else {
         hideActions();

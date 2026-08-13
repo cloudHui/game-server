@@ -340,7 +340,7 @@ function showPreviousHand() {
 function showPassHint(roleId) {
     var target = playedTargetForRole(roleId);
     if (!target) return;
-    target.innerHTML = '<div class="pass-hint">不要</div>';
+    target.innerHTML = '<div class="pass-hint">过</div>';
 }
 
 function showBidHint(roleId, text) {
@@ -608,6 +608,12 @@ function appendOpChoice(bar, choice, map) {
     })(choice.choice);
     bar.appendChild(btn);
 }
+
+// 扑克牌玩法共用的基础操作配置；各玩法只声明自身额外操作，避免文案和样式漂移。
+window.PokerCommonChoice = Object.freeze({
+    PLAY: Object.freeze({cls: 'btn-play', text: '出牌'}),
+    PASS: Object.freeze({cls: 'btn-pass', text: '过'})
+});
 
 function showOperationChoices(choices) {
     var bar = document.getElementById('actionBar');

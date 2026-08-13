@@ -7,12 +7,12 @@ import {randInt, pick, makeOptions, clamp} from "../util.js";
 
 export const meta = {
     id: "groups",
-    name: "Super Groups",
-    short: "Times & Share",
+    name: "乘除分组",
+    short: "乘法与平均分",
     icon: "×",
     color: "#14b8a6",
     maxLevel: 7,
-    blurb: "Equal groups, times tables and fair sharing (× and ÷).",
+    blurb: "练习相同分组、乘法和平均分。",
 };
 
 // Wrong answers are the real misconceptions: a group too many/few, the
@@ -47,8 +47,8 @@ function equalGroups(level, rng) {
         level,
         prompt: {type: "groups", bags, per, text: caption},
         optionKind: "number",
-        promptText: level >= 3 ? `${bags} × ${per} = ?` : `${bags} groups of ${per}`,
-        say: `${bags} groups of ${per}. How many in all?`,
+        promptText: level >= 3 ? `${bags} × ${per} = ?` : `${bags} 组，每组 ${per} 个`,
+        say: `${bags} 组，每组 ${per} 个，一共有多少个？`,
         options,
         correctIndex,
         pace: 0.85,
@@ -95,7 +95,7 @@ function sharing(level, rng) {
         prompt: {type: "share", total, plates, text: `${total} ÷ ${plates}`},
         optionKind: "number",
         promptText: `${total} ÷ ${plates} = ?`,
-        say: `${total} shared between ${plates} plates. How many on each?`,
+        say: `${total} 个平均分到 ${plates} 个盘子，每盘几个？`,
         options,
         correctIndex,
         pace: 0.85,
@@ -109,13 +109,13 @@ function factFamily(level, rng) {
     const product = a * b;
     if (rng() < 0.5) {
         const {options, correctIndex} = makeOptions(rng, product, productDistractors(a, b));
-        return finishExpr(level, `${a} × ${b} = ?`, product, options, correctIndex, `${a} times ${b}?`);
+        return finishExpr(level, `${a} × ${b} = ?`, product, options, correctIndex, `${a} 乘 ${b} 等于几？`);
     }
     // division: product ÷ a = b
     const distract = [b + 1, b - 1, b + 2, a, product].filter((x) => x >= 0 && x !== b);
     const {options, correctIndex} = makeOptions(rng, b, distract);
     return finishExpr(level, `${product} ÷ ${a} = ?`, b, options, correctIndex,
-        `${product} shared between ${a}?`);
+        `${product} 平均分成 ${a} 份，每份是几？`);
 }
 
 function finishExpr(level, text, answer, options, correctIndex, say) {

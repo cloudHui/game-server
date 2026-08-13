@@ -18,7 +18,7 @@ export class Hud {
         this.fuelBar = el("i", {class: "fuel-bar"});
         this.dots = el("div", {class: "row", style: "gap:6px"});
         this.banner = el("div", {class: "banner hidden"});
-        this.hintBtn = el("button", {class: "hint-btn hidden", "aria-label": "Get a hint"}, "💡 Hint");
+        this.hintBtn = el("button", {class: "hint-btn hidden", "aria-label": "查看提示"}, "💡 提示");
         this.pauseBtn = el(
             "button",
             {class: "pill pause", "aria-label": "Pause", onclick: onPause},

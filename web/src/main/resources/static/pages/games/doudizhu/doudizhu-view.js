@@ -8,8 +8,8 @@ function roleBadgeHtml(roleId) {
 }
 
 window.pokerOpChoiceMap = {
-    6: {cls: 'btn-play', text: '出牌'},
-    0: {cls: 'btn-pass', text: '不出'},
+    6: window.PokerCommonChoice.PLAY,
+    0: window.PokerCommonChoice.PASS,
     1: {cls: 'btn-call', text: '叫地主'},
     2: {cls: 'btn-rob', text: '抢地主'},
     3: {cls: 'btn-pass', text: '不叫'},

@@ -16,6 +16,33 @@ import game.manager.table.cards.Card;
 
 public class TractorRulesTest {
 
+    @Test
+    public void allPassEnumsUseTheSameTractorPassPath() {
+        assertTrue(TractorBidService.isPass(proto.ConstProto.Operation.NOT_CALL));
+        assertTrue(TractorBidService.isPass(proto.ConstProto.Operation.NOT_ROB));
+        assertTrue(TractorBidService.isPass(proto.ConstProto.Operation.PASS));
+        assertFalse(TractorBidService.isPass(proto.ConstProto.Operation.ROB));
+    }
+
+    @Test
+    public void buryReverseAlwaysOffersReverseAndOnePass() {
+        java.util.List<proto.GameProto.OpInfo> choices = TractorBidService.buryReverseChoices();
+        assertEquals(2, choices.size());
+        assertEquals(proto.ConstProto.Operation.ROB, choices.get(0).getChoice());
+        assertEquals(proto.ConstProto.Operation.NOT_CALL, choices.get(1).getChoice());
+    }
+
+    @Test
+    public void buryPassMustHaveBeenOfferedToThatSeat() {
+        assertFalse(TractorBidService.hasPassChoice(null));
+        assertFalse(TractorBidService.hasPassChoice(
+                new java.util.HashSet<proto.GameProto.OpInfo>()));
+        java.util.Set<proto.GameProto.OpInfo> choices = new java.util.HashSet<>();
+        choices.add(proto.GameProto.OpInfo.newBuilder()
+                .setChoice(proto.ConstProto.Operation.NOT_CALL).build());
+        assertTrue(TractorBidService.hasPassChoice(choices));
+    }
+
 	@Test
 	public void settleTiersMatchClassicTable() {
 		assertEquals(3, TractorRules.settleUpgrade(0)[1]);

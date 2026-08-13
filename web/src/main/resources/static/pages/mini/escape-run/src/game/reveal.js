@@ -4,7 +4,7 @@ import {el, showScreen, announce} from "../ui/dom.js";
 import {pipCanvas} from "./mascot.js";
 import {sfx} from "../engine/audio.js";
 
-export function showReveal({title = "New unlock!", name, swatch, icon, subtitle, onClose}) {
+export function showReveal({title = "解锁新奖励！", name, swatch, icon, subtitle, onClose}) {
     announce(`${title} ${name}`);
     sfx.unlock();
     const confetti = el("div", {class: "confetti", "aria-hidden": "true"},
@@ -30,7 +30,7 @@ export function showReveal({title = "New unlock!", name, swatch, icon, subtitle,
                 sfx.click();
                 onClose && onClose();
             }
-        }, "Nice!"),
+        }, "很棒！"),
     ]);
     showScreen(el("div", {class: "screen sheet"}, [card]));
 }

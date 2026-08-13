@@ -30,11 +30,11 @@ export function showMap(nav) {
             [
                 el("div", {class: "row", style: "justify-content:space-between;width:100%"}, [
                     el("span", {style: "font-size:26px", text: m.icon}),
-                    due.has(id) ? el("span", {class: "chip due", style: "padding:2px 8px", text: "Review"}) : null,
+                    due.has(id) ? el("span", {class: "chip due", style: "padding:2px 8px", text: "复习"}) : null,
                 ]),
                 el("div", {}, [
                     el("div", {text: m.name}),
-                    el("small", {text: `Level ${sk.level}${sk.mastered ? " · ★ Mastered" : ""}`}),
+                    el("small", {text: `第 ${sk.level} 级${sk.mastered ? " · ★ 已掌握" : ""}`}),
                 ]),
                 el("div", {class: "bar", style: "background:rgba(255,255,255,.3)"}, [
                     el("i", {style: `width:${prog}%;background:#fff`}),
@@ -44,10 +44,10 @@ export function showMap(nav) {
     });
 
     const card = el("div", {class: "card sheet-scroll"}, [
-        el("h2", {text: "Adventure Map"}),
+        el("h2", {text: "闯关地图"}),
         el("p", {
             class: "muted small",
-            text: "Pick a skill to practise. ‘Review’ means it’s a great time to revisit it."
+            text: "选择一项数学能力开始练习。“复习”表示现在适合再练一次。"
         }),
         el("div", {class: "map-grid"}, cards),
         el("button", {
@@ -55,7 +55,7 @@ export function showMap(nav) {
                 sfx.click();
                 nav.menu();
             }
-        }, "← Back"),
+        }, "← 返回"),
     ]);
 
     showScreen(el("div", {class: "screen sheet"}, [card]));
@@ -69,7 +69,7 @@ function lockedCard(m) {
         {
             class: "world locked",
             disabled: "true",
-            "aria-label": `Locked road. ${skillUnlockHint(m.id)}`,
+            "aria-label": `尚未解锁。${skillUnlockHint(m.id)}`,
         },
         [
             el("div", {class: "row", style: "justify-content:space-between;width:100%"}, [
@@ -77,7 +77,7 @@ function lockedCard(m) {
                 el("span", {style: "font-size:26px;opacity:.6", text: "?"}),
             ]),
             el("div", {}, [
-                el("div", {text: "Mystery Road"}),
+                el("div", {text: "神秘道路"}),
                 el("small", {text: skillUnlockHint(m.id)}),
             ]),
         ]

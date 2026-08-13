@@ -15,9 +15,9 @@ export function showGoals(nav) {
 
     const daily = el("div", {class: "daily-card", style: `background:linear-gradient(160deg, ${m.color}, #0b1026)`}, [
         el("div", {class: "row", style: "justify-content:space-between;width:100%"}, [
-            el("b", {text: "🌟 Daily Challenge"}),
+            el("b", {text: "🌟 每日挑战"}),
             done
-                ? el("span", {class: "chip", style: "background:#dcfce7;color:#166534", text: "Done ✓"})
+                ? el("span", {class: "chip", style: "background:#dcfce7;color:#166534", text: "已完成 ✓"})
                 : el("span", {class: "chip", style: "background:#fde68a;color:#7c3a00", text: `+${DAILY_BONUS} ★`}),
         ]),
         el("div", {style: "font-size:20px", text: `${m.icon}  ${m.name}`}),
@@ -29,7 +29,7 @@ export function showGoals(nav) {
                     nav.daily();
                 }
             },
-            done ? "Play again" : "▶ Play"
+            done ? "再玩一次" : "▶ 开始"
         ),
     ]);
 
@@ -51,17 +51,21 @@ export function showGoals(nav) {
     });
 
     const card = el("div", {class: "card sheet-scroll"}, [
-        el("h2", {text: "Goals"}),
+        el("h2", {text: "今日目标"}),
         daily,
-        el("h3", {text: "Today's Quests", style: "align-self:flex-start"}),
+        el("h3", {text: "今日任务", style: "align-self:flex-start"}),
         ...quests,
-        el("p", {class: "small muted", text: "Quests refresh each day. Rewards are yours to keep."}),
+        el("p", {class: "small muted", text: "任务每天刷新，已获得的奖励会一直保留。"}),
         el("button", {
             class: "btn ghost", onclick: () => {
                 sfx.click();
                 nav.menu();
             }
-        }, "← Back"),
+        }, "← 返回"),
     ]);
     showScreen(el("div", {class: "screen sheet"}, [card]));
+    if (window.MiniFeedback) {
+        const pending = ensureQuests(st).filter((q) => !q.done).map((q) => q.text).join("；");
+        window.MiniFeedback.readGoal(`今天的目标是：${m.name}${pending ? "；" + pending : ""}`);
+    }
 }

@@ -247,7 +247,7 @@ public final class TractorBidService {
             // 扣底期间仍允许反主：单张只改花色，对子及以上反主后由反主者重新拿底。
             if (canOfferDeclare(u.getCards(), ctx)) {
                 GameProto.NotOperation.Builder nb = notOp(seat, IdleShowCard.TRACTOR_BURY_SECONDS);
-                addChoice(table, seat, nb, op(ConstProto.Operation.ROB));
+                for (GameProto.OpInfo choice : buryReverseChoices()) addChoice(table, seat, nb, choice);
                 u.sendRoleMessage(nb.build(), GMsg.NOT_OP, table.getTableId());
             } else {
                 // 无反主资格时只同步当前扣底座位，不提供“过”等无意义操作。
@@ -265,6 +265,14 @@ public final class TractorBidService {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         ConstProto.Operation choice = opInfo.getChoice();
+        if (isPass(choice)) {
+            if (!hasPassChoice(table.getOp().getSeatOps(user.getSeated()))) {
+                return ConstProto.Result.OP_CURR_ERROR_VALUE;
+            }
+            table.getOp().clearSeatOps(user.getSeated());
+            broadcastAck(table, userId, op(ConstProto.Operation.NOT_CALL));
+            return ConstProto.Result.SUCCESS_VALUE;
+        }
         if (choice != ConstProto.Operation.ROB) {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
@@ -325,10 +333,20 @@ public final class TractorBidService {
         return GameProto.OpInfo.newBuilder().setChoice(choice).build();
     }
 
-    private static boolean isPass(ConstProto.Operation choice) {
+    static boolean isPass(ConstProto.Operation choice) {
         return choice == ConstProto.Operation.NOT_CALL
                 || choice == ConstProto.Operation.PASS
                 || choice == ConstProto.Operation.NOT_ROB;
+    }
+
+    static List<GameProto.OpInfo> buryReverseChoices() {
+        return java.util.Arrays.asList(op(ConstProto.Operation.ROB), op(ConstProto.Operation.NOT_CALL));
+    }
+
+    static boolean hasPassChoice(java.util.Set<GameProto.OpInfo> choices) {
+        if (choices == null) return false;
+        for (GameProto.OpInfo choice : choices) if (isPass(choice.getChoice())) return true;
+        return false;
     }
 
     private static void broadcastAck(TractorTable table, int actorUserId, GameProto.OpInfo op) {
