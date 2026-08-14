@@ -1,11 +1,19 @@
 # Claude Code + DeepSeek
 
-用于 Linux 服务器的一键安装和配置脚本。它会安装 Claude Code、配置 DeepSeek Anthropic 兼容接口，并为 Agent、Codex、Claude 安装共享工程技能。真实 Key 不写入仓库。
+用于 Linux 和 Windows 的一键安装和配置脚本。它会安装 Claude Code、配置 DeepSeek Anthropic 兼容接口，并为 Agent、Codex、Claude 安装共享工程技能。真实 Key 不写入仓库。
 
 ## 一条命令安装
 
+Linux：
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cloudHui/game-server/main/scripts/claude-deepseek/install.sh | bash
+```
+
+Windows PowerShell：
+
+```powershell
+irm https://raw.githubusercontent.com/cloudHui/game-server/main/scripts/claude-deepseek/install.ps1 | iex
 ```
 
 安装中会等待输入 DeepSeek API Key。直接回车可跳过，之后补充：
@@ -18,12 +26,18 @@ claude-deepseek setup-key
 
 ## Clone 后安装
 
-在仓库根目录运行：
+Linux 在仓库根目录运行：
 
 ```bash
 ./scripts/claude-deepseek/install.sh
 source ~/.bashrc
 claude
+```
+
+Windows 双击：
+
+```text
+scripts\claude-deepseek\install.cmd
 ```
 
 如果脚本还没有执行权限：
