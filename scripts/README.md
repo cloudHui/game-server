@@ -7,6 +7,7 @@
 - `learning/`：离线学习数据导入工具，不参与服务启动。
 - `validate-*.js`：各小游戏及静态资源的独立回归检查。
 - `install-git-hooks.sh`：可选的本地 Git hook 安装器。
+- `claude-deepseek/`：Claude Code + DeepSeek 一键安装、配置、诊断和模型更新工具。
 - `web-path.txt`：Web 服务启动和 Nginx 配置共同读取的访问路径配置。
 
 Windows 推荐从仓库根目录执行 `deploy.bat`，或直接执行 `scripts\ops.bat`。

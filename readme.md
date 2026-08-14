@@ -32,6 +32,7 @@ Server/
   data/learning/               # 运行时学习数据（SQLite、资源，不入库）
   server-deploy/               # 整机一键部署（Xray/Nginx/Fail2ban/监控），原独立仓并入
   scripts/ops.sh               # 启停 / 构建 / Nginx / start-remaining
+  scripts/claude-deepseek/      # Claude Code + DeepSeek 一键安装与模型更新
   scripts/nginx/               # 反代模板 + Xray SNI 说明
   install.sh                   # 应用一键安装（环境+代码+可选起 web）
 ```
@@ -140,6 +141,24 @@ mvn -pl proto,lobby,gate,game,web -am compile -DskipTests
 ./scripts/ops.sh start web
 # 本机：http://127.0.0.1:8081/<访问唯一码>/
 ```
+
+### Claude Code + DeepSeek
+
+Linux 服务器可使用仓库内脚本安装 Claude Code，并配置 DeepSeek Anthropic 兼容接口：
+
+```bash
+./scripts/claude-deepseek/claude-deepseek.sh setup
+source ~/.bashrc
+claude
+```
+
+后续检查并选择模型：
+
+```bash
+./scripts/claude-deepseek/claude-deepseek.sh model
+```
+
+脚本会提示输入 API Key，真实凭据仅保存到用户目录，不进入仓库。完整说明见 `scripts/claude-deepseek/README.md`。
 
 ---
 
