@@ -1,6 +1,6 @@
 # Web 详细交互与代码导航
 
-> 本文是 Web 文档总入口。详细内容拆分到 `webreadme/`，避免单个 Markdown 过大。本文描述当前静态 Web 的实际行为；Vue 迁移方案单独见 [tovue3.md](tovue3.md)。
+> 本文是 Web 文档总入口。详细内容拆分到 `webreadme/`，避免单个 Markdown 过大。本文描述当前静态 Web 的实际行为；Vue 迁移方案单独见 [vue3-migration-plan.md](vue3-migration-plan.md)。
 
 ## 目标
 

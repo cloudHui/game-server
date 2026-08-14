@@ -10,6 +10,8 @@ BASHRC_FILE="$HOME/.bashrc"
 BASE_URL="https://api.deepseek.com/anthropic"
 MODELS_URL="https://api.deepseek.com/models"
 INSTALL_URL="https://claude.ai/install.sh"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_INSTALLER="$SCRIPT_DIR/install-matt-skills.sh"
 AVAILABLE_MODELS=()
 
 log() { printf '[%s] %s\n' "$APP" "$*"; }
@@ -75,6 +77,12 @@ install_claude() {
 
     command -v claude >/dev/null 2>&1 || die "安装完成后仍找不到 claude，请确认 ~/.local/bin 在 PATH 中"
     log "Claude Code 已就绪：$(command -v claude) ($(claude --version))"
+}
+
+install_shared_skills() {
+    [[ -x "$SKILL_INSTALLER" ]] || die "未找到技能安装器：$SKILL_INSTALLER"
+    log "安装 Agent/Codex/Claude 共享工程技能"
+    "$SKILL_INSTALLER"
 }
 
 fetch_models() {
@@ -179,15 +187,21 @@ load_config() {
     . "$CONFIG_FILE"
 }
 
-setup_command() {
-    local api_key="${DEEPSEEK_API_KEY:-}" selected_model
-    install_dependencies
-    install_claude
+configure_key() {
+    local required="${1:-no}" api_key="${DEEPSEEK_API_KEY:-}" selected_model
     if [[ -z "$api_key" ]]; then
-        [[ -t 0 ]] || die "非交互安装需要设置 DEEPSEEK_API_KEY"
-        read -r -p "请输入 DeepSeek API Key（输入内容可见）: " api_key
+        if [[ -t 0 ]]; then
+            read -r -s -p "请输入 DeepSeek API Key（直接回车稍后配置）: " api_key
+            printf '\n'
+        elif [[ "$required" == "yes" ]]; then
+            die "非交互配置需要设置 DEEPSEEK_API_KEY"
+        fi
     fi
-    [[ -n "$api_key" ]] || die "API Key 不能为空"
+    if [[ -z "$api_key" ]]; then
+        [[ "$required" == "yes" ]] && die "API Key 不能为空"
+        log "已跳过 DeepSeek Key；稍后运行 claude-deepseek setup-key"
+        return
+    fi
     log "验证 DeepSeek Key 并读取官方模型列表"
     fetch_models "$api_key"
     selected_model="$(choose_model "${ANTHROPIC_MODEL:-}")"
@@ -195,6 +209,18 @@ setup_command() {
     ensure_shell_loader
     log "配置完成，当前模型：$selected_model"
     log "执行 source ~/.bashrc 后即可运行 claude"
+}
+
+setup_command() {
+    install_dependencies
+    install_claude
+    install_shared_skills
+    configure_key no
+}
+
+setup_key_command() {
+    install_dependencies
+    configure_key yes
 }
 
 model_command() {
@@ -233,6 +259,11 @@ doctor_command() {
     else
         log "Claude Code：未安装"
     fi
+    if [[ -x "$SKILL_INSTALLER" ]]; then
+        log "共享技能安装器：$SKILL_INSTALLER"
+    else
+        log "共享技能安装器：缺失（$SKILL_INSTALLER）"
+    fi
     if load_config; then
         api_key="${ANTHROPIC_API_KEY:-}"
         log "配置文件：$CONFIG_FILE"
@@ -261,7 +292,8 @@ usage() {
     cat <<'EOF'
 Usage: claude-deepseek.sh [command]
 
-  setup          安装 Claude Code，输入 Key 并配置 DeepSeek（默认）
+  setup          安装 Claude、技能；输入 Key 或回车跳过（默认）
+  setup-key      配置或补充 DeepSeek Key
   model          查询模型并询问是否替换
   update-model   model 的别名
   update-cli     手动更新 Claude Code
@@ -275,6 +307,7 @@ EOF
 
 case "${1:-setup}" in
     setup|install) setup_command ;;
+    setup-key) setup_key_command ;;
     model|update-model) install_dependencies; model_command ;;
     update-cli) update_cli_command ;;
     doctor) install_dependencies; doctor_command ;;
