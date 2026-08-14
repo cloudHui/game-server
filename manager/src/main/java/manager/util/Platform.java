@@ -9,6 +9,6 @@ public final class Platform {
         return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
     }
 
-    public static String mavenExecutable() { return isWindows() ? "mvn.cmd" : "mvn"; }
+    public static String mavenExecutable() { return "mvn"; }
     public static String executable(String name) { return name + (isWindows() ? ".exe" : ""); }
 }
