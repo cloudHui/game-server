@@ -147,6 +147,22 @@ canvas {
     min-height: 44px
 }
 
+.level-meta {
+    display: inline-block;
+    margin: 0 0 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #fff3e0;
+    color: #e65100;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.level-meta[hidden] {
+    display: none;
+}
+
 .toggle {
     display: flex;
     align-items: flex-start;

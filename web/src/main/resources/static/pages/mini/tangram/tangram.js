@@ -160,12 +160,24 @@
         return TangramSnap.previewSnap(p, levels[state.level], state.pieces, snapBasePx(), templates);
     }
 
+    function updateLevelMeta() {
+        var el = document.getElementById('levelMeta');
+        var level = levels[state.level];
+        if (!el) return;
+        var isPoster = level.source === 'poster';
+        el.hidden = !isPoster;
+        el.textContent = isPoster
+            ? ('海报新题' + (level.category ? ' · ' + level.category : ''))
+            : '';
+    }
+
     function updateStatus() {
         var done = 0;
         var i;
         var el = document.getElementById('status');
         var rotate = document.getElementById('rotate');
         rotate.disabled = state.sameDirection || state.selected < 0 || state.pieces[state.selected].locked;
+        updateLevelMeta();
         for (i = 0; i < state.pieces.length; i++) if (state.pieces[i].locked) done++;
         if (done === state.pieces.length) {
             el.textContent = '完成！「' + levels[state.level].name + '」全部吸附成功，可点下一题';

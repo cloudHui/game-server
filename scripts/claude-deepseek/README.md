@@ -4,6 +4,8 @@
 
 ## 一条命令安装
 
+无需 clone 仓库，一条命令即可直接安装（也可把命令发给别人）：
+
 Linux：
 
 ```bash
@@ -23,6 +25,12 @@ claude-deepseek setup-key
 ```
 
 入口只负责下载；Claude、DeepSeek、技能分别由仓库内模块处理。
+
+把命令发给别人前需满足：
+
+- 仓库保持公开（PUBLIC），否则 raw 链接对方访问会 401。
+- 更新脚本后 `git push` 到 `main`，对方重跑同一条命令即可拿到最新版。
+- 对方使用自己的 DeepSeek API Key，Key 只存在对方本机 `~/.config/claude-deepseek/config.env`，不会进入仓库。
 
 ## Clone 后安装
 

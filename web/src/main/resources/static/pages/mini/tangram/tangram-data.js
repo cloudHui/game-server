@@ -137,13 +137,15 @@ var TangramData = (function () {
         return {
             name: def.name,
             placements: placements,
-            solutions: solutions
+            solutions: solutions,
+            source: def.source || null,
+            category: def.category || null
         };
     }
 
     function buildLevels(canvasW, canvasH) {
-        var defs = LEVEL_DEFS.slice().concat(TANGRAM_GENERATED_LEVELS);
-        return defs.map(function (def) {
+        var poster = typeof TANGRAM_POSTER_LEVELS !== 'undefined' ? TANGRAM_POSTER_LEVELS : [];
+        return LEVEL_DEFS.concat(TANGRAM_GENERATED_LEVELS, poster).map(function (def) {
             return scaleAndCenterLevel(def, canvasW, canvasH);
         });
     }

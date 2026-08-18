@@ -10,6 +10,7 @@ var tangramDir = path.join(root,
 
 [
   'tangram-levels.js',
+  'tangram-poster-levels.js',
   'tangram-data.js',
   'tangram-view.js',
   'tangram-layout.js',
@@ -84,9 +85,17 @@ function sharedEdgeLength(a, b) {
   return total;
 }
 
-if (levels.length !== 52) {
-  errors.push('题目总数应为 52，实际为 ' + levels.length);
+if (levels.length !== 53) {
+  errors.push('题目总数应为 53，实际为 ' + levels.length);
 }
+
+var posterLevels = levels.filter(function (level) {
+  return level.source === 'poster';
+});
+expect(posterLevels.length === 1, '海报新题应为 1，实际为 ' + posterLevels.length);
+posterLevels.forEach(function (level) {
+  expect(level.name.indexOf('新·') === 0, '海报题名应以「新·」开头: ' + level.name);
+});
 
 levels.forEach(function (level) {
   var ids = level.placements.map(function (pl) { return pl.id; }).sort();
@@ -284,4 +293,6 @@ if (errors.length) {
   process.stderr.write(errors.join('\n') + '\n');
   process.exit(1);
 }
-process.stdout.write('七巧板校验通过：52 题均为七块、无重叠、可散列且可完整吸附。\n');
+process.stdout.write('七巧板校验通过：' + levels.length +
+  ' 题均为七块、无重叠、可散列且可完整吸附（含海报新题 ' +
+  posterLevels.length + '）。\n');
