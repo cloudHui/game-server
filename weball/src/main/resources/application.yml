@@ -10,7 +10,7 @@ server:
 
 spring:
   application:
-    name: web
+    name: weball
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -26,22 +26,6 @@ spring:
     multipart:
       max-file-size: ${PHOTO_MAX_FILE_BYTES:50MB}
       max-request-size: ${PHOTO_MAX_REQUEST_BYTES:500MB}
-
-gate:
-  host: 127.0.0.1
-  port: 5600
-
-lobby:
-  admin-http: http://127.0.0.1:5701
-
-game:
-  replay-dir: build/game/replay
-
-capabilities:
-  game-host: 127.0.0.1
-  game-port: 5500
-  center-host: 127.0.0.1
-  center-port: 5400
 
 # 账号（与 Lobby 共用 data/lobby.db；Web 主鉴权）
 account:

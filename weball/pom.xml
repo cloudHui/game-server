@@ -121,7 +121,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.cloud.Application</mainClass>
+                    <mainClass>com.cloud.WebAllApplication</mainClass>
                     <finalName>WebAll</finalName>
                     <outputDirectory>${session.executionRootDirectory}/build/web</outputDirectory>
                 </configuration>
