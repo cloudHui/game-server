@@ -30,6 +30,7 @@
     <div class="tabs">
         <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
         <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
+        <button class="tab" data-tab="arena" onclick="switchTab('arena')">剑气除魔</button>
         <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
         <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
         <button class="tab" data-tab="photos" onclick="switchTab('photos')">图片管理</button>
@@ -112,6 +113,14 @@
             </div>
             <div class="msg" id="usersMsg"></div>
         </div>
+    </div>
+
+    <div id="panel-arena" class="panel">
+        <div class="card"><div class="card-heading"><div><h2>剑气除魔玩家</h2><div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div></div><button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button></div>
+            <div class="table-scroll"><table><thead><tr><th>ID</th><th>玩家</th><th>灵液</th><th>灵币</th><th>仙缘</th><th>战阵石</th><th>副本</th><th>操作</th></tr></thead><tbody id="arenaPlayerBody"><tr><td colspan="8">切换到此页后加载</td></tr></tbody></table></div><div id="arenaMsg" class="msg"></div></div>
+        <div id="arenaDetail" class="card" hidden><div class="card-heading"><h2 id="arenaDetailTitle">玩家详情</h2><button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button></div>
+            <h3>资源调整</h3><div class="form-row"><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select><input id="arenaDelta" type="number" value="1000"><button class="btn" onclick="adjustArenaResource()">执行增减</button></div>
+            <div id="arenaProgress" class="meta"></div><h3>物品背包</h3><div id="arenaInventory" class="meta"></div><div class="form-row"><input id="arenaItemId" placeholder="物品 ID，如 herb"><input id="arenaItemDelta" type="number" value="10"><button class="btn" onclick="adjustArenaItem()">增减物品</button></div><h3>仙侣</h3><div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div></div>
     </div>
 
     <div id="panel-tables" class="panel">
@@ -260,6 +269,7 @@
 <script src="./js/core.js"></script>
 <script src="./js/invites.js"></script>
 <script src="./js/users.js"></script>
+<script src="./js/arena.js"></script>
 <script src="./js/records.js"></script>
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
