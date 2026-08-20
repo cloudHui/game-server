@@ -1,0 +1,183 @@
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none
+}
+
+body {
+    min-height: 0
+}
+
+header {
+    height: calc(52px + env(safe-area-inset-top));
+    padding: calc(8px + env(safe-area-inset-top)) 12px 8px
+}
+
+main {
+    width: 100%;
+    height: calc(100dvh - 52px - env(safe-area-inset-top));
+    margin: 0 auto;
+    padding: 6px max(8px, env(safe-area-inset-right))
+        max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left))
+}
+
+.panel {
+    width: 100%;
+    height: 100%;
+    padding: 7px
+}
+
+.row {
+    height: 100%;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+    gap: 6px
+}
+
+.board-wrap {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden
+}
+
+canvas {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0 auto
+}
+
+.side {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 5px 7px
+}
+
+.hint,
+#status {
+    flex: 1 0 100%;
+    min-height: 0;
+    margin: 0;
+    line-height: 1.25;
+    text-align: center
+}
+
+.side button {
+    width: auto;
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 10px;
+    font-size: 12px;
+    white-space: nowrap
+}
+
+.toggle {
+    min-height: 28px;
+    margin: 0;
+    padding: 4px 7px;
+    font-size: 12px;
+    white-space: nowrap
+}
+
+h1 {
+    font-size: 18px
+}
+
+@media (orientation: landscape) {
+    main {
+        padding: 5px 8px 7px
+    }
+
+    .row {
+        flex-flow: row nowrap;
+        align-items: center;
+        gap: 8px
+    }
+
+    .board-wrap {
+        flex: 1 1 auto;
+        width: auto;
+        height: 100%
+    }
+
+    canvas {
+        max-height: 100%
+    }
+
+    .side {
+        flex: 0 0 190px;
+        display: flex;
+        justify-content: flex-start
+    }
+
+    .side button {
+        min-height: 28px;
+        padding: 4px 7px
+    }
+
+    .toggle {
+        min-height: 26px;
+        padding: 3px 6px
+    }
+
+    .hint {
+        font-size: 11px
+    }
+
+    #status {
+        min-height: 32px;
+        font-size: 12px
+    }
+}
+
+@media (max-height: 420px) and (orientation: landscape) {
+    header {
+        height: calc(44px + env(safe-area-inset-top));
+        padding-top: calc(4px + env(safe-area-inset-top));
+        padding-bottom: 4px
+    }
+
+    main {
+        height: calc(100dvh - 44px - env(safe-area-inset-top));
+        padding-top: 3px;
+        padding-bottom: max(3px, env(safe-area-inset-bottom))
+    }
+
+    h1 {
+        font-size: 16px
+    }
+
+    .back {
+        padding: 4px 9px
+    }
+
+    .side {
+        flex-basis: 180px
+    }
+
+    .hint {
+        display: none
+    }
+
+    .side button,
+    .toggle {
+        min-height: 27px;
+        margin: 0;
+        padding: 3px 6px;
+        font-size: 12px
+    }
+
+    #status {
+        min-height: 25px;
+        line-height: 1.2
+    }
+}

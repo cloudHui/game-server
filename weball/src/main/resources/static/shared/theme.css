@@ -1,0 +1,46 @@
+/* Shared page chrome. Game canvases and table internals keep their own palette. */
+:root {
+  --theme-primary: #7357e8;
+  --theme-primary-dark: #5b40d2;
+  --theme-page: #f8f7fc;
+  --theme-surface: #fff;
+  --theme-line: #e8e5f1;
+  --theme-text: #29263b;
+  --theme-muted: #757187;
+}
+
+body.page-theme {
+  background: var(--theme-page);
+  color: var(--theme-text);
+}
+
+body.page-theme button.primary,
+body.page-theme .primary,
+body.page-theme a.primary {
+  background: var(--theme-primary);
+  border-color: var(--theme-primary);
+  color: #fff;
+}
+
+body.page-theme button.primary:hover,
+body.page-theme .primary:hover,
+body.page-theme a.primary:hover { background: var(--theme-primary-dark); }
+
+body.page-theme button:not(.primary):not(.success):not(.warning):not(.danger),
+body.page-theme .button-link {
+  background: var(--theme-surface);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+body.page-theme input,
+body.page-theme select,
+body.page-theme textarea,
+body.page-theme .card,
+body.page-theme .panel,
+body.page-theme .dialog,
+body.page-theme .modal { background: var(--theme-surface); }
+
+body.page-theme .success { color: #18805d; }
+body.page-theme .warning { color: #bd671c; }
+body.page-theme .danger { color: #d84c5b; }

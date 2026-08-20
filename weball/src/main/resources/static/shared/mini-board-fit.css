@@ -1,0 +1,46 @@
+/* Shared fit rules for canvas board pages. The game coordinates remain owned by
+   each page; this file only constrains the rendered canvas and outer shell. */
+html, body {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+}
+
+.wrap {
+    width: min(100%, 1200px);
+    max-width: none;
+    min-height: calc(100dvh - 70px);
+    margin: clamp(8px, 2vh, 24px) auto 0;
+    padding: 0 clamp(10px, 2vw, 24px) clamp(12px, 3vh, 36px);
+}
+
+.panel {
+    padding: clamp(12px, 2vw, 20px);
+}
+
+.board-wrap {
+    min-height: 0;
+}
+
+.board-wrap canvas,
+canvas {
+    width: auto;
+    max-width: 100%;
+    max-height: min(62dvh, 760px);
+    height: auto;
+}
+
+@media (max-height: 700px) {
+    .header { padding-top: 9px; padding-bottom: 9px; }
+    .wrap { margin-top: 8px; padding-bottom: 12px; }
+    .panel { padding: 10px 12px; margin-bottom: 9px; }
+    .status { margin: 6px 0; }
+    .actions { margin-top: 8px; }
+    .hint { margin-top: 5px; }
+    .board-wrap canvas, canvas { max-height: min(54dvh, 520px); }
+}
+
+@media (max-width: 600px) {
+    .wrap { width: 100%; }
+    .board-wrap canvas, canvas { max-width: 100%; max-height: 52dvh; }
+}

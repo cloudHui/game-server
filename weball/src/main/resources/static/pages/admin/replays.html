@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>我的回放</title>
+    <link rel="stylesheet" href="./replay-viewport.css">
+    <link rel="stylesheet" href="../../shared/poker-card.css">
+    <link rel="stylesheet" href="../../shared/mahjong-tile.css">
+    <link rel="stylesheet" href="./replay-table.css">
+    <link rel="stylesheet" href="./replay-player.css">
+    <link rel="stylesheet" href="./replays.css">
+    <script src="../../shared/app-base.js"></script>
+</head>
+<body>
+<div class="wrap">
+    <div class="bar"><h1>我的回放</h1><a class="bar-home" href="../../pages/lobby/index.html">回大厅</a></div>
+    <p class="muted">只展示你参与的最近七天对局。也可以输入回放码查看。</p>
+    <div class="bar"><input id="code" placeholder="2026-07-21/90001_1.txt" style="flex:1">
+        <button onclick="openReplayCode()">打开回放</button>
+    </div>
+    <div class="replay-list"><table>
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>回放码</th>
+            <th>桌号</th>
+            <th>玩法</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+    </table></div>
+    <p id="msg" class="muted"></p>
+    <div id="replayMount"></div>
+</div>
+<script src="../../shared/poker-card.js"></script>
+<script src="../../shared/mahjong-tile.js"></script>
+<script src="../../shared/replay-model.js"></script>
+<script src="../../shared/replay-table-view.js"></script>
+<script src="./replay-shell.js"></script>
+<script src="./replay-player.js"></script>
+<script src="./js/my-replays.js"></script>
+</body>
+</html>

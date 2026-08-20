@@ -1,0 +1,40 @@
+.viewer {
+    position: fixed;
+    z-index: 5000;
+    inset: 0;
+    color: #fff;
+    background: #08080e;
+    overscroll-behavior: none;
+}
+.viewer-back {
+    position: absolute;
+    z-index: 2;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 22px;
+    background: rgba(0, 0, 0, .48);
+    font-size: 16px;
+    backdrop-filter: blur(8px);
+}
+.stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+}
+.stage img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    user-select: none;
+    -webkit-user-drag: none;
+    transform-origin: center;
+    will-change: transform;
+    transition: transform .18s ease-out;
+}
+.stage.is-gesturing img { transition: none; }

@@ -1,0 +1,669 @@
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background: #1a472a;
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* 牌桌背景 */
+.table-bg {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(ellipse at center, #2d6b3a 0%, #1a472a 70%);
+}
+
+/* 玩家区域 */
+.player-area {
+    position: absolute;
+    text-align: center;
+}
+
+.player-bottom {
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    transform: none;
+    padding: 0 8px;
+    z-index: 40;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.player-left {
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.player-right {
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* 玩家信息 */
+.player-info {
+    color: white;
+    font-size: 14px;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.player-info .name {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.player-info .card-count {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.player-info.active {
+    color: #ff6b6b;
+    outline: 2px solid #ffd54f;
+    border-radius: 12px;
+    padding: 4px 8px;
+    animation: poker-active-seat-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes poker-active-seat-pulse {
+    from {
+        box-shadow: 0 0 4px rgba(255, 213, 79, .45);
+    }
+    to {
+        box-shadow: 0 0 16px rgba(255, 213, 79, .95);
+    }
+}
+
+.operation-countdown {
+    display: inline-block;
+    min-width: 30px;
+    margin-left: 7px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: rgba(198, 40, 40, .9);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+.operation-countdown.warning { background: #c62828; color: #fff; }
+.selection-status { position:absolute;left:50%;top:100%;transform:translateX(-50%);white-space:nowrap;color:#fff;font-size:11px;padding:4px 7px;opacity:.9;pointer-events:none; }
+.dizhu-cards { border: 0; cursor: pointer; }
+.bottom-card-back { width: 38px; height: 52px; padding: 0; border-radius: 5px; background: repeating-linear-gradient(135deg,#214d7a 0 3px,#e7eef7 3px 5px); box-shadow: 0 1px 5px #0008; }
+.bottom-card-back-mark { display: grid; place-items: center; height: 100%; color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+.role-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+.role-badge.landlord {
+    background: #c62828;
+    color: #fff;
+}
+
+.role-badge.farmer {
+    background: #2e7d32;
+    color: #fff;
+}
+
+.avatar-mark {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    vertical-align: middle;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+}
+
+.avatar-mark.landlord {
+    background: linear-gradient(135deg, #ff8a65, #c62828);
+    color: #fff;
+}
+
+.avatar-mark.farmer {
+    background: linear-gradient(135deg, #81c784, #2e7d32);
+    color: #fff;
+}
+
+.pass-hint {
+    color: #ffd700;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+    padding: 4px 8px;
+}
+
+.settle-hands {
+    margin-top: 8px;
+    text-align: left;
+}
+
+.settle-hand-row {
+    margin: 8px 0;
+}
+
+.settle-hand-row .label {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.settle-hand-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.settle-hand-cards .played-face {
+    width: 36px;
+    height: 50px;
+    margin-left: -10px;
+}
+
+.settle-hand-cards .played-face:first-child {
+    margin-left: 0;
+}
+
+.settle-countdown {
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+}
+
+/* 17 张保持单排；地主拿到 20 张后分两排，避免为了塞进一排把牌缩得过小。 */
+.my-cards {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0;
+    padding: 28px 4px 10px;
+    min-height: calc(var(--ddz-card-h, 75px) + 40px);
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.hand-row {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    overflow: visible;
+}
+
+.my-cards.two-rows {
+    gap: 3px;
+    padding-top: 24px;
+    min-height: calc(var(--ddz-card-h, 75px) * 2 + 42px);
+}
+
+.my-cards .hand-row .card {
+    width: var(--ddz-card-w, 54px);
+    height: var(--ddz-card-h, 75px);
+    margin-left: var(--ddz-overlap, -26px);
+    flex-shrink: 0;
+}
+
+.my-cards .hand-row .card:first-child {
+    margin-left: 0;
+}
+
+.my-cards.compact .card {
+    width: var(--ddz-card-w, 42px);
+    height: var(--ddz-card-h, 59px);
+}
+
+/* 扑克牌默认尺寸；手牌实际尺寸由 --ddz-* / --poker-* 覆盖；牌面见 poker-card.css */
+.card {
+    width: 54px;
+    height: 75px;
+    border-radius: 6px;
+    position: relative;
+    cursor: pointer;
+    transition: none;
+    flex-shrink: 0;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+}
+
+.played-face {
+    width: 40px;
+    height: 56px;
+    margin-left: -28px;
+    border-radius: 5px;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, .35);
+    overflow: hidden;
+}
+
+.played-face:first-child {
+    margin-left: 0;
+}
+
+.card.selected {
+    transform: translateY(-20px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.5);
+}
+
+.card:not(.selected):hover { transform: none; }
+
+/* 对手的牌（背面）：后牌重叠前牌 4/5 */
+.opponent-cards {
+    display: flex;
+    justify-content: center;
+}
+
+.opponent-cards .card-back {
+    width: 40px;
+    height: 56px;
+    margin-left: -32px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #1a237e, #283593);
+    border: 2px solid #ffd700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+}
+
+.opponent-cards .card-back:first-child {
+    margin-left: 0;
+}
+
+/* 操作按钮区 */
+.action-bar {
+    position: absolute;
+    bottom: 148px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    min-width: 330px;
+    min-height: 50px;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    z-index: 50;
+}
+
+.played-cards .played-face {
+    position: relative;
+    display: inline-block;
+    margin-left: -18px;
+    transform-origin: 50% 100%;
+}
+
+.played-cards .played-face:first-child { margin-left: 0; }
+.played-cards .played-face:nth-child(odd) { transform: rotate(-4deg) translateY(2px); }
+.played-cards .played-face:nth-child(even) { transform: rotate(4deg); }
+.played-cards.trick-fade-out { animation: tractor-trick-fade .26s ease-out forwards; }
+
+@keyframes tractor-trick-fade {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.action-btn {
+    padding: 12px 32px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: none;
+}
+
+.action-btn:hover {
+    transform: none;
+}
+
+.btn-play {
+    background: linear-gradient(135deg, #c41e2a, #e63946);
+    color: white;
+}
+
+.btn-pass {
+    background: linear-gradient(135deg, #555, #777);
+    color: white;
+}
+
+.btn-call {
+    background: linear-gradient(135deg, #e6a817, #ffd700);
+    color: #333;
+}
+
+.btn-rob {
+    background: linear-gradient(135deg, #c41e2a, #e63946);
+    color: white;
+}
+
+.btn-prepare {
+    background: linear-gradient(135deg, #2196F3, #42A5F5);
+    color: white;
+}
+
+.action-btn:disabled {
+    background: #999;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 中央提示 */
+.center-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffd700;
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+.center-message.show {
+    opacity: 1;
+}
+
+.settle-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    z-index: 80;
+    align-items: center;
+    justify-content: center;
+}
+
+.settle-overlay.show {
+    display: flex;
+}
+
+.settle-panel {
+    width: min(420px, 92vw);
+    background: #fffaf0;
+    border-radius: 14px;
+    padding: 22px 20px 16px;
+    color: #1c2430;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    text-align: center;
+}
+
+.settle-panel h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: #8b1e1e;
+}
+
+.settle-panel .meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.settle-panel .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 4px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+}
+
+.settle-panel button {
+    margin-top: 14px;
+    border: none;
+    background: #1f5c36;
+    color: #fff;
+    padding: 9px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* 底牌区域：牌桌最上方 */
+.dizhu-cards {
+    position: absolute;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 45;
+    min-height: 32px;
+    align-items: center;
+}
+
+.bottom-card-hint {
+    color: #ffe082;
+    font-size: 13px;
+    padding: 7px 13px;
+    border: 1px solid rgba(255,224,130,.7);
+    border-radius: 14px;
+    background: rgba(0,0,0,.25);
+    text-shadow: 0 1px 3px #000;
+}
+
+.dizhu-label {
+    color: #ffd700;
+    font-size: 12px;
+    margin-right: 4px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.dizhu-cards .card {
+    width: 60px;
+    height: 84px;
+    margin-left: 0;
+    cursor: default;
+}
+
+.dizhu-cards .card img {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+}
+
+/* 出牌区：靠桌子中央，朝向出牌者 */
+.played-cards {
+    position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    max-width: min(42vw, 360px);
+    justify-content: center;
+    align-items: center;
+    z-index: 30;
+}
+
+.played-left {
+    left: 22%;
+    top: 42%;
+    transform: translateY(-50%);
+}
+
+.played-right {
+    right: 22%;
+    top: 42%;
+    transform: translateY(-50%);
+}
+
+.played-bottom {
+    bottom: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.played-cards .card {
+    width: 26px;
+    height: 37px;
+    margin-left: 0;
+    cursor: default;
+}
+
+.played-cards .played-face {
+    width: 40px;
+    height: 56px;
+    flex: 0 0 40px;
+}
+.played-cards.has-played-cards .played-face { margin-left: -28px; }
+.played-cards.has-played-cards .played-face:first-child { margin-left: 0; }
+
+body[data-game-type="2"] .played-cards,
+body[data-game-type="3"] .played-cards {
+    left: 50%; right: auto; top: 42%; bottom: auto;
+    transform: translate(-50%, -50%);
+}
+
+.played-cards .card:first-child {
+    margin-left: 0;
+}
+
+.played-cards .card img {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+}
+
+/* 连接状态 */
+.ws-status {
+    position: absolute;
+    top: 55px;
+    right: 20px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    z-index: 100;
+}
+
+.ws-status.connected {
+    color: #4caf50;
+}
+
+.ws-status.disconnected {
+    color: #f44336;
+}
+
+@media (max-width: 640px) {
+    .my-cards {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .opponent-cards .card-back {
+        width: 32px;
+        height: 45px;
+        margin-left: -26px;
+    }
+
+    .played-left {
+        left: 8px;
+    }
+
+    .played-right {
+        right: 8px;
+    }
+
+    .played-cards {
+        max-width: 32vw;
+        gap: 4px;
+    }
+
+    .played-face {
+        width: 42px;
+        height: 59px;
+        margin-left: 0;
+    }
+
+    .played-face .card-art.rank-large .big-rank {
+        font-size: 18px;
+    }
+
+    .played-face .card-art.rank-large .big-suit {
+        font-size: 10px;
+    }
+}
+
+@media (max-height: 720px) {
+    .my-cards {
+        padding-top: 22px;
+        padding-bottom: 8px;
+    }
+
+    .my-cards.two-rows {
+        padding-top: 18px;
+    }
+
+    .played-bottom {
+        bottom: 36%;
+    }
+
+    .player-bottom {
+        bottom: 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    .played-cards .played-face {
+        width: 22px;
+        height: 31px;
+        flex-basis: 22px;
+    }
+}
+
+html.force-landscape .action-bar {
+    bottom: calc(var(--ddz-card-h, 75px) + 78px);
+}
+
+/* 桌面出牌区：在密集叠放的基础上放大 40%，保证点数清楚。 */
+.played-cards .played-face {
+    width: 56px;
+    height: 78px;
+    flex-basis: 56px;
+    margin-left: -39px;
+}
+
+.played-cards .played-face:first-child,
+.played-cards.has-played-cards .played-face:first-child {
+    margin-left: 0;
+}
+
+.played-cards .played-face .card-corner {
+    font-size: 11px;
+}
+
+.played-cards .played-face .card-art.rank-large .big-rank {
+    font-size: 34px;
+}
+
+.played-cards .played-face .card-art.rank-large .big-suit {
+    font-size: 18px;
+}

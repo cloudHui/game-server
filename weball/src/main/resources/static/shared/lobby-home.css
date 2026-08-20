@@ -1,0 +1,269 @@
+:root {
+    --blue: #7357e8;
+    --primary: #7357e8;
+    --primary-dark: #5b40d2;
+    --ink: #29263b;
+    --muted: #757187;
+    --line: #e8e5f1;
+    --page: #f6f5fb;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--page);
+}
+
+header {
+    height: 60px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    box-shadow: 0 4px 14px rgba(91, 64, 210, .2);
+}
+
+h1 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.header-btn {
+    border: 0;
+    color: #dfe8f3;
+    background: transparent;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+main {
+    width: min(1440px, 100%);
+    min-height: calc(100dvh - 60px);
+    margin: 0 auto;
+    padding: clamp(14px, 2.4vh, 28px) clamp(16px, 3vw, 48px) clamp(18px, 4vh, 48px);
+}
+
+.breadcrumb {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.welcome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.welcome h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 500;
+}
+
+.welcome p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.admin-link {
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(10px, 1.4vw, 22px);
+}
+
+.game-grid.cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.game-card {
+    position: relative;
+    min-height: clamp(170px, 25vh, 280px);
+    padding: clamp(16px, 2vw, 28px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+}
+
+.game-card:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-color);
+}
+
+.game-card h3 {
+    margin: 0 0 10px;
+    font-size: 19px;
+    font-weight: 500;
+}
+
+.game-card p {
+    margin: 0;
+    color: #606266;
+    line-height: 1.7;
+    font-size: 13px;
+}
+
+.game-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--card-color);
+    font-size: 25px;
+}
+
+.game-btn {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 3px;
+    color: #fff;
+    background: var(--card-color);
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.ent {
+    --card-color: var(--primary);
+}
+
+.learn {
+    --card-color: #8268ef;
+}
+.photos { --card-color: #6248c7; }
+
+.poker {
+    --card-color: #6d55d9;
+}
+
+.mj {
+    --card-color: #7357e8;
+}
+
+.mini {
+    --card-color: #5b40d2;
+}
+
+.ddz {
+    --card-color: #8268ef;
+}
+
+.pdk {
+    --card-color: #7357e8;
+}
+
+.tractor {
+    --card-color: #5b40d2;
+}
+
+.section-title {
+    margin: 8px 0 14px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.quick-panel {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+}
+
+.quick-panel h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.quick-panel p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+@media (max-width: 800px) {
+    header {
+        padding: 0 16px;
+    }
+
+    main {
+        min-height: calc(100dvh - 54px);
+        padding: 14px 16px 20px;
+    }
+
+    .game-grid, .game-grid.cols-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .game-card {
+        min-height: clamp(150px, 22vh, 210px);
+    }
+
+    .welcome {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    header {
+        height: 54px;
+    }
+
+    h1 {
+        font-size: 17px;
+    }
+
+    .user-actions {
+        gap: 7px;
+    }
+
+    .user-actions span {
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

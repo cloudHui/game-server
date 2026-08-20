@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/mini-base.js"></script>
+    <script src="../../../shared/mini-feedback.js"></script>
+    <style>.mini-back {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, .65);
+        color: #fff;
+        text-decoration: none;
+        font: 14px sans-serif
+    }</style>
+
+    <meta charset="UTF-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+    <meta name="theme-color" content="#0b1026"/>
+    <meta name="description"
+          content="Escape Run — a free, open-source, privacy-first math game for kids age 6–8. No ads, no tracking, works offline."/>
+    <title>小汽车比大小 · 数学闯关</title>
+    <link rel="manifest" href="manifest.webmanifest"/>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml"/>
+    <link rel="apple-touch-icon" href="assets/icon-180.png"/>
+    <link rel="stylesheet" href="src/ui/styles.css"/>
+</head>
+<body>
+<div id="app" class="app">
+    <div class="frame">
+        <!-- Gameplay canvas -->
+        <canvas id="game" aria-label="小汽车数学闯关区域"></canvas>
+
+        <!-- DOM overlays (one visible at a time) -->
+        <div id="overlays" class="overlays"></div>
+    </div>
+
+    <!-- Live region for screen readers -->
+    <div id="live" class="sr-only" aria-live="polite"></div>
+</div>
+
+<noscript>
+    <p style="color:#fff;text-align:center;padding:2rem;font-family:sans-serif">
+        小汽车数学闯关需要启用 JavaScript，游戏只在你的浏览器中运行。
+    </p>
+</noscript>
+
+<script type="module" src="src/main.js"></script>
+<script>if (window.MiniGames) MiniGames.requireLogin();</script>
+</body>
+</html>

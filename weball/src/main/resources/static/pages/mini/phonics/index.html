@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/mini-base.js"></script>
+    <link rel="stylesheet" href="../../../shared/mini-celebrate.css">
+    <script src="../../../shared/mini-celebrate.js"></script>
+    <style>.mini-back {
+        display: inline-block;
+        margin: 8px 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #5e60ce;
+        color: #fff;
+        text-decoration: none
+    }</style>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonics – The Secret to Fluency</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            background-color: #f9f9ff;
+            color: #333;
+            margin: 0;
+            padding: 16px;
+            overflow-x: hidden;
+            max-width: 960px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1 {
+            color: #5e60ce;
+            text-align: center;
+            font-size: clamp(22px, 5vw, 32px);
+        }
+
+        .section {
+            background: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .phonics-grid, .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            text-align: center;
+        }
+
+        .phonics-grid button {
+            font-size: 18px;
+            padding: 10px;
+            background: #f3c4fb;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .phonics-grid button:hover {
+            background: #e0aaff;
+            transform: scale(1.05);
+        }
+
+        .card {
+            background: #eef2ff;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        input[type=text] {
+            padding: 10px;
+            font-size: 18px;
+            width: min(70%, 280px);
+            max-width: 100%;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            margin: 4px 8px 4px 0;
+        }
+
+        button.listen-btn {
+            padding: 10px 20px;
+            background: #5e60ce;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .magic-e-box {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .magic-e-pair {
+            background: #ffe5ec;
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .quiz-box {
+            background: #d0f4de;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .quiz-box input {
+            margin-right: 10px;
+            width: min(140px, 40vw);
+        }
+
+        .indian-section, .guess-game {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .indian-section button {
+            margin: 4px 4px 8px 0;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            max-width: 100%;
+        }
+
+        @media (max-width: 560px) {
+            .phonics-grid, .grid {
+                grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+            }
+
+            .phonics-grid button {
+                font-size: 15px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🔤 Phonics – The Secret to Fluency</h1>
+<p style="text-align: center; font-weight: bold;">By k.TejaHussain</p>
+
+<div class="section">
+    <h2>🔠 A–Z Letter with Sound</h2>
+    <div class="phonics-grid">
+        <script>
+            const phonicsList = [
+                ['A', 'ay'], ['B', 'buh'], ['C', 'kuh'], ['D', 'duh'], ['E', 'eh'], ['F', 'fuh'], ['G', 'gah'], ['H', 'huh'],
+                ['I', 'ee'], ['J', 'juh'], ['K', 'kuh'], ['L', 'leh'], ['M', 'muh'], ['N', 'nuh'], ['O', 'aw'], ['P', 'puh'],
+                ['Q', 'kwah'], ['R', 'ruh'], ['S', 'sah'], ['T', 'tuh'], ['U', 'uh'], ['V', 'vuh'], ['W', 'wuh'], ['X', 'kuhs'],
+                ['Y', 'yuh'], ['Z', 'zee']
+            ];
+            phonicsList.forEach(([letter, sound]) => {
+                document.write(`<button onclick="speak('${letter} - ${sound}')">${letter} – ${sound}</button>`);
+            });
+        </script>
+    </div>
+</div>
+
+<div class="section">
+    <h2>🔊 Type Any Word to Hear It</h2>
+    <input type="text" id="wordInput" placeholder="Type a word...">
+    <button class="listen-btn" onclick="speakTypedWord()">🔈 Listen</button>
+</div>
+
+<div class="section">
+    <h2>🪄 Magic E – The Silent Transformer</h2>
+    <div class="magic-e-box">
+        <div class="magic-e-pair">cut → cute
+            <button onclick="speak('cut'); speak('cute')">🔊</button>
+        </div>
+        <div class="magic-e-pair">kit → kite
+            <button onclick="speak('kit'); speak('kite')">🔊</button>
+        </div>
+        <div class="magic-e-pair">mad → made
+            <button onclick="speak('mad'); speak('made')">🔊</button>
+        </div>
+        <div class="magic-e-pair">hop → hope
+            <button onclick="speak('hop'); speak('hope')">🔊</button>
+        </div>
+        <div class="magic-e-pair">rid → ride
+            <button onclick="speak('rid'); speak('ride')">🔊</button>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>🧠 Magic E Quiz</h2>
+    <div class="quiz-box">
+        <p>Match the Magic E word:</p>
+        <p>cap → <input type="text" id="q1"> (correct: cape)</p>
+        <p>hop → <input type="text" id="q2"> (correct: hope)</p>
+        <p>kit → <input type="text" id="q3"> (correct: kite)</p>
+        <p>not → <input type="text" id="q4"> (correct: note)</p>
+        <button onclick="checkQuiz()">✅ Submit Answers</button>
+    </div>
+</div>
+<div class="section">
+    <h2>💡 Diphthongs</h2>
+    <div class="grid">
+        <div class="card" onclick="speak('rain')">/ai/ – rain</div>
+        <div class="card" onclick="speak('snail')">/ai/ – snail</div>
+        <div class="card" onclick="speak('coin')">/oi/ – coin</div>
+        <div class="card" onclick="speak('toy')">/oi/ – toy</div>
+        <div class="card" onclick="speak('out')">/ou/ – out</div>
+        <div class="card" onclick="speak('shout')">/ou/ – shout</div>
+        <div class="card" onclick="speak('fear')">/ea/ – fear</div>
+        <div class="card" onclick="speak('clear')">/ea/ – clear</div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>🔠 Digraphs</h2>
+    <div class="grid">
+        <div class="card" onclick="speak('ship')">sh – ship</div>
+        <div class="card" onclick="speak('chess')">ch – chess</div>
+        <div class="card" onclick="speak('thin')">th – thin</div>
+        <div class="card" onclick="speak('phone')">ph – phone</div>
+        <div class="card" onclick="speak('whale')">wh – whale</div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>🔕 Silent Letters</h2>
+    <div class="grid">
+        <div class="card" onclick="speak('knee')">Silent K – knee</div>
+        <div class="card" onclick="speak('write')">Silent W – write</div>
+        <div class="card" onclick="speak('hour')">Silent H – hour</div>
+        <div class="card" onclick="speak('castle')">Silent T – castle</div>
+        <div class="card" onclick="speak('gnome')">Silent G – gnome</div>
+    </div>
+</div>
+
+
+<div class="section indian-section">
+    <h2>🇮🇳 Common Mispronunciations words– Fix It!</h2>
+    <p>Select the correct pronunciation:</p>
+    <p>🗣 <b>Wednesday</b> →
+        <button onclick="speak('Wednesday')">✅ /ˈwɛnz.deɪ/</button>
+        <button onclick="speak('WED-nes-day')">❌ WED-nes-day</button>
+    </p>
+    <p>🗣 <b>Often</b> →
+        <button onclick="speak('Often')">✅ /ˈɒf.ən/</button>
+        <button onclick="speak('off-ten')">❌ off-ten</button>
+    </p>
+    <p>🗣 <b>Climb</b> →
+        <button onclick="speak('climb')">✅ /klaɪm/</button>
+        <button onclick="speak('clim-buh')">❌ clim-buh</button>
+    </p>
+    <p>🗣 <b>Debt</b> →
+        <button onclick="speak('debt')">✅ /dɛt/</button>
+        <button onclick="speak('deb-tuh')">❌ deb-tuh</button>
+    </p>
+
+</div>
+
+<div class="section guess-game">
+    <h2>🎧 Guess the Word by Sound</h2>
+    <p>
+        <button onclick="playSoundGame()">▶ Play a Word</button>
+    </p>
+    <p>Guess: <input type="text" id="guessWord">
+        <button onclick="checkGuess()">Check</button>
+    </p>
+</div>
+
+<script>
+    function speak(word) {
+        const msg = new SpeechSynthesisUtterance(word);
+        msg.lang = 'en-US';
+        speechSynthesis.speak(msg);
+    }
+
+    function speakTypedWord() {
+        const word = document.getElementById("wordInput").value;
+        if (word.trim() !== "") {
+            speak(word);
+        }
+    }
+
+    function checkQuiz() {
+        const answers = ["cape", "hope", "kite", "note"];
+        let score = 0;
+        answers.forEach((ans, i) => {
+            const input = document.getElementById(`q${i + 1}`);
+            if (input.value.trim().toLowerCase() === ans) {
+                input.style.backgroundColor = "#a8f0c6"; // green
+                score++;
+            } else {
+                input.style.backgroundColor = "#f7a4a4"; // red
+            }
+        });
+        if (score >= 3) {
+            MiniCelebrate.play({title: '拼读闯关成功！', note: '答对 ' + score + '/4，你太棒啦！', icon: '🐣'});
+        } else {
+            AppDialog.alert("You scored " + score + "/4! Keep trying!");
+        }
+    }
+
+    const soundWords = ['cat', 'ship', 'zebra', 'ride', 'hope'];
+    let currentWord = '';
+
+    function playSoundGame() {
+        currentWord = soundWords[Math.floor(Math.random() * soundWords.length)];
+        speak(currentWord);
+    }
+
+    function checkGuess() {
+        const guess = document.getElementById('guessWord').value.trim().toLowerCase();
+        if (guess === currentWord) {
+            MiniCelebrate.play({title: '答对啦！', note: '这个单词读得真好！', icon: '🐣'});
+        } else {
+            AppDialog.alert('❌ Try again! The correct word was: ' + currentWord);
+        }
+    }
+</script>
+<a href="phonicssound/index.html">Go to Advanced Phonics →</a>
+<script>if (window.MiniGames) MiniGames.requireLogin();</script>
+</body>
+</html>

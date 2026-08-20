@@ -1,0 +1,83 @@
+:root {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+
+button,
+[role="button"],
+a {
+    -webkit-tap-highlight-color: rgba(45, 106, 58, 0.16);
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid #f0b429;
+    outline-offset: 3px;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
+#global-network-status,
+#global-click-tip {
+    box-sizing: border-box;
+    max-width: min(92vw, 440px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+#global-network-status {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 100000;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(35, 39, 47, 0.94);
+    color: #fff;
+    font: 14px/1.35 "PingFang SC", "Microsoft YaHei", sans-serif;
+    transform: translate(-50%, 16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+#global-network-status.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (max-width: 600px) {
+    :where(button, [role="button"], input, select) {
+        min-height: 42px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

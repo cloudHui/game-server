@@ -1,0 +1,28 @@
+/* Viewport policy: the shell may grow and the page can scroll on short screens. */
+html, body, #app {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.shell {
+    min-height: 100dvh;
+}
+
+.content {
+    width: min(1440px, calc(100% - 32px));
+    padding-top: clamp(14px, 3vh, 32px);
+    padding-bottom: clamp(16px, 4vh, 48px);
+}
+
+.word-list {
+    max-height: calc(100dvh - 150px);
+}
+
+@media (max-height: 760px) and (min-width: 601px) {
+    .topbar { height: 60px; }
+    .hero { min-height: 150px; padding: 24px 30px; }
+    .stats-grid { margin: 14px 0 20px; }
+    .section-title { margin: 18px 0 10px; }
+    .subject { min-height: 92px; padding: 14px; }
+    .tool-grid button { padding: 14px; }
+}

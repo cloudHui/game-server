@@ -1,0 +1,113 @@
+package com.cloud.web.learning.controller;
+
+import web.account.AccountService;
+import web.learning.model.Student;
+import web.learning.service.AuthService;
+import web.learning.service.StudentService;
+import web.learning.service.UsageService;
+
+import java.util.Map;
+
+@RestController("learningAuthController")
+@RequestMapping("/api/learning/auth")
+public class AuthController {
+    private final AuthService auth;
+    private final StudentService students;
+    private final UsageService usage;
+    private final AccountService accounts;
+
+    public AuthController(AuthService auth, StudentService students, UsageService usage, AccountService accounts) {
+        this.auth = auth;
+        this.students = students;
+        this.usage = usage;
+        this.accounts = accounts;
+    }
+
+    @GetMapping("/registration")
+    public Map<String, Object> registration(@RequestParam(value = "invite", required = false) String invite) throws Exception {
+        Map<String, Object> result = auth.registrationOptions();
+        if (invite != null && !invite.trim().isEmpty()) {
+            if (!accounts.peekInviteValid(invite)) {
+                throw new IllegalArgumentException("邀请码无效或已过期");
+            }
+            result.put("inviteValid", true);
+        }
+        return result;
+    }
+
+    @PostMapping("/login")
+    public AuthService.LoginResult login(@RequestBody LoginRequest request) throws Exception {
+        return auth.login(request.username, request.password, request.device);
+    }
+
+    @PostMapping("/register")
+    public AuthService.LoginResult register(@RequestBody RegisterRequest request) throws Exception {
+        return auth.register(request.username, request.password, request.name, request.invite, request.device);
+    }
+
+    @PostMapping("/logout")
+    public Map<String, Object> logout(@RequestHeader(value = "X-Session-Token", required = false) String token,
+                                      @RequestParam(value = "reason", required = false) String reason) {
+        auth.logout(token, reason);
+        return ok("已退出");
+    }
+
+    @GetMapping("/me")
+    public Map<String, Object> me(@RequestHeader(value = "X-Session-Token", required = false) String token) throws Exception {
+        return students.view(auth.require(token));
+    }
+
+    @PostMapping("/password")
+    public Map<String, Object> password(@RequestHeader(value = "X-Session-Token", required = false) String token,
+                                        @RequestBody PasswordRequest request) throws Exception {
+        auth.require(token);
+        if (!auth.changePassword(token, request.oldPassword, request.newPassword)) {
+            throw new IllegalArgumentException("原密码不正确或新密码不符合要求");
+        }
+        return ok("密码已修改");
+    }
+
+    @PostMapping("/heartbeat")
+    public Map<String, Object> heartbeat(@RequestHeader(value = "X-Session-Token", required = false) String token,
+                                         @RequestBody HeartbeatRequest request) throws Exception {
+        Student user = auth.requireHeartbeat(token);
+        usage.heartbeat(user, request.page, request.feature, request.device);
+        return ok("ok");
+    }
+
+    @PostMapping("/frontend-error")
+    public Map<String, Object> frontendError(@RequestHeader(value = "X-Session-Token", required = false) String token) throws Exception {
+        auth.require(token);
+        usage.frontendError();
+        return ok("ok");
+    }
+
+    private Map<String, Object> ok(String message) {
+        return java.util.Collections.<String, Object>singletonMap("message", message);
+    }
+
+    public static class LoginRequest {
+        public String username;
+        public String password;
+        public String device;
+    }
+
+    public static class RegisterRequest {
+        public String username;
+        public String password;
+        public String name;
+        public String invite;
+        public String device;
+    }
+
+    public static class PasswordRequest {
+        public String oldPassword;
+        public String newPassword;
+    }
+
+    public static class HeartbeatRequest {
+        public String page;
+        public String feature;
+        public String device;
+    }
+}

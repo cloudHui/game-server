@@ -1,0 +1,38 @@
+:root{--primary:#7357e8;--primary-dark:#5b40d2;--ink:#29263b;--muted:#757187;--line:#e8e5f1;--page:#f6f5fb}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:var(--page);color:var(--ink);font-family:"Microsoft YaHei",Arial,sans-serif}
+header{height:60px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;color:#fff;background:linear-gradient(135deg,var(--primary-dark),var(--primary))}
+header h1{margin:0;font-size:20px}
+.header-actions{display:flex;align-items:center;gap:14px;font-size:13px}
+.header-actions a{color:#fff;text-decoration:none}
+main{width:min(1200px,100%);margin:auto;padding:24px}
+.upload-card{padding:20px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.upload-card h2,.library-bar h2{margin:0 0 5px;font-size:18px}
+.upload-card p,.selection,.message,.library-bar span{margin:0;color:var(--muted);font-size:13px}
+.upload-actions{display:flex;gap:10px;margin-top:16px}
+.file-button,button{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border:0;border-radius:4px;background:var(--primary);color:#fff;font-size:14px;cursor:pointer}
+.file-button input{display:none}
+button:disabled{opacity:.5;cursor:default}
+.ghost{border:1px solid var(--line);background:#fff;color:var(--ink)}
+.selection,.message{min-height:20px;margin-top:9px}
+.message.error{color:#b33a3a}
+.library-bar{display:flex;align-items:center;justify-content:space-between;margin:24px 0 14px}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.photo-card{overflow:hidden;border:1px solid var(--line);border-radius:7px;background:#fff}
+.photo-card img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#eee;cursor:pointer}
+.photo-info{padding:10px}
+.photo-name{overflow:hidden;margin:0 0 5px;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.photo-meta{color:var(--muted);font-size:12px;line-height:1.6}
+.photo-actions{display:flex;gap:6px;margin-top:8px}
+.photo-actions button{height:30px;padding:0 9px;font-size:12px}
+.photo-actions .danger{background:#a73d3d}
+.empty{padding:70px 20px;text-align:center;color:var(--muted)}
+.pager{display:flex;align-items:center;justify-content:center;gap:12px;margin:22px 0}
+@media(max-width:720px){
+    header{padding:0 14px}
+    main{padding:14px}
+    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .upload-card{padding:14px}
+    .upload-actions,.photo-actions{overflow-x:auto}
+    .upload-actions>*,.photo-actions button{flex:0 0 auto}
+}
