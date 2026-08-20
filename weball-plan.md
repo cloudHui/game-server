@@ -1,24 +1,24 @@
-# WebAllF 一体化服务完整实施计划
+# weball 一体化服务完整实施计划
 
 ## 1. 目标
 
-新增 Maven 模块 `weballf`，生成可独立启动的 `WebAllF.jar`。单个 Java 进程提供当前 `center + gate + lobby + game + web` 对用户可见的全部功能，同时尽量取消单体内部不再需要的注册中心、服务发现、内部 TCP 转发、重复端口、线程池和指标服务。
+新增 Maven 模块 `weball`，生成可独立启动的 `weball.jar`。单个 Java 进程提供当前 `center + gate + lobby + game + web` 对用户可见的全部功能，同时尽量取消单体内部不再需要的注册中心、服务发现、内部 TCP 转发、重复端口、线程池和指标服务。
 
-现有 `center`、`gate`、`lobby`、`game`、`web` 模块不删除，原构建和原多服务部署继续可用。WebAllF 与旧模式必须能够独立选择，不要求同时运行。
+现有 `center`、`gate`、`lobby`、`game`、`web` 模块不删除，原构建和原多服务部署继续可用。weball 与旧模式必须能够独立选择，不要求同时运行。
 
 ## 2. 完成标准
 
-只有同时满足以下条件，WebAllF 才算完成：
+只有同时满足以下条件，weball 才算完成：
 
-- [ ] 根项目能够正常构建旧模块和新增 `weballf` 模块。
+- [ ] 根项目能够正常构建旧模块和新增 `weball` 模块。
 - [ ] 旧的 Center、Gate、Lobby、Game、Web 启动包及启动方式未被破坏。
-- [ ] 只启动 `WebAllF.jar`，无需再启动 Center、Gate、Lobby、Game、Web。
+- [ ] 只启动 `weball.jar`，无需再启动 Center、Gate、Lobby、Game、Web。
 - [ ] 浏览器现有 URL、页面、HTTP API、WebSocket action 和返回结构保持兼容。
 - [ ] 登录、注册、邀请码、用户管理、房间、牌桌、机器人、全部玩法、断线恢复、回放、战绩、学习、图片、小游戏、竞技场和后台管理通过验收。
 - [ ] 内部不再依赖 Center 注册发现，也不依赖 Gate/Lobby/Game 间 TCP 转发。
 - [ ] 数据目录、SQLite、回放和静态资源路径明确且兼容已有数据。
 - [ ] 启动失败能够整体回滚；关闭时线程、端口、连接和数据库资源正常释放。
-- [ ] 同等业务负载下，记录 WebAllF 与旧五服务的进程数、RSS、堆、线程数和端口差异。
+- [ ] 同等业务负载下，记录 weball 与旧五服务的进程数、RSS、堆、线程数和端口差异。
 - [ ] 主机验收用同一时间段的 Java 进程、监听端口和日志交叉验证。
 
 ## 3. 当前代码盘点结论
@@ -45,9 +45,9 @@
 - Web 与 Lobby 共用账号 SQLite；Game 战绩也写入相关数据库，必须统一事务和路径。
 - 现有 Web 已直接依赖 Game，但运行链路仍大量依赖 Gate TCP。
 
-## 4. WebAllF 目标结构
+## 4. weball 目标结构
 
-WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口。WebSocket 使用同一 HTTP 端口下的现有路径。
+weball 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口。WebSocket 使用同一 HTTP 端口下的现有路径。
 
 内部逻辑分层，不再模拟五个独立进程：
 
@@ -94,11 +94,11 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] Game 桌子、线程模型和玩法：保留核心规则，改成明确生命周期组件。
 - [ ] Proto：对外兼容或复用模型时保留；内部新调用不强制序列化再反序列化。
 - [ ] 定时任务：保留业务定时器，合并调度资源并登记所有任务。
-- [ ] 指标：改为 WebAllF 单一指标视图，指标名按模块加前缀。
+- [ ] 指标：改为 weball 单一指标视图，指标名按模块加前缀。
 - [ ] 日志：统一配置，日志字段包含模块、桌号、用户和请求序号。
 - [ ] SQLite：保留已有表和数据，统一绝对解析后的数据根目录。
 
-### 5.3 WebAllF 内取消的分布式外壳
+### 5.3 weball 内取消的分布式外壳
 
 - [ ] Center TCP/HTTP 监听。
 - [ ] 服务注册、发现、心跳、地址分发和服务上下线广播。
@@ -111,7 +111,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] 5400、5401、5500、5600、5601、5700、5701 等内部端口要求。
 - [ ] 每个服务重复创建的 ServerManager、ServerClientManager、网络线程和 Timer。
 
-说明：以上仅在 WebAllF 运行路径取消；旧模块中的实现继续保留。
+说明：以上仅在 weball 运行路径取消；旧模块中的实现继续保留。
 
 ## 6. 分阶段执行清单
 
@@ -132,22 +132,22 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 
 ### 阶段 1：新增模块与兼容骨架
 
-- [ ] 根 `pom.xml` 增加 `weballf`，不改变旧模块顺序和产物。
-- [ ] 建立 `weballf/pom.xml` 和唯一入口，产物名固定为 `WebAllF.jar`。
-- [ ] 明确依赖方向，禁止 WebAllF 形成 Maven 循环依赖。
+- [ ] 根 `pom.xml` 增加 `weball`，不改变旧模块顺序和产物。
+- [ ] 建立 `weball/pom.xml` 和唯一入口，产物名固定为 `weball.jar`。
+- [ ] 明确依赖方向，禁止 weball 形成 Maven 循环依赖。
 - [ ] 复用 Web 静态资源和 Spring Controller，避免复制后产生双份页面。
-- [ ] 增加 WebAllF 独立配置命名空间、日志配置和构建目录。
-- [ ] 建立运行模式标识，确保旧模式不会误启 WebAllF 内部组件。
+- [ ] 增加 weball 独立配置命名空间、日志配置和构建目录。
+- [ ] 建立运行模式标识，确保旧模式不会误启 weball 内部组件。
 - [ ] 建立统一生命周期状态：starting、ready、degraded、stopping、stopped。
 - [ ] 增加整体启动失败回滚和优雅关闭顺序。
-- [ ] 验证旧五服务和 WebAllF 骨架均能独立构建。
+- [ ] 验证旧五服务和 weball 骨架均能独立构建。
 
-验收：WebAllF 可启动 Web 页面；旧五服务构建产物未变化。
+验收：weball 可启动 Web 页面；旧五服务构建产物未变化。
 
 ### 阶段 2：配置、日志、数据和公共运行时
 
 - [ ] 设计单一 `application.yml`，覆盖 Web、账号、Lobby、Game、机器人、学习、图片和邮件配置。
-- [ ] 消除 WebAllF 路径对当前工作目录的隐式依赖。
+- [ ] 消除 weball 路径对当前工作目录的隐式依赖。
 - [ ] 明确 `data/lobby.db`、学习数据、图片、竞技场和回放的默认位置。
 - [ ] 增加旧数据只读探测、Schema 版本核验及备份说明。
 - [ ] 统一 SQLite 连接策略，处理 Web/Lobby/Game 同库并发和事务边界。
@@ -168,7 +168,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] 建立 Lobby 应用服务接口，替代静态 `Lobby.getInstance()` 访问。
 - [ ] AdminController 直接调用 Lobby 应用服务。
 - [ ] RoomController 直接调用 Lobby 应用服务。
-- [ ] 取消 WebAllF 内的 LobbyAdminHttp 和 LobbyAdminClient 跳转。
+- [ ] 取消 weball 内的 LobbyAdminHttp 和 LobbyAdminClient 跳转。
 - [ ] 验证邀请、用户启停、房间增删查和后台列表。
 
 验收：不监听 5700/5701，也能完成登录、注册、房间和 Lobby 后台功能。
@@ -207,8 +207,8 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] 保留 `seq=0` 主动推送语义。
 - [ ] 保留断线、重连、重复登录、刷新页面和重新入桌行为。
 - [ ] 保留 Gate 原有按 userId/tableId 路由中的必要校验。
-- [ ] 删除 WebAllF 对 `GateClient`、ServerManager、ServerClientManager 的运行时依赖。
-- [ ] 删除 WebAllF 对 Center handler、注册和发现的运行时依赖。
+- [ ] 删除 weball 对 `GateClient`、ServerManager、ServerClientManager 的运行时依赖。
+- [ ] 删除 weball 对 Center handler、注册和发现的运行时依赖。
 
 验收：仅监听 Web 端口，浏览器完整牌桌流程与旧模式协议一致。
 
@@ -216,7 +216,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 
 - [ ] 静态首页、大厅、游戏入口和所有共享 JS/CSS 完整可访问。
 - [ ] `/api/auth`、旧 `/api/login` 兼容接口行为一致。
-- [ ] 回放 API 读取 WebAllF 的统一回放目录。
+- [ ] 回放 API 读取 weball 的统一回放目录。
 - [ ] 学习模块 API、定时日报、邮件、资源和前端错误上报完整运行。
 - [ ] 图片上传任务、元数据、归档、缩略图、缓存和权限完整运行。
 - [ ] MiniGame WebSocket 与现有房间状态完整运行。
@@ -234,31 +234,31 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] 每种玩法至少完成正常局、断线重连、非法操作和机器人局。
 - [ ] 验证重复请求、sequence 超时、WS 断开和页面刷新。
 - [ ] 验证 SQLite 忙、写失败、回放目录不可写和配置错误。
-- [ ] 验证某内部模块启动失败时 WebAllF 不报告虚假 ready。
+- [ ] 验证某内部模块启动失败时 weball 不报告虚假 ready。
 - [ ] 验证优雅关闭，不遗留游戏线程、上传任务、端口或损坏数据。
 - [ ] 对照旧模式逐项比较 HTTP 状态、业务 code、JSON 和推送顺序。
 - [ ] 进行并发桌、并发 WS、机器人和图片上传混合压力测试。
-- [ ] 记录旧模式与 WebAllF 的 RSS、堆、非堆、线程、GC 和启动时间。
+- [ ] 记录旧模式与 weball 的 RSS、堆、非堆、线程、GC 和启动时间。
 - [ ] 检查内存泄漏：session、连接、桌、timer、回调 pending 和图片任务。
 
 验收：功能矩阵全部通过；无高优先级差异；资源指标达到预期。
 
 ### 阶段 8：部署与回退
 
-- [ ] 增加 WebAllF 独立打包和启动脚本，不覆盖旧脚本。
-- [ ] 增加 WebAllF 独立日志目录和 PID/端口识别。
+- [ ] 增加 weball 独立打包和启动脚本，不覆盖旧脚本。
+- [ ] 增加 weball 独立日志目录和 PID/端口识别。
 - [ ] 增加运行状态检查：Java 进程、Web 端口、健康 API 和同期日志。
-- [ ] Nginx 仅需切换到 WebAllF Web 端口；保留原配置备份。
+- [ ] Nginx 仅需切换到 weball Web 端口；保留原配置备份。
 - [ ] 明确数据备份、首次切换、观察和回退步骤。
 - [ ] 禁止新旧模式同时写同一个 SQLite 和回放目录。
-- [ ] 小流量验收后再切换；异常时停止 WebAllF 并恢复旧五服务。
+- [ ] 小流量验收后再切换；异常时停止 weball 并恢复旧五服务。
 - [ ] 更新项目 README、端口表、架构图和故障排查说明。
 
 验收：可在不改数据格式、不删除旧模块的前提下切换和回退。
 
 ## 7. 关键消息链路替换表
 
-| 当前链路 | WebAllF 替代 | 必须保持 |
+| 当前链路 | weball 替代 | 必须保持 |
 |---|---|---|
 | Web → Gate TCP | WS Handler → Gateway 应用服务 | action、seq、错误结构 |
 | Gate → Lobby | Gateway → Lobby 应用服务 | 登录/房间路由和校验 |
@@ -267,7 +267,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 | Game → Lobby 桌状态 | Game 内部事件 → Lobby | 桌销毁、玩家离开、恢复 |
 | Game/Gate → Web 推送 | Game 事件 → Session 推送器 | Proto 对应 JSON、seq=0 |
 | Web → Lobby Admin HTTP | Controller → Lobby 管理服务 | API 字段、权限、错误码 |
-| 各服务 → Center | 取消 | WebAllF 内部 ready 状态替代 |
+| 各服务 → Center | 取消 | weball 内部 ready 状态替代 |
 | Capabilities → 端口探测 | 模块健康注册表 | 前端看到的能力字段 |
 
 每替换一条链路，必须先记录原消息类型、消息号、请求字段、响应字段、主动推送和异常分支，再实现和测试；不得只验证成功路径。
@@ -281,7 +281,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - [ ] 保留现有数据，不自动删除、重建或覆盖数据库。
 - [ ] Schema 变更必须有版本、备份、前向迁移和回退说明。
 - [ ] 所有目录在启动时规范化并记录最终绝对路径，但日志不得泄露凭据。
-- [ ] WebAllF 与旧服务切换前必须确保只有一个模式持有写权限。
+- [ ] weball 与旧服务切换前必须确保只有一个模式持有写权限。
 
 ## 9. 并发与资源计划
 
@@ -302,7 +302,7 @@ WebAllF 保留一个进程、一个 Spring Boot 容器、一个主 HTTP 端口�
 - 复杂故障使用诊断循环，以日志、请求、进程和端口证据定位。
 - 每项只有在对应测试或人工验收证据通过后才能由 `[ ]` 改为 `[x]`。
 - 失败或部分完成保持未勾选，并在任务后记录阻塞原因。
-- 不删除旧模块，不用 WebAllF 改造顺手重写无关功能。
+- 不删除旧模块，不用 weball 改造顺手重写无关功能。
 - 不因状态判断冲突执行 restart、stop 或 kill；部署操作需用户明确授权。
 - 每个阶段完成后先汇报差异、测试和风险，再进入下一阶段。
 
