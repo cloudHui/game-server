@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# game-server 一键安装：环境 + 拉码；可选部署（默认只起 web）与 Nginx
-# 非交互：INSTALL_NONINTERACTIVE=1 DEPLOY=yes|no CONFIGURE_NGINX=yes|no SERVER_DOMAIN=... SKIP_GIT_CONFIG=1
+# game-server 一键安装：环境 + 拉码；可选部署 hub/legacy 与 Nginx
+# 非交互：INSTALL_NONINTERACTIVE=1 DEPLOY=yes|no DEPLOY_MODE=hub|legacy CONFIGURE_NGINX=yes|no SERVER_DOMAIN=... SKIP_GIT_CONFIG=1
 set -euo pipefail
 
 REPO_URL="${SERVER_REPO_URL:-https://github.com/cloudHui/game-server.git}"
@@ -107,14 +107,24 @@ ensure_access_code() {
 }
 
 maybe_deploy() {
-  ask "是否现在部署（构建并只启动 web）" "${DEPLOY:-yes}"
+  ask "是否现在部署" "${DEPLOY:-yes}"
   case "$ANSWER" in
     y|Y|yes|YES)
-      echo "当前可用内存约 $(mem_headroom_mb)MB（起牌桌服需 ≥900MB，默认只起 web）"
-      as_user bash -c "cd '$INSTALL_DIR' && ./scripts/ops.sh build && ./scripts/ops.sh start web"
+      ask "部署模式（hub=一体化，legacy=旧五服务）" "${DEPLOY_MODE:-hub}"
+      local mode="$ANSWER"
+      case "$mode" in
+        hub|legacy) ;;
+        *) echo "部署模式非法: $mode（应为 hub 或 legacy）" >&2; exit 1 ;;
+      esac
+      echo "当前可用内存约 $(mem_headroom_mb)MB；部署模式=$mode"
+      if [[ "$mode" == "hub" ]]; then
+        as_user bash -c "cd '$INSTALL_DIR' && ./scripts/hub.sh deploy"
+      else
+        as_user bash -c "cd '$INSTALL_DIR' && ./scripts/ops.sh build all && ./scripts/ops.sh start all"
+      fi
       ;;
     *)
-      echo "已跳过部署。稍后: cd $INSTALL_DIR && ./scripts/ops.sh build && ./scripts/ops.sh start web"
+      echo "已跳过部署。稍后: cd $INSTALL_DIR && ./scripts/hub.sh deploy"
       ;;
   esac
 }
@@ -164,8 +174,10 @@ case "$COMMAND" in
     echo
     echo "安装完成: $INSTALL_DIR"
     echo "常用:"
-    echo "  ./scripts/ops.sh status"
-    echo "  ./scripts/ops.sh start web"
+    echo "  ./scripts/hub.sh deploy"
+    echo "  ./scripts/hub.sh status"
+    echo "  ./scripts/hub.sh stop"
+    echo "  ./scripts/ops.sh start all"
     echo "  ./scripts/ops.sh start-remaining"
     ;;
   *)

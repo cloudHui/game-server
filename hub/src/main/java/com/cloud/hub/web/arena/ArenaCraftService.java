@@ -1,0 +1,10 @@
+package com.cloud.hub.web.arena;
+
+import com.cloud.hub.game.arena.crafting.CraftingRules;
+import org.springframework.stereotype.Service;
+import com.cloud.hub.web.arena.repository.ArenaInventoryRepository;
+
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+@Service public class ArenaCraftService{private final ArenaInventoryRepository items;public ArenaCraftService(ArenaInventoryRepository items){this.items=items;}public Map<String,Object> view(long uid)throws SQLException{items.seed(uid);Map<String,Object>o=new LinkedHashMap<>();o.put("items",items.list(uid));o.put("recipes",CraftingRules.recipes());return o;}public Map<String,Object> craft(long uid,String id)throws SQLException{CraftingRules.Recipe r=CraftingRules.recipe(id);items.seed(uid);items.craft(uid,r.input,r.inputCount,r.output,r.outputCount,r.coinCost);return view(uid);}}

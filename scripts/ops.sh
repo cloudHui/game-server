@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# Linux 运维入口：启停 / 状态 / 监控 / 打包 / 清日志
+# 旧五服务运维：center / gate / lobby / game / web
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SCRIPTS="$ROOT/scripts"
-NGINX_DIR="$SCRIPTS/nginx"
-BUILD="$ROOT/build"
-LOG_HOME="$ROOT/logs"
-PATH_FILE="$SCRIPTS/web-path.txt"
-# 仅作 status 展示；nginx-apply 必须显式传入域名
-DOMAIN="${SERVER_DOMAIN:-}"
+# shellcheck source=ops-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/ops-common.sh"
 
 ORDER=(center gate lobby game web)
 
@@ -41,26 +35,21 @@ usage() {
   cat <<EOF
 用法:
   $0 {start|stop|restart|status} [服务|all]
-  $0 start-remaining     # 起尚未运行的游戏服（center/gate/lobby/game），受内存门禁
+  $0 start-remaining     # 起尚未运行的 center/gate/lobby/game
   $0 build [服务|all]
   $0 build-restart [服务|all]
   $0 monitor [刷新秒数|--once]
   $0 clean-logs
-  $0 nginx-apply <域名>
+  $0 nginx-apply <域名> [Web端口]
 
 服务: center | gate | lobby | game | web | all
+一体化 hub 请用: $SCRIPTS/hub.sh
 
 示例:
-  $0 start web           # 默认部署只起 web（学习+静态+本地小游戏）
-  $0 start-remaining     # 内存足够时再起牌桌相关服务
-  $0 start center        # 单独起某服务
-  $0 restart web
-  $0 monitor             # 默认每 1 秒清屏刷新
-  $0 monitor 2           # 每 2 秒清屏刷新
-  $0 monitor --once      # 只输出一次，不清屏
-  $0 build web            # 只打包 web 及其必要依赖
-  $0 build-restart web    # 只打包并重启 web
-  $0 build                # 打包全部服务
+  $0 start web
+  $0 start all
+  $0 start-remaining
+  $0 build web
   $0 nginx-apply www.example.com
 EOF
 }
@@ -111,15 +100,6 @@ ensure_memory_for_game() {
 
 need_java() {
   command -v java >/dev/null 2>&1 || { echo "未找到 java"; exit 1; }
-}
-
-web_path() {
-  if [[ ! -f "$PATH_FILE" ]]; then
-    local p
-    p="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 18)"
-    echo "$p" >"$PATH_FILE"
-  fi
-  tr -d '[:space:]' <"$PATH_FILE"
 }
 
 resolve_targets() {
@@ -179,6 +159,8 @@ start_one() {
   heap="${HEAP[$svc]}"
   initial_heap="${INITIAL_HEAP[$svc]}"
 
+  require_no_hub || return 1
+
   if [[ ! -f "$jar" ]]; then
     echo "[$svc] 找不到 $jar，请先执行: $0 build"
     return 1
@@ -206,6 +188,7 @@ start_one() {
     jvm+=(
       -Xss256k
       "-Dserver.servlet.context-path=${ctx}"
+      "-Dserver.port=${WEB_PORT}"
     )
     # 保持仓库根为工作目录，使 application.yml 中 build/game/replay 路径有效
     workdir="$ROOT"
@@ -534,96 +517,6 @@ cmd_build() {
   done
 }
 
-cmd_clean_logs() {
-  local days=7
-  local removed=0
-  local dirs=(
-    "$LOG_HOME"
-    "$ROOT/build/logs"
-    "$BUILD/web/logs"
-    "$ROOT/web/logs"
-  )
-  local d
-  for d in "${dirs[@]}"; do
-    [[ -d "$d" ]] || continue
-    while IFS= read -r -d '' f; do
-      rm -f "$f"
-      removed=$((removed + 1))
-    done < <(find "$d" -type f \( -name '*.log' -o -name '*.log.gz' -o -name '*.zip' -o -name 'console.out' \) -mtime +$((days - 1)) -print0 2>/dev/null)
-  done
-  echo "已清理超过 ${days} 天的日志文件，删除 ${removed} 个（统一目录: $LOG_HOME）"
-}
-
-find_domain_conf() {
-  local domain="$1"
-  local candidate="/etc/nginx/conf.d/${domain}.conf"
-  if [[ -f "$candidate" ]]; then
-    echo "$candidate"
-    return 0
-  fi
-  local f
-  for f in /etc/nginx/conf.d/*.conf; do
-    [[ -f "$f" ]] || continue
-    if grep -qE "server_name[[:space:]]+.*${domain}" "$f" 2>/dev/null; then
-      echo "$f"
-      return 0
-    fi
-  done
-  return 1
-}
-
-cmd_nginx_apply() {
-  local domain="${1:-}"
-  if [[ -z "$domain" ]]; then
-    echo "请传入域名，例如: $0 nginx-apply www.example.com" >&2
-    exit 1
-  fi
-  command -v sudo >/dev/null 2>&1 || { echo "需要 sudo"; exit 1; }
-  command -v python3 >/dev/null 2>&1 || { echo "需要 python3"; exit 1; }
-
-  local wp conf map_src snippet_in snippet_out
-  wp="$(web_path)"
-  map_src="$NGINX_DIR/00-websocket-map.conf"
-  snippet_in="$NGINX_DIR/game-web.snippet.conf.in"
-  snippet_out="/etc/nginx/snippets/game-web.conf"
-
-  [[ -f "$map_src" && -f "$snippet_in" ]] || { echo "缺少 nginx 模板，请确认 $NGINX_DIR"; exit 1; }
-
-  if ! conf="$(find_domain_conf "$domain")"; then
-    echo "未找到域名 $domain 的 Nginx conf（期望 /etc/nginx/conf.d/${domain}.conf）" >&2
-    exit 1
-  fi
-  echo "域名 conf: $conf"
-  echo "随机路径(访问唯一码): /$wp/"
-
-  sudo mkdir -p /etc/nginx/snippets
-  local tmp
-  tmp="$(mktemp)"
-  sed "s/@WEB_PATH@/${wp}/g" "$snippet_in" >"$tmp"
-  sudo install -m 644 "$tmp" "$snippet_out"
-  rm -f "$tmp"
-
-  sudo install -m 644 "$map_src" /etc/nginx/conf.d/00-websocket-map.conf
-
-  # 域名 conf：去掉旧 8081 location，写入 include（幂等替换）
-  sudo cp -a "$conf" "${conf}.bak.$(date +%Y%m%d%H%M%S)"
-  tmp="$(mktemp)"
-  cp -a "$conf" "$tmp" 2>/dev/null || sudo cat "$conf" >"$tmp"
-  chmod u+w "$tmp"
-  python3 "$NGINX_DIR/apply_game_web.py" "$tmp"
-  sudo install -m 644 "$tmp" "$conf"
-  rm -f "$tmp"
-
-  if sudo nginx -t; then
-    sudo systemctl reload nginx
-    echo "Nginx 已应用并 reload"
-    echo "外网入口: https://${domain}/${wp}/"
-  else
-    echo "nginx -t 失败，已保留 .bak；请检查 $conf" >&2
-    exit 1
-  fi
-}
-
 main() {
   local cmd="${1:-}"
   local arg="${2:-all}"
@@ -637,7 +530,7 @@ main() {
     build) cmd_build "$arg" ;;
     build-restart) cmd_build_restart "$arg" ;;
     clean-logs) cmd_clean_logs ;;
-    nginx-apply) cmd_nginx_apply "${2:-}" ;;
+    nginx-apply) cmd_nginx_apply "${2:-}" "${3:-$WEB_PORT}" ;;
     -h|--help|help|"") usage; [[ -n "$cmd" ]] || exit 1 ;;
     *) echo "未知命令: $cmd"; usage; exit 1 ;;
   esac

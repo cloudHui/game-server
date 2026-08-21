@@ -17,14 +17,14 @@ import java.util.function.Consumer;
 public class TableConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(TableConfigManager.class);
 
-    private static final String CONFIG_DIR = "../config";
-
     private final ConfigLoader<TableModel> configLoader;
     private final Map<Integer, TableModel> tableModelMap = new ConcurrentHashMap<>();
     private Consumer<Map<Integer, TableModel>> onChangeCallback;
 
     public TableConfigManager() {
-        this.configLoader = new ConfigLoader<>(CONFIG_DIR, TableModel.class);
+        String configDir = System.getProperty("tableConfigDir",
+                System.getProperty("table.config.dir", "../config"));
+        this.configLoader = new ConfigLoader<>(configDir, TableModel.class);
         this.configLoader.onChange(this::onConfigChange);
     }
 

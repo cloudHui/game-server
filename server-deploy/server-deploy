@@ -5,6 +5,11 @@ SERVER_DIR=${SERVER_INSTALL_DIR:-/opt/Server}
 action=${1:-menu}
 units="x-ui.service nginx.service fail2ban.service"
 
+hub_running() {
+  pgrep -f 'build/hub/hub.jar' >/dev/null 2>&1 \
+    || pgrep -f 'weball[.]jar' >/dev/null 2>&1
+}
+
 web_running() {
   pgrep -f 'build/web/Web.jar' >/dev/null 2>&1
 }
@@ -16,7 +21,9 @@ status() {
     if systemctl cat "$unit" >/dev/null 2>&1; then systemctl is-active "$unit" 2>/dev/null || true
     else echo 'not-installed'; fi
   done
-  printf '%-28s ' "game-web(Web.jar)"
+  printf '%-28s ' "hub(hub.jar)"
+  if hub_running; then echo active; else echo inactive; fi
+  printf '%-28s ' "web(Web.jar)"
   if web_running; then echo active; else echo inactive; fi
   echo "== ports =="; ss -lntup 2>/dev/null | grep -E ':(22|80|443|7393|2096|8081)\b' || true
   echo "== disk =="; df -h / | tail -1
@@ -24,17 +31,21 @@ status() {
 }
 restart() {
   for unit in $units; do systemctl restart "$unit" 2>/dev/null || true; done
-  if [ -x "$SERVER_DIR/scripts/ops.sh" ]; then
+  if [ -x "$SERVER_DIR/scripts/hub.sh" ] && hub_running; then
+    (cd "$SERVER_DIR" && ./scripts/hub.sh restart) || true
+  elif [ -x "$SERVER_DIR/scripts/ops.sh" ] && web_running; then
     (cd "$SERVER_DIR" && ./scripts/ops.sh restart web) || true
   fi
 }
 logs() {
   if [ "${2:-}" = "x-ui.service" ] || [ "${2:-}" = "xray" ]; then
     journalctl -u x-ui.service -n 80 --no-pager
+  elif [ -f "$SERVER_DIR/logs/hub/console.out" ]; then
+    tail -n 80 "$SERVER_DIR/logs/hub/console.out"
   elif [ -f "$SERVER_DIR/logs/web/console.out" ]; then
     tail -n 80 "$SERVER_DIR/logs/web/console.out"
   else
-    echo "未找到 Web 日志: $SERVER_DIR/logs/web/console.out"
+    echo "未找到 hub/web 日志: $SERVER_DIR/logs/hub/console.out"
   fi
 }
 report() { python3 /opt/server-audit-report.py; }

@@ -64,10 +64,12 @@ def collect_failed():
             continue
         if run(['systemctl', 'is-active', unit]) != 'active':
             failed.append(unit)
-    # game-server Web 进程（非 systemd）
+    # game-server hub 进程（非 systemd）
+    hub = run(['pgrep', '-f', 'build/hub/hub.jar'])
+    weball = run(['pgrep', '-f', 'weball[.]jar'])
     web = run(['pgrep', '-f', 'build/web/Web.jar'])
-    if not web:
-        failed.append('game-web')
+    if not hub and not weball and not web:
+        failed.append('hub/web')
     disk = run(['df', '-P', '/'])
     if disk:
         try:

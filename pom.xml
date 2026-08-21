@@ -18,7 +18,7 @@
         <module>game</module>
         <module>web</module>
         <module>manager</module>
-        <module>weball</module>
+        <module>hub</module>
     </modules>
 
     <build>
