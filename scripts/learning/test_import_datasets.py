@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).with_name("import-datasets.py")
@@ -53,6 +54,24 @@ class PoetryDynastyTest(unittest.TestCase):
             taxonomy = json.loads((index / "taxonomy.json").read_text(encoding="utf-8"))
             self.assertEqual(2, taxonomy["dynasties"]["唐"])
             self.assertEqual(1, taxonomy["authors"]["唐"]["李白"])
+
+
+class DictionarySimplificationTest(unittest.TestCase):
+    def test_dictionary_shards_are_simplified_before_publish(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "ecdict.csv"
+            target = root / "dictionary"
+            source.write_text(
+                "word,phonetic,definition,translation,tag,exchange\n"
+                "rule,,,規則,,\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(IMPORTER, "simplify_file") as simplify:
+                IMPORTER.ecdict(source, target)
+
+            simplify.assert_called_once_with(target / "ru.jsonl")
 
 
 if __name__ == "__main__":

@@ -1,14 +1,7 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import java.util.*;
-
+import com.cloud.hub.web.arena.ArenaRepository;
+import com.cloud.hub.web.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,8 +10,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.cloud.hub.web.arena.ArenaRepository;
-import com.cloud.hub.web.service.UserService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,9 +66,11 @@ public class ArenaController {
     private Map<String,Object> error(String message){Map<String,Object> e=new LinkedHashMap<>();e.put("error",message);return e;}
 
     @GetMapping("/battle")
-    public Map<String,Object> battle(@RequestParam(defaultValue="jianhuang") String attacker,
+    public ResponseEntity<?> battle(@RequestHeader(value="Authorization",required=false) String authorization,
+                                     @RequestParam(defaultValue="jianhuang") String attacker,
                                      @RequestParam(defaultValue="leizun") String defender,
                                      @RequestParam(defaultValue="42") long seed) {
+        if(auth(authorization)==null)return ResponseEntity.status(401).body(error("请先登录"));
         Hero a=find(attacker), d=find(defender); Random rng=new Random(seed); Fighter af=new Fighter(a), df=new Fighter(d);
         List<Map<String,Object>> events=new ArrayList<>(); int seq=0; boolean aFirst=a.speed>=d.speed;
         add(events,seq++,"BATTLE_START",0,null,null,0,"规则 arena-v1");
@@ -101,7 +94,7 @@ public class ArenaController {
         }
         Hero winner=af.hp>0&&df.hp<=0?a:df.hp>0&&af.hp<=0?d:(af.hp*(long)d.hp>=df.hp*(long)a.hp?a:d);
         add(events,seq,"BATTLE_END",rounds,winner.id,null,0,winner.name+"获胜");
-        Map<String,Object> out=new LinkedHashMap<>();out.put("battleId","WEB-"+Long.toString(seed,36));out.put("ruleVersion","arena-v1");out.put("attacker",a);out.put("defender",d);out.put("winner",winner.id);out.put("events",events);return out;
+        Map<String,Object> out=new LinkedHashMap<>();out.put("battleId","WEB-"+Long.toString(seed,36));out.put("ruleVersion","arena-v1");out.put("attacker",a);out.put("defender",d);out.put("winner",winner.id);out.put("events",events);return ResponseEntity.ok(out);
     }
     private Hero find(String id){for(Hero h:HEROES)if(h.id.equals(id))return h;return HEROES.get(0);}
     private static void add(List<Map<String,Object>> es,int seq,String type,int round,String actor,String target,long value,String text){Map<String,Object> e=new LinkedHashMap<>();e.put("seq",seq);e.put("type",type);e.put("round",round);e.put("actor",actor);e.put("target",target);e.put("value",value);e.put("text",text);es.add(e);}

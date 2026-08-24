@@ -17,7 +17,7 @@ def json_lines(path):
 
 
 def simplify_file(path):
-    """整文件繁转简；无 opencc 时保持原样。"""
+    """整文件繁转简；转换器不可用时明确失败，禁止发布混合字形。"""
     tmp = path.with_suffix(path.suffix + ".simp")
     try:
         subprocess.run(
@@ -25,9 +25,21 @@ def simplify_file(path):
             check=True, capture_output=True, text=True,
         )
         tmp.replace(path)
-    except (FileNotFoundError, subprocess.CalledProcessError):
+        return
+    except FileNotFoundError:
+        try:
+            from opencc import OpenCC
+        except ImportError as exc:
+            raise RuntimeError("缺少 OpenCC：请安装 opencc 命令或 Python opencc 包") from exc
+        converter = OpenCC("t2s")
+        with path.open(encoding="utf-8") as src, tmp.open("w", encoding="utf-8") as out:
+            for line in src:
+                out.write(converter.convert(line))
+        tmp.replace(path)
+    except subprocess.CalledProcessError as exc:
         if tmp.exists():
             tmp.unlink()
+        raise RuntimeError(f"OpenCC 转换失败：{exc.stderr.strip()}") from exc
 
 
 def dedupe_jsonl(path):
@@ -82,6 +94,8 @@ def ecdict(source, target):
     finally:
         for out in handles.values():
             out.close()
+    for shard in sorted(target.glob("*.jsonl")):
+        simplify_file(shard)
 
 
 def iter_poetry_items(path):
