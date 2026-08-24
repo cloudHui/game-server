@@ -1,6 +1,7 @@
 package com.cloud.hub.web.learning.service;
 
 import com.cloud.hub.storage.DataPathResolver;
+import com.cloud.hub.web.learning.service.poetry.PoetryCatalogReader;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -53,6 +54,7 @@ public class LibraryService {
     private final Path root;
     private final Path resourceRoot;
     private final ObjectMapper mapper;
+    private final PoetryCatalogReader poetryCatalog;
     private volatile List<Map<String, Object>> vocabCache;
     /**
      * 汉字列表缓存：文件名十六进制码点 -> 字符。
@@ -69,6 +71,7 @@ public class LibraryService {
         this.root = paths.resolve(dir);
         this.resourceRoot = paths.resolve(resourceDir);
         this.mapper = mapper;
+        this.poetryCatalog = new PoetryCatalogReader(this.root, mapper);
     }
 
     /**
@@ -259,21 +262,23 @@ public class LibraryService {
      * 古诗词翻页（统一 query + tag）。
      * 空 tag=精选；tag=作者；query 与 tag 可叠加。
      */
-    public Map<String, Object> poetryPage(String query, String tag, int page, int size) throws IOException {
+    public Map<String, Object> poetryPage(String query, String dynasty, String tag, int page, int size) throws IOException {
         String key = clean(query);
+        String era = clean(dynasty);
         String author = clean(tag);
-        List<JsonNode> featured = loadFeaturedPoetry();
-        List<JsonNode> source = key.isEmpty() ? featured : poetry(key);
-        if (!author.isEmpty()) {
-            List<JsonNode> filtered = filterPoetryByAuthor(source, author);
-            // 精选里没有该作者时，再按作者名查全库索引
-            if (filtered.isEmpty() && key.isEmpty()) filtered = poetry(author);
-            source = filtered;
+        if (key.isEmpty() && poetryCatalog.isReady()) {
+            return poetryCatalog.page(era, author, page, size);
         }
-        List<Map<String, Object>> tags = poetryAuthorTags(featured);
+        List<JsonNode> source = key.isEmpty() ? loadFeaturedPoetry() : poetry(key);
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (JsonNode node : source) rows.add(lightPoetry(node));
-        return pageNodes(rows, tags, page, size);
+        for (JsonNode node : source) {
+            if (!era.isEmpty() && !era.equals(node.path("dynasty").asText(""))) continue;
+            if (!author.isEmpty() && !node.path("author").asText("").contains(author)) continue;
+            rows.add(lightPoetry(node));
+        }
+        Map<String, Object> result = pageNodes(rows, poetryAuthorTags(source), page, size);
+        result.put("dynasties", poetryDynastyTags(source));
+        return result;
     }
 
     /**
@@ -840,15 +845,6 @@ public class LibraryService {
         }
     }
 
-    private List<JsonNode> filterPoetryByAuthor(List<JsonNode> source, String author) {
-        String key = author.toLowerCase(Locale.ROOT);
-        List<JsonNode> rows = new ArrayList<>();
-        for (JsonNode node : source) {
-            if (node.path("author").asText("").toLowerCase(Locale.ROOT).contains(key)) rows.add(node);
-        }
-        return rows;
-    }
-
     private List<Map<String, Object>> poetryAuthorTags(List<JsonNode> source) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (JsonNode node : source) {
@@ -870,10 +866,28 @@ public class LibraryService {
         return tags;
     }
 
+    private List<Map<String, Object>> poetryDynastyTags(List<JsonNode> source) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (JsonNode node : source) {
+            String dynasty = node.path("dynasty").asText("").trim();
+            if (!dynasty.isEmpty()) counts.merge(dynasty, 1, Integer::sum);
+        }
+        List<Map<String, Object>> tags = new ArrayList<>();
+        counts.forEach((name, count) -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", name);
+            row.put("name", name);
+            row.put("count", count);
+            tags.add(row);
+        });
+        return tags;
+    }
+
     private Map<String, Object> lightPoetry(JsonNode node) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("title", node.path("title").asText());
         row.put("author", node.path("author").asText(""));
+        row.put("dynasty", node.path("dynasty").asText(""));
         List<String> paragraphs = new ArrayList<>();
         if (node.path("paragraphs").isArray()) {
             node.path("paragraphs").forEach(p -> paragraphs.add(p.asText()));

@@ -90,9 +90,10 @@ clone_code() {
   fi
   chown -R "$RUN_USER":"$(id -gn "$RUN_USER" 2>/dev/null || echo "$RUN_USER")" "$INSTALL_DIR"
   mkdir -p "$INSTALL_DIR/data/learning/resources" "$INSTALL_DIR/data/learning/datasets" "$INSTALL_DIR/data" "$INSTALL_DIR/logs"
-  if [[ -d "$INSTALL_DIR/datasets" ]] && [[ -z "$(ls -A "$INSTALL_DIR/data/learning/datasets" 2>/dev/null || true)" ]]; then
-    echo "同步 datasets -> data/learning/datasets"
-    cp -a "$INSTALL_DIR/datasets/." "$INSTALL_DIR/data/learning/datasets/" || true
+  if [[ -d "$INSTALL_DIR/datasets" ]]; then
+    echo "安装本地学习资源"
+    as_user bash "$INSTALL_DIR/scripts/learning/install-datasets.sh" \
+      "$INSTALL_DIR/datasets" "$INSTALL_DIR/data/learning/datasets"
   fi
   chown -R "$RUN_USER":"$(id -gn "$RUN_USER" 2>/dev/null || echo "$RUN_USER")" "$INSTALL_DIR/data" "$INSTALL_DIR/logs"
 }

@@ -314,6 +314,13 @@
     color: #fff
 }
 
+.tag-label {
+    min-width: 38px;
+    align-self: center;
+    color: #5c5678;
+    font-size: .9rem
+}
+
 .pager {
     display: flex;
     align-items: center;

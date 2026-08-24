@@ -493,6 +493,7 @@
                         <button class="primary" :disabled="libraryLoading" @click="searchLibrary">{{
                             libraryLoading?'查询中…':'查询' }}
                         </button>
+                        <button v-if="libraryType==='poetry'" :disabled="libraryLoading" @click="resetPoetryFilters">重置</button>
                     </div>
                     <p class="muted">{{ libraryHint }}</p>
                     <p v-if="libraryStatusTip" class="library-status">{{ libraryStatusTip }}</p>
@@ -528,8 +529,16 @@
 
                     <!-- 其余库：列表 + 小面板 + 翻页 -->
                     <template v-else>
+                        <div class="tag-row" v-if="libraryType==='poetry' && libraryDynasties.length">
+                            <b class="tag-label">年代</b>
+                            <button type="button" :class="{active:!libraryDynasty}" @click="selectPoetryDynasty('')">全部</button>
+                            <button type="button" v-for="tag in libraryDynasties" :key="tag.id"
+                                    :class="{active:libraryDynasty===tag.id}" @click="selectPoetryDynasty(tag.id)">{{ tag.name
+                                }}<small>{{ tag.count }}</small></button>
+                        </div>
                         <!-- 统一：全部 + 标签；与搜索可叠加 -->
                         <div class="tag-row" v-if="libraryTags.length">
+                            <b v-if="libraryType==='poetry'" class="tag-label">诗人</b>
                             <button type="button" :class="{active:!libraryTag}" @click="selectLibraryTag('')">全部
                             </button>
                             <button type="button" v-for="tag in libraryTags" :key="tag.id"
@@ -581,7 +590,7 @@
                                 <!-- 古诗词 -->
                                 <template v-else-if="libraryType==='poetry'">
                                     <h2>{{ librarySelected.title }}</h2>
-                                    <p class="muted">{{ librarySelected.author }}</p>
+                                    <p class="muted">{{ librarySelected.dynasty }} · {{ librarySelected.author }}</p>
                                     <p v-for="(line,idx) in (librarySelected.paragraphs||[])" :key="idx"
                                        class="poetry-line">{{ line }}</p>
                                     <div class="answer-actions">
@@ -713,7 +722,8 @@
 <script src="js/parts/chinese.js?v=20260730-1"></script>
 <script src="js/parts/math.js?v=20260730-1"></script>
 <script src="js/parts/olympiad.js?v=20260730-2"></script>
-<script src="js/parts/library.js?v=20260730-1"></script>
+<script src="js/parts/poetry-library.js?v=20260824-1"></script>
+<script src="js/parts/library.js?v=20260824-1"></script>
 <script src="js/parts/resources.js?v=20260730-1"></script>
 <script src="js/app.js?v=20260730-1"></script>
 </body>

@@ -1,6 +1,12 @@
 # 开放学习库数据
 
-本目录是发布用数据包，安装时解压到 `/var/lib/family-learning/`。
+本目录是发布用数据包。一键安装会自动解压到项目的 `data/learning/datasets/`，无需手工处理。
+
+本地已有仓库时可幂等执行：
+
+```bash
+./scripts/learning/install-datasets.sh datasets data/learning/datasets
+```
 
 | 文件 | 用途 |
 |------|------|

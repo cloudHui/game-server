@@ -69,11 +69,12 @@ public class LibraryController {
     @GetMapping("/poetry")
     public Map<String, Object> poetry(@RequestHeader(value = "X-Session-Token", required = false) String token,
                                       @RequestParam(defaultValue = "") String query,
+                                      @RequestParam(defaultValue = "") String dynasty,
                                       @RequestParam(defaultValue = "") String tag,
                                       @RequestParam(defaultValue = "1") int page,
                                       @RequestParam(defaultValue = "20") int size) throws Exception {
         auth.requirePermission(token, "CHINESE");
-        return library.poetryPage(query, tag, page, size);
+        return library.poetryPage(query, dynasty, tag, page, size);
     }
 
     /**

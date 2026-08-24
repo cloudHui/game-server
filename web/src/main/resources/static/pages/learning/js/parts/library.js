@@ -67,6 +67,8 @@
                 this.libraryItems = [];
                 this.libraryTip = '';
                 this.libraryTag = '';
+                this.libraryDynasty = '';
+                this.libraryDynasties = [];
                 this.libraryPage = 1;
                 this.libraryTags = [];
                 this.libraryTotal = 0;
@@ -128,15 +130,18 @@
                 this.libraryTip = '';
                 this.clearLibrarySelection();
                 try {
-                    const q = new URLSearchParams({
+                    const params = {
                         query: this.libraryQuery || '',
                         tag: this.libraryTag || '',
                         page: String(page || 1),
                         size: String(this.libraryPageSize || 24)
-                    });
+                    };
+                    if (this.libraryType === 'poetry') params.dynasty = this.libraryDynasty || '';
+                    const q = new URLSearchParams(params);
                     const data = await this.api('library/' + this.libraryType + '?' + q.toString());
                     this.libraryItems = data.items || [];
                     this.libraryTags = data.tags || [];
+                    this.libraryDynasties = data.dynasties || [];
                     this.libraryPage = data.page || 1;
                     this.libraryPageCount = data.pageCount || 1;
                     this.libraryTotal = data.total || 0;
@@ -244,7 +249,7 @@
                 this.loadTextbookTree();
             },
             libraryTitle(item) {
-                if (item.title) return item.title + (item.author ? ' · ' + item.author : '');
+                if (item.title) return item.title + (item.dynasty ? ' · ' + item.dynasty : '') + (item.author ? ' · ' + item.author : '');
                 if (item.word) return item.word;
                 return item.path || item.character || '学习资料';
             },

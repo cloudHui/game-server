@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """从已解压的本地资源目录生成开放学习库索引。"""
-import argparse, csv, hashlib, json, shutil, subprocess
+import argparse, csv, hashlib, json, re, shutil, subprocess
 from pathlib import Path
 
 SKIP_POETRY = {"rank", "strains", "loader", "images", "御定全唐詩"}
@@ -109,12 +109,38 @@ def iter_poetry_items(path):
             yield block
 
 
-def normalize_poem(item):
-    """统一成 title/author/paragraphs。"""
+def infer_dynasty(path, item):
+    """优先使用原始字段，否则按 chinese-poetry 数据目录/文件名推断年代。"""
+    aliases = {"tang": "唐", "song": "宋", "yuan": "元", "qing": "清", "唐代": "唐", "宋代": "宋", "元代": "元", "清代": "清"}
+    explicit = str(item.get("dynasty") or item.get("period") or "").strip()
+    if explicit:
+        return aliases.get(explicit.lower(), aliases.get(explicit, explicit))
+    author = str(item.get("author") or "")
+    prefix = re.match(r"^(先秦|两汉|兩漢|魏晋|魏晉|南北朝|隋|唐|宋|元|明|清)(?:代)?[：:]", author)
+    if prefix:
+        return {"兩漢": "两汉", "魏晉": "魏晋"}.get(prefix.group(1), prefix.group(1))
+    value = "/".join(path.parts).lower()
+    if "poet.song." in value or "宋词" in value:
+        return "宋"
+    if "poet.tang." in value or "全唐诗" in value or "唐诗" in value or "水墨唐诗" in value or "御定全唐詩" in value:
+        return "唐"
+    mappings = (
+        ("五代诗词", "五代"), ("元曲", "元"), ("诗经", "先秦"),
+        ("楚辞", "先秦"), ("论语", "先秦"), ("四书五经", "先秦"),
+        ("曹操诗集", "魏晋"), ("纳兰性德", "清"),
+    )
+    for marker, dynasty in mappings:
+        if marker in value:
+            return dynasty
+    return "其他"
+
+
+def normalize_poem(item, path=Path()):
+    """统一成 title/author/dynasty/paragraphs。"""
     title = item.get("title") or item.get("chapter") or item.get("rhythmic")
     if not title:
         return None
-    paragraphs = item.get("paragraphs") or item.get("content")
+    paragraphs = item.get("paragraphs") or item.get("content") or item.get("para")
     if not paragraphs:
         return None
     if isinstance(paragraphs, str):
@@ -124,7 +150,8 @@ def normalize_poem(item):
     author = item.get("author") or ""
     if isinstance(author, str):
         author = author.replace("（唐）", "").replace("(唐)", "").strip()
-    keep = {"title": title, "author": author, "paragraphs": paragraphs}
+        author = re.sub(r"^(?:先秦|两汉|兩漢|魏晋|魏晉|南北朝|隋|唐|宋|元|明|清)(?:代)?[：:]", "", author).strip()
+    keep = {"title": title, "author": author, "dynasty": infer_dynasty(path, item), "paragraphs": paragraphs}
     if item.get("rhythmic"):
         keep["rhythmic"] = item["rhythmic"]
     return keep
@@ -177,8 +204,11 @@ def build_poetry_index(poetry_path):
     title_dir.mkdir(parents=True)
     author_dir.mkdir(parents=True)
     handles = {}
+    dynasty_counts = {}
+    author_counts = {}
     offset = 0
     try:
+        catalog = (base / "all.tsv").open("w", encoding="utf-8")
         with poetry_path.open("rb") as src:
             while True:
                 raw = src.readline()
@@ -193,6 +223,7 @@ def build_poetry_index(poetry_path):
                     continue
                 title = str(item.get("title") or "").replace("\t", " ").replace("\n", " ")
                 author = str(item.get("author") or "").replace("\t", " ").replace("\n", " ")
+                dynasty = str(item.get("dynasty") or "其他").replace("\t", " ").replace("\n", " ")
                 paras = item.get("paragraphs") or []
                 if isinstance(paras, list):
                     bits = [p if isinstance(p, str) else json.dumps(p, ensure_ascii=False) for p in paras[:2]]
@@ -201,6 +232,11 @@ def build_poetry_index(poetry_path):
                     snippet = str(paras)
                 snippet = snippet.replace("\t", " ").replace("\n", " ")[:80]
                 row = f"{offset}\t{len(body)}\t{title}\t{author}\t{snippet}\n"
+                catalog.write(f"{offset}\t{len(body)}\t{dynasty}\t{author}\t{title}\n")
+                dynasty_counts[dynasty] = dynasty_counts.get(dynasty, 0) + 1
+                dynasty_authors = author_counts.setdefault(dynasty, {})
+                if author:
+                    dynasty_authors[author] = dynasty_authors.get(author, 0) + 1
                 for kind, text, folder in (("t", title, title_dir), ("a", author, author_dir)):
                     name = _shard_name(text)
                     key = (kind, name)
@@ -209,8 +245,13 @@ def build_poetry_index(poetry_path):
                     handles[key].write(row)
                 offset += length
     finally:
+        if "catalog" in locals():
+            catalog.close()
         for out in handles.values():
             out.close()
+    (base / "taxonomy.json").write_text(json.dumps(
+        {"total": sum(dynasty_counts.values()), "dynasties": dynasty_counts, "authors": author_counts},
+        ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return base
 
 
@@ -221,7 +262,7 @@ def poetry(source, target):
     with target.open("w", encoding="utf-8") as out:
         for path in poetry_paths(source):
             for item in iter_poetry_items(path):
-                keep = normalize_poem(item)
+                keep = normalize_poem(item, path)
                 if not keep:
                     continue
                 packed = json.dumps(keep, ensure_ascii=False, separators=(",", ":"))

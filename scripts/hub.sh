@@ -74,7 +74,8 @@ stop_hub() {
 }
 
 start_hub() {
-  local pids ctx console_out
+  local pids ctx console_out unit
+  local -a java_args
   need_java
   require_no_legacy || return 1
   if [[ ! -f "$HUB_JAR" ]]; then
@@ -91,21 +92,29 @@ start_hub() {
   mkdir -p "$BUILD/hub" "$LOG_HOME/hub"
   ctx="/$(web_path)"
   console_out="$LOG_HOME/hub/console.out"
-  echo "[hub] 启动 context-path=${ctx} heap=${INITIAL_HEAP}-${HEAP} stack=256k log=${LOG_HOME}/hub"
-  (
-    cd "$ROOT"
-    nohup java \
-      -Dfile.encoding=UTF-8 \
-      "-DLOG_HOME=${LOG_HOME}" \
-      "-Xms${INITIAL_HEAP}" \
-      "-Xmx${HEAP}" \
-      -XX:+UseG1GC \
-      -Xss256k \
-      "-Dserver.servlet.context-path=${ctx}" \
-      "-Dserver.port=${WEB_PORT}" \
-      "-Dhub.root=${ROOT}" \
-      -jar "$HUB_JAR" >>"$console_out" 2>&1 &
+  java_args=(
+    -Dfile.encoding=UTF-8
+    "-DLOG_HOME=${LOG_HOME}"
+    "-Xms${INITIAL_HEAP}"
+    "-Xmx${HEAP}"
+    -XX:+UseG1GC
+    -Xss256k
+    "-Dserver.servlet.context-path=${ctx}"
+    "-Dserver.port=${WEB_PORT}"
+    "-Dhub.root=${ROOT}"
+    -jar "$HUB_JAR"
   )
+  echo "[hub] 启动 context-path=${ctx} heap=${INITIAL_HEAP}-${HEAP} stack=256k log=${LOG_HOME}/hub"
+  if command -v systemd-run >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
+    unit="game-server-hub-$(date +%s)"
+    systemd-run --user --quiet --collect --unit="$unit" \
+      --property="WorkingDirectory=$ROOT" \
+      --property="StandardOutput=append:$console_out" \
+      --property="StandardError=append:$console_out" \
+      java "${java_args[@]}"
+  else
+    (cd "$ROOT" && nohup java "${java_args[@]}" >>"$console_out" 2>&1 &)
+  fi
   sleep 1
   pids="$(hub_pids)"
   if [[ -n "$pids" ]]; then
