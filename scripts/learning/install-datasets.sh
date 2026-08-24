@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_DIR="${1:-datasets}"
-TARGET_DIR="${2:-data/learning/datasets}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PACKAGE_DIR="${1:-$ROOT/datasets}"
+TARGET_DIR="${2:-$ROOT/data/learning/datasets}"
 
 [[ -d "$PACKAGE_DIR" ]] || { echo "数据包目录不存在: $PACKAGE_DIR" >&2; exit 1; }
 mkdir -p "$TARGET_DIR"
