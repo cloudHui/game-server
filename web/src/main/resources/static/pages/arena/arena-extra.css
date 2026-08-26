@@ -1,0 +1,10 @@
+.overview { display:flex; gap:10px; flex-wrap:wrap; margin-top:22px; }
+.overview span { padding:8px 12px; background:#07111399; border:1px solid var(--line); }
+.chests { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:16px 0; }
+.chest { border:1px solid var(--line); padding:14px; background:var(--panel); display:grid; gap:8px; }
+.chest.ready { border-color:var(--gold); box-shadow:0 0 18px #e7ba6622; }
+#dungeon-result { margin-top:14px; }
+.battle-result { border:1px solid var(--gold); padding:18px; background:#182d2b; }
+.battle-result b { color:var(--gold); }
+.power { color:var(--jade); }
+@media(max-width:760px) { .chests { grid-template-columns:1fr; } }
