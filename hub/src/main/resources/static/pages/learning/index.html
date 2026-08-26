@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#7357e8">
     <title>成长小课堂</title>
     <link rel="stylesheet" href="css/app.css?v=20260730-2">
-    <link rel="stylesheet" href="css/features.css?v=20260826-1">
+    <link rel="stylesheet" href="css/features.css?v=20260826-2">
     <link rel="stylesheet" href="css/viewport-fit.css?v=20260826-1">
     <link rel="stylesheet" href="../../shared/theme.css">
 </head>
@@ -74,58 +74,45 @@
         </header>
 
         <main class="content">
-            <section v-if="view === 'home'">
-                <div class="hero" v-if="homePage === 1">
+            <section v-if="view === 'home'" class="home-page">
+                <div class="hero">
                     <div><p class="eyebrow">{{ greeting }}</p>
                         <h1>{{ student.name }}，今天想学什么？</h1>
                         <p>每天进步一点点，就是很棒的成长。</p></div>
                     <div class="hero-star">★</div>
                 </div>
-                <div v-if="homePage === 1" class="stats-grid four home-stats">
+                <div class="stats-grid four home-stats">
                     <div><span>今日完成量</span><strong>{{ dashboard.completed || 0 }}</strong><small>题 / 字</small></div>
                     <div><span>今日正确率</span><strong>{{ dashboard.accuracy || 0 }}%</strong><small>继续加油</small></div>
                     <div><span>待复习错题</span><strong>{{ dashboard.pendingMistakes || 0 }}</strong><small>条</small></div>
                     <div><span>连续学习</span><strong>{{ dashboard.streakDays || 0 }}</strong><small>天</small></div>
                 </div>
-
-                <div v-else-if="homePage === 2" class="home-panel">
-                    <div class="section-heading"><div><p class="eyebrow">学习天地</p><h2>选择学习专区</h2></div><span>1 / 2</span></div>
-                    <div class="subject-grid">
-                        <button v-if="hasPerm('CHINESE')" class="subject chinese" @click="openView('chinese')">
-                            <i>语</i><span><b>语文区</b><small>识字 · 听写 · 手写</small></span></button>
-                        <button v-if="hasPerm('MATH')" class="subject math" @click="openView('math')">
-                            <i>数</i><span><b>数学区</b><small>加减法 · 文字题</small></span></button>
-                        <button v-if="hasPerm('ENGLISH')" class="subject english" @click="openSubject('英语')">
-                            <i>英</i><span><b>英语区</b><small>字母 · 单词 · 听力</small></span></button>
-                        <button v-if="hasPerm('PRIMARY')" class="subject primary-school" @click="openView('stages')">
-                            <i>小</i><span><b>小学区</b><small>幼小衔接至六年级</small></span></button>
-                        <button v-if="hasPerm('HISTORY')" class="subject history" @click="openSubject('历史')">
-                            <i>史</i><span><b>历史区</b><small>人物 · 故事 · 时间线</small></span></button>
-                        <button v-if="hasPerm('CHEMISTRY')" class="subject chemistry" @click="openSubject('化学')">
-                            <i>化</i><span><b>化学区</b><small>知识卡片 · 小测验</small></span></button>
-                    </div>
-                </div>
-
-                <div v-else class="home-panel">
-                    <div class="section-heading"><div><p class="eyebrow">学习管理</p><h2>复习与成长</h2></div><span>2 / 2</span></div>
-                    <div class="tool-grid">
-                    <button v-if="hasPerm('MISTAKES')" @click="openView('mistakes')">
-                        <span>📝</span><b>错题复习</b><small>{{ dashboard.pendingMistakes || 0 }} 条待复习</small>
-                    </button>
-                    <button v-if="hasPerm('STATS')" @click="openView('stats')"><span>📈</span><b>学习统计</b><small>趋势与掌握情况</small>
-                    </button>
-                    <button v-if="hasPerm('RECORDS')" @click="openView('records')"><span>📊</span><b>学习记录</b><small>查看成长足迹</small>
-                    </button>
-                    <button v-if="hasPerm('PRINT')" @click="openView('print')"><span>🖨️</span><b>题目打印</b><small>随机算术与文字题</small>
-                    </button>
-                    <button v-if="hasPerm('RESOURCES')" @click="openView('resources')">
-                        <span>📚</span><b>资源中心</b><small>教材 · 汉字 · 词典 · 诗词</small></button>
-                </div>
-                </div>
-                <div class="home-pager">
-                    <button type="button" :disabled="homePage <= 1" @click="homePage--">上一页</button>
-                    <span>第 {{ homePage }} / 3 页</span>
-                    <button type="button" :disabled="homePage >= 3" @click="homePage++">下一页</button>
+                <div class="home-module-grid">
+                    <section class="home-module">
+                        <div class="section-heading">
+                            <div><p class="eyebrow">学习天地</p><h2>选择学习专区</h2></div>
+                            <span>按学科进入</span>
+                        </div>
+                        <div class="home-link-list">
+                            <learning-module-link v-for="item in visibleHomeLearningModules" :key="item.id" :item="item"
+                                                  @open="openHomeModule(item)"></learning-module-link>
+                        </div>
+                    </section>
+                    <section class="home-module home-management-module">
+                        <div class="section-heading">
+                            <div><p class="eyebrow">学习管理</p><h2>复习与成长</h2></div>
+                            <span>按需要使用</span>
+                        </div>
+                        <div class="home-link-list">
+                            <learning-module-link v-for="item in visibleHomeManagementModules" :key="item.id" :item="item"
+                                                  @open="openHomeModule(item)"></learning-module-link>
+                        </div>
+                        <div class="home-guidance">
+                            <b>今日建议</b>
+                            <p v-if="dashboard.pendingMistakes">先复习 {{ dashboard.pendingMistakes }} 条待复习错题，再开始新练习。</p>
+                            <p v-else>先完成一组短练习，系统会记录今天的学习进度。</p>
+                        </div>
+                    </section>
                 </div>
             </section>
 
@@ -361,43 +348,42 @@
             <section v-else-if="view === 'stats'" class="page-section">
                 <div class="page-heading">
                     <div><p class="eyebrow">个人数据</p>
-                        <h1>学习统计</h1></div>
-                    <button @click="loadStats">刷新</button>
-                </div>
-                <div v-if="statsPage === 1" class="stats-page">
-                    <div class="stats-grid four">
-                        <div><span>今日学习</span><strong>{{ formatDuration(statsData.today?.studySeconds||0) }}</strong><small>{{ statsData.today?.sessions||0 }} 次练习</small></div>
-                        <div><span>今日完成</span><strong>{{ statsData.today?.completed||0 }}</strong><small>题 / 字</small></div>
-                        <div><span>今日正确率</span><strong>{{ statsData.today?.accuracy||0 }}%</strong><small>新增错题 {{ statsData.today?.newMistakes||0 }}</small></div>
-                        <div><span>连续学习</span><strong>{{ statsData.habits?.streakDays||0 }}</strong><small>天</small></div>
+                        <h1>学习统计</h1><p class="muted">按页签查看，不把所有指标堆在一屏。</p></div>
+                    <div class="page-heading-actions">
+                        <learning-tabs class="stats-tabs" :items="statsTabs" :active="statsTab"
+                                       @change="statsTab=$event" aria-label="统计模块"></learning-tabs>
+                        <button @click="loadStats">刷新</button>
                     </div>
-                    <article class="stats-panel-wide"><h2>最近7天趋势</h2>
-                        <div class="trend-bars">
-                            <div v-for="day in statsData.trends7||[]"><span>{{ day.date.slice(5) }}</span><i :style="{height: Math.max(4,day.completed*4)+'px'}"></i><b>{{ day.completed }}</b></div>
+                </div>
+                <div class="stats-page">
+                    <template v-if="statsTab==='overview'">
+                        <div class="stats-grid four">
+                            <div v-for="card in statsOverviewCards" :key="card.id"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>{{ card.note }}</small></div>
                         </div>
-                    </article>
+                        <article class="stats-panel-wide"><div class="stats-card-heading"><div><h2>最近 7 天趋势</h2><p>每天完成的题目和汉字数量</p></div><span>学习节奏</span></div>
+                            <div class="trend-bars">
+                                <div v-for="day in statsData.trends7||[]"><span>{{ day.date.slice(5) }}</span><i :style="{height: Math.max(4,day.completed*4)+'px'}"></i><b>{{ day.completed }}</b></div>
+                            </div>
+                        </article>
+                        <article class="stats-insight"><b>怎么看今天的数据</b><p>完成量反映练习次数，正确率反映当前掌握程度；如果待复习错题增加，优先进入“复习进度”页处理。</p></article>
+                    </template>
+                    <div v-else-if="statsTab==='subjects'" class="stats-panels stats-detail-grid stats-subject-grid">
+                        <article v-for="card in statsSubjectCards" :key="card.id"><div class="stats-card-heading"><div><h2>{{ card.title }}</h2><p>{{ card.subtitle }}</p></div><span>{{ card.badge }}</span></div>
+                            <p v-for="item in card.items" :key="item.label"><span>{{ item.label }}</span> <b>{{ item.value }}</b></p></article>
+                        <article class="stats-insight"><b>按学科看进步</b><p>语文关注认识、模糊、未学的变化；数学同时看正确率和答题时间，避免只追求做题数量。</p></article>
+                    </div>
+                    <div v-else class="stats-panels stats-detail-grid stats-review-grid">
+                        <article><div class="stats-card-heading"><div><h2>错题状态</h2><p>复习优先处理未掌握内容</p></div><span>复习</span></div>
+                            <p v-for="(count,status) in statsData.mistakes?.status||{}"><span>{{ status }}</span> <b>{{ count }}</b></p>
+                            <p v-if="!Object.keys(statsData.mistakes?.status||{}).length" class="muted">暂时没有错题数据。</p></article>
+                        <article><div class="stats-card-heading"><div><h2>阶段进度</h2><p>当前学习阶段完成情况</p></div><span>进度</span></div>
+                            <p>{{ statsData.stageProgress?.stage || '尚未开始' }}</p>
+                            <div class="progress-line"><i :style="{width:(statsData.stageProgress?.percent||0)+'%'}"></i></div>
+                            <p>{{ statsData.stageProgress?.completed||0 }} / {{ statsData.stageProgress?.total||0 }}（{{ statsData.stageProgress?.percent||0 }}%）</p>
+                            <div class="subject-summary"><p v-for="item in statsData.subjects||[]">{{ item.subject }}：{{ item.sessions }} 次 · {{ item.accuracy }}%</p></div></article>
+                        <article class="stats-insight"><b>下一步</b><p v-if="dashboard.pendingMistakes">现在有 {{ dashboard.pendingMistakes }} 条待复习内容，建议先复习再开始新题。</p><p v-else>当前没有待复习错题，可以继续保持每天练习。</p></article>
+                    </div>
                 </div>
-                <div v-else-if="statsPage === 2" class="stats-panels stats-page">
-                    <article><h2>语文统计</h2>
-                        <p>已学汉字 <b>{{ statsData.chinese?.learned||0 }}</b> 个</p>
-                        <p>认识 {{ statsData.chinese?.known||0 }} · 模糊 {{ statsData.chinese?.fuzzy||0 }} · 未学 {{ statsData.chinese?.unknown||0 }}</p>
-                        <p>听写正确率 {{ statsData.chinese?.dictationAccuracy||0 }}%</p></article>
-                    <article><h2>数学统计</h2>
-                        <p>累计完成 <b>{{ statsData.math?.total||0 }}</b> 题</p>
-                        <p>正确率 {{ statsData.math?.accuracy||0 }}%</p>
-                        <p>平均每题 {{ statsData.math?.averageSeconds||0 }} 秒</p></article>
-                </div>
-                <div v-else class="stats-panels stats-page">
-                    <article><h2>错题状态</h2>
-                        <p v-for="(count,status) in statsData.mistakes?.status||{}"><span>{{ status }}</span> <b>{{ count }}</b></p></article>
-                    <article><h2>阶段进度</h2>
-                        <p>{{ statsData.stageProgress?.stage }}</p>
-                        <div class="progress-line"><i :style="{width:(statsData.stageProgress?.percent||0)+'%'}"></i></div>
-                        <p>{{ statsData.stageProgress?.completed||0 }} / {{ statsData.stageProgress?.total||0 }}（{{ statsData.stageProgress?.percent||0 }}%）</p>
-                        <div class="subject-summary"><p v-for="item in statsData.subjects||[]">{{ item.subject }}：{{ item.sessions }} 次 · {{ item.accuracy }}%</p></div>
-                    </article>
-                </div>
-                <learning-pager :page="statsPage" :page-count="3" :total="3" @change="changeStatsPage"></learning-pager>
             </section>
 
             <section v-else-if="view === 'print'" class="page-section print-page">
@@ -461,89 +447,118 @@
                     <div><p class="eyebrow">资源中心</p>
                         <h1>{{ resourceMode === 'library' ? '开放学习库' : '家庭资料夹' }}</h1>
                         <p class="muted">列表分页展示，点条目打开独立详情。</p></div>
-                    <div class="segmented resource-mode"><button type="button" :class="{active:resourceMode==='library'}" @click="resourceMode='library'">学习库</button><button type="button" :class="{active:resourceMode==='uploads'}" @click="resourceMode='uploads'">家庭资料</button></div>
+                    <learning-tabs class="resource-mode" :items="resourceTabs" :active="resourceMode"
+                                   @change="resourceMode=$event"></learning-tabs>
                 </div>
                 <article v-if="resourceMode === 'library'" class="card library-search">
-                    <div class="library-types">
-                        <button v-for="item in visibleLibraryTypes" :key="item.id"
-                                :class="{active:libraryType===item.id}" @click="selectLibraryType(item.id)">
-                            <span>{{ item.icon }}</span>{{ item.name }}
-                        </button>
-                    </div>
-                    <div class="library-query" v-if="libraryType!=='textbooks' || textbookMode==='search'">
-                        <input v-model.trim="libraryQuery" @keyup.enter="searchLibrary"
-                               :placeholder="libraryPlaceholder">
-                        <button class="primary" :disabled="libraryLoading" @click="searchLibrary">{{
-                            libraryLoading?'查询中…':'查询' }}
-                        </button>
-                        <button v-if="libraryType==='poetry'" :disabled="libraryLoading" @click="resetPoetryFilters">重置</button>
-                    </div>
-                    <p class="muted">{{ libraryHint }}</p>
+                    <section class="library-module library-module-types">
+                        <learning-module-header eyebrow="资源模块" title="选择学习库" description="先选模块，再在对应内容区浏览。"
+                                                :count="visibleLibraryTypes.length + ' 个模块'"></learning-module-header>
+                        <div class="library-types">
+                            <button v-for="item in visibleLibraryTypes" :key="item.id"
+                                    :class="{active:libraryType===item.id}" @click="selectLibraryType(item.id)">
+                                <span>{{ item.icon }}</span><b>{{ item.name }}</b><small>{{ item.description }}</small>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="library-module library-module-query">
+                        <learning-module-header :eyebrow="libraryType==='textbooks' ? '目录方式' : '查询入口'"
+                                                :title="libraryType==='textbooks' ? '目录浏览或搜索' : '查找内容'"
+                                                :description="libraryHint" :count="libraryLoading ? '加载中…' : ''"></learning-module-header>
+                        <div class="library-query" v-if="libraryType!=='textbooks' || textbookMode==='search'">
+                            <input v-model.trim="libraryQuery" @keyup.enter="searchLibrary"
+                                   :placeholder="libraryPlaceholder">
+                            <button class="primary" :disabled="libraryLoading" @click="searchLibrary">{{
+                                libraryLoading?'查询中…':'查询' }}
+                            </button>
+                            <button v-if="libraryType==='poetry'" :disabled="libraryLoading" @click="resetPoetryFilters">重置</button>
+                        </div>
+                        <p v-if="libraryType==='textbooks' && textbookMode==='browse'" class="library-path">当前位置：{{ textbookPrefix || '全部教材' }}</p>
+                    </section>
                     <p v-if="libraryStatusTip" class="library-status">{{ libraryStatusTip }}</p>
                     <p v-if="libraryLoading" class="library-status">正在查询本地数据，请稍候…</p>
 
-                    <!-- 教材：目录树，保持原交互 -->
-                    <template v-else-if="libraryType==='textbooks'">
-                        <div class="textbook-toolbar">
-                            <button :class="{active:textbookMode==='browse'}"
-                                    @click="textbookMode='browse';libraryQuery='';loadTextbookTree()">目录浏览
-                            </button>
-                            <button :class="{active:textbookMode==='search'}"
-                                    @click="textbookMode='search';libraryItems=[];librarySelected=null">搜索
-                            </button>
-                        </div>
-                        <p v-if="textbookMode==='browse'" class="muted">当前位置：{{ textbookPrefix || '全部教材' }}</p>
-                        <div v-if="textbookMode==='browse' && textbookFolders.length" class="folder-grid">
-                            <button v-for="folder in visibleTextbookFolders" :key="folder" @click="openTextbookFolder(folder)">
-                                📁 {{ folder }}
-                            </button>
-                        </div>
-                        <learning-pager v-if="textbookFolders.length" :page="textbookFolderPage"
-                                        :page-count="textbookFolderPageCount" :total="textbookFolders.length"
-                                        @change="changeTextbookFolderPage"></learning-pager>
-                        <div class="resource-list" v-if="libraryItems.length">
-                            <article v-for="item in visibleTextbookItems" :key="item.url||item.path">
-                                <span>📕</span>
-                                <div><h3>{{ item.path.split('/').pop() }}</h3><small>{{ item.path }}</small></div>
-                                <button v-if="item.url" @click="openLibrary(item)">打开地址</button>
-                            </article>
-                        </div>
-                        <learning-pager v-if="libraryItems.length" :page="textbookBookPage"
-                                        :page-count="textbookBookPageCount" :total="libraryItems.length"
-                                        @change="changeTextbookBookPage"></learning-pager>
-                        <p v-else-if="libraryTip" class="library-status">{{ libraryTip }}</p>
+                    <template v-if="libraryType==='textbooks'">
+                        <section class="library-module library-module-textbooks">
+                            <div class="textbook-toolbar">
+                                <button :class="{active:textbookMode==='browse'}"
+                                        @click="textbookMode='browse';libraryQuery='';loadTextbookTree()">目录浏览
+                                </button>
+                                <button :class="{active:textbookMode==='search'}"
+                                        @click="textbookMode='search';libraryItems=[];librarySelected=null">搜索
+                                </button>
+                            </div>
+                            <div v-if="textbookMode==='browse' && textbookFolders.length" class="library-submodule">
+                                <div class="library-submodule-heading"><b>目录文件夹</b><small>点文件夹进入下一层</small></div>
+                                <div class="folder-grid">
+                                    <button v-for="folder in visibleTextbookFolders" :key="folder" @click="openTextbookFolder(folder)">
+                                        📁 {{ folder }}
+                                    </button>
+                                </div>
+                                <learning-pager v-if="textbookFolderPageCount > 1" :page="textbookFolderPage"
+                                                :page-count="textbookFolderPageCount" :total="textbookFolders.length"
+                                                @change="changeTextbookFolderPage"></learning-pager>
+                            </div>
+                            <div v-if="libraryItems.length" class="library-submodule">
+                                <div class="library-submodule-heading"><b>{{ textbookMode==='search' ? '搜索结果' : '当前目录教材' }}</b><small>共 {{ libraryItems.length }} 项</small></div>
+                                <div class="resource-list">
+                                    <article v-for="item in visibleTextbookItems" :key="item.url||item.path">
+                                        <span>📕</span>
+                                        <div><h3>{{ item.path.split('/').pop() }}</h3><small>{{ item.path }}</small></div>
+                                        <button v-if="item.url" @click="openLibrary(item)">打开地址</button>
+                                    </article>
+                                </div>
+                                <learning-pager v-if="textbookBookPageCount > 1" :page="textbookBookPage"
+                                                :page-count="textbookBookPageCount" :total="libraryItems.length"
+                                                @change="changeTextbookBookPage"></learning-pager>
+                            </div>
+                            <p v-if="!textbookFolders.length && !libraryItems.length && libraryTip" class="library-status">{{ libraryTip }}</p>
+                        </section>
                     </template>
 
-                    <!-- 其余库：列表 + 小面板 + 翻页 -->
                     <template v-else>
-                        <div class="tag-row" v-if="libraryType==='poetry' && libraryDynasties.length">
-                            <b class="tag-label">年代</b>
-                            <button type="button" :class="{active:!libraryDynasty}" @click="selectPoetryDynasty('')">全部</button>
-                            <button type="button" v-for="tag in libraryDynasties" :key="tag.id"
-                                    :class="{active:libraryDynasty===tag.id}" @click="selectPoetryDynasty(tag.id)">{{ tag.name
-                                }}<small>{{ tag.count }}</small></button>
-                        </div>
-                        <!-- 统一：全部 + 标签；与搜索可叠加 -->
-                        <div class="tag-row" v-if="libraryTags.length">
-                            <b v-if="libraryType==='poetry'" class="tag-label">诗人</b>
-                            <button type="button" :class="{active:!libraryTag}" @click="selectLibraryTag('')">全部
-                            </button>
-                            <button type="button" v-for="tag in libraryTags" :key="tag.id"
-                                    :class="{active:libraryTag===tag.id}" @click="selectLibraryTag(tag.id)">{{ tag.name
-                                }}<small v-if="tag.count">{{ tag.count }}</small></button>
-                        </div>
-                        <div class="library-list-grid" v-if="libraryItems.length">
-                            <button v-for="(item,index) in libraryItems" :key="libraryItemKey(item,index)"
-                                    type="button" class="library-item" @click="selectLibraryItem(index)">
-                                <span class="library-item-icon">{{ libraryType==='poetry' ? '📜' : libraryType==='character' ? '✍️' : '📘' }}</span>
-                                <b>{{ libraryTitle(item) }}</b>
-                                <small>{{ libraryText(item) }}</small>
-                                <span class="list-card-link">打开详情 →</span>
-                            </button>
-                        </div>
-                        <p v-else-if="libraryTip" class="library-status">{{ libraryTip }}</p>
-                        <learning-pager :page="libraryPage" :page-count="libraryPageCount" :total="libraryTotal"
-                                        :loading="libraryLoading" @change="loadLibraryPage"></learning-pager>
+                        <section class="library-module library-filter-module" v-if="libraryType==='poetry' && libraryDynasties.length">
+                            <learning-module-header eyebrow="第一层筛选" title="按朝代" description="先缩小年代范围，再看诗人。"
+                                                    :count="libraryDynasties.length + ' 个朝代'"></learning-module-header>
+                            <div class="tag-row">
+                                <b class="tag-label">朝代</b>
+                                <button type="button" :class="{active:!libraryDynasty}" @click="selectPoetryDynasty('')">全部</button>
+                                <button type="button" v-for="tag in visibleLibraryDynasties" :key="tag.id"
+                                        :class="{active:libraryDynasty===tag.id}" @click="selectPoetryDynasty(tag.id)">{{ tag.name }}<small>{{ tag.count }}</small></button>
+                            </div>
+                            <learning-pager v-if="libraryDynastyPageCount > 1" class="library-filter-pager" :page="libraryDynastyPage" :page-count="libraryDynastyPageCount" :total="libraryDynasties.length"
+                                            :loading="libraryLoading" @change="changeLibraryDynastyPage"></learning-pager>
+                        </section>
+                        <section class="library-module library-filter-module" v-if="libraryTags.length">
+                            <learning-module-header eyebrow="第二层筛选" :title="libraryFilterLabel" :description="libraryFilterHint"
+                                                    :count="libraryTags.length + ' 个选项'"></learning-module-header>
+                            <div class="tag-row">
+                                <b class="tag-label">{{ libraryFilterLabel }}</b>
+                                <button type="button" :class="{active:!libraryTag}" @click="selectLibraryTag('')">{{ libraryFilterAllLabel }}</button>
+                                <button type="button" v-for="tag in visibleLibraryTags" :key="tag.id"
+                                        :class="{active:libraryTag===tag.id}" @click="selectLibraryTag(tag.id)">{{ tag.name }}<small v-if="tag.count">{{ tag.count }}</small></button>
+                            </div>
+                            <learning-pager v-if="libraryTagPageCount > 1" class="library-filter-pager" :page="libraryTagPage" :page-count="libraryTagPageCount" :total="libraryTags.length"
+                                            :loading="libraryLoading" @change="changeLibraryTagPage"></learning-pager>
+                        </section>
+                        <section class="library-module library-results-module">
+                            <learning-module-header eyebrow="内容列表" :title="libraryResultsTitle"
+                                                    :description="libraryTotal ? '当前筛选共 ' + libraryTotal + ' 条' : '暂无符合条件的内容'"
+                                                    :count="libraryTotal ? '第 ' + libraryPage + ' / ' + libraryPageCount + ' 页' : ''"></learning-module-header>
+                            <div class="library-list-grid" :class="'library-list-' + libraryType" v-if="libraryItems.length">
+                                <button v-for="(item,index) in libraryItems" :key="libraryItemKey(item,index)"
+                                        type="button" class="library-item" :class="'library-item-' + libraryType" @click="selectLibraryItem(index)">
+                                    <span class="library-item-icon">{{ libraryType==='poetry' ? '📜' : libraryType==='character' ? '✍️' : '📘' }}</span>
+                                    <b>{{ libraryTitle(item) }}</b>
+                                    <small>{{ libraryText(item) }}</small>
+                                    <span class="list-card-link">打开详情 →</span>
+                                </button>
+                            </div>
+                            <p v-else-if="libraryTip" class="library-status">{{ libraryTip }}</p>
+                            <learning-pager :page="libraryPage" :page-count="libraryPageCount" :total="libraryTotal"
+                                            :loading="libraryLoading" @change="loadLibraryPage"></learning-pager>
+                        </section>
                     </template>
                 </article>
                 <div v-else class="upload-block">
@@ -590,7 +605,7 @@
                     <button v-for="stage in visibleStages" :key="stage.name" @click="chooseStage(stage.name)"><i>{{ stage.index }}</i><b>{{ stage.name
                         }}</b><small>{{ stage.index===0?'打好入学基础':'同步阶段学习' }}</small></button>
                 </div>
-                <learning-pager :page="stagePage" :page-count="stagePageCount" :total="stages.length"
+                <learning-pager v-if="stagePageCount > 1" :page="stagePage" :page-count="stagePageCount" :total="stages.length"
                                 @change="changeStagePage"></learning-pager>
             </section>
 
@@ -638,9 +653,11 @@
                 <p class="detail-translation">{{ librarySelected.translation || '暂无释义' }}</p>
             </div>
             <div v-else-if="libraryType === 'poetry'" class="library-detail poetry-detail">
-                <p class="detail-poetry-author">{{ librarySelected.dynasty }} · {{ librarySelected.author }}</p>
-                <p v-for="(line,idx) in (librarySelected.paragraphs||[])" :key="idx" class="poetry-line">{{ line }}</p>
-                <div class="answer-actions"><button class="primary" type="button" @click="speak((librarySelected.paragraphs||[]).join(' '))">朗读</button><button type="button" @click="recordPoetryRead">记一次阅读</button></div>
+                <div class="poetry-detail-head"><span>古诗词</span><p class="detail-poetry-author">{{ librarySelected.dynasty }} · {{ librarySelected.author }}</p></div>
+                <div class="poetry-lines">
+                    <p v-for="(line,idx) in (librarySelected.paragraphs||[])" :key="idx" class="poetry-line"><i>{{ idx + 1 }}</i><span>{{ line }}</span></p>
+                </div>
+                <div class="answer-actions poetry-actions"><button class="primary" type="button" @click="speak((librarySelected.paragraphs||[]).join(' '))">朗读</button><button type="button" @click="recordPoetryRead">记一次阅读</button></div>
             </div>
             <div v-else class="library-detail character-detail">
                 <div class="stroke-head"><b class="stroke-char">{{ strokeData ? strokeData.character : librarySelected.character }}</b><span v-if="strokeData">{{ Array.isArray(strokeData.pinyin) ? strokeData.pinyin.join(' ') : strokeData.pinyin }}</span></div>
@@ -700,14 +717,14 @@
 </div>
 <script src="js/vue.global.prod.js?v=20260720-2"></script>
 <script src="js/parts/merge.js?v=20260826-1"></script>
-<script src="js/parts/ui.js?v=20260826-1"></script>
-<script src="js/parts/core.js?v=20260826-1"></script>
+<script src="js/parts/ui.js?v=20260826-2"></script>
+<script src="js/parts/core.js?v=20260826-2"></script>
 <script src="js/parts/chinese.js?v=20260826-1"></script>
 <script src="js/parts/math.js?v=20260826-1"></script>
 <script src="js/parts/olympiad.js?v=20260826-1"></script>
-<script src="js/parts/poetry-library.js?v=20260826-1"></script>
-<script src="js/parts/library.js?v=20260826-1"></script>
-<script src="js/parts/resources.js?v=20260826-1"></script>
+<script src="js/parts/poetry-library.js?v=20260826-2"></script>
+<script src="js/parts/library.js?v=20260826-2"></script>
+<script src="js/parts/resources.js?v=20260826-2"></script>
 <script src="js/app.js?v=20260826-1"></script>
 </body>
 </html>

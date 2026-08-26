@@ -14,6 +14,10 @@
             libraryPageCount: 1,
             libraryTotal: 0,
             libraryPageSize: 4,
+            libraryTagPage: 1,
+            libraryTagPageSize: 6,
+            libraryDynastyPage: 1,
+            libraryDynastyPageSize: 4,
             librarySelected: null,
             librarySelectedIndex: -1,
             libraryPanelImage: '',
@@ -26,12 +30,12 @@
             strokeData: null,
             englishAudio: null,
             libraryTypes: [
-                {id: 'english', name: '英语图卡', icon: '🎧'},
-                {id: 'vocab', name: '常用单词', icon: 'Aa'},
-                {id: 'character', name: '汉字笔顺', icon: '✍️'},
-                {id: 'poetry', name: '古诗词', icon: '📜'},
-                {id: 'dictionary', name: '英汉词典', icon: '🔤'},
-                {id: 'textbooks', name: '教材目录', icon: '📚'}
+                {id: 'english', permission: 'ENGLISH', pageSize: 4, name: '英语图卡', icon: '🎧', description: '按标签与搜索'},
+                {id: 'vocab', permission: 'ENGLISH', pageSize: 4, name: '常用单词', icon: 'Aa', description: '按标签与搜索'},
+                {id: 'character', permission: 'CHINESE', pageSize: 4, name: '汉字笔顺', icon: '✍️', description: '按常用字浏览'},
+                {id: 'poetry', permission: 'CHINESE', pageSize: 4, name: '古诗词', icon: '📜', description: '按朝代与诗人'},
+                {id: 'dictionary', permission: 'ENGLISH', pageSize: 4, name: '英汉词典', icon: '🔤', description: '按 A-Z 字母'},
+                {id: 'textbooks', permission: 'RESOURCES', pageSize: 24, name: '教材目录', icon: '📚', description: '按目录浏览'}
             ]
         },
         computed: {
@@ -56,11 +60,7 @@
                 }[this.libraryType] || '';
             },
             visibleLibraryTypes() {
-                return this.libraryTypes.filter(item => {
-                    if (item.id === 'english' || item.id === 'dictionary' || item.id === 'vocab') return this.hasPerm('ENGLISH');
-                    if (item.id === 'character' || item.id === 'poetry') return this.hasPerm('CHINESE');
-                    return this.hasPerm('RESOURCES');
-                });
+                return this.libraryTypes.filter(item => this.hasPerm(item.permission));
             },
             visibleTextbookFolders() {
                 return this.pageItems(this.textbookFolders, this.textbookFolderPage, this.textbookPageSize);
@@ -73,6 +73,41 @@
             },
             textbookBookPageCount() {
                 return this.pageCount(this.libraryItems, this.textbookPageSize);
+            },
+            visibleLibraryTags() {
+                return this.pageItems(this.libraryTags, this.libraryTagPage, this.libraryTagPageSize);
+            },
+            libraryTagPageCount() {
+                return this.pageCount(this.libraryTags, this.libraryTagPageSize);
+            },
+            visibleLibraryDynasties() {
+                return this.pageItems(this.libraryDynasties, this.libraryDynastyPage, this.libraryDynastyPageSize);
+            },
+            libraryDynastyPageCount() {
+                return this.pageCount(this.libraryDynasties, this.libraryDynastyPageSize);
+            },
+            libraryFilterLabel() {
+                if (this.libraryType === 'dictionary') return '字母';
+                if (this.libraryType === 'poetry') return '诗人';
+                if (this.libraryType === 'character') return '范围';
+                return '分类';
+            },
+            libraryFilterAllLabel() {
+                return this.libraryType === 'dictionary' ? '全部字母' : '全部';
+            },
+            libraryResultsTitle() {
+                return {
+                    dictionary: '词条列表',
+                    poetry: '古诗词列表',
+                    character: '汉字列表',
+                    english: '英语图卡',
+                    vocab: '常用单词'
+                }[this.libraryType] || '学习资料列表';
+            },
+            libraryFilterHint() {
+                if (this.libraryType === 'dictionary') return '按首字母分组，每页显示 6 个字母';
+                if (this.libraryType === 'poetry') return '先按朝代，再按诗人分组';
+                return '按分类分组，每页显示 6 个标签';
             }
         },
         methods: {
@@ -88,13 +123,9 @@
                 this.libraryTags = [];
                 this.libraryTotal = 0;
                 this.libraryPageCount = 1;
-                this.libraryPageSize = ({
-                    vocab: 4,
-                    dictionary: 4,
-                    poetry: 4,
-                    character: 4,
-                    english: 4
-                })[type] || 24;
+                this.resetLibraryFilterPages();
+                const config = this.libraryTypes.find(item => item.id === type);
+                this.libraryPageSize = config ? config.pageSize || 24 : 24;
                 this.clearLibrarySelection();
                 this.textbookPrefix = '';
                 this.textbookFolders = [];
@@ -165,6 +196,8 @@
                     this.libraryPageCount = data.pageCount || 1;
                     this.libraryTotal = data.total || 0;
                     this.libraryPageSize = data.size || this.libraryPageSize;
+                    if (this.libraryTagPage > this.libraryTagPageCount) this.libraryTagPage = 1;
+                    if (this.libraryDynastyPage > this.libraryDynastyPageCount) this.libraryDynastyPage = 1;
                     if (!this.libraryItems.length) this.libraryTip = '没有内容，换个筛选或关键词试试。';
                 } catch (error) {
                     this.libraryItems = [];
@@ -177,6 +210,16 @@
             selectLibraryTag(tag) {
                 this.libraryTag = this.libraryTag === tag ? '' : tag;
                 this.loadLibraryPage(1);
+            },
+            resetLibraryFilterPages() {
+                this.libraryTagPage = 1;
+                this.libraryDynastyPage = 1;
+            },
+            changeLibraryTagPage(page) {
+                this.changeCollectionPage('libraryTagPage', page, this.libraryTagPageCount);
+            },
+            changeLibraryDynastyPage(page) {
+                this.changeCollectionPage('libraryDynastyPage', page, this.libraryDynastyPageCount);
             },
             clearLibrarySelection() {
                 this.closeDetail();

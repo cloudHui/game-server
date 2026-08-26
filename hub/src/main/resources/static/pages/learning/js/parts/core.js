@@ -26,11 +26,32 @@
             selectedStage: '幼小衔接',
             stages: ['幼小衔接', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
             stagePage: 1,
-            stagePageSize: 4,
+            stagePageSize: 8,
             subjectName: '',
             subjectItems: [],
             subjectPage: 1,
-            subjectPageSize: 4
+            subjectPageSize: 4,
+            statsTab: 'overview',
+            statsTabs: [
+                {id: 'overview', label: '总览'},
+                {id: 'subjects', label: '学科'},
+                {id: 'review', label: '复习进度'}
+            ],
+            homeLearningModules: [
+                {id: 'chinese', permission: 'CHINESE', icon: '语', title: '语文区', description: '识字、听写、手写练习', meta: '从本阶段汉字开始', accent: '#d97745', view: 'chinese'},
+                {id: 'math', permission: 'MATH', icon: '数', title: '数学区', description: '加减法、文字题、奥数思维', meta: '按难度生成一组练习', accent: '#3978c8', view: 'math'},
+                {id: 'english', permission: 'ENGLISH', icon: '英', title: '英语区', description: '字母、单词、听力', meta: '从词卡或学习内容开始', accent: '#269264', subject: '英语'},
+                {id: 'primary', permission: 'PRIMARY', icon: '小', title: '小学区', description: '幼小衔接至六年级', meta: '选择阶段查看内容', accent: '#7357e8', view: 'stages'},
+                {id: 'history', permission: 'HISTORY', icon: '史', title: '历史区', description: '人物、故事、时间线', meta: '按专题阅读学习卡', accent: '#b87922', subject: '历史'},
+                {id: 'chemistry', permission: 'CHEMISTRY', icon: '化', title: '化学区', description: '知识卡片、小测验', meta: '逐条打开内容详情', accent: '#168d91', subject: '化学'}
+            ],
+            homeManagementModules: [
+                {id: 'mistakes', permission: 'MISTAKES', icon: '📝', title: '错题复习', description: '待复习错题', meta: '先处理还没掌握的题目', view: 'mistakes'},
+                {id: 'stats', permission: 'STATS', icon: '📈', title: '学习统计', description: '趋势、正确率、阶段进度', meta: '查看最近学习变化', view: 'stats'},
+                {id: 'records', permission: 'RECORDS', icon: '📊', title: '学习记录', description: '每次练习都会留下足迹', meta: '按时间查看完成情况', view: 'records'},
+                {id: 'print', permission: 'PRINT', icon: '🖨️', title: '题目打印', description: '随机算术题与文字题', meta: '生成后预览或保存 PDF', view: 'print'},
+                {id: 'resources', permission: 'RESOURCES', icon: '📚', title: '资源中心', description: '教材、汉字、词典、诗词', meta: '按模块浏览学习资源', view: 'resources'}
+            ]
         },
         computed: {
             greeting() {
@@ -62,12 +83,58 @@
                     name: stage,
                     index: start + index
                 }));
+            },
+            visibleHomeLearningModules() {
+                return this.homeLearningModules.filter(item => this.hasPerm(item.permission));
+            },
+            visibleHomeManagementModules() {
+                return this.homeManagementModules
+                    .filter(item => this.hasPerm(item.permission))
+                    .map(item => item.id === 'mistakes'
+                        ? {...item, description: (this.dashboard.pendingMistakes || 0) + ' 条待复习'}
+                        : item);
+            },
+            statsOverviewCards() {
+                const today = this.statsData.today || {};
+                return [
+                    {id: 'study', label: '今日学习', value: this.formatDuration(today.studySeconds || 0), note: (today.sessions || 0) + ' 次练习'},
+                    {id: 'completed', label: '今日完成', value: today.completed || 0, note: '题 / 字'},
+                    {id: 'accuracy', label: '今日正确率', value: (today.accuracy || 0) + '%', note: '新增错题 ' + (today.newMistakes || 0)},
+                    {id: 'streak', label: '连续学习', value: (this.statsData.habits || {}).streakDays || 0, note: '天'}
+                ];
+            },
+            statsSubjectCards() {
+                const chinese = this.statsData.chinese || {};
+                const math = this.statsData.math || {};
+                return [
+                    {
+                        id: 'chinese', title: '语文统计', subtitle: '识字与听写掌握情况', badge: '语文',
+                        items: [
+                            {label: '已学汉字', value: (chinese.learned || 0) + ' 个'},
+                            {label: '认识 / 模糊 / 未学', value: (chinese.known || 0) + ' / ' + (chinese.fuzzy || 0) + ' / ' + (chinese.unknown || 0)},
+                            {label: '听写正确率', value: (chinese.dictationAccuracy || 0) + '%'}
+                        ]
+                    },
+                    {
+                        id: 'math', title: '数学统计', subtitle: '练习数量与答题速度', badge: '数学',
+                        items: [
+                            {label: '累计完成', value: (math.total || 0) + ' 题'},
+                            {label: '正确率', value: (math.accuracy || 0) + '%'},
+                            {label: '平均每题', value: (math.averageSeconds || 0) + ' 秒'}
+                        ]
+                    }
+                ];
             }
         },
         methods: {
             apiUrl(path) {
                 const base = (typeof appUrl === 'function') ? appUrl('/api/learning/') : '/api/learning/';
                 return base.replace(/\/$/, '/') + String(path || '').replace(/^\//, '');
+            },
+            openHomeModule(item) {
+                if (!item) return;
+                if (item.view) this.openView(item.view);
+                else if (item.subject) this.openSubject(item.subject);
             },
             async api(path, options = {}) {
                 const headers = {...(options.headers || {})};
@@ -111,8 +178,7 @@
                 this.selectedStage = this.student.stage || '幼小衔接';
                 this.view = 'home';
                 this.viewStack = [];
-                this.homePage = 1;
-                this.statsPage = 1;
+                this.statsTab = 'overview';
                 this.closeDetail();
                 if (this.visibleLibraryTypes && this.visibleLibraryTypes.length && !this.visibleLibraryTypes.some(item => item.id === this.libraryType)) this.libraryType = this.visibleLibraryTypes[0].id;
                 if (this.student.mustChangePassword) {
@@ -145,7 +211,6 @@
                 this.authRestoring = false;
                 this.view = 'home';
                 this.viewStack = [];
-                this.homePage = 1;
                 this.closeDetail();
                 localStorage.removeItem('learningToken');
                 if (this.revokeMediaUrls) this.revokeMediaUrls();
@@ -224,8 +289,7 @@
             goHome() {
                 this.view = 'home';
                 this.viewStack = [];
-                this.homePage = 1;
-                this.statsPage = 1;
+                this.statsTab = 'overview';
                 this.mathQuestions = [];
                 this.dictationWord = null;
                 this.loadDashboard();
@@ -376,9 +440,6 @@
                 } catch (error) {
                     this.showToast(error.message);
                 }
-            },
-            changeStatsPage(page) {
-                this.changeCollectionPage('statsPage', page, 3);
             },
             formatDate(value) {
                 return value ? new Date(value).toLocaleString('zh-CN', {

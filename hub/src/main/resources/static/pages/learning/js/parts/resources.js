@@ -4,6 +4,7 @@
             resourceList: [],
             resourceSubject: '',
             resourceMode: 'library',
+            resourceTabs: [{id: 'library', label: '学习库'}, {id: 'uploads', label: '家庭资料'}],
             resourcePage: 1,
             resourcePageSize: 4,
             mediaUrls: {},

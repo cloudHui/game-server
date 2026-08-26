@@ -48,7 +48,8 @@
             page: {type: Number, default: 1},
             pageCount: {type: Number, default: 1},
             total: {type: Number, default: 0},
-            loading: {type: Boolean, default: false}
+            loading: {type: Boolean, default: false},
+            hideSingle: {type: Boolean, default: true}
         },
         emits: ['change'],
         computed: {
@@ -75,7 +76,7 @@
             }
         },
         template: `
-            <nav v-if="total > 0" class="learning-pagination" aria-label="分页">
+            <nav v-if="total > 0 && (!hideSingle || totalPages > 1)" class="learning-pagination" aria-label="分页">
                 <span class="pagination-total">共 {{ total }} 条</span>
                 <button type="button" :disabled="loading || currentPage <= 1" @click="change(currentPage - 1)">上一页</button>
                 <button v-for="number in pages" :key="number" type="button"
@@ -117,12 +118,58 @@
         `
     };
 
+    const LearningTabs = {
+        props: {
+            items: {type: Array, default: () => []},
+            active: {type: String, default: ''}
+        },
+        emits: ['change'],
+        template: `
+            <div class="segmented learning-tabs" role="tablist">
+                <button v-for="item in items" :key="item.id" type="button"
+                        role="tab" :aria-selected="item.id===active"
+                        :class="{active:item.id===active}" @click="$emit('change', item.id)">
+                    {{ item.label }}
+                </button>
+            </div>
+        `
+    };
+
+    const LearningModuleLink = {
+        props: {
+            item: {type: Object, required: true}
+        },
+        emits: ['open'],
+        template: `
+            <button type="button" class="home-link"
+                    :style="{'--home-accent': item.accent || 'var(--primary)'}"
+                    @click="$emit('open')">
+                <i>{{ item.icon }}</i>
+                <span><b>{{ item.title }}</b><small>{{ item.description }}</small><em>{{ item.meta }}</em></span>
+                <strong>→</strong>
+            </button>
+        `
+    };
+
+    const LearningModuleHeader = {
+        props: {
+            eyebrow: {type: String, default: ''},
+            title: {type: String, required: true},
+            description: {type: String, default: ''},
+            count: {type: String, default: ''}
+        },
+        template: `
+            <div class="library-module-heading">
+                <div><p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p><h2>{{ title }}</h2><small v-if="description">{{ description }}</small></div>
+                <span v-if="count">{{ count }}</span>
+            </div>
+        `
+    };
+
     LearningRegister({
-        components: {LearningPager, LearningDetail},
+        components: {LearningPager, LearningDetail, LearningTabs, LearningModuleLink, LearningModuleHeader},
         data: {
             viewStack: [],
-            homePage: 1,
-            statsPage: 1,
             detail: null
         },
         computed: {
