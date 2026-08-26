@@ -9,15 +9,25 @@
             mathCorrect: 0,
             mathFeedback: null,
             mathLocked: false,
+            mathSaving: false,
             mathStartedAt: null,
             mathFinished: false,
             printConfig: {max: 10, count: 20, wordProblems: 5, operation: 'mixed', showAnswers: false},
             printQuestions: [],
-            recordList: []
+            printPreview: false,
+            recordList: [],
+            recordPage: 1,
+            recordPageSize: 5
         },
         computed: {
             currentMath() {
                 return this.mathQuestions[this.mathIndex] || {};
+            },
+            recordPageCount() {
+                return this.pageCount(this.recordList, this.recordPageSize);
+            },
+            visibleRecords() {
+                return this.pageItems(this.recordList, this.recordPage, this.recordPageSize);
             }
         },
         methods: {
@@ -30,6 +40,7 @@
                     this.mathFeedback = null;
                     this.mathFinished = false;
                     this.mathLocked = false;
+                    this.mathSaving = false;
                     this.mathStartedAt = Date.now();
                     await nextTick(() => this.$refs.mathInput && this.$refs.mathInput.focus());
                     this.sendHeartbeat();
@@ -59,24 +70,28 @@
                         this.showToast(error.message);
                     }
                 }
-                setTimeout(async () => {
-                    if (this.mathIndex >= this.mathQuestions.length - 1) {
+            },
+            async nextMath() {
+                if (!this.mathLocked || this.mathSaving) return;
+                if (this.mathIndex >= this.mathQuestions.length - 1) {
+                    this.mathSaving = true;
+                    const seconds = Math.max(1, Math.round((Date.now() - this.mathStartedAt) / 1000));
+                    try {
+                        await this.saveRecord('数学', `${this.mathConfig.max}以内算术`, this.mathQuestions.length, this.mathCorrect, {operation: this.mathConfig.operation}, seconds);
                         this.mathFinished = true;
-                        const seconds = Math.max(1, Math.round((Date.now() - this.mathStartedAt) / 1000));
-                        try {
-                            await this.saveRecord('数学', `${this.mathConfig.max}以内算术`, this.mathQuestions.length, this.mathCorrect, {operation: this.mathConfig.operation}, seconds);
-                            await this.loadDashboard();
-                        } catch (error) {
-                            this.showToast(error.message);
-                        }
-                    } else {
-                        this.mathIndex++;
-                        this.mathAnswer = '';
-                        this.mathFeedback = null;
-                        this.mathLocked = false;
-                        await nextTick(() => this.$refs.mathInput && this.$refs.mathInput.focus());
+                        await this.loadDashboard();
+                    } catch (error) {
+                        this.showToast(error.message);
+                    } finally {
+                        this.mathSaving = false;
                     }
-                }, correct ? 650 : 1400);
+                    return;
+                }
+                this.mathIndex++;
+                this.mathAnswer = '';
+                this.mathFeedback = null;
+                this.mathLocked = false;
+                await nextTick(() => this.$refs.mathInput && this.$refs.mathInput.focus());
             },
             async generatePrintable() {
                 try {
@@ -86,7 +101,14 @@
                 }
             },
             printWorksheet() {
-                window.print();
+                this.printPreview = true;
+                this.$nextTick(() => window.print());
+            },
+            closePrintPreview() {
+                this.printPreview = false;
+            },
+            changeRecordPage(page) {
+                this.changeCollectionPage('recordPage', page, this.recordPageCount);
             }
         }
     });

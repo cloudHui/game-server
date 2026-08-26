@@ -119,7 +119,6 @@
                 this.olympiadQuestions = [];
                 this.olympiadResult = null;
                 this.olympiadFinished = false;
-                window.scrollTo(0, 0);
             },
             async startOlympiad() {
                 this.olympiadQuestions = buildQuestions(this.olympiadTopic.id, this.olympiadLevel);

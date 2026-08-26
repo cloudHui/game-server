@@ -13,10 +13,13 @@
             libraryPage: 1,
             libraryPageCount: 1,
             libraryTotal: 0,
-            libraryPageSize: 24,
+            libraryPageSize: 4,
             librarySelected: null,
             librarySelectedIndex: -1,
             libraryPanelImage: '',
+            textbookFolderPage: 1,
+            textbookBookPage: 1,
+            textbookPageSize: 4,
             textbookMode: 'browse',
             textbookPrefix: '',
             textbookFolders: [],
@@ -48,8 +51,8 @@
                     character: '可按「常用」标签或搜索单字；点字看笔顺。',
                     dictionary: '可按字母标签或搜索单词；点条目看释义。',
                     poetry: '默认精选；可按作者标签或搜索篇名。',
-                    english: '可按主题标签或搜索；点词后在侧栏听发音看图。',
-                    vocab: '可按主题标签或搜索；点词后在侧栏听美音。'
+                    english: '可按主题标签或搜索；点词后打开详情听发音看图。',
+                    vocab: '可按主题标签或搜索；点词后打开详情听美音。'
                 }[this.libraryType] || '';
             },
             visibleLibraryTypes() {
@@ -58,6 +61,18 @@
                     if (item.id === 'character' || item.id === 'poetry') return this.hasPerm('CHINESE');
                     return this.hasPerm('RESOURCES');
                 });
+            },
+            visibleTextbookFolders() {
+                return this.pageItems(this.textbookFolders, this.textbookFolderPage, this.textbookPageSize);
+            },
+            textbookFolderPageCount() {
+                return this.pageCount(this.textbookFolders, this.textbookPageSize);
+            },
+            visibleTextbookItems() {
+                return this.pageItems(this.libraryItems, this.textbookBookPage, this.textbookPageSize);
+            },
+            textbookBookPageCount() {
+                return this.pageCount(this.libraryItems, this.textbookPageSize);
             }
         },
         methods: {
@@ -74,15 +89,17 @@
                 this.libraryTotal = 0;
                 this.libraryPageCount = 1;
                 this.libraryPageSize = ({
-                    vocab: 30,
-                    dictionary: 30,
-                    poetry: 20,
-                    character: 48,
-                    english: 24
+                    vocab: 4,
+                    dictionary: 4,
+                    poetry: 4,
+                    character: 4,
+                    english: 4
                 })[type] || 24;
                 this.clearLibrarySelection();
                 this.textbookPrefix = '';
                 this.textbookFolders = [];
+                this.textbookFolderPage = 1;
+                this.textbookBookPage = 1;
                 if (type === 'textbooks') this.textbookMode = 'browse';
                 await this.refreshLibraryStatus();
                 await this.searchLibrary();
@@ -113,6 +130,8 @@
                             return;
                         }
                         this.libraryItems = await this.api('library/textbooks?query=' + encodeURIComponent(this.libraryQuery || ''));
+                        this.textbookFolderPage = 1;
+                        this.textbookBookPage = 1;
                         if (!this.libraryItems.length) this.libraryTip = '没有找到匹配教材。';
                     } catch (error) {
                         this.libraryItems = [];
@@ -159,12 +178,8 @@
                 this.libraryTag = this.libraryTag === tag ? '' : tag;
                 this.loadLibraryPage(1);
             },
-            changeLibraryPage(delta) {
-                const next = this.libraryPage + delta;
-                if (next < 1 || next > this.libraryPageCount) return;
-                this.loadLibraryPage(next);
-            },
             clearLibrarySelection() {
+                this.closeDetail();
                 this.librarySelected = null;
                 this.librarySelectedIndex = -1;
                 this.libraryPanelImage = '';
@@ -186,19 +201,22 @@
                 if (this.libraryType === 'character') {
                     try {
                         this.strokeData = await this.api('library/character?value=' + encodeURIComponent(this.librarySelected.character));
-                        await nextTick(() => this.playStrokeAnimation());
                     } catch (error) {
                         this.showToast(error.message);
                     }
-                    return;
-                }
-                if ((this.libraryType === 'english' || this.libraryType === 'vocab') && this.librarySelected.imagePath) {
+                } else if ((this.libraryType === 'english' || this.libraryType === 'vocab') && this.librarySelected.imagePath) {
                     try {
                         this.libraryPanelImage = await this.ensureMediaUrl(this.librarySelected.imagePath);
                     } catch (_) {
                         this.libraryPanelImage = '';
                     }
                 }
+                this.openDetail('library', this.librarySelected, index, {
+                    total: this.libraryItems.length,
+                    title: this.libraryTitle(this.librarySelected),
+                    meta: this.libraryType === 'poetry' ? '古诗词详情' : '学习库详情'
+                });
+                await nextTick(() => this.libraryType === 'character' && this.playStrokeAnimation());
             },
             shiftLibraryItem(delta) {
                 const next = this.librarySelectedIndex + delta;
@@ -229,6 +247,8 @@
                     const data = await this.api('library/textbooks/tree?prefix=' + encodeURIComponent(this.textbookPrefix || ''));
                     this.textbookFolders = data.folders || [];
                     this.libraryItems = data.books || [];
+                    this.textbookFolderPage = 1;
+                    this.textbookBookPage = 1;
                     if (!this.textbookFolders.length && !this.libraryItems.length) this.libraryTip = '这个目录下没有教材。';
                 } catch (error) {
                     this.libraryTip = error.message;
@@ -247,6 +267,12 @@
                 parts.pop();
                 this.textbookPrefix = parts.join('/');
                 this.loadTextbookTree();
+            },
+            changeTextbookFolderPage(page) {
+                this.changeCollectionPage('textbookFolderPage', page, this.textbookFolderPageCount);
+            },
+            changeTextbookBookPage(page) {
+                this.changeCollectionPage('textbookBookPage', page, this.textbookBookPageCount);
             },
             libraryTitle(item) {
                 if (item.title) return item.title + (item.dynasty ? ' · ' + item.dynasty : '') + (item.author ? ' · ' + item.author : '');
@@ -267,17 +293,31 @@
             },
             async showStrokeFor(character) {
                 if (!character) return;
-                this.view = 'resources';
                 this.libraryType = 'character';
-                this.libraryQuery = character;
+                this.librarySelected = {character};
+                this.librarySelectedIndex = -1;
                 this.libraryTag = '';
-                await this.searchLibrary();
-                if (this.libraryItems.length) await this.selectLibraryItem(0);
+                this.strokeData = null;
+                this.openDetail('library', this.librarySelected, -1, {
+                    total: 0,
+                    title: character + ' · 笔顺',
+                    meta: '汉字笔顺详情',
+                    loading: true
+                });
+                try {
+                    this.strokeData = await this.api('library/character?value=' + encodeURIComponent(character));
+                    if (this.detail) this.detail.loading = false;
+                    await nextTick(() => this.playStrokeAnimation());
+                } catch (error) {
+                    this.closeDetail();
+                    this.showToast(error.message);
+                }
             },
             practiceStrokeCharacter() {
                 const ch = (this.strokeData && this.strokeData.character) || (this.librarySelected && this.librarySelected.character);
                 if (!ch) return;
                 this.selectedStage = this.selectedStage || '幼小衔接';
+                this.closeDetail();
                 this.openView('chinese');
                 this.showToast('可在语文区对照“' + ch + '”练写');
             },

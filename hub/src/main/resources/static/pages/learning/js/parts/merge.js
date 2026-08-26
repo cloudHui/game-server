@@ -3,10 +3,12 @@ window.LearningParts = window.LearningParts || [];
 window.LearningMerge = function (base) {
     var parts = window.LearningParts || [];
     var dataSources = [base.data];
+    base.components = base.components || {};
     parts.forEach(function (part) {
         if (part.data) dataSources.push(part.data);
         if (part.computed) Object.assign(base.computed, part.computed);
         if (part.methods) Object.assign(base.methods, part.methods);
+        if (part.components) Object.assign(base.components, part.components);
     });
     base.data = function () {
         var merged = {};

@@ -3,8 +3,9 @@
         data: {
             resourceList: [],
             resourceSubject: '',
-            resourceShowAll: false,
-            resourcePreviewLimit: 8,
+            resourceMode: 'library',
+            resourcePage: 1,
+            resourcePageSize: 4,
             mediaUrls: {},
             preview: null,
             resourceFolders: [
@@ -23,8 +24,10 @@
         },
         computed: {
             visibleResources() {
-                if (this.resourceShowAll) return this.resourceList;
-                return (this.resourceList || []).slice(0, this.resourcePreviewLimit);
+                return this.pageItems(this.resourceList, this.resourcePage, this.resourcePageSize);
+            },
+            resourcePageCount() {
+                return this.pageCount(this.resourceList, this.resourcePageSize);
             }
         },
         methods: {
@@ -32,10 +35,13 @@
                 try {
                     const q = this.resourceSubject ? '?subject=' + encodeURIComponent(this.resourceSubject) : '';
                     this.resourceList = await this.api('resources' + q);
-                    this.resourceShowAll = false;
+                    this.resourcePage = 1;
                 } catch (error) {
                     this.showToast(error.message);
                 }
+            },
+            changeResourcePage(page) {
+                this.changeCollectionPage('resourcePage', page, this.resourcePageCount);
             },
             async ensureMediaUrl(path) {
                 if (!path) return '';
@@ -71,16 +77,13 @@
                 }
                 this.preview = null;
             },
-            async previewResource(path) {
+            async previewResource(resource) {
                 try {
+                    const path = typeof resource === 'string' ? resource : resource.path;
                     const ext = (path.split('.').pop() || '').toLowerCase();
                     const kind = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext) ? 'image' : ['mp3', 'wav', 'ogg'].includes(ext) ? 'audio' : ext === 'mp4' ? 'video' : 'file';
-                    if (kind === 'file') {
-                        await this.openResource(path);
-                        return;
-                    }
                     const url = await this.ensureMediaUrl(path);
-                    this.preview = {name: path.split('/').pop(), kind, url};
+                    this.preview = {name: path.split('/').pop(), kind, url, path};
                 } catch (error) {
                     this.showToast(error.message);
                 }

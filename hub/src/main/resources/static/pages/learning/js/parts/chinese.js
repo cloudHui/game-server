@@ -5,13 +5,31 @@
             chineseMode: 'learn',
             words: [],
             selectedWord: null,
+            chinesePage: 1,
+            chinesePageSize: 6,
             showGuide: true,
             dictationWord: null,
             dictationRevealed: false,
             canvasDrawing: false,
             canvasLast: null,
             mistakeList: [],
-            mistakeSubject: ''
+            mistakeSubject: '',
+            mistakePage: 1,
+            mistakePageSize: 4
+        },
+        computed: {
+            chinesePageCount() {
+                return this.pageCount(this.words, this.chinesePageSize);
+            },
+            visibleWords() {
+                return this.pageItems(this.words, this.chinesePage, this.chinesePageSize);
+            },
+            mistakePageCount() {
+                return this.pageCount(this.mistakeList, this.mistakePageSize);
+            },
+            visibleMistakes() {
+                return this.pageItems(this.mistakeList, this.mistakePage, this.mistakePageSize);
+            }
         },
         methods: {
             async loadWords() {
@@ -21,15 +39,15 @@
                         this.showToast(this.selectedStage + '暂无字库，先展示幼小衔接');
                         this.words = await this.api('words?stage=' + encodeURIComponent('幼小衔接'));
                     }
+                    this.chinesePage = 1;
                     this.selectedWord = this.words[0] || null;
-                    if (this.chineseMode === 'learn') await nextTick(() => this.initCanvas());
                 } catch (error) {
                     this.showToast(error.message);
                 }
             },
-            async selectWord(word) {
-                this.selectedWord = word;
-                await nextTick(() => this.initCanvas());
+            async changeChinesePage(page) {
+                this.changeCollectionPage('chinesePage', page, this.chinesePageCount);
+                this.selectedWord = this.words[(this.chinesePage - 1) * this.chinesePageSize] || null;
             },
             async setChineseMode(mode) {
                 this.chineseMode = mode;
@@ -110,7 +128,8 @@
                     });
                     this.showToast(correct ? '真棒！已经记住了' : '已放进复习本');
                     const i = this.words.findIndex(w => w.id === this.selectedWord.id);
-                    if (i < this.words.length - 1) this.selectWord(this.words[i + 1]);
+                    if (i < this.words.length - 1) await this.openPagedDetailAt('word', i + 1);
+                    else this.closeDetail();
                 } catch (error) {
                     this.showToast(error.message);
                 }

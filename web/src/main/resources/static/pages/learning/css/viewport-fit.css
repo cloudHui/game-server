@@ -1,21 +1,31 @@
-/* Viewport policy: the shell may grow and the page can scroll on short screens. */
+/* Viewport policy: learning pages stay fixed; long content changes page instead of scrolling. */
 html, body, #app {
     width: 100%;
-    overflow-x: hidden;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .shell {
-    min-height: 100dvh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .content {
     width: min(1440px, calc(100% - 32px));
-    padding-top: clamp(14px, 3vh, 32px);
-    padding-bottom: clamp(16px, 4vh, 48px);
+    height: calc(100dvh - 72px);
+    min-height: 0;
+    overflow: hidden;
+    padding-top: clamp(12px, 2vh, 24px);
+    padding-bottom: clamp(12px, 2vh, 24px);
 }
 
 .word-list {
-    max-height: calc(100dvh - 150px);
+    max-height: none;
+    overflow: visible;
 }
 
 @media (max-height: 760px) and (min-width: 601px) {
@@ -25,4 +35,13 @@ html, body, #app {
     .section-title { margin: 18px 0 10px; }
     .subject { min-height: 92px; padding: 14px; }
     .tool-grid button { padding: 14px; }
+}
+
+@media (max-width: 600px) {
+    .content {
+        width: calc(100% - 20px);
+        height: calc(100dvh - 62px);
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
 }

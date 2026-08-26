@@ -25,8 +25,12 @@
             passwordForm: {oldPassword: '', newPassword: '', confirmPassword: ''},
             selectedStage: '幼小衔接',
             stages: ['幼小衔接', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
+            stagePage: 1,
+            stagePageSize: 4,
             subjectName: '',
-            subjectItems: []
+            subjectItems: [],
+            subjectPage: 1,
+            subjectPageSize: 4
         },
         computed: {
             greeting() {
@@ -39,6 +43,25 @@
                 if (this.view === 'olympiad') return this.olympiadTopic ? '奥数·' + this.olympiadTopic.name : '奥数专题';
                 if (this.view === 'print') return '题目打印';
                 return '';
+            },
+            enabledSubjectItems() {
+                return (this.subjectItems || []).filter(item => item.enabled);
+            },
+            subjectPageCount() {
+                return this.pageCount(this.enabledSubjectItems, this.subjectPageSize);
+            },
+            visibleSubjectItems() {
+                return this.pageItems(this.enabledSubjectItems, this.subjectPage, this.subjectPageSize);
+            },
+            stagePageCount() {
+                return this.pageCount(this.stages, this.stagePageSize);
+            },
+            visibleStages() {
+                const start = (this.stagePage - 1) * this.stagePageSize;
+                return this.pageItems(this.stages, this.stagePage, this.stagePageSize).map((stage, index) => ({
+                    name: stage,
+                    index: start + index
+                }));
             }
         },
         methods: {
@@ -87,6 +110,10 @@
             afterLogin() {
                 this.selectedStage = this.student.stage || '幼小衔接';
                 this.view = 'home';
+                this.viewStack = [];
+                this.homePage = 1;
+                this.statsPage = 1;
+                this.closeDetail();
                 if (this.visibleLibraryTypes && this.visibleLibraryTypes.length && !this.visibleLibraryTypes.some(item => item.id === this.libraryType)) this.libraryType = this.visibleLibraryTypes[0].id;
                 if (this.student.mustChangePassword) {
                     this.passwordForm = {oldPassword: '123456', newPassword: '', confirmPassword: ''};
@@ -117,6 +144,9 @@
                 this.student = null;
                 this.authRestoring = false;
                 this.view = 'home';
+                this.viewStack = [];
+                this.homePage = 1;
+                this.closeDetail();
                 localStorage.removeItem('learningToken');
                 if (this.revokeMediaUrls) this.revokeMediaUrls();
             },
@@ -193,22 +223,60 @@
             },
             goHome() {
                 this.view = 'home';
+                this.viewStack = [];
+                this.homePage = 1;
+                this.statsPage = 1;
                 this.mathQuestions = [];
                 this.dictationWord = null;
                 this.loadDashboard();
-                window.scrollTo(0, 0);
+                this.closeDetail();
                 this.sendHeartbeat();
             },
             goBack() {
+                if (this.detail) {
+                    this.closeDetail();
+                    return;
+                }
+                if (this.preview) {
+                    this.closePreview();
+                    return;
+                }
+                if (this.printPreview) {
+                    this.closePrintPreview();
+                    return;
+                }
+                if (this.view === 'olympiad' && this.olympiadTopic) {
+                    this.leaveOlympiad();
+                    return;
+                }
+                if (this.view === 'resources' && this.libraryType === 'textbooks' && this.textbookPrefix) {
+                    this.textbookUp();
+                    return;
+                }
                 if (this.view === 'home') {
                     location.href = (typeof appUrl === 'function') ? appUrl('/pages/lobby/index.html') : '../lobby/index.html';
                     return;
                 }
+                const previous = this.viewStack.pop();
+                if (previous) {
+                    this.view = previous.view;
+                    this.subjectName = previous.subjectName || '';
+                    this.selectedStage = previous.selectedStage || this.selectedStage;
+                    this.sendHeartbeat();
+                    return;
+                }
                 this.goHome();
             },
-            async openView(name) {
+            async openView(name, options = {}) {
+                if (this.view !== name && !options.replace) {
+                    this.viewStack.push({
+                        view: this.view,
+                        subjectName: this.subjectName,
+                        selectedStage: this.selectedStage
+                    });
+                }
+                if (this.view !== name) this.closeDetail();
                 this.view = name;
-                window.scrollTo(0, 0);
                 if (name === 'chinese') await this.loadWords();
                 if (name === 'mistakes') await this.loadMistakes();
                 if (name === 'records') await this.loadRecords();
@@ -221,14 +289,21 @@
                 this.sendHeartbeat();
             },
             async openSubject(subject) {
+                this.subjectPage = 1;
+                await this.openView('subject');
                 this.subjectName = subject;
-                this.view = 'subject';
                 try {
                     this.subjectItems = await this.api('content?subject=' + encodeURIComponent(subject));
                 } catch (error) {
                     this.showToast(error.message);
                 }
                 this.sendHeartbeat();
+            },
+            changeSubjectPage(page) {
+                this.changeCollectionPage('subjectPage', page, this.subjectPageCount);
+            },
+            changeStagePage(page) {
+                this.changeCollectionPage('stagePage', page, this.stagePageCount);
             },
             chooseStage(stage) {
                 this.selectedStage = stage;
@@ -264,15 +339,20 @@
                 try {
                     const q = this.mistakeSubject ? '?subject=' + encodeURIComponent(this.mistakeSubject) : '';
                     this.mistakeList = await this.api('mistakes' + q);
+                    this.mistakePage = 1;
                 } catch (error) {
                     this.showToast(error.message);
                 }
+            },
+            changeMistakePage(page) {
+                this.changeCollectionPage('mistakePage', page, this.mistakePageCount);
             },
             async reviewMistake(item, correct) {
                 try {
                     await this.api(`mistakes/${item.id}/review`, {method: 'POST', body: JSON.stringify({correct})});
                     this.showToast(correct ? '复习成功' : '下次继续加油');
                     await this.loadMistakes();
+                    this.closeDetail();
                     await this.loadDashboard();
                 } catch (error) {
                     this.showToast(error.message);
@@ -284,6 +364,7 @@
             async loadRecords() {
                 try {
                     this.recordList = await this.api('records');
+                    this.recordPage = 1;
                 } catch (error) {
                     this.showToast(error.message);
                 }
@@ -296,6 +377,9 @@
                     this.showToast(error.message);
                 }
             },
+            changeStatsPage(page) {
+                this.changeCollectionPage('statsPage', page, 3);
+            },
             formatDate(value) {
                 return value ? new Date(value).toLocaleString('zh-CN', {
                     month: '2-digit',
@@ -306,6 +390,11 @@
             },
             formatDuration(seconds) {
                 return seconds < 60 ? seconds + '秒' : seconds < 3600 ? Math.round(seconds / 60) + '分钟' : (seconds / 3600).toFixed(1) + '小时';
+            },
+            formatDetails(details) {
+                if (!details || typeof details !== 'object') return '暂无补充信息';
+                const entries = Object.entries(details);
+                return entries.length ? entries.map(item => item[0] + '：' + item[1]).join(' · ') : '暂无补充信息';
             }
         }
     });
