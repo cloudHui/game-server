@@ -27,6 +27,9 @@ spring:
       max-file-size: ${PHOTO_MAX_FILE_BYTES:50MB}
       max-request-size: ${PHOTO_MAX_REQUEST_BYTES:500MB}
 
+arpu:
+  check-url: ${ARPU_CHECK_URL:https://arpu.151365.cc/check}
+
 hub:
   root: ${HUB_ROOT:${user.dir}}
   table-config-dir: ${TABLE_CONFIG_DIR:config}

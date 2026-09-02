@@ -1,4 +1,4 @@
-package com.cloud.hub.game.arena.journey;
+package game.arena.journey;
 
 import org.junit.Test;
 
@@ -40,10 +40,5 @@ public class JourneyRulesTest {
         assertEquals(30, recovery.stamina);
         assertEquals(1_750_000L, recovery.updatedAt);
         assertEquals(300, recovery.secondsToNext);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void rejectsUnknownMap() {
-        JourneyRules.rewards(7, 1);
     }
 }

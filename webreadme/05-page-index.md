@@ -10,7 +10,7 @@
 | 牌桌 | `static/pages/games/*/index.html` | `shared/game-table.js` | `GameWebSocketHandler` |
 | 学习 | `static/pages/learning/` | learning core/app | learning controllers |
 | 小游戏 | 对应 mini 页面 | `shared/mini-base.js` | `MiniGameWebSocketHandler` |
-| 后台 | `static/pages/admin/` | admin JS | `AdminController`、回放 controllers |
+| 后台 | `static/pages/admin/` | `js/core.js`、各功能脚本、`tools.css` | `AdminController`、`IntegerAllocatorAdminController`、`ArpuAdminController`、回放 controllers |
 
 ## 2. 牌桌脚本顺序
 
@@ -37,6 +37,8 @@ app-base.js
 | 小游戏 WS | `web/handler/MiniGameWebSocketHandler.java` | Web 内存房间/棋盘 |
 | 学习 | `web/learning/controller/` | 学习领域 Service |
 | 后台/回放 | `web/controller/` 对应 Controller | Admin/Replay Service |
+| 整数分配工具 | `web/controller/IntegerAllocatorAdminController.java` | `web/arena/IntegerAllocator.java` |
+| ARPU 工具 | `web/controller/ArpuAdminController.java` | `web/arpu/ArpuLookupService.java`、`ArpuAverageCalculator.java` |
 
 ## 4. 入口到功能的检查顺序
 
@@ -51,4 +53,3 @@ app-base.js
 → 找 render、class 和跳转
 → 最后看定时器和清理
 ```
-

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台</title>
     <link rel="stylesheet" href="./admin.css">
+    <link rel="stylesheet" href="./tools.css">
     <link rel="stylesheet" href="./robot-test.css">
     <link rel="stylesheet" href="./viewport-fit.css">
     <link rel="stylesheet" href="../../shared/theme.css">
@@ -31,6 +32,8 @@
         <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
         <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
         <button class="tab" data-tab="arena" onclick="switchTab('arena')">剑气除魔</button>
+        <button class="tab" data-tab="allocator" onclick="switchTab('allocator')">整数分配</button>
+        <button class="tab" data-tab="arpu" onclick="switchTab('arpu')">ARPU 查询</button>
         <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
         <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
         <button class="tab" data-tab="photos" onclick="switchTab('photos')">图片管理</button>
@@ -119,8 +122,114 @@
         <div class="card"><div class="card-heading"><div><h2>剑气除魔玩家</h2><div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div></div><button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button></div>
             <div class="table-scroll"><table><thead><tr><th>ID</th><th>玩家</th><th>灵液</th><th>灵币</th><th>仙缘</th><th>战阵石</th><th>副本</th><th>操作</th></tr></thead><tbody id="arenaPlayerBody"><tr><td colspan="8">切换到此页后加载</td></tr></tbody></table></div><div id="arenaMsg" class="msg"></div></div>
         <div id="arenaDetail" class="card" hidden><div class="card-heading"><h2 id="arenaDetailTitle">玩家详情</h2><button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button></div>
-            <h3>资源调整</h3><div class="form-row"><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select><input id="arenaDelta" type="number" value="1000"><button class="btn" onclick="adjustArenaResource()">执行增减</button></div>
-            <div id="arenaProgress" class="meta"></div><h3>物品背包</h3><div id="arenaInventory" class="meta"></div><div class="form-row"><input id="arenaItemId" placeholder="物品 ID，如 herb"><input id="arenaItemDelta" type="number" value="10"><button class="btn" onclick="adjustArenaItem()">增减物品</button></div><h3>仙侣</h3><div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div></div>
+            <h3>资源调整</h3><div class="form-row"><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select><input id="arenaDelta" type="number" value="1000"><button class="btn" onclick="adjustArenaResource()">增减</button><button class="btn btn-ghost" onclick="setArenaResource()">设为此值</button></div>
+            <div id="arenaProgress" class="meta"></div><h3>进度控制</h3><div class="form-row"><label>通关 <input id="arenaCleared" type="number" min="0" max="12"></label><label>剩余次数 <input id="arenaAttempts" type="number" min="0"></label><label>战阵 <input id="arenaFormation" type="number" min="1"></label><label>洞府 <input id="arenaGrotto" type="number" min="1"></label><button class="btn" onclick="saveArenaProgress()">保存进度</button></div><h3>物品 / 装备发放</h3><div id="arenaInventory" class="meta"></div><div class="form-row"><select id="arenaItemId"><option value="herb">灵草</option><option value="ore">玄铁</option><option value="star_dust">星尘</option><option value="pill">炼气丹</option><option value="star_pill">升星丹</option><option value="refine_stone">精炼石</option><option value="green_sword">青锋法宝</option><option value="zhuxian_sword">诛仙断界剑</option><option value="xuanwu_armor">玄武神甲</option><option value="tianji_compass">天机罗盘</option></select><input id="arenaItemDelta" type="number" value="1"><button class="btn" onclick="adjustArenaItem()">发放 / 扣除</button></div><h3>仙侣</h3><div class="form-row"><select id="arenaNewHero"><option value="jianhuang">无极剑皇</option><option value="leizun">九霄雷尊</option><option value="yaohuang">长生药皇</option><option value="luocha">血海罗刹</option><option value="xingjun">紫微星君</option><option value="kongming">空明道祖</option><option value="taixu">太虚剑主</option><option value="chixiao">赤霄真君</option><option value="qinglan">青岚剑君</option><option value="xuanshuang">玄霜仙子</option></select><button class="btn" onclick="addArenaHero()">发放仙侣</button></div><div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div></div>
+    </div>
+
+    <div id="panel-allocator" class="panel">
+        <div class="tool-page-head">
+            <div>
+                <div class="tool-eyebrow">数据工具 / 计算器</div>
+                <h2>整数分配计算器</h2>
+                <p>根据已知值和均值条件，自动补齐 6 个尽可能均匀的整数。</p>
+            </div>
+            <span class="tool-admin-badge"><i></i>管理员专用</span>
+        </div>
+        <div class="tool-grid allocator-grid">
+            <section class="card tool-card">
+                <div class="tool-card-head">
+                    <div class="tool-card-title"><span class="tool-card-icon">∑</span><div><h2>输入计算条件</h2><p>已知值按第 1 项开始依次固定。</p></div></div>
+                    <span class="tool-step">01</span>
+                </div>
+                <div class="tool-field">
+                    <label for="allocatorKnown">已知值 <span class="tool-label-hint">最多 5 个</span></label>
+                    <input class="tool-input" id="allocatorKnown" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：20 20">
+                    <div class="tool-help">使用空格或逗号分隔；留空表示没有已知值。未知项由程序自动计算。</div>
+                </div>
+                <div class="tool-form-grid">
+                    <div class="tool-field">
+                        <label for="allocatorTotalAverage">6 个值的总期望均值</label>
+                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorTotalAverage" type="number" min="0" step="0.01" value="10"><span>均值</span></div>
+                    </div>
+                    <div class="tool-field">
+                        <label for="allocatorSubAverage">连续 3 个值的期望均值 <span class="tool-label-hint">可选</span></label>
+                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorSubAverage" type="number" min="0" step="0.01" placeholder="不设置"><span>均值</span></div>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button>
+                    <button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button>
+                </div>
+                <div class="msg" id="allocatorMsg"></div>
+            </section>
+            <aside class="card tool-card tool-rule-card">
+                <div class="tool-card-head">
+                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">?</span><div><h2>计算规则</h2><p>与 IntegerAllocatorTest 保持一致。</p></div></div>
+                    <span class="tool-step">02</span>
+                </div>
+                <ol class="tool-rule-list">
+                    <li><span>1</span><div>已知值从第 1 项开始按顺序固定，最多填写 5 个。</div></li>
+                    <li><span>2</span><div>只设置总均值时，把剩余总和均匀分给未知项。</div></li>
+                    <li><span>3</span><div>设置连续 3 项均值时，自动尝试第 1 至第 4 个起始位置。</div></li>
+                    <li><span>4</span><div>结果出现冲突或负数时，提示无法计算，不返回部分结果。</div></li>
+                </ol>
+                <div class="tool-rule-note"><strong>提示</strong><span>小数均值会按目标总和四舍五入，结果卡会同时展示实际校验值。</span></div>
+            </aside>
+        </div>
+        <section class="card tool-card tool-result" id="allocatorResult" hidden>
+            <div class="tool-card-head tool-result-head">
+                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">已完成均值校验。</p></div></div>
+                <button class="btn btn-ghost" type="button" onclick="copyAllocatorResult()">复制结果</button>
+            </div>
+            <div class="tool-metrics" id="allocatorMetrics"></div>
+            <div class="tool-section-label">六个分配值</div>
+            <div class="allocator-values" id="allocatorValues"></div>
+            <div class="tool-section-label">结果校验</div>
+            <div class="allocator-checks" id="allocatorChecks"></div>
+        </section>
+    </div>
+
+    <div id="panel-arpu" class="panel">
+        <div class="tool-page-head">
+            <div>
+                <div class="tool-eyebrow">数据工具 / 外部查询</div>
+                <h2>ARPU 查询</h2>
+                <p>输入手机号查询月度 ARPU，原始返回 JSON 和近 3 / 6 个月平均值集中展示。</p>
+            </div>
+            <span class="tool-admin-badge"><i></i>管理员专用</span>
+        </div>
+        <section class="card tool-card arpu-query-card">
+            <div class="tool-card-head">
+                <div class="tool-card-title"><span class="tool-card-icon">↗</span><div><h2>查询条件</h2><p>请求固定接口，仅替换 <code>phone_no</code> 参数。</p></div></div>
+                <span class="tool-step">01</span>
+            </div>
+            <div class="arpu-query-row">
+                <div class="tool-field arpu-phone-field">
+                    <label for="arpuPhone">手机号</label>
+                    <input class="tool-input" id="arpuPhone" type="tel" inputmode="numeric" maxlength="11" autocomplete="off" value="13717949145" placeholder="请输入 11 位手机号">
+                </div>
+                <button class="btn tool-primary arpu-query-button" id="arpuQueryButton" type="button" onclick="checkArpu()">查询数据</button>
+            </div>
+            <div class="tool-help">外部请求由服务端代理完成，避免浏览器跨域；手机号只用于本次查询，不写入本地存储。</div>
+            <div class="arpu-request-url" id="arpuRequestUrl" hidden></div>
+            <div class="msg" id="arpuMsg"></div>
+        </section>
+        <div id="arpuResult" hidden>
+            <div class="arpu-stats" id="arpuStats"></div>
+            <section class="card tool-card">
+                <div class="tool-card-head">
+                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">▦</span><div><h2>月度明细</h2><p>按接口返回顺序取最新可用的数字月份计算平均值。</p></div></div>
+                </div>
+                <div class="table-scroll arpu-table-scroll"><table class="arpu-table"><thead><tr><th>月份</th><th>ARPU</th><th>状态</th></tr></thead><tbody id="arpuMonthly"></tbody></table></div>
+            </section>
+            <section class="card tool-card">
+                <div class="tool-card-head">
+                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">{ }</span><div><h2>原始 JSON</h2><p>完整保留外部接口返回内容，便于核对。</p></div></div>
+                    <button class="btn btn-ghost" type="button" onclick="copyArpuJson()">复制 JSON</button>
+                </div>
+                <pre class="arpu-json" id="arpuRawJson"></pre>
+            </section>
+        </div>
     </div>
 
     <div id="panel-tables" class="panel">
@@ -273,5 +382,7 @@
 <script src="./js/records.js"></script>
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
+<script src="./js/allocator.js"></script>
+<script src="./js/arpu.js"></script>
 </body>
 </html>

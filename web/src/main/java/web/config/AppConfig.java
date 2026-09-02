@@ -3,9 +3,10 @@ package web.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import web.service.GateClient;
@@ -33,6 +34,18 @@ public class AppConfig implements WebMvcConfigurer {
     public GateClient gateClient() {
         logger.info("初始化Gate客户端, gate: {}:{}", gateHost, gatePort);
         return new GateClient(gateHost, gatePort);
+    }
+
+    /** 外部 ARPU 查询独立执行，避免上游超时占住 Web 请求线程。 */
+    @Bean(name = "arpuExecutor")
+    public ThreadPoolTaskExecutor arpuExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("arpu-query-");
+        executor.initialize();
+        return executor;
     }
 
     @Override

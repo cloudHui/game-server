@@ -635,7 +635,9 @@ CSS 负责最终排版，但 JS 也需要知道牌区可用尺寸。`shared/game
 
 ## 11. 管理、回放和能力探测
 
-- 管理首页脚本 `pages/admin/admin.js` 分别请求 `/api/admin/invites|users|tables|replays|records`；Java 入口为 `AdminController.java:18-209`。
+- 管理首页 `pages/admin/admin.html` 加载 `js/core.js` 及各功能脚本；邀请、玩家、桌子、回放等请求由 `AdminController.java:18-209` 提供。
+- 整数分配页签由 `js/allocator.js` 请求 `POST /api/admin/integer-allocator/calculate`，经 `IntegerAllocatorAdminController` 校验管理员会话后调用 `web/arena/IntegerAllocator`；计算结果返回 6 个值、总和及局部窗口校验。
+- ARPU 页签由 `js/arpu.js` 请求 `POST /api/admin/arpu/check`，经 `ArpuAdminController` 校验后由 `ArpuLookupService` 代理 `https://arpu.151365.cc/check?phone_no=...`；月明细中的不可用值跳过，`ArpuAverageCalculator` 计算近 3 / 6 个可用月份平均值，原始返回 JSON 由页面代码区展示。
 - 牌局回放列表/兑换码：`pages/admin/replays.html:91-125` → `ReplayController.java:17-52` → `ReplayService` → `build/game/replay`（配置见 `application.yml:33-34`）。
 - 终端页：`pages/admin/terminal.html:193` 拉取状态，`:272` 提交命令 → `AdminController` 的 `/api/admin/shell` → `ShellService`。这是高权限链路。
 - `/api/capabilities` 由 `CapabilitiesController.java:35-81` 探测 Game/Center 地址是否可达，前端轮询在 `shared/capabilities-poll.js:50`。能力探测只能说明当次 TCP 探测结果，不等价于完整业务链路健康。
