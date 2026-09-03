@@ -119,72 +119,101 @@
     </div>
 
     <div id="panel-arena" class="panel">
-        <div class="card"><div class="card-heading"><div><h2>剑气除魔玩家</h2><div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div></div><button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button></div>
-            <div class="table-scroll"><table><thead><tr><th>ID</th><th>玩家</th><th>灵液</th><th>灵币</th><th>仙缘</th><th>战阵石</th><th>副本</th><th>操作</th></tr></thead><tbody id="arenaPlayerBody"><tr><td colspan="8">切换到此页后加载</td></tr></tbody></table></div><div id="arenaMsg" class="msg"></div></div>
-        <div id="arenaDetail" class="card" hidden><div class="card-heading"><h2 id="arenaDetailTitle">玩家详情</h2><button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button></div>
-            <h3>资源调整</h3><div class="form-row"><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select><input id="arenaDelta" type="number" value="1000"><button class="btn" onclick="adjustArenaResource()">增减</button><button class="btn btn-ghost" onclick="setArenaResource()">设为此值</button></div>
-            <div id="arenaProgress" class="meta"></div><h3>进度控制</h3><div class="form-row"><label>通关 <input id="arenaCleared" type="number" min="0" max="12"></label><label>剩余次数 <input id="arenaAttempts" type="number" min="0"></label><label>战阵 <input id="arenaFormation" type="number" min="1"></label><label>洞府 <input id="arenaGrotto" type="number" min="1"></label><button class="btn" onclick="saveArenaProgress()">保存进度</button></div><h3>物品 / 装备发放</h3><div id="arenaInventory" class="meta"></div><div class="form-row"><select id="arenaItemId"><option value="herb">灵草</option><option value="ore">玄铁</option><option value="star_dust">星尘</option><option value="pill">炼气丹</option><option value="star_pill">升星丹</option><option value="refine_stone">精炼石</option><option value="green_sword">青锋法宝</option><option value="zhuxian_sword">诛仙断界剑</option><option value="xuanwu_armor">玄武神甲</option><option value="tianji_compass">天机罗盘</option></select><input id="arenaItemDelta" type="number" value="1"><button class="btn" onclick="adjustArenaItem()">发放 / 扣除</button></div><h3>仙侣</h3><div class="form-row"><select id="arenaNewHero"><option value="jianhuang">无极剑皇</option><option value="leizun">九霄雷尊</option><option value="yaohuang">长生药皇</option><option value="luocha">血海罗刹</option><option value="xingjun">紫微星君</option><option value="kongming">空明道祖</option><option value="taixu">太虚剑主</option><option value="chixiao">赤霄真君</option><option value="qinglan">青岚剑君</option><option value="xuanshuang">玄霜仙子</option></select><button class="btn" onclick="addArenaHero()">发放仙侣</button></div><div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div></div>
+        <section class="card">
+            <div class="card-heading"><div><h2>剑气除魔玩家</h2><div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div></div><button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button></div>
+            <div class="table-scroll"><table><thead><tr><th>ID</th><th>玩家</th><th>灵液</th><th>灵币</th><th>仙缘</th><th>战阵石</th><th>副本</th><th>操作</th></tr></thead><tbody id="arenaPlayerBody"><tr><td colspan="8">切换到此页后加载</td></tr></tbody></table></div><div id="arenaMsg" class="msg"></div>
+        </section>
+        <section id="arenaDetail" class="card arena-detail" hidden>
+            <div class="card-heading"><h2 id="arenaDetailTitle">玩家详情</h2><button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button></div>
+            <section class="admin-subsection">
+                <div class="admin-subsection-heading"><h3>资源调整</h3><span>增减或直接设置当前资源</span></div>
+                <div class="form-row arena-form-row">
+                    <div><label for="arenaResource">资源类型</label><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select></div>
+                    <div><label for="arenaDelta">调整数量</label><input id="arenaDelta" type="number" value="1000"></div>
+                    <div class="admin-action-group"><button class="btn" onclick="adjustArenaResource()">增减资源</button><button class="btn btn-ghost" onclick="setArenaResource()">设为此值</button></div>
+                </div>
+            </section>
+            <section class="admin-subsection">
+                <div class="admin-subsection-heading"><h3>进度控制</h3><span id="arenaProgress" class="meta"></span></div>
+                <div class="form-row arena-form-row">
+                    <label for="arenaCleared">通关<input id="arenaCleared" type="number" min="0" max="12"></label>
+                    <label for="arenaAttempts">剩余次数<input id="arenaAttempts" type="number" min="0"></label>
+                    <label for="arenaFormation">战阵<input id="arenaFormation" type="number" min="1"></label>
+                    <label for="arenaGrotto">洞府<input id="arenaGrotto" type="number" min="1"></label>
+                    <div class="admin-action-group"><button class="btn" onclick="saveArenaProgress()">保存进度</button></div>
+                </div>
+            </section>
+            <section class="admin-subsection">
+                <div class="admin-subsection-heading"><h3>物品 / 装备发放</h3><span id="arenaInventory" class="meta"></span></div>
+                <div class="form-row arena-form-row">
+                    <div><label for="arenaItemId">物品</label><select id="arenaItemId"><option value="herb">灵草</option><option value="ore">玄铁</option><option value="star_dust">星尘</option><option value="pill">炼气丹</option><option value="star_pill">升星丹</option><option value="refine_stone">精炼石</option><option value="green_sword">青锋法宝</option><option value="zhuxian_sword">诛仙断界剑</option><option value="xuanwu_armor">玄武神甲</option><option value="tianji_compass">天机罗盘</option></select></div>
+                    <div><label for="arenaItemDelta">数量</label><input id="arenaItemDelta" type="number" value="1"></div>
+                    <div class="admin-action-group"><button class="btn" onclick="adjustArenaItem()">发放 / 扣除</button></div>
+                </div>
+            </section>
+            <section class="admin-subsection">
+                <div class="admin-subsection-heading"><h3>仙侣</h3><span>选择后发放给当前玩家</span></div>
+                <div class="form-row arena-form-row">
+                    <div><label for="arenaNewHero">仙侣</label><select id="arenaNewHero"><option value="jianhuang">无极剑皇</option><option value="leizun">九霄雷尊</option><option value="yaohuang">长生药皇</option><option value="luocha">血海罗刹</option><option value="xingjun">紫微星君</option><option value="kongming">空明道祖</option><option value="taixu">太虚剑主</option><option value="chixiao">赤霄真君</option><option value="qinglan">青岚剑君</option><option value="xuanshuang">玄霜仙子</option></select></div>
+                    <div class="admin-action-group"><button class="btn" onclick="addArenaHero()">发放仙侣</button></div>
+                </div>
+                <div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div>
+            </section>
+        </section>
     </div>
 
     <div id="panel-allocator" class="panel">
         <div class="tool-page-head">
             <div>
-                <div class="tool-eyebrow">数据工具 / 计算器</div>
-                <h2>整数分配计算器</h2>
-                <p>根据已知值和均值条件，自动补齐 6 个尽可能均匀的整数。</p>
+                <div class="tool-eyebrow">数据工具 / 均值计算</div>
+                <h2>六个月均值计算</h2>
+                <p>输入最多 5 个已知月份，系统补齐 6 个月；支持任意连续 3 个月均值。</p>
             </div>
             <span class="tool-admin-badge"><i></i>管理员专用</span>
         </div>
-        <div class="tool-grid allocator-grid">
-            <section class="card tool-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon">∑</span><div><h2>输入计算条件</h2><p>已知值按第 1 项开始依次固定。</p></div></div>
-                    <span class="tool-step">01</span>
+        <section class="card tool-card allocator-card">
+            <div class="tool-card-head">
+                <div class="tool-card-title"><span class="tool-card-icon">∑</span><div><h2>计算条件</h2><p>六格对应六个月；每个数字最多 5 位，只能输入大于等于 0 的整数。</p></div></div>
+                <span class="tool-step">01</span>
+            </div>
+            <div class="allocator-input-heading">
+                <div class="tool-section-label">已知月份数值 <span class="tool-label-hint">最多填写 5 格</span></div>
+                <span class="allocator-input-count" id="allocatorKnownCount">已填 0 / 5</span>
+            </div>
+            <div class="allocator-known-grid">
+                <label class="allocator-slot" for="allocatorKnown1"><span>第 1 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown1" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 1 个月数值"></label>
+                <label class="allocator-slot" for="allocatorKnown2"><span>第 2 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown2" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 2 个月数值"></label>
+                <label class="allocator-slot" for="allocatorKnown3"><span>第 3 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown3" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 3 个月数值"></label>
+                <label class="allocator-slot" for="allocatorKnown4"><span>第 4 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown4" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 4 个月数值"></label>
+                <label class="allocator-slot" for="allocatorKnown5"><span>第 5 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown5" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 5 个月数值"></label>
+                <label class="allocator-slot allocator-slot-last" for="allocatorKnown6"><span>第 6 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown6" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="可留空" aria-label="第 6 个月数值"></label>
+            </div>
+            <div class="tool-help">最多填写 5 格，第 6 格也可作为已知位置；空格由均值条件补齐。所有输入不能小于 0。</div>
+            <div class="allocator-condition-grid">
+                <div class="tool-field">
+                    <label for="allocatorSubAverage">任意连续 3 个月均值 <span class="tool-label-hint">可选</span></label>
+                    <div class="tool-input-suffix"><input class="tool-input" id="allocatorSubAverage" type="number" min="0" step="0.01" placeholder="不设置"><span>均值</span></div>
                 </div>
                 <div class="tool-field">
-                    <label for="allocatorKnown">已知值 <span class="tool-label-hint">最多 5 个</span></label>
-                    <input class="tool-input" id="allocatorKnown" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：20 20">
-                    <div class="tool-help">使用空格或逗号分隔；留空表示没有已知值。未知项由程序自动计算。</div>
+                    <label for="allocatorTotalAverage">6 个月均值</label>
+                    <div class="tool-input-suffix"><input class="tool-input" id="allocatorTotalAverage" type="number" min="0" step="0.01" value="10"><span>均值</span></div>
                 </div>
-                <div class="tool-form-grid">
-                    <div class="tool-field">
-                        <label for="allocatorTotalAverage">6 个值的总期望均值</label>
-                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorTotalAverage" type="number" min="0" step="0.01" value="10"><span>均值</span></div>
-                    </div>
-                    <div class="tool-field">
-                        <label for="allocatorSubAverage">连续 3 个值的期望均值 <span class="tool-label-hint">可选</span></label>
-                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorSubAverage" type="number" min="0" step="0.01" placeholder="不设置"><span>均值</span></div>
-                    </div>
-                </div>
-                <div class="tool-actions">
-                    <button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button>
-                    <button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button>
-                </div>
-                <div class="msg" id="allocatorMsg"></div>
-            </section>
-            <aside class="card tool-card tool-rule-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">?</span><div><h2>计算规则</h2><p>与 IntegerAllocatorTest 保持一致。</p></div></div>
-                    <span class="tool-step">02</span>
-                </div>
-                <ol class="tool-rule-list">
-                    <li><span>1</span><div>已知值从第 1 项开始按顺序固定，最多填写 5 个。</div></li>
-                    <li><span>2</span><div>只设置总均值时，把剩余总和均匀分给未知项。</div></li>
-                    <li><span>3</span><div>设置连续 3 项均值时，自动尝试第 1 至第 4 个起始位置。</div></li>
-                    <li><span>4</span><div>结果出现冲突或负数时，提示无法计算，不返回部分结果。</div></li>
-                </ol>
-                <div class="tool-rule-note"><strong>提示</strong><span>小数均值会按目标总和四舍五入，结果卡会同时展示实际校验值。</span></div>
-            </aside>
-        </div>
+            </div>
+            <div class="tool-actions allocator-actions">
+                <div class="allocator-action-buttons"><button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button><button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button></div>
+                <span class="allocator-action-hint">结果六格可修改，修改后会立即重算实际 3 / 6 个月均值。</span>
+            </div>
+            <div class="msg" id="allocatorMsg"></div>
+        </section>
         <section class="card tool-card tool-result" id="allocatorResult" hidden>
             <div class="tool-card-head tool-result-head">
-                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">已完成均值校验。</p></div></div>
+                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">修改任一结果值，实际均值会自动更新。</p></div></div>
                 <button class="btn btn-ghost" type="button" onclick="copyAllocatorResult()">复制结果</button>
             </div>
             <div class="tool-metrics" id="allocatorMetrics"></div>
-            <div class="tool-section-label">六个分配值</div>
+            <div class="allocator-narrative" id="allocatorNarrative"></div>
+            <div class="tool-section-label">六个月结果 <span class="tool-label-hint">可直接修改</span></div>
             <div class="allocator-values" id="allocatorValues"></div>
-            <div class="tool-section-label">结果校验</div>
             <div class="allocator-checks" id="allocatorChecks"></div>
         </section>
     </div>
@@ -375,6 +404,7 @@
 <script src="../../shared/replay-table-view.js"></script>
 <script src="./replay-shell.js"></script>
 <script src="./replay-player.js"></script>
+<script src="./js/tools-common.js"></script>
 <script src="./js/core.js"></script>
 <script src="./js/invites.js"></script>
 <script src="./js/users.js"></script>

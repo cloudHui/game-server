@@ -77,6 +77,21 @@ public class ArenaAdminController {
         }
     }
 
+    @PostMapping("/progress")
+    public ResponseEntity<?> progress(@RequestBody Map<String, Object> b) {
+        if (notAdmin(str(b.get("sessionId")))) return denied();
+        try {
+            return ResponseEntity.ok(ok("state", service.progress(
+                num(b.get("userId")),
+                integer(b.get("dungeonCleared")),
+                integer(b.get("dungeonAttempts")),
+                integer(b.get("formationLevel")),
+                integer(b.get("grottoLevel")))));
+        } catch (Exception e) {
+            return fail(e);
+        }
+    }
+
     private boolean notAdmin(String sid) {
         UserService.UserInfo u = users.getSession(sid);
         return u == null || !u.isAdmin();

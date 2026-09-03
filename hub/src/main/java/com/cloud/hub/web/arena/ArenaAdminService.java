@@ -93,6 +93,27 @@ public class ArenaAdminService {
         return arena.state(userId);
     }
 
+    public Map<String, Object> progress(long userId, int dungeonCleared, int dungeonAttempts,
+                                        int formationLevel, int grottoLevel) throws SQLException {
+        if (dungeonCleared < 0 || dungeonCleared > 12) {
+            throw new IllegalArgumentException("通关数必须在 0 到 12 之间");
+        }
+        if (dungeonAttempts < 0) throw new IllegalArgumentException("副本次数不能小于 0");
+        if (formationLevel < 1) throw new IllegalArgumentException("战阵等级不能小于 1");
+        if (grottoLevel < 1) throw new IllegalArgumentException("洞府等级不能小于 1");
+        arena.state(userId);
+        try (Connection c = db.getConnection(); PreparedStatement p = c.prepareStatement(
+                "UPDATE arena_player SET dungeon_cleared=?,dungeon_attempts=?,formation_level=?,grotto_level=? WHERE user_id=?")) {
+            p.setInt(1, dungeonCleared);
+            p.setInt(2, dungeonAttempts);
+            p.setInt(3, formationLevel);
+            p.setInt(4, grottoLevel);
+            p.setLong(5, userId);
+            p.executeUpdate();
+        }
+        return detail(userId);
+    }
+
     public Map<String, Object> hero(long userId, String heroId, int rank, int stars, int skill, int shards) throws SQLException {
         if (heroId == null || !heroId.matches("[a-z0-9_-]{1,32}")) throw new IllegalArgumentException("仙侣 ID 非法");
         arena.state(userId);

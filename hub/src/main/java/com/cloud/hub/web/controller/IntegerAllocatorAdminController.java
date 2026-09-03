@@ -73,6 +73,10 @@ public class IntegerAllocatorAdminController {
         }
         List<Integer> values = new ArrayList<>();
         for (Object item : (List<?>) raw) {
+            if (item == null || text(item).isEmpty()) {
+                values.add(null);
+                continue;
+            }
             double value = decimal(item, "已知值");
             if (value != Math.rint(value) || value > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("已知值必须是整数");
@@ -121,4 +125,3 @@ public class IntegerAllocatorAdminController {
         return value == null ? "" : String.valueOf(value).trim();
     }
 }
-

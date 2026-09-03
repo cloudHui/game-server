@@ -49,15 +49,6 @@
     box-shadow: 0 0 0 3px rgba(103, 194, 58, .13);
 }
 
-.tool-grid {
-    display: grid;
-    gap: 18px;
-}
-
-.allocator-grid {
-    grid-template-columns: minmax(0, 1.38fr) minmax(300px, 1fr);
-}
-
 .tool-card {
     border: 1px solid #ebeef5;
     border-radius: 6px;
@@ -180,13 +171,6 @@
     line-height: 1.5;
 }
 
-.tool-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 18px;
-}
-
 .tool-input-suffix {
     display: flex;
     align-items: stretch;
@@ -234,55 +218,23 @@
     opacity: .65;
 }
 
-.tool-rule-card {
-    background: #fbfcfe;
-}
-
-.tool-rule-list {
-    display: grid;
-    gap: 16px;
-    padding: 0;
-    list-style: none;
-}
-
-.tool-rule-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    color: #606266;
+.tool-card .btn {
+    min-height: 36px;
+    padding: 8px 16px;
+    border-radius: 4px;
     font-size: 13px;
-    line-height: 1.55;
 }
 
-.tool-rule-list li > span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 22px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+.tool-card .btn-ghost {
+    border-color: #dcdfe6;
+    background: #fff;
+    color: #606266;
+}
+
+.tool-card .btn-ghost:hover {
+    border-color: #c6e2ff;
     background: #ecf5ff;
     color: #409eff;
-    font-size: 11px;
-}
-
-.tool-rule-note {
-    display: flex;
-    gap: 8px;
-    margin-top: 24px;
-    padding: 11px 12px;
-    border: 1px solid #faecd8;
-    border-radius: 4px;
-    background: #fdf6ec;
-    color: #a26b20;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.tool-rule-note strong {
-    flex: 0 0 auto;
-    color: #e6a23c;
 }
 
 .tool-result {
@@ -339,6 +291,107 @@
     font-weight: 600;
 }
 
+.allocator-card {
+    margin-bottom: 0;
+}
+
+.allocator-input-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.allocator-input-heading .tool-section-label {
+    margin: 0 0 10px;
+}
+
+.allocator-input-count {
+    margin-bottom: 10px;
+    padding: 4px 8px;
+    border: 1px solid #ebeef5;
+    border-radius: 3px;
+    background: #f5f7fa;
+    color: #909399;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.allocator-input-count.is-full {
+    border-color: #d1edc4;
+    background: #f0f9eb;
+    color: #67c23a;
+}
+
+.allocator-input-count.is-invalid,
+.tool-input.is-invalid,
+.allocator-value-input.is-invalid {
+    border-color: #f56c6c;
+    box-shadow: 0 0 0 2px rgba(245, 108, 108, .12);
+}
+
+.allocator-known-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.allocator-slot {
+    display: block;
+    min-width: 0;
+    margin: 0;
+}
+
+.allocator-slot > span {
+    display: block;
+    margin-bottom: 6px;
+    color: #606266;
+    font-size: 12px;
+    text-align: center;
+}
+
+.allocator-slot .tool-input {
+    padding: 10px 6px;
+    text-align: center;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.allocator-slot-last .tool-input {
+    border-style: dashed;
+    background: #fbfcfe;
+}
+
+.allocator-condition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #f0f2f5;
+}
+
+.allocator-actions {
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #f0f2f5;
+}
+
+.allocator-action-buttons {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.allocator-action-hint {
+    color: #909399;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: right;
+}
+
 .allocator-values {
     display: grid;
     grid-template-columns: repeat(6, minmax(90px, 1fr));
@@ -346,13 +399,11 @@
 }
 
 .allocator-value {
-    position: relative;
     min-width: 0;
-    padding: 13px 10px 11px;
+    padding: 11px 9px 10px;
     border: 1px solid #d9ecff;
     border-radius: 5px;
     background: #f4faff;
-    text-align: center;
 }
 
 .allocator-value.known {
@@ -364,30 +415,65 @@
     display: block;
     color: #909399;
     font-size: 11px;
+    text-align: center;
 }
 
-.allocator-value strong {
+.allocator-value-input {
     display: block;
-    margin: 6px 0 5px;
+    width: 100%;
+    margin-top: 7px;
+    padding: 9px 4px;
+    outline: none;
+    border: 1px solid #b3d8ff;
+    border-radius: 4px;
+    background: #fff;
     color: #303133;
-    font-size: 25px;
+    font-size: 21px;
+    font-weight: 600;
     line-height: 1;
+    text-align: center;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.allocator-value-input:focus {
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, .12);
 }
 
 .allocator-value em {
+    display: block;
+    margin-top: 7px;
     color: #409eff;
     font-size: 11px;
     font-style: normal;
+    text-align: center;
 }
 
 .allocator-value.known em {
     color: #67c23a;
 }
 
+.allocator-narrative {
+    margin: 16px 0 18px;
+    padding: 11px 13px;
+    border-left: 3px solid #409eff;
+    background: #f5faff;
+    color: #606266;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.allocator-narrative.is-invalid {
+    border-left-color: #f56c6c;
+    background: #fef0f0;
+    color: #f56c6c;
+}
+
 .allocator-checks {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    margin-top: 16px;
 }
 
 .allocator-check {
@@ -539,6 +625,10 @@
 }
 
 @media (max-width: 900px) {
+    .allocator-known-grid {
+        grid-template-columns: repeat(3, minmax(100px, 1fr));
+    }
+
     .allocator-values {
         grid-template-columns: repeat(3, minmax(90px, 1fr));
     }
@@ -559,18 +649,27 @@
         align-self: flex-start;
     }
 
-    .allocator-grid {
-        grid-template-columns: 1fr;
-    }
-
     .tool-card {
         padding: 18px 15px;
     }
 
-    .tool-form-grid,
+    .allocator-condition-grid,
     .allocator-checks,
     .arpu-stats {
         grid-template-columns: 1fr;
+    }
+
+    .allocator-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .allocator-action-hint {
+        text-align: left;
+    }
+
+    .allocator-action-buttons .btn {
+        flex: 1 1 0;
     }
 
     .tool-metrics {
@@ -592,6 +691,10 @@
 }
 
 @media (max-width: 430px) {
+    .allocator-known-grid {
+        grid-template-columns: repeat(2, minmax(100px, 1fr));
+    }
+
     .allocator-values {
         grid-template-columns: repeat(2, minmax(100px, 1fr));
     }
@@ -600,4 +703,3 @@
         grid-template-columns: 1fr;
     }
 }
-

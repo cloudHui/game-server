@@ -8,15 +8,18 @@ import java.util.List;
 public final class IntegerAllocator {
     public static final int VALUE_COUNT = 6;
     public static final int MAX_KNOWN_VALUES = 5;
+    public static final int MAX_VALUE = 99999;
 
     private IntegerAllocator() {
     }
 
     /**
      * 按总均值分配整数；提供局部均值时，自动尝试第 1 至第 4 个位置。
+     * knownValues 可包含最多 6 个位置，其中最多 5 个位置有已知值。
      */
     public static Result calculate(List<Integer> knownValues, double totalAverage, Double subAverage) {
         validate(knownValues, totalAverage, subAverage);
+        int knownCount = countKnownValues(knownValues);
         int totalTargetSum = targetSum(totalAverage, VALUE_COUNT);
         Integer subTargetSum = subAverage == null ? null : targetSum(subAverage, 3);
         WindowAllocation window = subTargetSum == null
@@ -28,8 +31,13 @@ public final class IntegerAllocator {
         if (values == null) {
             return Result.failure("已知值和均值条件无法同时满足");
         }
+        for (int value : values) {
+            if (value > MAX_VALUE) {
+                return Result.failure("每个结果最多只能是 5 位数字");
+            }
+        }
         int startIndex = window == null ? 0 : window.startIndex;
-        return Result.success(values, knownValues.size(), totalTargetSum, subTargetSum, startIndex);
+        return Result.success(values, knownCount, totalTargetSum, subTargetSum, startIndex);
     }
 
     private static WindowAllocation findWindow(List<Integer> knownValues, int totalTargetSum, int subTargetSum) {
@@ -74,8 +82,12 @@ public final class IntegerAllocator {
 
     private static boolean[] fillKnownValues(int[] result, List<Integer> knownValues) {
         boolean[] fixed = new boolean[VALUE_COUNT];
-        for (int i = 0; i < knownValues.size(); i++) {
-            result[i] = knownValues.get(i);
+        for (int i = 0; i < knownValues.size() && i < VALUE_COUNT; i++) {
+            Integer value = knownValues.get(i);
+            if (value == null) {
+                continue;
+            }
+            result[i] = value;
             fixed[i] = true;
         }
         return fixed;
@@ -130,7 +142,10 @@ public final class IntegerAllocator {
     }
 
     private static void validate(List<Integer> knownValues, double totalAverage, Double subAverage) {
-        if (knownValues == null || knownValues.size() > MAX_KNOWN_VALUES) {
+        if (knownValues == null || knownValues.size() > VALUE_COUNT) {
+            throw new IllegalArgumentException("最多只能提供 6 个输入位置");
+        }
+        if (countKnownValues(knownValues) > MAX_KNOWN_VALUES) {
             throw new IllegalArgumentException("最多只能输入 5 个已知值");
         }
         validateAverage(totalAverage, "总期望均值");
@@ -138,10 +153,26 @@ public final class IntegerAllocator {
             validateAverage(subAverage, "连续 3 个值的期望均值");
         }
         for (Integer value : knownValues) {
-            if (value == null || value < 0) {
+            if (value == null) {
+                continue;
+            }
+            if (value < 0) {
                 throw new IllegalArgumentException("已知值必须是大于等于 0 的整数");
             }
+            if (value > MAX_VALUE) {
+                throw new IllegalArgumentException("每个输入数字最多只能是 5 位数字");
+            }
         }
+    }
+
+    private static int countKnownValues(List<Integer> knownValues) {
+        int count = 0;
+        for (Integer value : knownValues) {
+            if (value != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static void validateAverage(double average, String label) {

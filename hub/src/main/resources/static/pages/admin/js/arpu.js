@@ -1,27 +1,11 @@
 (function (w) {
     'use strict';
     var lastJson = '';
-
-    function byId(id) {
-        return document.getElementById(id);
-    }
-
-    function escapeHtml(value) {
-        var node = document.createElement('div');
-        node.textContent = value == null ? '' : String(value);
-        return node.innerHTML;
-    }
-
-    function numeric(value) {
-        if (value === null || value === undefined || String(value).trim() === '') return null;
-        var number = Number(value);
-        return isFinite(number) && number >= 0 ? number : null;
-    }
-
-    function numberText(value) {
-        var number = numeric(value);
-        return number === null ? '--' : number.toFixed(2);
-    }
+    var Tools = w.AdminTools;
+    var byId = Tools.byId;
+    var escapeHtml = Tools.escapeHtml;
+    var numeric = Tools.numberOrNull;
+    var numberText = Tools.numberText;
 
     function stat(label, value, foot, apiValue) {
         var api = numeric(apiValue);
@@ -102,4 +86,3 @@
         if (event.key === 'Enter') w.checkArpu();
     });
 })(window);
-
