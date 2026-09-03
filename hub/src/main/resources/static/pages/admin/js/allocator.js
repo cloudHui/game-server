@@ -12,10 +12,6 @@
         return Array.prototype.slice.call(document.querySelectorAll('.allocator-known-input'));
     }
 
-    function resultInputs() {
-        return Array.prototype.slice.call(document.querySelectorAll('.allocator-result-input'));
-    }
-
     function integerValue(raw, label) {
         return Tools.nonNegativeInteger(raw, label, MAX_VALUE);
     }
@@ -63,9 +59,9 @@
     function currentValues() {
         var values = [];
         var invalid = false;
-        resultInputs().forEach(function (input, index) {
+        knownInputs().forEach(function (input, index) {
             try {
-                values.push(integerValue(input.value, '第 ' + (index + 1) + ' 个月结果'));
+                values.push(integerValue(input.value, '第 ' + (index + 1) + ' 个月数值'));
                 input.classList.remove('is-invalid');
             } catch (error) {
                 invalid = true;
@@ -117,7 +113,7 @@
                 metric('6 个月总和', '--', '')
             ].join('');
             narrative.className = 'allocator-narrative is-invalid';
-            narrative.textContent = '六个结果框都要填写 0 到 99999 的整数，填写完整后自动重算。';
+            narrative.textContent = '上方六个月输入框都要填写 0 到 99999 的整数，填写完整后自动重算。';
             byId('allocatorChecks').innerHTML = '';
             return;
         }
@@ -153,28 +149,31 @@
         }
     }
 
-    function renderResult(data, knownMask) {
+    function renderResult(data) {
         var values = (data.values || []).slice(0, VALUE_COUNT);
         while (values.length < VALUE_COUNT) values.push(0);
-        lastResult = Object.assign({}, data, {values: values, knownMask: knownMask || []});
-        byId('allocatorValues').innerHTML = values.map(function (value, index) {
-            var known = !!lastResult.knownMask[index];
-            return '<div class="allocator-value' + (known ? ' known' : '') + '">' +
-                '<span class="allocator-value-label">第 ' + (index + 1) + ' 个月</span>' +
-                '<input class="allocator-value-input allocator-result-input" type="text" inputmode="numeric" maxlength="5"' +
-                ' data-index="' + index + '" value="' + escapeHtml(value) + '" aria-label="第 ' + (index + 1) + ' 个月结果">' +
-                '<em>' + (known ? '已知输入' : '系统补齐') + '</em></div>';
-        }).join('');
+        lastResult = Object.assign({}, data, {values: values});
+        knownInputs().forEach(function (input, index) {
+            input.value = values[index];
+            input.classList.remove('is-invalid');
+        });
+        updateKnownCount();
         byId('allocatorResult').hidden = false;
         byId('allocatorResultHint').textContent = hasSubConstraint()
-            ? '系统从第 ' + data.subStartIndex + ' 个月开始匹配连续 3 个月均值；修改结果后实际均值即时更新。'
-            : '未设置连续 3 个月均值；修改结果后 6 个月实际均值即时更新。';
+            ? '系统从第 ' + data.subStartIndex + ' 个月开始匹配连续 3 个月均值；修改上方数值后实际均值即时更新。'
+            : '未设置连续 3 个月均值；修改上方数值后 6 个月实际均值即时更新。';
         renderSummary();
     }
 
     function updateKnownCount() {
         var count = knownInputs().filter(function (input) { return input.value.trim() !== ''; }).length;
         var badge = byId('allocatorKnownCount');
+        if (lastResult) {
+            badge.textContent = count === VALUE_COUNT ? '已生成 6 / 6' : '已填 ' + count + ' / 6';
+            badge.classList.toggle('is-full', count === VALUE_COUNT);
+            badge.classList.remove('is-invalid');
+            return count;
+        }
         badge.textContent = '已填 ' + count + ' / 5';
         badge.classList.toggle('is-full', count === 5);
         badge.classList.toggle('is-invalid', count > 5);
@@ -188,17 +187,22 @@
     w.calculateAllocator = function () {
         var button = byId('allocatorCalculate');
         var payload;
-        var knownMask;
+        if (lastResult) {
+            var current = currentValues();
+            if (!current.invalid) {
+                renderSummary();
+                return Admin.msg('allocatorMsg', '当前六个月数值已更新，3 / 6 个月均值已实时刷新。', true);
+            }
+        }
         try {
             var slots = readKnownValues();
-            knownMask = slots.map(function (value) { return value !== null; });
             payload = {
                 knownValues: slots,
                 totalAverage: readAverage('allocatorTotalAverage', '6 个月均值', false),
                 subAverage: readAverage('allocatorSubAverage', '连续 3 个月均值', true)
             };
         } catch (error) {
-            byId('allocatorResult').hidden = true;
+            if (!lastResult) byId('allocatorResult').hidden = true;
             return Admin.msg('allocatorMsg', error.message, false);
         }
         button.disabled = true;
@@ -206,13 +210,15 @@
         Admin.post('/integer-allocator/calculate', payload).then(function (data) {
             if (data.code !== 0) {
                 lastResult = null;
+                updateKnownCount();
                 byId('allocatorResult').hidden = true;
                 return Admin.msg('allocatorMsg', data.msg || '无法计算', false);
             }
-            renderResult(data, knownMask);
-            Admin.msg('allocatorMsg', '计算完成，可直接修改结果六格。', true);
+            renderResult(data);
+            Admin.msg('allocatorMsg', '计算完成，可直接修改上方六格。', true);
         }).catch(function () {
             lastResult = null;
+            updateKnownCount();
             byId('allocatorResult').hidden = true;
             Admin.msg('allocatorMsg', '网络错误，请稍后重试', false);
         }).finally(function () {
@@ -221,12 +227,12 @@
     };
 
     w.resetAllocator = function () {
+        lastResult = null;
         knownInputs().forEach(function (input) { input.value = ''; input.classList.remove('is-invalid'); });
         byId('allocatorTotalAverage').value = '10';
         byId('allocatorSubAverage').value = '';
         updateKnownCount();
         byId('allocatorResult').hidden = true;
-        lastResult = null;
         Admin.msg('allocatorMsg', '');
     };
 
@@ -244,17 +250,13 @@
         input.addEventListener('input', function () {
             normalizeFiveDigits(input);
             var count = updateKnownCount();
-            if (count > 5) {
+            if (!lastResult && count > 5) {
                 input.value = '';
                 updateKnownCount();
                 Admin.msg('allocatorMsg', '最多只能填写 5 个已知数值，第 6 个留给系统计算', false);
             }
+            if (lastResult) renderSummary();
         });
-    });
-    byId('allocatorValues').addEventListener('input', function (event) {
-        if (!event.target.classList.contains('allocator-result-input')) return;
-        normalizeFiveDigits(event.target);
-        renderSummary();
     });
     updateKnownCount();
 })(window);

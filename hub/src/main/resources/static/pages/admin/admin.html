@@ -177,7 +177,7 @@
                 <span class="tool-step">01</span>
             </div>
             <div class="allocator-input-heading">
-                <div class="tool-section-label">已知月份数值 <span class="tool-label-hint">最多填写 5 格</span></div>
+                <div class="tool-section-label">六个月数值 <span class="tool-label-hint">首次最多填写 5 格，计算后可直接修改</span></div>
                 <span class="allocator-input-count" id="allocatorKnownCount">已填 0 / 5</span>
             </div>
             <div class="allocator-known-grid">
@@ -186,9 +186,9 @@
                 <label class="allocator-slot" for="allocatorKnown3"><span>第 3 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown3" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 3 个月数值"></label>
                 <label class="allocator-slot" for="allocatorKnown4"><span>第 4 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown4" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 4 个月数值"></label>
                 <label class="allocator-slot" for="allocatorKnown5"><span>第 5 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown5" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 5 个月数值"></label>
-                <label class="allocator-slot allocator-slot-last" for="allocatorKnown6"><span>第 6 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown6" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="可留空" aria-label="第 6 个月数值"></label>
+                <label class="allocator-slot" for="allocatorKnown6"><span>第 6 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown6" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 6 个月数值"></label>
             </div>
-            <div class="tool-help">最多填写 5 格，第 6 格也可作为已知位置；空格由均值条件补齐。所有输入不能小于 0。</div>
+            <div class="tool-help">首次计算最多填写 5 格，第 6 格也可作为已知位置；空格由均值条件补齐。计算后结果直接回填这 6 格，修改任一数值会实时更新 3 / 6 个月均值。</div>
             <div class="allocator-condition-grid">
                 <div class="tool-field">
                     <label for="allocatorSubAverage">任意连续 3 个月均值 <span class="tool-label-hint">可选</span></label>
@@ -201,19 +201,17 @@
             </div>
             <div class="tool-actions allocator-actions">
                 <div class="allocator-action-buttons"><button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button><button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button></div>
-                <span class="allocator-action-hint">结果六格可修改，修改后会立即重算实际 3 / 6 个月均值。</span>
+                <span class="allocator-action-hint">计算结果直接回填上方六格，修改后立即更新实际 3 / 6 个月均值。</span>
             </div>
             <div class="msg" id="allocatorMsg"></div>
         </section>
         <section class="card tool-card tool-result" id="allocatorResult" hidden>
             <div class="tool-card-head tool-result-head">
-                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">修改任一结果值，实际均值会自动更新。</p></div></div>
+                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">修改上方任一月份值，实际均值会自动更新。</p></div></div>
                 <button class="btn btn-ghost" type="button" onclick="copyAllocatorResult()">复制结果</button>
             </div>
             <div class="tool-metrics" id="allocatorMetrics"></div>
             <div class="allocator-narrative" id="allocatorNarrative"></div>
-            <div class="tool-section-label">六个月结果 <span class="tool-label-hint">可直接修改</span></div>
-            <div class="allocator-values" id="allocatorValues"></div>
             <div class="allocator-checks" id="allocatorChecks"></div>
         </section>
     </div>

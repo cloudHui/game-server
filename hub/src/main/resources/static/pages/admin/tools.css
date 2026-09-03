@@ -324,8 +324,7 @@
 }
 
 .allocator-input-count.is-invalid,
-.tool-input.is-invalid,
-.allocator-value-input.is-invalid {
+.tool-input.is-invalid {
     border-color: #f56c6c;
     box-shadow: 0 0 0 2px rgba(245, 108, 108, .12);
 }
@@ -354,11 +353,6 @@
     padding: 10px 6px;
     text-align: center;
     font-family: ui-monospace, Menlo, Consolas, monospace;
-}
-
-.allocator-slot-last .tool-input {
-    border-style: dashed;
-    background: #fbfcfe;
 }
 
 .allocator-condition-grid {
@@ -390,67 +384,6 @@
     font-size: 12px;
     line-height: 1.5;
     text-align: right;
-}
-
-.allocator-values {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(90px, 1fr));
-    gap: 10px;
-}
-
-.allocator-value {
-    min-width: 0;
-    padding: 11px 9px 10px;
-    border: 1px solid #d9ecff;
-    border-radius: 5px;
-    background: #f4faff;
-}
-
-.allocator-value.known {
-    border-color: #b3d8ff;
-    background: #ecf5ff;
-}
-
-.allocator-value-label {
-    display: block;
-    color: #909399;
-    font-size: 11px;
-    text-align: center;
-}
-
-.allocator-value-input {
-    display: block;
-    width: 100%;
-    margin-top: 7px;
-    padding: 9px 4px;
-    outline: none;
-    border: 1px solid #b3d8ff;
-    border-radius: 4px;
-    background: #fff;
-    color: #303133;
-    font-size: 21px;
-    font-weight: 600;
-    line-height: 1;
-    text-align: center;
-    transition: border-color .2s, box-shadow .2s;
-}
-
-.allocator-value-input:focus {
-    border-color: #409eff;
-    box-shadow: 0 0 0 2px rgba(64, 158, 255, .12);
-}
-
-.allocator-value em {
-    display: block;
-    margin-top: 7px;
-    color: #409eff;
-    font-size: 11px;
-    font-style: normal;
-    text-align: center;
-}
-
-.allocator-value.known em {
-    color: #67c23a;
 }
 
 .allocator-narrative {
@@ -628,10 +561,6 @@
     .allocator-known-grid {
         grid-template-columns: repeat(3, minmax(100px, 1fr));
     }
-
-    .allocator-values {
-        grid-template-columns: repeat(3, minmax(90px, 1fr));
-    }
 }
 
 @media (max-width: 720px) {
@@ -692,10 +621,6 @@
 
 @media (max-width: 430px) {
     .allocator-known-grid {
-        grid-template-columns: repeat(2, minmax(100px, 1fr));
-    }
-
-    .allocator-values {
         grid-template-columns: repeat(2, minmax(100px, 1fr));
     }
 
