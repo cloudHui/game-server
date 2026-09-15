@@ -1,39 +1,48 @@
 package lobby.client.handle.server.gate;
 
-import com.google.protobuf.Message;
 import lobby.manager.User;
 import lobby.manager.UserManager;
-import msg.annotation.ProcessType;
 import msg.registor.message.CMsg;
-import net.client.Sender;
-import net.handler.Handler;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 
 /**
- * 玩家断线：仅标记 offline，保留 User 与 tables，便于重登拉回桌子。
- * 正式离桌走 leave；被顶号后的旧连接 NotBreak 用 gateClientId 忽略。
+ * 玩家断线事件处理器（大厅）
+ * <p>
+ * 仅标记 offline，保留 User 与 tables，便于玩家重登拉回桌子。
+ * 若已被新连接顶替，则忽略旧连接断线。
  */
-@ProcessType(CMsg.NOT_BREAK)
-public class NotBreakHandle implements Handler {
+public class NotBreakHandle {
+
     private static final Logger logger = LoggerFactory.getLogger(NotBreakHandle.class);
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message msg, long mapId, int sequence) {
+    /**
+     * 处理玩家断线事件
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = CMsg.NOT_BREAK, desc = "玩家断线通知")
+    public void handle(MsgContext<ServerProto.NotBreak> ctx) {
         try {
-            ServerProto.NotBreak notice = (ServerProto.NotBreak) msg;
+            ServerProto.NotBreak notice = ctx.getMsg();
             int userId = notice.getUserId();
             int gateClientId = notice.getGateClientId();
             logger.info("收到玩家断线通知, userId: {}, gateClientId: {}", userId, gateClientId);
             handleUserDisconnect(userId, gateClientId);
-            return true;
         } catch (Exception e) {
-            logger.error("处理断线通知失败, clientId: {}", clientId, e);
-            return false;
+            logger.error("处理断线通知失败, clientId: {}", ctx.getClientId(), e);
         }
     }
 
+    /**
+     * 处理玩家离线状态
+     *
+     * @param userId       玩家 ID
+     * @param gateClientId 网关连接 ID
+     */
     private void handleUserDisconnect(int userId, int gateClientId) {
         User user = UserManager.getInstance().getUser(userId);
         if (user == null) {

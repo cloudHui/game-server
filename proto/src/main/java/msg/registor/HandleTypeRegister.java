@@ -8,14 +8,12 @@ import msg.annotation.ClassType;
 import msg.annotation.ProcessClass;
 import msg.annotation.ProcessEnum;
 import msg.annotation.ProcessType;
-import msg.annotation.Register;
-import msg.annotation.RegistryParam;
 import msg.registor.enums.TableState;
+import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.other.ClazzUtil;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
@@ -23,30 +21,30 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @className HandleTypeRegister
- * @description 统一注册中心 - 负责消息处理器、类型转换和工厂方法的动态绑定与注册管理
- * @createDate 2025/04/10 03:27
+ * 统一消息与处理器注册中心
+ * <p>
+ * 负责协议常量映射、状态机枚举处理器及传统处理器的动态发现与绑定。
+ * 同时与 {@link MsgRouter} 协同，提供 Protobuf 消息的反序列化支持。
  */
 public class HandleTypeRegister {
 
     private static final Logger logger = LoggerFactory.getLogger(HandleTypeRegister.class);
 
-    // 配置常量
+    /** 默认扫描的处理器包名 */
     private static final String DEFAULT_HANDLE_PACKAGE = "tools.handle";
 
+    /** 消息 ID -> Protobuf 消息类的映射 */
     private static final Map<Integer, Class<?>> TRANS_MAP = new ConcurrentHashMap<>();
+
+    /** Protobuf 消息类 -> 消息 ID 的映射 */
     private static final Map<Class<?>, Integer> MSG_TRANS_MAP = new ConcurrentHashMap<>();
-    // 注解和处理方式的映射
-    private static final Map<Class<? extends Annotation>, Register<Object, Object>> anoMap = new HashMap<>();
-    // ==================== 消息类型转换相关方法 ====================
 
     static {
         initLocalMethod();
-        initAnoFactory();
     }
 
     /**
-     * 初始本地方法
+     * 扫描并初始化消息常量类中的消息 ID 与 Protobuf 消息类的对应关系
      */
     private static void initLocalMethod() {
         try {
@@ -60,86 +58,16 @@ public class HandleTypeRegister {
             }
             logger.info("init message id bind total size:{} cost:{}ms", TRANS_MAP.size(), System.currentTimeMillis() - start);
         } catch (Exception e) {
-            logger.error("init message id bind class", e);
+            logger.error("init message id bind class failed", e);
         }
     }
-    // ==================== 基于 Integer 键的扫描方法 ====================
 
     /**
-     * 初始化处理工厂 - 基于 Integer 键
+     * 读取常量类中的字段注解并绑定到映射表，同时向 MsgRouter 注册
+     *
+     * @param constantClass 带有 @ClassType 注解的常量类（例如 CMsg, GMsg, LMsg, SMsg）
      */
     @SuppressWarnings("unchecked")
-    private static void initAnoFactory() {
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getAllAssignedClass(Register.class);
-
-            Register<Object, Object> register;
-            Class<? extends Annotation> targetAnnotation;
-            for (Class<?> aclass : classes) {
-                ProcessClass annotation = aclass.getAnnotation(ProcessClass.class);
-                if (annotation == null) {
-                    continue;
-                }
-                // 获取要处理的注解类型
-                targetAnnotation = (Class<? extends Annotation>)annotation.value();
-                register = newInstance(aclass, aclass);
-                if (register != null) {
-                    anoMap.put(targetAnnotation, register);
-                } else {
-                    logger.error("{} initAnoFactory error", aclass.getName());
-                }
-            }
-
-            logger.info("initAnoFactory {} bind success, size:{} cost:{}ms", Register.class.getName(),
-                    anoMap.size(), System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} initAnoFactory error", Register.class.getName(), e);
-        }
-    }
-
-    /**
-     * 初始化处理工厂 - 基于 Integer 键
-     *
-     * @param superClass
-     *            包名 和父类
-     * @param handles
-     *            处理器
-     * @param <T>
-     *            处理器类型
-     */
-    @SuppressWarnings("unchecked")
-    public static <K, T> void initFactory(Class<?> superClass, Map<K, T> handles, Class<? extends Annotation> ano) {
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getAllAssignedClass(superClass);
-            Map<Class<?>, T> classProcessMap = new HashMap<>();
-
-            for (Class<?> aclass : classes) {
-                Annotation annotation = aclass.getAnnotation(ano);
-                if (annotation == null) {
-                    continue;
-                }
-                Register<K, T> handle = (Register<K, T>)anoMap.get(annotation.annotationType());
-                if (handle == null) {
-                    throw new RuntimeException("annotation type not supported: " + annotation.annotationType());
-                }
-                handle.handle(new RegistryParam<>(annotation, aclass, handles, classProcessMap));
-            }
-
-            logger.info("initFactory with ano {} bind success, size:{} cost:{}ms", superClass.getName(), handles.size(),
-                    System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} bind processors error", superClass.getName(), e);
-        }
-    }
-
-
-    /**
-     * 绑定消息类型转换映射
-     *
-     * @param constantClass 消息常量类
-     */
     private static void bindTransMap(Class<?> constantClass) {
         for (Field field : constantClass.getFields()) {
             ClassField annotation = field.getAnnotation(ClassField.class);
@@ -149,8 +77,11 @@ public class HandleTypeRegister {
             try {
                 Object fieldValue = field.get(null);
                 if (fieldValue instanceof Integer) {
-                    TRANS_MAP.put((Integer) fieldValue, annotation.value());
-                    MSG_TRANS_MAP.put(annotation.value(), (Integer) fieldValue);
+                    int messageId = (Integer) fieldValue;
+                    Class<? extends Message> protoClass = (Class<? extends Message>) (Class<?>) annotation.value();
+                    TRANS_MAP.put(messageId, protoClass);
+                    MSG_TRANS_MAP.put(protoClass, messageId);
+                    MsgRouter.getInstance().register(messageId, protoClass, annotation.des());
                 }
             } catch (Exception e) {
                 logger.error("Bind field failed: {}.{}", constantClass.getSimpleName(), field.getName(), e);
@@ -158,17 +89,22 @@ public class HandleTypeRegister {
         }
     }
 
-    // ==================== 工厂方法相关方法 ====================
-
     /**
-     * 初始化处理工厂
+     * 使用默认包名扫描并初始化基于整数键的处理器
+     *
+     * @param handles 处理器存储容器
+     * @param <T>     处理器接口类型
      */
     public static <T> void initFactory(Map<Integer, T> handles) {
         initFactory(DEFAULT_HANDLE_PACKAGE, handles);
     }
 
     /**
-     * 初始化处理工厂
+     * 根据指定类所在的包名扫描并初始化基于整数键的处理器
+     *
+     * @param packageClass 目标包内的代表类
+     * @param handles      处理器存储容器
+     * @param <T>          处理器接口类型
      */
     public static <T> void initFactory(Class<?> packageClass, Map<Integer, T> handles) {
         String packageName = packageClass.getPackage().getName();
@@ -176,7 +112,39 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 初始化处理工厂
+     * 根据包路径扫描带有 @ProcessType 注解的处理器并加入集合
+     *
+     * @param packageName 目标包名
+     * @param handles     处理器存储容器
+     * @param <T>         处理器接口类型
+     */
+    private static <T> void initFactory(String packageName, Map<Integer, T> handles) {
+        try {
+            long start = System.currentTimeMillis();
+            List<Class<?>> classes = ClazzUtil.getClasses(packageName);
+            Map<Class<?>, T> classProcessMap = new HashMap<>();
+
+            for (Class<?> aclass : classes) {
+                ProcessType processesType = aclass.getAnnotation(ProcessType.class);
+                if (processesType == null) {
+                    continue;
+                }
+                putHandle(processesType.value(), aclass, handles, classProcessMap);
+            }
+
+            logger.info("{} bind success initFactory, size:{} cost:{}ms", packageName, handles.size(),
+                    System.currentTimeMillis() - start);
+        } catch (Exception e) {
+            logger.error("{} bind processors error", packageName, e);
+        }
+    }
+
+    /**
+     * 扫描带有 @ProcessEnum 注解的处理器，绑定 TableState 状态机对应处理逻辑
+     *
+     * @param packageClass 目标包内的代表类
+     * @param handles      状态处理器集合
+     * @param <T>          处理器接口类型
      */
     public static <T> void initFactoryEnum(Class<?> packageClass, Map<TableState, T> handles) {
         String packageName = packageClass.getPackage().getName();
@@ -204,35 +172,11 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 通用的初始化处理工厂方法
-     */
-    private static <T> void initFactory(String packageName, Map<Integer, T> handles) {
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getClasses(packageName);
-            Map<Class<?>, T> classProcessMap = new HashMap<>();
-
-            for (Class<?> aclass : classes) {
-                ProcessType processesType = aclass.getAnnotation(ProcessType.class);
-                if (processesType == null) {
-                    continue;
-                }
-                putHandle(processesType.value(), aclass, handles, classProcessMap);
-            }
-
-            logger.info("{} bind success initFactory, size:{} cost:{}ms", packageName, handles.size(),
-                    System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} bind processors error", packageName, e);
-        }
-    }
-
-    /**
-     * 初始化类处理工厂
+     * 扫描带有 @ProcessClass 注解的处理器，按消息 Class 类型绑定处理映射
      *
-     * @param factoryClass 要扫描的目录中的类
-     * @param handles      处理器存储集合
-     * @param <T>          动态处理器类
+     * @param factoryClass 目标包内的代表类
+     * @param handles      类映射处理器集合
+     * @param <T>          处理器接口类型
      */
     public static <T> void initClassFactory(Class<?> factoryClass, Map<Class<?>, T> handles) {
         try {
@@ -258,7 +202,14 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 处理器绑定核心方法
+     * 绑定处理器实例到容器中，避免同类实例重复创建
+     *
+     * @param key             映射键
+     * @param aclass          处理器实现类
+     * @param handles         目标映射表
+     * @param classProcessMap 实例缓存表
+     * @param <K>             键类型
+     * @param <T>             处理器类型
      */
     public static <K, T> void putHandle(K key, Class<?> aclass, Map<K, T> handles, Map<Class<?>, T> classProcessMap) {
         T handler = handles.get(key);
@@ -273,10 +224,13 @@ public class HandleTypeRegister {
         }
     }
 
-    // ==================== 实例创建方法 ====================
-
     /**
-     * 创建通用实例
+     * 反射创建处理器实例
+     *
+     * @param key    调试键
+     * @param aclass 处理器 Class
+     * @param <T>    目标类型
+     * @return 实例对象
      */
     @SuppressWarnings("unchecked")
     private static <T> T newInstance(Object key, Class<?> aclass) {
@@ -288,19 +242,21 @@ public class HandleTypeRegister {
         return null;
     }
 
-    // ==================== 消息解析方法 ====================
-
     /**
-     * 解析消息字节数据为Protocol Buffer消息对象
+     * 解析消息字节数据为 Protocol Buffer 消息对象
      *
-     * @param messageId 消息ID
-     * @param bytes     消息字节数据
-     * @return 解析后的消息对象, 解析失败返回null
+     * @param messageId 消息 ID
+     * @param bytes     二进制消息数据
+     * @return 解析后的消息对象，失败则返回 null
      */
     @SuppressWarnings("unchecked")
     public static Message parseMessage(int messageId, byte[] bytes) {
         Class<?> messageClass = TRANS_MAP.get(messageId);
         if (messageClass == null) {
+            Message fallback = MsgRouter.getInstance().parseMessage(messageId, bytes);
+            if (fallback != null) {
+                return fallback;
+            }
             logger.error("Unknown message ID: {}", messageId);
             return null;
         }
@@ -315,7 +271,12 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 使用Protocol Buffer解析消息数据
+     * 使用 Protocol Buffer 原生 Parser 解析消息数据
+     *
+     * @param messageClass 目标消息类
+     * @param bytes        二进制消息体
+     * @return 解析得到的消息实例
+     * @throws Exception 解析异常
      */
     private static MessageLite parseMessageData(Class<MessageLite> messageClass, byte[] bytes) throws Exception {
         MessageLite defaultInstance = Internal.getDefaultInstance(messageClass);
@@ -324,5 +285,4 @@ public class HandleTypeRegister {
         }
         return defaultInstance.getParserForType().parseFrom(bytes);
     }
-
 }

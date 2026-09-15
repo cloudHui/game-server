@@ -1,17 +1,15 @@
 package lobby.client.handle.role;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
 import lobby.Lobby;
 import lobby.db.InviteRepository;
 import lobby.db.UserEntity;
 import lobby.db.UserRepository;
 import lobby.manager.User;
 import lobby.manager.UserManager;
-import msg.annotation.ProcessType;
 import msg.registor.message.LMsg;
-import net.client.Sender;
-import net.handler.Handler;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.LobbyProto;
@@ -22,10 +20,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 用户注册：校验开放注册/邀请码 → 建用户 → 消费邀请 → 返回登录态
+ * 玩家注册请求处理器
+ * <p>
+ * 负责校验用户名、密码、邀请码有效性并创建玩家实体，初始化登录态。
  */
-@ProcessType(LMsg.REQ_REGISTER_MSG)
-public class ReqRegisterHandler implements Handler {
+public class ReqRegisterHandler {
+
     private static final Logger logger = LoggerFactory.getLogger(ReqRegisterHandler.class);
 
     public static final int CODE_OK = 0;
@@ -34,18 +34,26 @@ public class ReqRegisterHandler implements Handler {
     public static final int CODE_INVITE_REQUIRED = 3;
     public static final int CODE_INVITE_INVALID = 4;
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+    /**
+     * 处理玩家注册请求
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = LMsg.REQ_REGISTER_MSG, desc = "用户注册请求")
+    public void handle(MsgContext<LobbyProto.ReqUserRegister> ctx) {
+        int clientId = ctx.getClientId();
+        int sequence = ctx.getSequence();
+
         try {
-            LobbyProto.ReqUserRegister request = (LobbyProto.ReqUserRegister) message;
+            LobbyProto.ReqUserRegister request = ctx.getMsg();
             String username = request.getUsername().toStringUtf8().trim();
             String password = request.getPassword().toStringUtf8();
             String nickname = request.getNickName().toStringUtf8().trim();
             String invite = request.getInvite().toStringUtf8().trim();
 
             if (username.isEmpty() || password.isEmpty()) {
-                sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "");
-                return true;
+                sendAck(ctx, CODE_FAIL, 0, "", "", "");
+                return;
             }
             if (nickname.isEmpty()) {
                 nickname = username;
@@ -56,16 +64,15 @@ public class ReqRegisterHandler implements Handler {
             InviteRepository inviteRepo = lobby.getInviteRepository();
 
             if (userRepo.findByUsername(username).isPresent()) {
-                sendAck(sender, clientId, sequence, CODE_USERNAME_EXISTS, 0, "", "", "");
-                return true;
+                sendAck(ctx, CODE_USERNAME_EXISTS, 0, "", "", "");
+                return;
             }
 
             boolean needInvite = !lobby.isOpenRegister();
             if (needInvite) {
                 if (invite.isEmpty() || !inviteRepo.peekValid(invite).isPresent()) {
-                    sendAck(sender, clientId, sequence,
-                            invite.isEmpty() ? CODE_INVITE_REQUIRED : CODE_INVITE_INVALID, 0, "", "", "");
-                    return true;
+                    sendAck(ctx, invite.isEmpty() ? CODE_INVITE_REQUIRED : CODE_INVITE_INVALID, 0, "", "", "");
+                    return;
                 }
             }
 
@@ -77,14 +84,14 @@ public class ReqRegisterHandler implements Handler {
             entity.setCreatedAt(System.currentTimeMillis());
             long userId = userRepo.insert(entity);
             if (userId <= 0) {
-                sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "");
-                return true;
+                sendAck(ctx, CODE_FAIL, 0, "", "", "");
+                return;
             }
 
             if (needInvite && !inviteRepo.consume(invite)) {
                 logger.warn("邀请码消费失败(可能并发), username={}", username);
-                sendAck(sender, clientId, sequence, CODE_INVITE_INVALID, 0, "", "", "");
-                return true;
+                sendAck(ctx, CODE_INVITE_INVALID, 0, "", "", "");
+                return;
             }
 
             String token = Lobby.newToken();
@@ -98,21 +105,20 @@ public class ReqRegisterHandler implements Handler {
             TraceContext.setUserId((int) userId);
 
             List<Long> tables = Collections.emptyList();
-            sendAck(sender, clientId, sequence, CODE_OK, (int) userId, username, nickname, token, tables);
+            sendAck(ctx, CODE_OK, (int) userId, username, nickname, token, tables);
             logger.info("注册成功, userId: {}, username: {}", userId, username);
         } catch (Exception e) {
             logger.error("处理注册失败, gateId: {}", clientId, e);
-            sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "");
+            sendAck(ctx, CODE_FAIL, 0, "", "", "");
         }
-        return true;
     }
 
-    private void sendAck(Sender sender, int clientId, int sequence, int code,
+    private void sendAck(MsgContext<LobbyProto.ReqUserRegister> ctx, int code,
                          int userId, String username, String nick, String token) {
-        sendAck(sender, clientId, sequence, code, userId, username, nick, token, null);
+        sendAck(ctx, code, userId, username, nick, token, null);
     }
 
-    private void sendAck(Sender sender, int clientId, int sequence, int code,
+    private void sendAck(MsgContext<LobbyProto.ReqUserRegister> ctx, int code,
                          int userId, String username, String nick, String token, List<Long> tables) {
         try {
             LobbyProto.AckUserRegister.Builder builder = LobbyProto.AckUserRegister.newBuilder()
@@ -124,7 +130,7 @@ public class ReqRegisterHandler implements Handler {
             if (tables != null) {
                 builder.addAllTables(tables);
             }
-            sender.sendMessage(clientId, LMsg.ACK_REGISTER_MSG, 0, builder.build(), sequence);
+            ctx.reply(LMsg.ACK_REGISTER_MSG, 0L, builder.build());
         } catch (Exception e) {
             logger.error("发送 AckUserRegister 失败", e);
         }

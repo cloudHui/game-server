@@ -6,12 +6,14 @@ import msg.registor.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.handler.Handler;
+import net.msg.Msg;
 import proto.ModelProto;
 import proto.ServerProto;
 
 /**
  * 机器人注册服务信息请求
  */
+@Msg(value = CMsg.REQ_REGISTER, ack = CMsg.ACK_REGISTER, desc = "机器人注册服务信息")
 @ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandle implements Handler {
 

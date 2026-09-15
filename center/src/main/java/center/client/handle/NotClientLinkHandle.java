@@ -1,10 +1,8 @@
 package center.client.handle;
 
-import com.google.protobuf.Message;
-import msg.annotation.ProcessType;
 import msg.registor.message.CMsg;
-import net.client.Sender;
-import net.handler.Handler;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
@@ -12,31 +10,36 @@ import proto.ServerProto;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 处理网关服务器通知的客户端连接事件
- * 跟踪客户端到网关的映射关系,用于负载均衡
+ * 网关服务器通知客户端连接建立事件处理器
+ * <p>
+ * 跟踪客户端 IP 与网关地址的映射关系，用于后续连接管理和负载均衡。
  */
-@ProcessType(CMsg.NOT_LINK)
-public class NotClientLinkHandle implements Handler {
+public class NotClientLinkHandle {
+
     private static final Logger logger = LoggerFactory.getLogger(NotClientLinkHandle.class);
 
-    // 客户端IP到网关地址的映射
+    /** 客户端 IP 到网关地址的映射 */
     private static final ConcurrentHashMap<String, String> clientToGateMap = new ConcurrentHashMap<>();
 
     /**
      * 客户端断开连接
+     *
+     * @param clientIp 客户端 IP
      */
     public static void clientDisconnect(String clientIp) {
         String removedGate = clientToGateMap.remove(clientIp);
         if (removedGate != null) {
             logger.info("客户端断开连接, clientIp: {}, gate: {}", clientIp, removedGate);
         } else {
-            // 重复断连或未登记过的客户端，降为 WARN
             logger.warn("客户端断开连接但未找到映射, clientIp: {}", clientIp);
         }
     }
 
     /**
      * 客户端建立连接
+     *
+     * @param clientIp    客户端 IP
+     * @param gateAddress 网关地址
      */
     public static void addClientConnection(String clientIp, String gateAddress) {
         if (clientIp == null || gateAddress == null) {
@@ -55,6 +58,9 @@ public class NotClientLinkHandle implements Handler {
 
     /**
      * 获取客户端连接的网关地址
+     *
+     * @param clientIp 客户端 IP
+     * @return 网关地址
      */
     public static String getClientGate(String clientIp) {
         return clientToGateMap.get(clientIp);
@@ -62,23 +68,28 @@ public class NotClientLinkHandle implements Handler {
 
     /**
      * 获取当前连接的客户端数量
+     *
+     * @return 客户端数量
      */
     public static int getClientCount() {
         return clientToGateMap.size();
     }
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+    /**
+     * 处理网关通知的客户端连接建立事件
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = CMsg.NOT_LINK, desc = "客户端连接建立通知")
+    public void handle(MsgContext<ServerProto.NotRegisterClient> ctx) {
         try {
-            ServerProto.NotRegisterClient notification = (ServerProto.NotRegisterClient) message;
+            ServerProto.NotRegisterClient notification = ctx.getMsg();
             String clientIp = notification.getCert().toStringUtf8();
             String gateAddress = notification.getGate().toStringUtf8();
 
             addClientConnection(clientIp, gateAddress);
-            return true;
         } catch (Exception e) {
-            logger.error("处理客户端连接通知失败, clientId: {}", clientId, e);
-            return false;
+            logger.error("处理客户端连接通知失败, clientId: {}", ctx.getClientId(), e);
         }
     }
 }

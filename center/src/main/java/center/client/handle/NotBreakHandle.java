@@ -1,37 +1,38 @@
 package center.client.handle;
 
-import com.google.protobuf.Message;
-import msg.annotation.ProcessType;
 import msg.registor.message.CMsg;
-import net.client.Sender;
-import net.handler.Handler;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 
 /**
- * 处理网关服务器通知的玩家断线事件
- * 清理客户端连接映射
+ * 玩家断线事件处理器（中心服）
+ * <p>
+ * 处理网关服务器通知的玩家断线事件，清理客户端连接与网关的映射关系。
  */
-@ProcessType(CMsg.NOT_BREAK)
-public class NotBreakHandle implements Handler {
+public class NotBreakHandle {
+
     private static final Logger logger = LoggerFactory.getLogger(NotBreakHandle.class);
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+    /**
+     * 处理玩家断线事件
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = CMsg.NOT_BREAK, desc = "玩家断线通知")
+    public void handle(MsgContext<ServerProto.NotBreak> ctx) {
         try {
-            ServerProto.NotBreak notification = (ServerProto.NotBreak) message;
+            ServerProto.NotBreak notification = ctx.getMsg();
             String clientIp = notification.getCert().toStringUtf8();
 
             logger.info("处理玩家断线通知, clientIp: {}, userId: {}", clientIp, notification.getUserId());
 
             // 清理客户端连接映射
             NotClientLinkHandle.clientDisconnect(clientIp);
-
-            return true;
         } catch (Exception e) {
-            logger.error("处理断线通知失败, clientId: {}", clientId, e);
-            return false;
+            logger.error("处理断线通知失败, clientId: {}", ctx.getClientId(), e);
         }
     }
 }

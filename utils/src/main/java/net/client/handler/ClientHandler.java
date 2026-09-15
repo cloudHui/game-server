@@ -17,6 +17,7 @@ import net.message.Parser;
 import net.message.TCPMaker;
 import net.message.TCPMessage;
 import net.message.Transfer;
+import net.msg.MsgRouter;
 import net.safe.Safe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,6 +183,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter implements Sende
             }
 
             if (transfer.isTransfer(this, tcpMsg)) {
+                return;
+            }
+
+            if (handlers instanceof MsgRouter) {
+                boolean shouldKeep = ((MsgRouter) handlers).dispatch(this, tcpMsg);
+                if (!shouldKeep) {
+                    channel.close();
+                }
                 return;
             }
 

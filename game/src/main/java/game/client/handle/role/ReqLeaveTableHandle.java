@@ -1,39 +1,47 @@
 package game.client.handle.role;
 
-import com.google.protobuf.Message;
 import game.Game;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzSettleService;
 import game.manager.table.mj.MjSettleService;
 import game.manager.table.mj.MjTable;
-import msg.annotation.ProcessType;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
-import net.client.Sender;
-import net.handler.Handler;
 import net.message.TCPMessage;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
 
 /**
- * 处理玩家请求离开桌子
+ * 玩家离开桌子请求处理器
+ * <p>
+ * 处理玩家主动离桌、等待阶段退房或牌局中逃跑解散。
  */
-@ProcessType(GMsg.REQ_LEAVE)
-public class ReqLeaveTableHandle implements Handler {
+public class ReqLeaveTableHandle {
+
     private static final Logger logger = LoggerFactory.getLogger(ReqLeaveTableHandle.class);
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+    /**
+     * 处理离开桌子请求
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = GMsg.REQ_LEAVE, desc = "请求离开桌子")
+    public void handle(MsgContext<GameProto.ReqLeaveTable> ctx) {
         try {
+            int clientId = ctx.getClientId();
+            long mapId = ctx.getMapId();
+
             logger.info("处理离开桌子请求, userId: {}, tableId: {}", clientId, mapId);
 
             Table table = Game.getInstance().getTableManager().getTable(mapId);
             if (table == null) {
-                sender.sendMessage(TCPMessage.newInstance(ConstProto.Result.TABLE_NULL_VALUE));
-                return true;
+                ctx.getSender().sendMessage(TCPMessage.newInstance(ConstProto.Result.TABLE_NULL_VALUE));
+                return;
             }
 
             table.execute(() -> {
@@ -42,20 +50,26 @@ public class ReqLeaveTableHandle implements Handler {
                     GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
                             .setTableInfo(table.buildTableInfo())
                             .build();
-                    sender.sendMessage(clientId, GMsg.ACK_LEAVE, mapId, response, sequence);
+                    ctx.reply(GMsg.ACK_LEAVE, mapId, response);
                 } else {
-                    sender.sendMessage(TCPMessage.newInstance(result));
+                    ctx.getSender().sendMessage(TCPMessage.newInstance(result));
                 }
             }).exceptionally(error -> {
                 logger.error("桌子线程处理离开请求失败, tableId: {}", mapId, error);
                 return null;
             });
         } catch (Exception e) {
-            logger.error("处理离开桌子请求失败, userId: {}", clientId, e);
+            logger.error("处理离开桌子请求失败, userId: {}", ctx.getClientId(), e);
         }
-        return true;
     }
 
+    /**
+     * 玩家离桌核心逻辑
+     *
+     * @param userId 玩家 ID
+     * @param table  桌子实例
+     * @return 返回码
+     */
     private int processLeave(int userId, Table table) {
         TableUser user = table.getUsers().get(userId);
         if (user == null) return ConstProto.Result.ROLE_NULL_VALUE;

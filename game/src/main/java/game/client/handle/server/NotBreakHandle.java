@@ -1,35 +1,40 @@
 package game.client.handle.server;
 
-import com.google.protobuf.Message;
 import game.Game;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
-import msg.annotation.ProcessType;
 import msg.registor.message.CMsg;
-import net.client.Sender;
-import net.handler.Handler;
+import net.msg.Msg;
+import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 import utils.trace.TraceContext;
 
 /**
- * 处理网关通知的玩家断线事件
- * 设置玩家离线状态，通知同桌其他玩家
+ * 玩家断线事件处理器
+ * <p>
+ * 接收网关发送的玩家连接断开通知，标记对应桌内玩家为离线状态。
  */
-@ProcessType(CMsg.NOT_BREAK)
-public class NotBreakHandle implements Handler {
+public class NotBreakHandle {
+
     private static final Logger logger = LoggerFactory.getLogger(NotBreakHandle.class);
 
-    @Override
-    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+    /**
+     * 处理玩家断线事件
+     *
+     * @param ctx 消息上下文
+     */
+    @Msg(id = CMsg.NOT_BREAK, desc = "玩家断线通知")
+    public void handle(MsgContext<ServerProto.NotBreak> ctx) {
         try {
-            ServerProto.NotBreak notification = (ServerProto.NotBreak) message;
+            ServerProto.NotBreak notification = ctx.getMsg();
             int userId = notification.getUserId();
             int gateClientId = notification.getGateClientId();
 
             TraceContext.setUserId(userId);
             logger.info("处理玩家断线通知, userId: {}, gateClientId: {}", userId, gateClientId);
+
             Game.getInstance().getTableManager().findTablesByUserIdAsync(userId)
                     .whenComplete((tables, error) -> {
                         if (error != null) {
@@ -40,16 +45,23 @@ public class NotBreakHandle implements Handler {
                             table.execute(() -> processUserDisconnect(table, userId, gateClientId));
                         }
                     });
-            return true;
         } catch (Exception e) {
-            logger.error("处理玩家断线通知失败, clientId: {}", clientId, e);
-            return false;
+            logger.error("处理玩家断线通知失败, clientId: {}", ctx.getClientId(), e);
         }
     }
 
+    /**
+     * 桌线程内处理离线标记
+     *
+     * @param table        桌子实例
+     * @param userId       玩家 ID
+     * @param gateClientId 断开连接对应的网关 Client ID
+     */
     private void processUserDisconnect(Table table, int userId, int gateClientId) {
         TableUser user = table.getUsers().get(userId);
-        if (user == null) return;
+        if (user == null) {
+            return;
+        }
         if (gateClientId != 0 && user.getGateId() != 0 && user.getGateId() != gateClientId) {
             logger.info("忽略旧连接断线, userId: {}, tableId: {}, noticeGate: {}, currentGate: {}",
                     userId, table.getTableId(), gateClientId, user.getGateId());

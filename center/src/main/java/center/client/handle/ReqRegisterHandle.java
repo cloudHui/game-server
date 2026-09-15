@@ -12,13 +12,15 @@ import proto.ServerProto;
 import tools.ServerClientManager;
 import tools.handle.AbstractRegisterHandler;
 
+import net.msg.Msg;
+
 import java.util.List;
 
 /**
  * 处理服务注册请求
  * 负责管理所有服务器的注册和发现
  */
-@ProcessType(CMsg.REQ_REGISTER)
+@Msg(id = CMsg.REQ_REGISTER, desc = "服务器注册处理")
 public class ReqRegisterHandle extends AbstractRegisterHandler<Center> {
 
     private ServerClientManager manager;
