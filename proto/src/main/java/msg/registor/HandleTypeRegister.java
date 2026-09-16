@@ -1,8 +1,6 @@
 package msg.registor;
 
-import com.google.protobuf.Internal;
 import com.google.protobuf.Message;
-import com.google.protobuf.MessageLite;
 import msg.annotation.ClassField;
 import msg.annotation.ClassType;
 import msg.annotation.ProcessClass;
@@ -12,7 +10,7 @@ import msg.registor.enums.TableState;
 import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.ClazzUtil;
+import utils.registry.ClassScanner;
 import utils.registry.HandlerRegistry;
 
 import java.lang.reflect.Field;
@@ -48,12 +46,9 @@ public class HandleTypeRegister {
     private static void initLocalMethod() {
         try {
             long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getAllClassExceptPackageClass(HandleTypeRegister.class, "");
+            List<Class<? extends Object>> classes = ClassScanner.scan("msg.registor.message", Object.class, ClassType.class);
             for (Class<?> clazz : classes) {
-                ClassType processType = clazz.getAnnotation(ClassType.class);
-                if (processType != null) {
-                    bindTransMap(clazz);
-                }
+                bindTransMap(clazz);
             }
             logger.info("init message id bind total size:{} cost:{}ms", TRANS_MAP.size(), System.currentTimeMillis() - start);
         } catch (Exception e) {
@@ -86,6 +81,20 @@ public class HandleTypeRegister {
                 logger.error("Bind field failed: {}.{}", constantClass.getSimpleName(), field.getName(), e);
             }
         }
+    }
+
+    /**
+     * 获取消息 ID 对应的 Protobuf 类
+     */
+    public static Class<?> getProtoClass(int messageId) {
+        return TRANS_MAP.get(messageId);
+    }
+
+    /**
+     * 获取 Protobuf 类对应的消息 ID
+     */
+    public static Integer getMessageId(Class<?> protoClass) {
+        return MSG_TRANS_MAP.get(protoClass);
     }
 
     /**
@@ -149,46 +158,13 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 解析消息字节数据为 Protocol Buffer 消息对象
+     * 解析消息字节数据为 Protocol Buffer 消息对象，统一委派由 MsgRouter 的高性能预编译 Parser 解析
      *
      * @param messageId 消息 ID
      * @param bytes     二进制消息数据
      * @return 解析后的消息对象，失败则返回 null
      */
-    @SuppressWarnings("unchecked")
     public static Message parseMessage(int messageId, byte[] bytes) {
-        Class<?> messageClass = TRANS_MAP.get(messageId);
-        if (messageClass == null) {
-            Message fallback = MsgRouter.getInstance().parseMessage(messageId, bytes);
-            if (fallback != null) {
-                return fallback;
-            }
-            logger.error("Unknown message ID: {}", messageId);
-            return null;
-        }
-
-        try {
-            return (Message) parseMessageData((Class<MessageLite>) messageClass, bytes);
-        } catch (Exception e) {
-            logger.error("Parse message failed, ID: {}, Class: {}",
-                    messageId, messageClass.getSimpleName(), e);
-            return null;
-        }
-    }
-
-    /**
-     * 使用 Protocol Buffer 原生 Parser 解析消息数据
-     *
-     * @param messageClass 目标消息类
-     * @param bytes        二进制消息体
-     * @return 解析得到的消息实例
-     * @throws Exception 解析异常
-     */
-    private static MessageLite parseMessageData(Class<MessageLite> messageClass, byte[] bytes) throws Exception {
-        MessageLite defaultInstance = Internal.getDefaultInstance(messageClass);
-        if (bytes == null || bytes.length == 0) {
-            return defaultInstance.newBuilderForType().build();
-        }
-        return defaultInstance.getParserForType().parseFrom(bytes);
+        return MsgRouter.getInstance().parseMessage(messageId, bytes);
     }
 }

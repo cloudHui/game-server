@@ -4,7 +4,7 @@ import http.HttpDecoder;
 import http.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.ClazzUtil;
+import utils.registry.ClassScanner;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,18 +32,13 @@ public class ServerDecoder extends HttpDecoder {
      */
     private static void initializeHandlers() {
         try {
-            Class<ServerDecoder> packageClass = ServerDecoder.class;
-            List<Class<?>> classes = ClazzUtil.getAllClassExceptPackageClass(packageClass, "");
+            List<Class<? extends Handler>> classes = ClassScanner.scan("center.client.handle", Handler.class);
 
-            int handlerCount = 0;
             for (Class<?> clazz : classes) {
-                if (Handler.class.isAssignableFrom(clazz) && !clazz.isInterface()) {
-                    registerHandler(clazz);
-                    handlerCount++;
-                }
+                registerHandler(clazz);
             }
 
-            logger.info("HTTP请求处理器初始化完成,注册数量: {}", handlerCount);
+            logger.info("HTTP请求处理器初始化完成,注册数量: {}", handlers.size());
         } catch (Exception e) {
             logger.error("HTTP请求处理器初始化失败", e);
             throw new RuntimeException("ServerDecoder初始化失败", e);

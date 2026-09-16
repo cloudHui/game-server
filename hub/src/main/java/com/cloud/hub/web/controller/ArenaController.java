@@ -1,7 +1,8 @@
 package com.cloud.hub.web.controller;
 
+import com.cloud.hub.common.annotation.RequiresLogin;
+import com.cloud.hub.framework.security.SecurityUtils;
 import com.cloud.hub.web.arena.ArenaRepository;
-import com.cloud.hub.web.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,8 +24,10 @@ import java.util.Random;
 @RequestMapping("/api/arena")
 public class ArenaController {
     private final ArenaRepository repository;
-    private final UserService users;
-    public ArenaController(ArenaRepository repository,UserService users){this.repository=repository;this.users=users;}
+
+    public ArenaController(ArenaRepository repository) {
+        this.repository = repository;
+    }
     private static final List<Hero> HEROES = Arrays.asList(
         new Hero("jianhuang","无极剑皇","金","强攻",8500,1180,380,610,"万剑归宗",260,15,20),
         new Hero("leizun","九霄雷尊","金","控制",7600,960,360,590,"神霄万劫",230,28,15),
@@ -50,27 +53,25 @@ public class ArenaController {
     }
 
     @GetMapping("/state")
-    public ResponseEntity<?> state(@RequestHeader(value="Authorization",required=false) String authorization) {
-        UserService.UserInfo user=auth(authorization);if(user==null)return ResponseEntity.status(401).body(error("请先登录"));
-        try{return ResponseEntity.ok(repository.state(user.getUserId()));}catch(Exception e){return ResponseEntity.status(500).body(error(e.getMessage()));}
+    @RequiresLogin
+    public ResponseEntity<?> state() throws Exception {
+        return ResponseEntity.ok(repository.state(SecurityUtils.getUserId()));
     }
 
     @PostMapping("/action")
-    public ResponseEntity<?> action(@RequestHeader(value="Authorization",required=false) String authorization,@RequestBody Map<String,Object> body) {
-        UserService.UserInfo user=auth(authorization);if(user==null)return ResponseEntity.status(401).body(error("请先登录"));
-        try{String action=String.valueOf(body.get("action"));String id=body.get("id")==null?"":String.valueOf(body.get("id"));int count=body.get("count") instanceof Number?((Number)body.get("count")).intValue():1;return ResponseEntity.ok(repository.action(user.getUserId(),action,id,count,System.currentTimeMillis()));}
-        catch(IllegalArgumentException e){return ResponseEntity.badRequest().body(error(e.getMessage()));}catch(Exception e){return ResponseEntity.status(500).body(error(e.getMessage()));}
+    @RequiresLogin
+    public ResponseEntity<?> action(@RequestBody Map<String, Object> body) throws Exception {
+        String action = String.valueOf(body.get("action"));
+        String id = body.get("id") == null ? "" : String.valueOf(body.get("id"));
+        int count = body.get("count") instanceof Number ? ((Number) body.get("count")).intValue() : 1;
+        return ResponseEntity.ok(repository.action(SecurityUtils.getUserId(), action, id, count, System.currentTimeMillis()));
     }
 
-    private UserService.UserInfo auth(String header){if(header==null||!header.startsWith("Bearer "))return null;return users.validateToken(header.substring(7).trim());}
-    private Map<String,Object> error(String message){Map<String,Object> e=new LinkedHashMap<>();e.put("error",message);return e;}
-
     @GetMapping("/battle")
-    public ResponseEntity<?> battle(@RequestHeader(value="Authorization",required=false) String authorization,
-                                     @RequestParam(defaultValue="jianhuang") String attacker,
-                                     @RequestParam(defaultValue="leizun") String defender,
-                                     @RequestParam(defaultValue="42") long seed) {
-        if(auth(authorization)==null)return ResponseEntity.status(401).body(error("请先登录"));
+    @RequiresLogin
+    public ResponseEntity<?> battle(@RequestParam(defaultValue="jianhuang") String attacker,
+                                    @RequestParam(defaultValue="leizun") String defender,
+                                    @RequestParam(defaultValue="42") long seed) {
         Hero a=find(attacker), d=find(defender); Random rng=new Random(seed); Fighter af=new Fighter(a), df=new Fighter(d);
         List<Map<String,Object>> events=new ArrayList<>(); int seq=0; boolean aFirst=a.speed>=d.speed;
         add(events,seq++,"BATTLE_START",0,null,null,0,"规则 arena-v1");

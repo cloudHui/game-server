@@ -20,6 +20,7 @@
 <div class="header">
     <h1>管理后台</h1>
     <div class="header-actions">
+        <a href="./sequence.html">序列分析</a>
         <a href="../learning/admin.html">学习管理</a>
         <a href="./terminal.html">服务器终端</a>
         <a href="../../pages/lobby/index.html">回大厅</a>
@@ -32,7 +33,6 @@
         <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
         <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
         <button class="tab" data-tab="arena" onclick="switchTab('arena')">剑气除魔</button>
-        <button class="tab" data-tab="allocator" onclick="switchTab('allocator')">整数分配</button>
         <button class="tab" data-tab="arpu" onclick="switchTab('arpu')">ARPU 查询</button>
         <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
         <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
@@ -162,59 +162,6 @@
         </section>
     </div>
 
-    <div id="panel-allocator" class="panel">
-        <div class="tool-page-head">
-            <div>
-                <div class="tool-eyebrow">数据工具 / 均值计算</div>
-                <h2>六个月均值计算</h2>
-                <p>输入最多 5 个已知月份，系统补齐 6 个月；支持任意连续 3 个月均值。</p>
-            </div>
-            <span class="tool-admin-badge"><i></i>管理员专用</span>
-        </div>
-        <section class="card tool-card allocator-card">
-            <div class="tool-card-head">
-                <div class="tool-card-title"><span class="tool-card-icon">∑</span><div><h2>计算条件</h2><p>六格对应六个月；每个数字最多 5 位，只能输入大于等于 0 的整数。</p></div></div>
-                <span class="tool-step">01</span>
-            </div>
-            <div class="allocator-input-heading">
-                <div class="tool-section-label">六个月数值 <span class="tool-label-hint">首次最多填写 5 格，计算后可直接修改</span></div>
-                <span class="allocator-input-count" id="allocatorKnownCount">已填 0 / 5</span>
-            </div>
-            <div class="allocator-known-grid">
-                <label class="allocator-slot" for="allocatorKnown1"><span>第 1 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown1" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 1 个月数值"></label>
-                <label class="allocator-slot" for="allocatorKnown2"><span>第 2 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown2" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 2 个月数值"></label>
-                <label class="allocator-slot" for="allocatorKnown3"><span>第 3 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown3" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 3 个月数值"></label>
-                <label class="allocator-slot" for="allocatorKnown4"><span>第 4 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown4" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 4 个月数值"></label>
-                <label class="allocator-slot" for="allocatorKnown5"><span>第 5 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown5" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 5 个月数值"></label>
-                <label class="allocator-slot" for="allocatorKnown6"><span>第 6 个月</span><input class="tool-input allocator-known-input" id="allocatorKnown6" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="留空自动算" aria-label="第 6 个月数值"></label>
-            </div>
-            <div class="tool-help">首次计算最多填写 5 格，第 6 格也可作为已知位置；空格由均值条件补齐。计算后结果直接回填这 6 格，修改任一数值会实时更新 3 / 6 个月均值。</div>
-            <div class="allocator-condition-grid">
-                <div class="tool-field">
-                    <label for="allocatorSubAverage">任意连续 3 个月均值 <span class="tool-label-hint">可选</span></label>
-                    <div class="tool-input-suffix"><input class="tool-input" id="allocatorSubAverage" type="number" min="0" step="0.01" placeholder="不设置"><span>均值</span></div>
-                </div>
-                <div class="tool-field">
-                    <label for="allocatorTotalAverage">6 个月均值</label>
-                    <div class="tool-input-suffix"><input class="tool-input" id="allocatorTotalAverage" type="number" min="0" step="0.01" value="10"><span>均值</span></div>
-                </div>
-            </div>
-            <div class="tool-actions allocator-actions">
-                <div class="allocator-action-buttons"><button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button><button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button></div>
-                <span class="allocator-action-hint">计算结果直接回填上方六格，修改后立即更新实际 3 / 6 个月均值。</span>
-            </div>
-            <div class="msg" id="allocatorMsg"></div>
-        </section>
-        <section class="card tool-card tool-result" id="allocatorResult" hidden>
-            <div class="tool-card-head tool-result-head">
-                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">修改上方任一月份值，实际均值会自动更新。</p></div></div>
-                <button class="btn btn-ghost" type="button" onclick="copyAllocatorResult()">复制结果</button>
-            </div>
-            <div class="tool-metrics" id="allocatorMetrics"></div>
-            <div class="allocator-narrative" id="allocatorNarrative"></div>
-            <div class="allocator-checks" id="allocatorChecks"></div>
-        </section>
-    </div>
 
     <div id="panel-arpu" class="panel">
         <div class="tool-page-head">
@@ -410,7 +357,6 @@
 <script src="./js/records.js"></script>
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
-<script src="./js/allocator.js"></script>
 <script src="./js/arpu.js"></script>
 </body>
 </html>

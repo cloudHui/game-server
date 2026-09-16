@@ -1,26 +1,30 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.web.bind.annotation.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.cloud.hub.common.core.domain.AjaxResult;
+import com.cloud.hub.framework.security.LoginUser;
+import com.cloud.hub.framework.security.SecurityUtils;
+import com.cloud.hub.web.dto.LoginDto;
+import com.cloud.hub.web.service.UserService;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import com.cloud.hub.web.service.UserService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 兼容旧路径；推荐使用 /api/auth/*
+ * 兼容旧路径（/api/login, /api/validate, /api/logout，参照 RuoYi 响应格式对齐）
  */
 @RestController
 @RequestMapping("/api")
 public class UserController {
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-
     private final UserService userService;
 
     public UserController(UserService userService) {
@@ -28,34 +32,25 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<AjaxResult> login(@RequestBody LoginDto request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
         if (username == null || username.trim().isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 400);
-            error.put("msg", "请使用 username/password 登录，或改用 /api/auth/login");
-            return ResponseEntity.badRequest().body(error);
+            return ResponseEntity.badRequest().body(AjaxResult.error(400, "请使用 username/password 登录，或改用 /api/auth/login"));
         }
         if (password == null || password.isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 400);
-            error.put("msg", "密码不能为空");
-            return ResponseEntity.badRequest().body(error);
+            return ResponseEntity.badRequest().body(AjaxResult.error(400, "密码不能为空"));
         }
 
         UserService.UserInfo userInfo = userService.login(username.trim(), password);
         if (userInfo == null) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 401);
-            error.put("msg", "登录失败");
-            return ResponseEntity.status(401).body(error);
+            return ResponseEntity.status(401).body(AjaxResult.error(401, "登录失败"));
         }
         return ResponseEntity.ok(toSuccess(userInfo));
     }
 
     @GetMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validate(
+    public ResponseEntity<AjaxResult> validate(
             @RequestParam(value = "token", required = false) String tokenParam,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         String token = null;
@@ -64,39 +59,35 @@ public class UserController {
         } else if (authorization != null && authorization.startsWith("Bearer ")) {
             token = authorization.substring(7).trim();
         }
-        Map<String, Object> result = new HashMap<>();
         if (token == null || token.isEmpty()) {
-            result.put("code", 401);
-            result.put("msg", "缺少token");
-            return ResponseEntity.status(401).body(result);
+            return ResponseEntity.status(401).body(AjaxResult.error(401, "缺少token"));
         }
         UserService.UserInfo userInfo = userService.validateToken(token);
         if (userInfo != null) {
             return ResponseEntity.ok(toSuccess(userInfo));
         }
-        result.put("code", 401);
-        result.put("msg", "Token无效或已过期");
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(AjaxResult.error(401, "Token无效或已过期"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, Object>> logout(@RequestBody Map<String, String> request) {
-        String sessionId = request.get("sessionId");
+    public ResponseEntity<AjaxResult> logout(@RequestBody(required = false) Map<String, String> request) {
+        String sessionId = request != null ? request.get("sessionId") : null;
+        if (sessionId == null) {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser != null) {
+                sessionId = loginUser.getSessionId();
+            }
+        }
         if (sessionId != null) {
             userService.logout(sessionId);
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
         ResponseCookie cookie = ResponseCookie.from("sessionId", "")
                 .path("/").maxAge(0).httpOnly(true).sameSite("Lax").build();
-        return ResponseEntity.ok().header("Set-Cookie", cookie.toString()).body(result);
+        return ResponseEntity.ok().header("Set-Cookie", cookie.toString()).body(AjaxResult.success());
     }
 
-    private Map<String, Object> toSuccess(UserService.UserInfo userInfo) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
+    private AjaxResult toSuccess(UserService.UserInfo userInfo) {
+        AjaxResult result = AjaxResult.success();
         result.put("sessionId", userInfo.getSessionId());
         result.put("userId", userInfo.getUserId());
         result.put("username", userInfo.getUsername());

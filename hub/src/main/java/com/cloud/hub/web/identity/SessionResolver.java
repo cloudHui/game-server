@@ -20,6 +20,10 @@ public class SessionResolver {
     }
 
     public String resolve(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7).trim();
+        }
         String header = request.getHeader("X-Session-Token");
         if (header != null && !header.trim().isEmpty()) return header.trim();
         String parameter = request.getParameter("sessionId");

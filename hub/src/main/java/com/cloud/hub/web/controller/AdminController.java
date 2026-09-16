@@ -1,239 +1,200 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.web.bind.annotation.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import com.cloud.hub.web.controller.LobbyAdminClient;
+import com.cloud.hub.common.annotation.Log;
+import com.cloud.hub.common.annotation.RequiresAdmin;
+import com.cloud.hub.common.core.domain.AjaxResult;
+import com.cloud.hub.common.core.page.TableDataInfo;
+import com.cloud.hub.common.enums.BusinessType;
+import com.cloud.hub.framework.security.LoginUser;
+import com.cloud.hub.framework.security.SecurityUtils;
+import com.cloud.hub.web.dto.InviteCreateDto;
+import com.cloud.hub.web.dto.InviteReactivateDto;
+import com.cloud.hub.web.dto.InviteRevokeDto;
+import com.cloud.hub.web.dto.ShellExecDto;
+import com.cloud.hub.web.dto.UserEnableDto;
 import com.cloud.hub.web.service.ReplayService;
 import com.cloud.hub.web.service.ShellService;
-import com.cloud.hub.web.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * 管理后台 API：邀请 / 玩家 / 桌子 / 回放 / 终端
+ * 管理后台 API：邀请 / 玩家 / 桌子 / 回放 / 终端（参照 RuoYi 架构重构）
  */
 @RestController
 @RequestMapping("/api/admin")
+@RequiresAdmin
 public class AdminController {
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
-    private final UserService userService;
     private final LobbyAdminClient lobbyAdminClient;
     private final ReplayService replayService;
     private final ShellService shellService;
 
-    public AdminController(UserService userService, LobbyAdminClient lobbyAdminClient,
+    public AdminController(LobbyAdminClient lobbyAdminClient,
                            ReplayService replayService, ShellService shellService) {
-        this.userService = userService;
         this.lobbyAdminClient = lobbyAdminClient;
         this.replayService = replayService;
         this.shellService = shellService;
     }
 
     @GetMapping("/invites")
-    public ResponseEntity<Map<String, Object>> list(@RequestParam String sessionId) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    public AjaxResult list() {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> result = lobbyAdminClient.listInvites(user.getToken());
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @PostMapping("/invites")
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    @Log(title = "邀请码管理", businessType = BusinessType.INSERT)
+    public AjaxResult create(@RequestBody @Valid InviteCreateDto body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
-        payload.put("note", str(body.get("note")));
-        payload.put("maxUses", body.get("maxUses") == null ? 1 : body.get("maxUses"));
-        payload.put("expiresDays", body.get("expiresDays") == null ? 7 : body.get("expiresDays"));
+        payload.put("note", body.getNote() != null ? body.getNote() : "");
+        payload.put("maxUses", body.getMaxUses());
+        payload.put("expiresDays", body.getExpiresDays());
         Map<String, Object> result = lobbyAdminClient.createInvite(user.getToken(), payload);
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @PostMapping("/invites/revoke")
-    public ResponseEntity<Map<String, Object>> revoke(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    @Log(title = "邀请码管理", businessType = BusinessType.DELETE)
+    public AjaxResult revoke(@RequestBody @Valid InviteRevokeDto body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
-        payload.put("token", str(body.get("token")));
+        payload.put("token", body.getToken());
         Map<String, Object> result = lobbyAdminClient.revokeInvite(user.getToken(), payload);
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @PostMapping("/invites/reactivate")
-    public ResponseEntity<Map<String, Object>> reactivate(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    @Log(title = "邀请码管理", businessType = BusinessType.UPDATE)
+    public AjaxResult reactivate(@RequestBody @Valid InviteReactivateDto body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
-        payload.put("token", str(body.get("token")));
-        payload.put("expiresDays", body.get("expiresDays") == null ? 7 : body.get("expiresDays"));
-        payload.put("additionalUses", body.get("additionalUses") == null ? 1 : body.get("additionalUses"));
+        payload.put("token", body.getToken());
+        payload.put("expiresDays", body.getExpiresDays());
+        payload.put("additionalUses", body.getAdditionalUses());
         Map<String, Object> result = lobbyAdminClient.reactivateInvite(user.getToken(), payload);
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> users(@RequestParam String sessionId) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    public AjaxResult users() {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> result = lobbyAdminClient.listUsers(user.getToken());
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @PostMapping("/users/enable")
-    public ResponseEntity<Map<String, Object>> enableUser(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    @Log(title = "用户管理", businessType = BusinessType.UPDATE)
+    public AjaxResult enableUser(@RequestBody @Valid UserEnableDto body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
-        payload.put("userId", body.get("userId"));
-        payload.put("enabled", body.get("enabled"));
+        payload.put("userId", body.getUserId());
+        payload.put("enabled", body.getEnabled());
         Map<String, Object> result = lobbyAdminClient.enableUser(user.getToken(), payload);
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @GetMapping("/tables")
-    public ResponseEntity<Map<String, Object>> tables(@RequestParam String sessionId) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    public AjaxResult tables() {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> result = lobbyAdminClient.listTables(user.getToken());
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @PostMapping("/robot-matches")
-    public ResponseEntity<Map<String, Object>> createRobotMatch(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
+    @Log(title = "机器人对局", businessType = BusinessType.INSERT)
+    public AjaxResult createRobotMatch(@RequestBody Map<String, Object> body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>(body);
         payload.remove("sessionId");
         Map<String, Object> result = lobbyAdminClient.createRobotMatch(user.getToken(), payload);
-        return ResponseEntity.ok(result != null ? result : error(502, "lobby admin 不可用"));
+        return toAjax(result);
     }
 
     @GetMapping("/replays")
-    public ResponseEntity<Map<String, Object>> replays(@RequestParam String sessionId,
-                                                       @RequestParam(required = false, defaultValue = "1") int page,
-                                                       @RequestParam(required = false, defaultValue = "20") int size,
-                                                       @RequestParam(required = false, defaultValue = "") String category,
-                                                       @RequestParam(required = false, defaultValue = "") String gameType) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
+    public AjaxResult replays(@RequestParam(required = false, defaultValue = "1") int page,
+                              @RequestParam(required = false, defaultValue = "20") int size,
+                              @RequestParam(required = false, defaultValue = "") String category,
+                              @RequestParam(required = false, defaultValue = "") String gameType) {
         Map<String, Object> result = replayService.page(page, size, category, gameType);
         result.put("code", 0);
-        return ResponseEntity.ok(result);
+        return toAjax(result);
     }
 
     @GetMapping("/records")
-    public ResponseEntity<Map<String, Object>> records(@RequestParam String sessionId,
-                                                       @RequestParam(required = false, defaultValue = "1") int page,
-                                                       @RequestParam(required = false, defaultValue = "20") int size) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("page", page);
-        result.put("size", size);
-        result.put("records", lobbyAdminClient.listRecords(user.getToken(), page, size));
-        return ResponseEntity.ok(result);
+    public TableDataInfo records(@RequestParam(required = false, defaultValue = "1") int page,
+                                 @RequestParam(required = false, defaultValue = "20") int size) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        List<Map<String, Object>> records = lobbyAdminClient.listRecords(user.getToken(), page, size);
+        long total = records != null ? records.size() : 0;
+        return TableDataInfo.build(records, total, page, size);
     }
 
     @GetMapping("/replays/detail")
-    public ResponseEntity<Map<String, Object>> replayDetail(@RequestParam String sessionId,
-                                                            @RequestParam String date, @RequestParam String name) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
-        }
-        return ResponseEntity.ok(replayService.getReplay(date, name));
+    public AjaxResult replayDetail(@RequestParam String date, @RequestParam String name) {
+        return toAjax(replayService.getReplay(date, name));
     }
 
     @GetMapping("/replays/code")
-    public ResponseEntity<Map<String, Object>> replayByCode(@RequestParam String sessionId,
-                                                            @RequestParam String code) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
+    public AjaxResult replayByCode(@RequestParam String code) {
         int slash = code == null ? -1 : code.indexOf('/');
-        if (slash <= 0 || slash == code.length() - 1) return ResponseEntity.ok(error(400, "回放码格式为 日期/文件名"));
-        return ResponseEntity.ok(replayService.getReplay(code.substring(0, slash), code.substring(slash + 1)));
+        if (slash <= 0 || slash == code.length() - 1) {
+            return AjaxResult.error(400, "回放码格式为 日期/文件名");
+        }
+        return toAjax(replayService.getReplay(code.substring(0, slash), code.substring(slash + 1)));
     }
 
     /**
      * 管理员 Linux 终端：返回当前工作目录（默认 /home/ec2-user）。
      */
     @GetMapping("/shell")
-    public ResponseEntity<Map<String, Object>> shellCwd(@RequestParam String sessionId) {
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("cwd", shellService.currentCwd(sessionId));
+    public AjaxResult shellCwd() {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String cwd = shellService.currentCwd(user.getSessionId());
+        AjaxResult result = AjaxResult.success();
+        result.put("cwd", cwd);
         result.put("user", "ec2-user");
         result.put("host", "server");
-        return ResponseEntity.ok(result);
+        return result;
     }
 
     /**
      * 管理员 Linux 终端：执行一行命令并返回输出 / 退出码 / 最新 cwd。
      */
     @PostMapping("/shell")
-    public ResponseEntity<Map<String, Object>> shellExec(@RequestBody Map<String, Object> body) {
-        String sessionId = str(body.get("sessionId"));
-        UserService.UserInfo user = requireAdmin(sessionId);
-        if (user == null) return ResponseEntity.ok(error(403, "需要管理员账号"));
-        String command = str(body.get("command"));
+    @Log(title = "管理员终端", businessType = BusinessType.EXECUTE)
+    public AjaxResult shellExec(@RequestBody @Valid ShellExecDto body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String sessionId = user.getSessionId();
+        String command = body.getCommand();
         logger.info("管理员终端执行, user: {}, cmd: {}", user.getUsername(), command);
         Map<String, Object> exec = shellService.execute(sessionId, command);
         exec.put("msg", "success");
-        // ShellService 已写入 code（进程退出码）；对外业务成功固定为 0，退出码放 exitCode。
         Object exit = exec.remove("code");
         exec.put("exitCode", exit == null ? 0 : exit);
         exec.put("code", 0);
-        return ResponseEntity.ok(exec);
+        return toAjax(exec);
     }
 
-    private UserService.UserInfo requireAdmin(String sessionId) {
-        if (sessionId == null || sessionId.isEmpty()) {
-            return null;
+    private AjaxResult toAjax(Map<String, Object> result) {
+        if (result == null) {
+            return AjaxResult.error(502, "lobby admin 不可用");
         }
-        UserService.UserInfo user = userService.getSession(sessionId);
-        if (user == null || !user.isAdmin()) {
-            return null;
-        }
-        return user;
-    }
-
-    private static Map<String, Object> error(int code, String msg) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", code);
-        result.put("msg", msg);
-        return result;
-    }
-
-    private static String str(Object o) {
-        return o == null ? "" : String.valueOf(o);
+        AjaxResult ajax = new AjaxResult();
+        ajax.putAll(result);
+        return ajax;
     }
 }

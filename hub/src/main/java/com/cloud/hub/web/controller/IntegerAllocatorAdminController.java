@@ -1,53 +1,49 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.http.ResponseEntity;
+import com.cloud.hub.common.annotation.Log;
+import com.cloud.hub.common.annotation.RequiresAdmin;
+import com.cloud.hub.common.core.domain.AjaxResult;
+import com.cloud.hub.common.enums.BusinessType;
+import com.cloud.hub.web.arena.IntegerAllocator;
+import com.cloud.hub.web.dto.IntegerAllocatorDto;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.cloud.hub.web.arena.IntegerAllocator;
-import com.cloud.hub.web.service.UserService;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-/** 管理员整数分配计算接口。 */
+/**
+ * 管理员整数分配计算接口（参照 RuoYi 规范重构）
+ */
 @RestController
 @RequestMapping("/api/admin/integer-allocator")
+@RequiresAdmin
 public class IntegerAllocatorAdminController {
-    private final UserService users;
-
-    public IntegerAllocatorAdminController(UserService users) {
-        this.users = users;
-    }
 
     @PostMapping("/calculate")
-    public ResponseEntity<Map<String, Object>> calculate(@RequestBody Map<String, Object> body) {
-        if (body == null || !isAdmin(text(body.get("sessionId")))) {
-            return ResponseEntity.ok(error(403, "需要管理员账号"));
+    @Log(title = "整数分配计算", businessType = BusinessType.OTHER)
+    public AjaxResult calculate(@RequestBody IntegerAllocatorDto body) {
+        if (body == null) {
+            return AjaxResult.error(400, "请求体不能为空");
         }
-        try {
-            List<Integer> knownValues = integers(body.get("knownValues"));
-            double totalAverage = decimal(body.get("totalAverage"), "总期望均值");
-            Double subAverage = optionalDecimal(body.get("subAverage"), "连续 3 个值的期望均值");
-            IntegerAllocator.Result allocation = IntegerAllocator.calculate(
-                    knownValues, totalAverage, subAverage);
-            if (!allocation.isSuccess()) {
-                return ResponseEntity.ok(error(422, allocation.getErrorMessage()));
-            }
-            return ResponseEntity.ok(success(allocation, totalAverage, subAverage));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok(error(400, e.getMessage()));
+        List<Integer> knownValues = integers(body.getKnownValues());
+        double totalAverage = decimal(body.getTotalAverage(), "总期望均值");
+        Double subAverage = optionalDecimal(body.getSubAverage(), "连续 3 个值的期望均值");
+
+        IntegerAllocator.Result allocation = IntegerAllocator.calculate(
+                knownValues, totalAverage, subAverage);
+        if (!allocation.isSuccess()) {
+            return AjaxResult.error(422, allocation.getErrorMessage());
         }
+        return success(allocation, totalAverage, subAverage);
     }
 
-    private Map<String, Object> success(IntegerAllocator.Result allocation,
-                                         double totalAverage, Double subAverage) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("code", 0);
+    private AjaxResult success(IntegerAllocator.Result allocation,
+                               double totalAverage, Double subAverage) {
+        AjaxResult result = AjaxResult.success();
         result.put("values", asList(allocation.getValues()));
         result.put("knownCount", allocation.getKnownCount());
         result.put("totalTargetSum", allocation.getTotalTargetSum());
@@ -106,18 +102,6 @@ public class IntegerAllocatorAdminController {
         for (int value : values) {
             result.add(value);
         }
-        return result;
-    }
-
-    private boolean isAdmin(String sessionId) {
-        UserService.UserInfo user = users.getSession(sessionId);
-        return user != null && user.isAdmin();
-    }
-
-    private Map<String, Object> error(int code, String message) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("code", code);
-        result.put("msg", message == null ? "请求参数不正确" : message);
         return result;
     }
 

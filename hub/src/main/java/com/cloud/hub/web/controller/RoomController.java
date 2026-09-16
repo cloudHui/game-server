@@ -1,14 +1,23 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.web.bind.annotation.*;
-
+import com.cloud.hub.common.annotation.Log;
+import com.cloud.hub.common.annotation.RequiresLogin;
+import com.cloud.hub.common.core.domain.AjaxResult;
+import com.cloud.hub.common.enums.BusinessType;
+import com.cloud.hub.framework.security.LoginUser;
+import com.cloud.hub.framework.security.SecurityUtils;
+import com.cloud.hub.web.service.UserService;
 import com.google.protobuf.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import proto.LobbyProto;
 import proto.ModelProto;
-import com.cloud.hub.web.service.UserService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,10 +28,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * 房间和桌子管理接口
+ * 房间和桌子管理接口（参照 RuoYi 设计标准）
  */
 @RestController
 @RequestMapping("/api")
+@RequiresLogin
 public class RoomController {
     private static final Logger logger = LoggerFactory.getLogger(RoomController.class);
 
@@ -36,17 +46,15 @@ public class RoomController {
 
     /**
      * 获取房间列表
-     * GET /api/rooms?sessionId=xxx
+     * GET /api/rooms
      */
     @GetMapping("/rooms")
-    public ResponseEntity<Map<String, Object>> getRooms(@RequestParam String sessionId) {
-        UserService.UserInfo user = userService.getSession(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(errorResponse(401, "会话无效，请重新登录"));
-        }
+    public AjaxResult getRooms(@RequestParam(required = false) String sessionId) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String currentSessionId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : user.getSessionId();
 
         try {
-            CompletableFuture<Message> future = userService.getRoomList(sessionId);
+            CompletableFuture<Message> future = userService.getRoomList(currentSessionId);
             Message response = future.get(5, TimeUnit.SECONDS);
 
             if (response instanceof LobbyProto.AckRoomList) {
@@ -87,36 +95,32 @@ public class RoomController {
                     rooms.add(roomData);
                 }
 
-                Map<String, Object> result = new HashMap<>();
-                result.put("code", 0);
-                result.put("msg", "success");
+                AjaxResult result = AjaxResult.success();
                 result.put("rooms", rooms);
-                return ResponseEntity.ok(result);
+                return result;
             }
 
-            return ResponseEntity.ok(errorResponse(500, "获取房间列表失败"));
+            return AjaxResult.error(500, "获取房间列表失败");
         } catch (Exception e) {
-            logger.error("获取房间列表异常, sessionId: {}", sessionId, e);
-            return ResponseEntity.ok(errorResponse(500, "获取房间列表异常: " + e.getMessage()));
+            logger.error("获取房间列表异常, sessionId: {}", currentSessionId, e);
+            return AjaxResult.error(500, "获取房间列表异常: " + e.getMessage());
         }
     }
 
     /**
      * 加入桌子
-     * POST /api/rooms/join { "sessionId": "xxx", "roomId": 1 }
+     * POST /api/rooms/join { "roomId": 1 }
      */
     @PostMapping("/rooms/join")
-    public ResponseEntity<Map<String, Object>> joinTable(@RequestBody Map<String, Object> request) {
-        String sessionId = (String) request.get("sessionId");
+    @Log(title = "加入牌桌", businessType = BusinessType.OTHER)
+    public AjaxResult joinTable(@RequestBody Map<String, Object> request) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String sessionId = (request.get("sessionId") instanceof String) ?
+                (String) request.get("sessionId") : user.getSessionId();
         Number roomIdNum = (Number) request.get("roomId");
 
-        if (sessionId == null || roomIdNum == null) {
-            return ResponseEntity.ok(errorResponse(400, "参数不完整"));
-        }
-
-        UserService.UserInfo user = userService.getSession(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(errorResponse(401, "会话无效，请重新登录"));
+        if (roomIdNum == null) {
+            return AjaxResult.error(400, "参数不完整");
         }
 
         int roomId = roomIdNum.intValue();
@@ -129,41 +133,37 @@ public class RoomController {
 
             if (response instanceof LobbyProto.AckJoinRoomTable) {
                 LobbyProto.AckJoinRoomTable ack = (LobbyProto.AckJoinRoomTable) response;
-
-                Map<String, Object> result = new HashMap<>();
-                result.put("code", 0);
-                result.put("msg", "success");
+                AjaxResult result = AjaxResult.success();
                 result.put("tableId", ack.getTableId());
-                return ResponseEntity.ok(result);
+                return result;
             }
 
-            return ResponseEntity.ok(errorResponse(500, "加入桌子失败"));
+            return AjaxResult.error(500, "加入桌子失败");
         } catch (TimeoutException e) {
-            logger.error("加入桌子超时, userId: {}, roomId: {}, sessionId: {}, timeoutSec: 10, costMs: {}",
+            logger.error("加入桌子超时, userId: {}, roomId: {}, sessionId: {}, costMs: {}",
                     user.getUserId(), roomId, sessionId, System.currentTimeMillis() - startMs);
-            return ResponseEntity.ok(errorResponse(500, "加入桌子超时"));
+            return AjaxResult.error(500, "加入桌子超时");
         } catch (Exception e) {
             logger.error("加入桌子异常, userId: {}, roomId: {}, sessionId: {}, costMs: {}, cause: {}",
                     user.getUserId(), roomId, sessionId, System.currentTimeMillis() - startMs, e.toString(), e);
-            return ResponseEntity.ok(errorResponse(500, "加入桌子异常: " + e.getMessage()));
+            return AjaxResult.error(500, "加入桌子异常: " + e.getMessage());
         }
     }
 
     /**
      * 创建房间：固定模板 或 自定义规则
      * POST /api/rooms/create
-     * fixed:  { sessionId, mode:"fixed", roomId }
-     * custom: { sessionId, mode:"custom", gameType, baseScore?, totalRounds?, allowChi?, ... }
      */
     @PostMapping("/rooms/create")
-    public ResponseEntity<Map<String, Object>> createRoom(@RequestBody Map<String, Object> request) {
-        String sessionId = str(request.get("sessionId"));
-        UserService.UserInfo user = userService.getSession(sessionId);
-        if (user == null) {
-            return ResponseEntity.ok(errorResponse(401, "会话无效，请重新登录"));
-        }
+    @Log(title = "创建房间", businessType = BusinessType.INSERT)
+    public AjaxResult createRoom(@RequestBody Map<String, Object> request) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String sessionId = (request.get("sessionId") instanceof String) ?
+                (String) request.get("sessionId") : user.getSessionId();
         String mode = str(request.get("mode"));
-        if (mode.isEmpty()) mode = "fixed";
+        if (mode.isEmpty()) {
+            mode = "fixed";
+        }
 
         try {
             int roomId;
@@ -171,7 +171,7 @@ public class RoomController {
             if ("custom".equalsIgnoreCase(mode)) {
                 Number gt = (Number) request.get("gameType");
                 if (gt == null) {
-                    return ResponseEntity.ok(errorResponse(400, "自定义创房需要 gameType"));
+                    return AjaxResult.error(400, "自定义创房需要 gameType");
                 }
                 gameType = gt.intValue();
                 Map<String, Object> payload = new HashMap<>();
@@ -191,13 +191,13 @@ public class RoomController {
                 copyInt(request, payload, "exCardNum");
                 Map<String, Object> prepared = lobbyAdminClient.createCustomRoom(user.getToken(), payload);
                 if (prepared == null || !Integer.valueOf(0).equals(asInt(prepared.get("code")))) {
-                    return ResponseEntity.ok(prepared != null ? prepared : errorResponse(502, "lobby 不可用"));
+                    return prepared != null ? toAjax(prepared) : AjaxResult.error(502, "lobby 不可用");
                 }
                 roomId = asInt(prepared.get("roomId"));
             } else {
                 Number roomIdNum = (Number) request.get("roomId");
                 if (roomIdNum == null) {
-                    return ResponseEntity.ok(errorResponse(400, "固定模板创房需要 roomId"));
+                    return AjaxResult.error(400, "固定模板创房需要 roomId");
                 }
                 roomId = roomIdNum.intValue();
                 Number gt = (Number) request.get("gameType");
@@ -207,20 +207,18 @@ public class RoomController {
             CompletableFuture<Message> future = userService.joinTable(sessionId, roomId);
             Message response = future.get(10, TimeUnit.SECONDS);
             if (!(response instanceof LobbyProto.AckJoinRoomTable)) {
-                return ResponseEntity.ok(errorResponse(500, "创建/加入失败"));
+                return AjaxResult.error(500, "创建/加入失败");
             }
             LobbyProto.AckJoinRoomTable ack = (LobbyProto.AckJoinRoomTable) response;
-            Map<String, Object> result = new HashMap<>();
-            result.put("code", 0);
-            result.put("msg", "success");
+            AjaxResult result = AjaxResult.success();
             result.put("tableId", ack.getTableId());
             result.put("roomId", roomId);
             result.put("gameType", gameType);
             result.put("mode", mode);
-            return ResponseEntity.ok(result);
+            return result;
         } catch (Exception e) {
             logger.error("创建房间异常, userId: {}", user.getUserId(), e);
-            return ResponseEntity.ok(errorResponse(500, "创建房间异常: " + e.getMessage()));
+            return AjaxResult.error(500, "创建房间异常: " + e.getMessage());
         }
     }
 
@@ -245,10 +243,9 @@ public class RoomController {
         return o == null ? "" : String.valueOf(o);
     }
 
-    private Map<String, Object> errorResponse(int code, String msg) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", code);
-        result.put("msg", msg);
+    private AjaxResult toAjax(Map<String, Object> map) {
+        AjaxResult result = new AjaxResult();
+        result.putAll(map);
         return result;
     }
 }

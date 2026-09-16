@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>序列均值与数字组成联动分析</title>
+    <link rel="stylesheet" href="./admin.css">
+    <link rel="stylesheet" href="./viewport-fit.css">
+    <link rel="stylesheet" href="../../shared/theme.css">
+    <link rel="stylesheet" href="./sequence.css">
+    <script src="../../shared/app-base.js"></script>
+</head>
+<body class="page-theme">
+<div class="header">
+    <div style="display:flex;align-items:center;gap:14px;">
+        <a href="./admin.html" class="btn btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 12px;font-size:13px;border-radius:4px;">← 返回管理后台</a>
+        <h1 style="margin:0;font-size:18px;font-weight:600;">🎯 序列均值与数字组成联动分析</h1>
+    </div>
+    <div class="header-actions">
+        <a href="./terminal.html">服务器终端</a>
+        <a href="../../pages/lobby/index.html">回大厅</a>
+    </div>
+</div>
+
+<div class="wrap">
+    <div class="seq-page-head">
+        <div>
+            <div class="tool-eyebrow">数据工具 / 序列均值与组成拆解</div>
+            <h2>连续均值连线与拆解计算器</h2>
+            <p>自由配置固定/可变数，设置三连与六连均值连线，拆解组成项与差值抵扣，一键复制三排图表。</p>
+        </div>
+        <div class="seq-top-actions">
+            <button class="btn tool-primary" type="button" style="background:#409eff;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:500;" onclick="copySequenceArt()">📋 复制文本结果</button>
+            <button class="btn btn-ghost" type="button" onclick="addSequenceNumber()">➕ 添加数字</button>
+            <button class="btn btn-ghost" type="button" onclick="addSequenceComposition()">🧩 添加拆解框</button>
+            <button class="btn btn-ghost" type="button" onclick="resetSequenceData()">🔄 重置示例</button>
+        </div>
+    </div>
+
+    <!-- 规则与目标配置卡片 -->
+    <section class="card tool-card seq-conditions-card">
+        <div class="seq-rules-grid">
+            <!-- 目标一：3连 -->
+            <div class="seq-rule-item seq-rule-t1">
+                <div class="seq-rule-head">
+                    <span class="seq-rule-title">🔷 目标一：连续 3 个数</span>
+                    <span id="seqBadgeT1" class="seq-badge seq-badge-info">计算中</span>
+                </div>
+                <div class="seq-rule-inputs">
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">起始序号</span>
+                        <input class="seq-input-sm" id="seqT1Start" type="number" min="1" value="3">
+                    </div>
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">结束序号</span>
+                        <input class="seq-input-sm" id="seqT1End" type="number" min="1" value="5">
+                    </div>
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">目标均值</span>
+                        <input class="seq-input-sm seq-input-target" id="seqT1Val" type="number" step="any" value="238">
+                    </div>
+                </div>
+                <div class="seq-rule-foot">
+                    <span>实际总和: <b id="seqT1Sum">0</b></span>
+                    <span>实际均值: <b id="seqT1Avg" class="seq-val-highlight">0</b></span>
+                </div>
+            </div>
+
+            <!-- 目标三：6连 -->
+            <div class="seq-rule-item seq-rule-t3">
+                <div class="seq-rule-head">
+                    <span class="seq-rule-title">🟩 目标三：连续 6 个数</span>
+                    <span id="seqBadgeT3" class="seq-badge seq-badge-success">计算中</span>
+                </div>
+                <div class="seq-rule-inputs">
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">起始序号</span>
+                        <input class="seq-input-sm" id="seqT3Start" type="number" min="1" value="2">
+                    </div>
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">结束序号</span>
+                        <input class="seq-input-sm" id="seqT3End" type="number" min="1" value="7">
+                    </div>
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">最低均值</span>
+                        <input class="seq-input-sm" id="seqT3Min" type="number" step="any" value="200">
+                    </div>
+                    <div class="seq-field-group">
+                        <span class="seq-input-label">最高均值</span>
+                        <input class="seq-input-sm" id="seqT3Max" type="number" step="any" value="205">
+                    </div>
+                </div>
+                <div class="seq-rule-foot">
+                    <span>实际总和: <b id="seqT3Sum">0</b></span>
+                    <span>实际均值: <b id="seqT3Avg" class="seq-val-success">0</b></span>
+                </div>
+            </div>
+
+            <!-- 目标二：达标后后续限制 -->
+            <div class="seq-rule-item seq-rule-t2">
+                <div class="seq-rule-head">
+                    <span class="seq-rule-title">🟣 目标二：达标后后续限制</span>
+                    <span id="seqBadgeT2" class="seq-badge seq-badge-purple">校验中</span>
+                </div>
+                <div class="seq-t2-desc">
+                    第 <b id="seqT1EndDisp">5</b> 个数之后出现的数字，必须 <b>≥ 238</b>。
+                </div>
+                <div class="seq-rule-foot">
+                    <span>后续数字: <b id="seqT2Count">2</b> 个</span>
+                    <span id="seqT2Status" class="seq-val-success">✔ 全部满足</span>
+                </div>
+            </div>
+        </div>
+        <div class="msg" id="seqMsg" style="display:none;margin-top:12px;"></div>
+    </section>
+
+    <!-- 核心画布卡片：三排展示与连线 -->
+    <section class="card tool-card seq-canvas-card">
+        <svg id="seqSvgLayer" class="seq-svg-layer">
+            <g id="seqSvgConnections"></g>
+        </svg>
+
+        <!-- 【第一排】均值统计展示 -->
+        <div class="seq-row-section">
+            <div class="seq-row-label">
+                <span class="seq-dot seq-dot-blue"></span>
+                <span>第一排：连续均值连线指标</span>
+            </div>
+            <div class="seq-avg-badges">
+                <div id="seqCardAvg6" class="seq-avg-card seq-avg-card-6">
+                    <span class="seq-avg-badge-num">6</span>
+                    <div>
+                        <small>连续 6 个数均值</small>
+                        <strong><span id="seqDispAvg6">201.5</span> <small>(和: <span id="seqDispSum6">1209</span>)</small></strong>
+                    </div>
+                </div>
+                <div id="seqCardAvg3" class="seq-avg-card seq-avg-card-3">
+                    <span class="seq-avg-badge-num">3</span>
+                    <div>
+                        <small>连续 3 个数均值</small>
+                        <strong><span id="seqDispAvg3">238.0</span> <small>(和: <span id="seqDispSum3">714</span>)</small></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 【第二排】数字序列展示 -->
+        <div class="seq-row-section">
+            <div class="seq-row-label">
+                <span class="seq-dot seq-dot-indigo"></span>
+                <span>第二排：数字序列（可自由修改数值，点击 🔒/🔓 切换锁定状态）</span>
+            </div>
+            <div id="seqSequenceContainer" class="seq-sequence-list"></div>
+        </div>
+
+        <!-- 【第三排】组成拆解与差值抵扣流水线 -->
+        <div class="seq-row-section seq-row-section-bottom">
+            <div class="seq-row-label">
+                <span class="seq-dot seq-dot-purple"></span>
+                <span>第三排：数字组成拆解与差值抵扣（连线对应第二排）</span>
+            </div>
+            <div id="seqCompositionsContainer" class="seq-compositions-grid"></div>
+
+            <!-- 差值抵扣流水线 -->
+            <div class="seq-pipeline-card">
+                <div class="seq-pipeline-left">
+                    <span class="seq-pipeline-title">差值抵扣计算流:</span>
+                    <div class="seq-diff-init">
+                        <span>合计差:</span>
+                        <strong id="seqTotalInitialDiff">24.3</strong>
+                    </div>
+                    <span class="seq-arrow">➔</span>
+                    <div id="seqSupplementsList" class="seq-supplements-list"></div>
+                    <button class="btn btn-ghost btn-sm" type="button" style="padding:2px 8px;min-height:24px;font-size:11px;" onclick="addSequenceSupplement()">+ 递减项</button>
+                </div>
+                <div class="seq-pipeline-right">
+                    <span>最终剩余差:</span>
+                    <strong id="seqFinalRemainingDiff">2.4</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 文本图生成预览 -->
+    <section class="card tool-card seq-preview-card">
+        <div class="seq-comp-head">
+            <div>
+                <h3 style="margin:0;font-size:15px;color:#303133;">三排连线文本结果预览</h3>
+                <p style="margin:4px 0 0;font-size:12px;color:#909399;">生成的文本格式与展示效果完全一致，点击上方或右侧按钮直接复制。</p>
+            </div>
+            <button class="btn tool-primary" type="button" style="background:#409eff;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;" onclick="copySequenceArt()">复制文本结果</button>
+        </div>
+        <pre id="seqArtPreview" class="seq-art-pre"></pre>
+    </section>
+</div>
+
+<script src="../../shared/sequence-model.js"></script>
+<script src="./js/sequence.js"></script>
+</body>
+</html>

@@ -1,100 +1,92 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.web.bind.annotation.*;
-
+import com.cloud.hub.common.annotation.Log;
+import com.cloud.hub.common.core.domain.AjaxResult;
+import com.cloud.hub.common.enums.BusinessType;
+import com.cloud.hub.web.dto.LoginDto;
+import com.cloud.hub.web.dto.RegisterDto;
+import com.cloud.hub.web.service.UserService;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import com.cloud.hub.web.controller.LobbyAdminClient;
-import com.cloud.hub.web.service.UserService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 认证接口（对齐 /api/auth/*）
+ * 认证接口（对齐 /api/auth/*，参照 RuoYi 设计）
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserService userService;
-    private final LobbyAdminClient lobbyAdminClient;
 
-    public AuthController(UserService userService, LobbyAdminClient lobbyAdminClient) {
+    public AuthController(UserService userService) {
         this.userService = userService;
-        this.lobbyAdminClient = lobbyAdminClient;
     }
 
     /**
      * POST /api/auth/login { "username","password" } 或 { "token" }
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        String token = request.get("token");
+    public ResponseEntity<AjaxResult> login(@RequestBody LoginDto request) {
+        String token = request.getToken();
         if (token != null && !token.trim().isEmpty()) {
             UserService.UserInfo userInfo = userService.validateToken(token.trim());
             if (userInfo == null) {
-                return ResponseEntity.ok(error(401, "Token无效或已过期"));
+                return ResponseEntity.ok(AjaxResult.error(401, "Token无效或已过期"));
             }
             return withSessionCookie(userInfo);
         }
 
-        String username = request.get("username");
-        String password = request.get("password");
-        if (username == null || username.trim().isEmpty()
-                || password == null || password.isEmpty()) {
-            return ResponseEntity.badRequest().body(error(400, "用户名和密码不能为空"));
+        String username = request.getUsername();
+        String password = request.getPassword();
+        if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
+            return ResponseEntity.badRequest().body(AjaxResult.error(400, "用户名和密码不能为空"));
         }
 
         UserService.UserInfo userInfo = userService.login(username.trim(), password);
         if (userInfo == null) {
-            return ResponseEntity.ok(error(401, "登录失败，用户名或密码错误"));
+            return ResponseEntity.ok(AjaxResult.error(401, "登录失败，用户名或密码错误"));
         }
         return withSessionCookie(userInfo);
     }
 
     /**
-     * POST /api/auth/register { "username","password","nickname?,"invite?" }
+     * POST /api/auth/register { "username","password","nickname?","invite" }
      */
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-        String nickname = request.get("nickname");
-        String invite = request.get("invite");
+    @Log(title = "用户注册", businessType = BusinessType.INSERT)
+    public ResponseEntity<AjaxResult> register(@RequestBody @Valid RegisterDto request) {
+        String username = request.getUsername().trim();
+        String password = request.getPassword();
+        String nickname = request.getNickname() != null && !request.getNickname().trim().isEmpty() ?
+                request.getNickname().trim() : username;
+        String invite = request.getInvite().trim();
 
-        if (username == null || username.trim().isEmpty()
-                || password == null || password.isEmpty()) {
-            return ResponseEntity.badRequest().body(error(400, "用户名和密码不能为空"));
-        }
-        if (invite == null || invite.trim().isEmpty()) {
-            return ResponseEntity.ok(error(3, "需要邀请码"));
-        }
-
-        UserService.UserInfo userInfo = userService.register(
-                username.trim(), password,
-                nickname == null ? username.trim() : nickname.trim(),
-                invite);
+        UserService.UserInfo userInfo = userService.register(username, password, nickname, invite);
         if (userInfo == null) {
-            return ResponseEntity.ok(error(500, "注册失败"));
+            return ResponseEntity.ok(AjaxResult.error(500, "注册失败"));
         }
         if (userInfo.getUserId() <= 0) {
-            return ResponseEntity.ok(error(userInfo.getErrorCode(), registerMsg(userInfo.getErrorCode())));
+            return ResponseEntity.ok(AjaxResult.error(userInfo.getErrorCode(), registerMsg(userInfo.getErrorCode())));
         }
         return withSessionCookie(userInfo);
     }
 
-    private ResponseEntity<Map<String, Object>> withSessionCookie(UserService.UserInfo userInfo) {
+    private ResponseEntity<AjaxResult> withSessionCookie(UserService.UserInfo userInfo) {
         ResponseCookie cookie = ResponseCookie.from("sessionId", userInfo.getSessionId())
                 .path("/").httpOnly(true).sameSite("Lax").build();
-        return ResponseEntity.ok().header("Set-Cookie", cookie.toString()).body(success(userInfo));
+        return ResponseEntity.ok().header("Set-Cookie", cookie.toString()).body(toSuccessResult(userInfo));
     }
 
-    private Map<String, Object> success(UserService.UserInfo userInfo) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
+    private AjaxResult toSuccessResult(UserService.UserInfo userInfo) {
+        AjaxResult result = AjaxResult.success();
         result.put("sessionId", userInfo.getSessionId());
         result.put("userId", userInfo.getUserId());
         result.put("username", userInfo.getUsername());
@@ -107,13 +99,6 @@ public class AuthController {
         }
         result.put("tableInfos", infos);
         result.put("isAdmin", userInfo.isAdmin());
-        return result;
-    }
-
-    private Map<String, Object> error(int code, String msg) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", code);
-        result.put("msg", msg);
         return result;
     }
 

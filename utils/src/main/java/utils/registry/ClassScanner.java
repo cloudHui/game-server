@@ -37,18 +37,30 @@ public final class ClassScanner {
     }
 
     /**
+     * 根据指定包名扫描匹配基类的实现类（无需注解过滤）。
+     *
+     * @param packageName 扫描包路径
+     * @param baseType    处理器基类或接口
+     * @param <T>         基类类型
+     * @return 匹配的具体实现类列表
+     */
+    public static <T> List<Class<? extends T>> scan(String packageName, Class<T> baseType) {
+        return scan(packageName, baseType, null);
+    }
+
+    /**
      * 根据指定包名扫描匹配基类与注解的实现类。
      *
      * @param packageName    扫描包路径
      * @param baseType       处理器基类或接口（为 null 或 Object.class 时不做类型过滤）
-     * @param annotationType 处理器标注的注解
+     * @param annotationType 处理器标注的注解（为 null 时不做注解过滤）
      * @param <T>            基类类型
      * @return 匹配的具体实现类列表
      */
     @SuppressWarnings("unchecked")
     public static <T> List<Class<? extends T>> scan(String packageName, Class<T> baseType, Class<? extends Annotation> annotationType) {
         List<Class<? extends T>> result = new ArrayList<>();
-        if (packageName == null || packageName.isEmpty() || annotationType == null) {
+        if (packageName == null || packageName.isEmpty()) {
             return result;
         }
 
@@ -64,13 +76,14 @@ public final class ClassScanner {
                 if (baseType != null && baseType != Object.class && !baseType.isAssignableFrom(clazz)) {
                     continue;
                 }
-                if (clazz.isAnnotationPresent(annotationType)) {
+                if (annotationType == null || clazz.isAnnotationPresent(annotationType)) {
                     result.add((Class<? extends T>) clazz);
                 }
             }
         } catch (Exception e) {
             logger.error("扫描包 [{}] 处理器类失败, baseType: {}, annotation: {}",
-                    packageName, baseType != null ? baseType.getName() : "null", annotationType.getName(), e);
+                    packageName, baseType != null ? baseType.getName() : "null",
+                    annotationType != null ? annotationType.getName() : "none", e);
             throw new IllegalStateException("扫描处理器类失败: " + packageName, e);
         }
         return result;

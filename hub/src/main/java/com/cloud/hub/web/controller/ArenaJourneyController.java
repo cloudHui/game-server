@@ -1,10 +1,39 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import com.cloud.hub.common.annotation.RequiresLogin;
+import com.cloud.hub.framework.security.SecurityUtils;
 import com.cloud.hub.web.arena.ArenaJourneyService;
-import com.cloud.hub.web.service.UserService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.Map;
-@RestController @RequestMapping("/api/arena/journey") public class ArenaJourneyController{private final ArenaJourneyService s;private final UserService users;public ArenaJourneyController(ArenaJourneyService s,UserService users){this.s=s;this.users=users;}@GetMapping public ResponseEntity<?> state(@RequestHeader(value="Authorization",required=false)String h){UserService.UserInfo u=user(h);if(u==null)return ResponseEntity.status(401).body(err("请先登录"));try{return ResponseEntity.ok(s.state(u.getUserId()));}catch(Exception e){return ResponseEntity.status(500).body(err(e.getMessage()));}}@PostMapping public ResponseEntity<?> run(@RequestHeader(value="Authorization",required=false)String h,@RequestBody Map<String,Object>b){UserService.UserInfo u=user(h);if(u==null)return ResponseEntity.status(401).body(err("请先登录"));try{return ResponseEntity.ok(s.explore(u.getUserId(),((Number)b.get("map")).intValue(),((Number)b.get("runs")).intValue()));}catch(IllegalArgumentException e){return ResponseEntity.badRequest().body(err(e.getMessage()));}catch(Exception e){return ResponseEntity.status(500).body(err(e.getMessage()));}}private UserService.UserInfo user(String h){return h!=null&&h.startsWith("Bearer ")?users.validateToken(h.substring(7).trim()):null;}private Map<String,Object>err(String x){Map<String,Object>m=new HashMap<>();m.put("error",x);return m;}}
+
+/**
+ * 竞技场挂机探索接口（消除局部私有鉴权与异常，标准化改造）
+ */
+@RestController
+@RequestMapping("/api/arena/journey")
+@RequiresLogin
+public class ArenaJourneyController {
+    private final ArenaJourneyService service;
+
+    public ArenaJourneyController(ArenaJourneyService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public ResponseEntity<?> state() throws Exception {
+        return ResponseEntity.ok(service.state(SecurityUtils.getUserId()));
+    }
+
+    @PostMapping
+    public ResponseEntity<?> run(@RequestBody Map<String, Object> b) throws Exception {
+        int map = ((Number) b.get("map")).intValue();
+        int runs = ((Number) b.get("runs")).intValue();
+        return ResponseEntity.ok(service.explore(SecurityUtils.getUserId(), map, runs));
+    }
+}

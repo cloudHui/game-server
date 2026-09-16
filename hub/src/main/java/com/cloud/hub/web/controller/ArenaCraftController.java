@@ -1,16 +1,37 @@
 package com.cloud.hub.web.controller;
 
-import org.springframework.http.ResponseEntity;import org.springframework.web.bind.annotation.*;import com.cloud.hub.web.arena.ArenaCraftService;import com.cloud.hub.web.service.UserService;import java.util.*;
-
-import org.springframework.http.ResponseEntity;
+import com.cloud.hub.common.annotation.RequiresLogin;
+import com.cloud.hub.framework.security.SecurityUtils;
 import com.cloud.hub.web.arena.ArenaCraftService;
-import com.cloud.hub.web.service.UserService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
-@RestController @RequestMapping("/api/arena/library") public class ArenaCraftController{
- private final ArenaCraftService service;private final UserService users;public ArenaCraftController(ArenaCraftService service,UserService users){this.service=service;this.users=users;}
- @GetMapping public ResponseEntity<?> view(@RequestHeader(value="Authorization",required=false)String auth){UserService.UserInfo u=user(auth);if(u==null)return denied();try{return ResponseEntity.ok(service.view(u.getUserId()));}catch(Exception e){return fail(e);}}
- @PostMapping("/craft") public ResponseEntity<?> craft(@RequestHeader(value="Authorization",required=false)String auth,@RequestBody Map<String,String>b){UserService.UserInfo u=user(auth);if(u==null)return denied();try{return ResponseEntity.ok(service.craft(u.getUserId(),b.get("recipeId")));}catch(IllegalArgumentException e){return ResponseEntity.badRequest().body(error(e.getMessage()));}catch(Exception e){return fail(e);}}
- private UserService.UserInfo user(String h){return h!=null&&h.startsWith("Bearer ")?users.validateToken(h.substring(7).trim()):null;}private ResponseEntity<?> denied(){return ResponseEntity.status(401).body(error("请先登录"));}private ResponseEntity<?> fail(Exception e){return ResponseEntity.status(500).body(error(e.getMessage()));}private Map<String,Object> error(String s){Map<String,Object>m=new LinkedHashMap<>();m.put("error",s);return m;}
+
+/**
+ * 竞技场配方合成接口（消除局部私有鉴权与异常，标准化改造）
+ */
+@RestController
+@RequestMapping("/api/arena/library")
+@RequiresLogin
+public class ArenaCraftController {
+    private final ArenaCraftService service;
+
+    public ArenaCraftController(ArenaCraftService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public ResponseEntity<?> view() throws Exception {
+        return ResponseEntity.ok(service.view(SecurityUtils.getUserId()));
+    }
+
+    @PostMapping("/craft")
+    public ResponseEntity<?> craft(@RequestBody Map<String, String> b) throws Exception {
+        return ResponseEntity.ok(service.craft(SecurityUtils.getUserId(), b.get("recipeId")));
+    }
 }

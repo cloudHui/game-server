@@ -185,7 +185,7 @@ public class LobbyAdminClient {
         } catch (Exception e) { return error(500, e.getMessage()); }
     }
 
-    public Object listRecords(String token, int page, int size) {
+    public List<Map<String, Object>> listRecords(String token, int page, int size) {
         if (!admin(token)) return Collections.emptyList();
         List<Map<String, Object>> rows = new ArrayList<>();
         String sql = "SELECT * FROM score_record ORDER BY created_at DESC LIMIT ? OFFSET ?";
