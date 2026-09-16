@@ -13,9 +13,9 @@ import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.other.ClazzUtil;
+import utils.registry.HandlerRegistry;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,8 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 统一消息与处理器注册中心
  * <p>
- * 负责协议常量映射、状态机枚举处理器及传统处理器的动态发现与绑定。
- * 同时与 {@link MsgRouter} 协同，提供 Protobuf 消息的反序列化支持。
+ * 负责协议常量映射、基于 {@link HandlerRegistry} 的通用组件处理器装配，以及与 {@link MsgRouter} 协同提供 Protobuf 消息反序列化。
  */
 public class HandleTypeRegister {
 
@@ -119,24 +118,8 @@ public class HandleTypeRegister {
      * @param <T>         处理器接口类型
      */
     private static <T> void initFactory(String packageName, Map<Integer, T> handles) {
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getClasses(packageName);
-            Map<Class<?>, T> classProcessMap = new HashMap<>();
-
-            for (Class<?> aclass : classes) {
-                ProcessType processesType = aclass.getAnnotation(ProcessType.class);
-                if (processesType == null) {
-                    continue;
-                }
-                putHandle(processesType.value(), aclass, handles, classProcessMap);
-            }
-
-            logger.info("{} bind success initFactory, size:{} cost:{}ms", packageName, handles.size(),
-                    System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} bind processors error", packageName, e);
-        }
+        Map<Integer, T> mapped = HandlerRegistry.buildSingle(packageName, null, ProcessType.class, Integer.class);
+        handles.putAll(mapped);
     }
 
     /**
@@ -147,28 +130,8 @@ public class HandleTypeRegister {
      * @param <T>          处理器接口类型
      */
     public static <T> void initFactoryEnum(Class<?> packageClass, Map<TableState, T> handles) {
-        String packageName = packageClass.getPackage().getName();
-
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getClasses(packageName);
-            Map<Class<?>, T> classProcessMap = new HashMap<>();
-
-            for (Class<?> aclass : classes) {
-                ProcessEnum processesType = aclass.getAnnotation(ProcessEnum.class);
-                if (processesType == null) {
-                    continue;
-                }
-                for (TableState state : processesType.value()) {
-                    putHandle(state, aclass, handles, classProcessMap);
-                }
-            }
-
-            logger.info("{} bind success initFactoryEnum, size:{} cost:{}ms", packageName, handles.size(),
-                    System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} bind processors error", packageName, e);
-        }
+        Map<TableState, T> mapped = HandlerRegistry.buildSingle(packageClass.getPackage().getName(), null, ProcessEnum.class, TableState.class);
+        handles.putAll(mapped);
     }
 
     /**
@@ -178,68 +141,11 @@ public class HandleTypeRegister {
      * @param handles      类映射处理器集合
      * @param <T>          处理器接口类型
      */
-    public static <T> void initClassFactory(Class<?> factoryClass, Map<Class<?>, T> handles) {
-        try {
-            long start = System.currentTimeMillis();
-            List<Class<?>> classes = ClazzUtil.getClasses(factoryClass, "");
-            Map<Class<?>, T> classProcessMap = new HashMap<>();
-
-            for (Class<?> aclass : classes) {
-                ProcessClass processesType = aclass.getAnnotation(ProcessClass.class);
-                if (processesType == null) {
-                    continue;
-                }
-
-                Class<?> value = processesType.value();
-                putHandle(value, aclass, handles, classProcessMap);
-            }
-
-            logger.info("{} bind success, size:{} cost:{}ms", factoryClass.getPackage().getName(), handles.size(),
-                    System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            logger.error("{} bind processors error", factoryClass.getPackage().getName(), e);
-        }
-    }
-
-    /**
-     * 绑定处理器实例到容器中，避免同类实例重复创建
-     *
-     * @param key             映射键
-     * @param aclass          处理器实现类
-     * @param handles         目标映射表
-     * @param classProcessMap 实例缓存表
-     * @param <K>             键类型
-     * @param <T>             处理器类型
-     */
-    public static <K, T> void putHandle(K key, Class<?> aclass, Map<K, T> handles, Map<Class<?>, T> classProcessMap) {
-        T handler = handles.get(key);
-        if (handler != null) {
-            logger.error("putHandle same key:{} old:{} new:{} ", key, handler.getClass(), aclass);
-        }
-
-        handler = classProcessMap.computeIfAbsent(aclass, k -> newInstance(key, aclass));
-
-        if (handler != null) {
-            handles.put(key, handler);
-        }
-    }
-
-    /**
-     * 反射创建处理器实例
-     *
-     * @param key    调试键
-     * @param aclass 处理器 Class
-     * @param <T>    目标类型
-     * @return 实例对象
-     */
     @SuppressWarnings("unchecked")
-    private static <T> T newInstance(Object key, Class<?> aclass) {
-        try {
-            return (T) aclass.getConstructor().newInstance();
-        } catch (Exception e) {
-            logger.error("init {} newInstance fail for key {} ", aclass, key, e);
-        }
-        return null;
+    public static <T> void initClassFactory(Class<?> factoryClass, Map<Class<?>, T> handles) {
+        Map<Class<?>, T> mapped = (Map<Class<?>, T>) (Map<?, ?>) HandlerRegistry.buildSingle(
+                factoryClass.getPackage().getName(), null, ProcessClass.class, (Class<Class<?>>) (Class<?>) Class.class);
+        handles.putAll(mapped);
     }
 
     /**
