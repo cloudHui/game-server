@@ -7,23 +7,19 @@
 
     var DEFAULT_DATA = {
         numbers: [
-            { id: 'n1', value: 38, locked: true, label: '固定数1' },
-            { id: 'n2', value: 19, locked: true, label: '固定数2' },
-            { id: 'n3', value: 57.9, locked: true, label: '固定数3' },
-            { id: 'n4', value: 320, locked: false, label: '额外数1' },
-            { id: 'n5', value: 336.1, locked: false, label: '额外数2' },
-            { id: 'n6', value: 238, locked: false, label: '达标后数1' },
-            { id: 'n7', value: 238, locked: false, label: '达标后数2' }
+            { id: 'n1', value: '', locked: false, label: '数1' },
+            { id: 'n2', value: '', locked: false, label: '数2' },
+            { id: 'n3', value: '', locked: false, label: '数3' },
+            { id: 'n4', value: '', locked: false, label: '数4' },
+            { id: 'n5', value: '', locked: false, label: '数5' },
+            { id: 'n6', value: '', locked: false, label: '数6' }
         ],
         targets: {
             t1: { start: 3, end: 5, targetAvg: 238 },
-            t3: { start: 2, end: 7, minAvg: 200, maxAvg: 205 }
+            t3: { start: 1, end: 6, minAvg: 200, maxAvg: 205 }
         },
-        compositions: [
-            { id: 'c1', targetNumberId: 'n4', items: [206, 19.9, 19.9, 30, 30] },
-            { id: 'c2', targetNumberId: 'n5', items: [8, 198, 60, 30, 30] }
-        ],
-        supplements: [19.9, 2]
+        compositions: [],
+        supplements: []
     };
 
     function createDefaultState() {
@@ -39,40 +35,56 @@
         var numbers = state.numbers || [];
         var targets = state.targets || {};
         var t1 = targets.t1 || { start: 3, end: 5, targetAvg: 238 };
-        var t3 = targets.t3 || { start: 2, end: 7, minAvg: 200, maxAvg: 205 };
+        var t3 = targets.t3 || { start: 1, end: 6, minAvg: 200, maxAvg: 205 };
 
         // 目标一：3 连
         var t1Start = Math.max(1, t1.start || 1);
         var t1End = Math.min(numbers.length, t1.end || 1);
         var t1Slice = numbers.slice(t1Start - 1, t1End);
-        var t1Sum = t1Slice.reduce(function (sum, n) { return sum + Number(n.value || 0); }, 0);
+        var t1ValidCount = 0;
+        var t1Sum = t1Slice.reduce(function (sum, n) {
+            var val = (n.value === '' || n.value == null) ? 0 : Number(n.value || 0);
+            if (n.value !== '' && n.value != null) t1ValidCount++;
+            return sum + val;
+        }, 0);
         var t1Count = Math.max(1, t1Slice.length);
         var t1Avg = round(t1Sum / t1Count, 2);
         var t1Target = Number(t1.targetAvg || 0);
-        var t1Valid = Math.abs(t1Avg - t1Target) < 0.001;
+        var t1AllFilled = t1ValidCount === t1Slice.length;
+        var t1Valid = t1AllFilled && Math.abs(t1Avg - t1Target) < 0.001;
 
         // 目标三：6 连
         var t3Start = Math.max(1, t3.start || 1);
         var t3End = Math.min(numbers.length, t3.end || 1);
         var t3Slice = numbers.slice(t3Start - 1, t3End);
-        var t3Sum = t3Slice.reduce(function (sum, n) { return sum + Number(n.value || 0); }, 0);
+        var t3ValidCount = 0;
+        var t3Sum = t3Slice.reduce(function (sum, n) {
+            var val = (n.value === '' || n.value == null) ? 0 : Number(n.value || 0);
+            if (n.value !== '' && n.value != null) t3ValidCount++;
+            return sum + val;
+        }, 0);
         var t3Count = Math.max(1, t3Slice.length);
         var t3Avg = round(t3Sum / t3Count, 2);
         var t3Min = Number(t3.minAvg || 0);
         var t3Max = Number(t3.maxAvg || 0);
-        var t3Valid = t3Avg >= t3Min && t3Avg <= t3Max;
+        var t3AllFilled = t3ValidCount === t3Slice.length;
+        var t3Valid = t3AllFilled && t3Avg >= t3Min && t3Avg <= t3Max;
 
         // 目标二：达标后数字校验
         var afterSlice = numbers.slice(t1End);
-        var violations = afterSlice.filter(function (n) { return Number(n.value || 0) < t1Target; });
-        var t2Valid = afterSlice.length > 0 && violations.length === 0;
+        var violations = afterSlice.filter(function (n) {
+            if (n.value === '' || n.value == null) return false;
+            return Number(n.value || 0) < t1Target;
+        });
+        var t2AllFilled = afterSlice.every(function (n) { return n.value !== '' && n.value != null; });
+        var t2Valid = afterSlice.length > 0 && t2AllFilled && violations.length === 0;
 
         // 拆解项计算
         var compResults = [];
         var totalDiff = 0;
         (state.compositions || []).forEach(function (comp) {
             var target = numbers.find(function (n) { return n.id === comp.targetNumberId; });
-            var targetVal = target ? Number(target.value || 0) : 0;
+            var targetVal = (target && target.value !== '' && target.value != null) ? Number(target.value || 0) : 0;
             var targetIdx = target ? numbers.indexOf(target) + 1 : '?';
             var compSum = (comp.items || []).reduce(function (sum, v) { return sum + Number(v || 0); }, 0);
             var diff = round(targetVal - compSum, 4);
@@ -108,6 +120,7 @@
                 avg: t1Avg,
                 target: t1Target,
                 isValid: t1Valid,
+                isFilled: t1AllFilled,
                 diff: round(t1Avg - t1Target, 2)
             },
             t3: {
@@ -118,12 +131,14 @@
                 avg: t3Avg,
                 min: t3Min,
                 max: t3Max,
+                isFilled: t3AllFilled,
                 isValid: t3Valid
             },
             t2: {
                 count: afterSlice.length,
                 violations: violations.length,
-                isValid: t2Valid
+                isValid: t2Valid,
+                isFilled: t2AllFilled
             },
             compositions: compResults,
             totalInitialDiff: totalDiff,
@@ -172,10 +187,7 @@
     }
 
     /**
-     * 智能求解器：根据目标与已知数字，反算未锁定空位（通用、极简）
-     * @param {Object} state 当前状态
-     * @param {number} [step=5] 遍历步长
-     * @returns {Object} { solutions: Array, total: Number }
+     * 智能求解器：识别已知输入与未锁定空位，根据目标均值反算补齐剩余空位
      */
     function solveSolutions(state, step) {
         step = step || 5;
@@ -184,36 +196,47 @@
         var t1 = targets.t1 || { start: 3, end: 5, targetAvg: 238 };
         var t3 = targets.t3 || { start: 1, end: 6, minAvg: 200, maxAvg: 205 };
 
-        // 若当前数字不足目标最大序号，自动补齐缺失空位
+        // 自动对齐目标最大数量
         var maxRequired = Math.max(Number(t1.end || 0), Number(t3.end || 0));
         while (numbers.length < maxRequired) {
             numbers.push({
                 id: 'n_' + (numbers.length + 1) + '_' + Date.now(),
-                value: Number(t1.targetAvg || 238),
+                value: '',
                 locked: false,
-                label: '目标所需数' + (numbers.length + 1)
+                label: '数' + (numbers.length + 1)
             });
         }
 
-        // 识别未锁定的空位序号
+        // 核心判定：锁定的，或者用户明确填写了有效数值的，视作固定已知数；留空的视作待算空位
         var vars = [];
+        var fixedMap = {};
         numbers.forEach(function (n, idx) {
-            if (!n.locked) vars.push(idx);
+            var val = n.value;
+            var hasVal = val !== '' && val !== null && val !== undefined && !isNaN(Number(val)) && Number(val) > 0;
+            if (n.locked || hasVal) {
+                fixedMap[idx] = Number(val || 0);
+            } else {
+                vars.push(idx);
+            }
         });
-        if (vars.length === 0) return { solutions: [], total: 0 };
+
+        if (vars.length === 0) {
+            return { solutions: [], total: 0, reason: 'all_fixed' };
+        }
 
         var t1SumTarget = round(Number(t1.targetAvg || 0) * (t1.end - t1.start + 1), 2);
         var t3MinSum = round(Number(t3.minAvg || 0) * (t3.end - t3.start + 1), 2);
         var t3MaxSum = round(Number(t3.maxAvg || 0) * (t3.end - t3.start + 1), 2);
 
-        // 划分 t1 内与 t1 外的空位
         var inT1 = vars.filter(function (i) { return (i + 1) >= t1.start && (i + 1) <= t1.end; });
         var outT1 = vars.filter(function (i) { return inT1.indexOf(i) === -1; });
 
-        // t1 内固定数字和，推导所需空位和
+        // t1 内已知固定数字之和
         var fixedInT1 = 0;
         for (var i = t1.start - 1; i < t1.end; i++) {
-            if (inT1.indexOf(i) === -1) fixedInT1 += Number(numbers[i].value || 0);
+            if (inT1.indexOf(i) === -1) {
+                fixedInT1 += (fixedMap[i] !== undefined) ? fixedMap[i] : Number(numbers[i].value || 0);
+            }
         }
         var t1Need = round(t1SumTarget - fixedInT1, 2);
 
@@ -233,6 +256,22 @@
                     t1Combos.push(m2);
                 }
             }
+        } else if (inT1.length === 3) {
+            var avg3 = Math.floor(t1Need / 3);
+            var sV = Math.max(1, Math.floor((avg3 - 80) / step) * step);
+            var eV = Math.min(t1Need - 2, Math.ceil((avg3 + 80) / step) * step);
+            for (var va = sV; va <= eV; va += step) {
+                for (var vb = sV; vb <= eV; vb += step) {
+                    var vc = round(t1Need - va - vb, 2);
+                    if (vc > 0) {
+                        var m3 = {};
+                        m3[inT1[0]] = va;
+                        m3[inT1[1]] = vb;
+                        m3[inT1[2]] = vc;
+                        t1Combos.push(m3);
+                    }
+                }
+            }
         } else if (inT1.length === 0) {
             t1Combos.push({});
         }
@@ -240,12 +279,11 @@
         var inT3Vars = outT1.filter(function (i) { return (i + 1) >= t3.start && (i + 1) <= t3.end; });
         var outT3Vars = outT1.filter(function (i) { return inT3Vars.indexOf(i) === -1; });
 
-        // 结合 t1 外空位并用 calculate 统一通关校验
         var solutions = [];
         t1Combos.forEach(function (base) {
             var extendedBase = Object.assign({}, base);
             outT3Vars.forEach(function (idx) {
-                extendedBase[idx] = (idx + 1 > t1.end) ? Number(t1.targetAvg || 238) : Number(numbers[idx].value || 238);
+                extendedBase[idx] = (fixedMap[idx] !== undefined) ? fixedMap[idx] : ((idx + 1 > t1.end) ? Number(t1.targetAvg || 238) : 200);
             });
 
             if (inT3Vars.length === 0) {
@@ -256,7 +294,7 @@
             var t3Known = 0;
             for (var j = t3.start - 1; j < t3.end; j++) {
                 if (inT3Vars.indexOf(j) === -1) {
-                    t3Known += (extendedBase[j] !== undefined) ? extendedBase[j] : Number(numbers[j].value || 0);
+                    t3Known += (extendedBase[j] !== undefined) ? extendedBase[j] : ((fixedMap[j] !== undefined) ? fixedMap[j] : Number(numbers[j].value || 0));
                 }
             }
 
@@ -279,26 +317,20 @@
                 if (isLast) {
                     var low = Math.max(minVal, Math.ceil(minNeeded));
                     var high = Math.floor(maxNeeded);
-                    for (var v = low; v <= high; v++) {
-                        if (v % step === 0 || v === low || v === high || v === Number(t1.targetAvg || 0)) {
+                    for (var valOption = low; valOption <= high; valOption++) {
+                        if (valOption % step === 0 || valOption === low || valOption === high || valOption === Number(t1.targetAvg || 0)) {
                             var nextAssign = Object.assign({}, currentAssign);
-                            nextAssign[varIdx] = v;
-                            recurseOut(idxInList + 1, currentAllocatedSum + v, nextAssign);
+                            nextAssign[varIdx] = valOption;
+                            recurseOut(idxInList + 1, currentAllocatedSum + valOption, nextAssign);
                         }
                     }
                 } else {
                     var low = minVal;
                     var high = Math.floor(maxNeeded - remainingMinSum);
-                    for (var v = low; v <= high; v += step) {
+                    for (var valOption = low; valOption <= high; valOption += step) {
                         var nextAssign = Object.assign({}, currentAssign);
-                        nextAssign[varIdx] = v;
-                        recurseOut(idxInList + 1, currentAllocatedSum + v, nextAssign);
-                    }
-                    var specialVal = Number(t1.targetAvg || 0);
-                    if (specialVal >= low && specialVal <= high && (specialVal - low) % step !== 0) {
-                        var nextAssign = Object.assign({}, currentAssign);
-                        nextAssign[varIdx] = specialVal;
-                        recurseOut(idxInList + 1, currentAllocatedSum + specialVal, nextAssign);
+                        nextAssign[varIdx] = valOption;
+                        recurseOut(idxInList + 1, currentAllocatedSum + valOption, nextAssign);
                     }
                 }
             }
@@ -311,23 +343,27 @@
             Object.keys(assign).forEach(function (k) {
                 testState.numbers[k].value = assign[k];
             });
+            Object.keys(fixedMap).forEach(function (k) {
+                testState.numbers[k].value = fixedMap[k];
+            });
             var calc = calculate(testState);
             if (calc.t1.isValid && calc.t3.isValid && calc.t2.isValid) {
                 var diff = inT1.length === 2 ? Math.abs(assign[inT1[0]] - assign[inT1[1]]) : 0;
                 if (inT3Vars.length === 2) diff += Math.abs(assign[inT3Vars[0]] - assign[inT3Vars[1]]);
                 solutions.push({
                     numbers: testState.numbers,
+                    assign: assign,
                     summary: vars.map(function (idx) { return '#' + (idx + 1) + '=' + assign[idx]; }).join(', '),
                     diff: diff
                 });
             }
         }
 
-        // 按两数更均衡优先排序，返回前 50 组
         solutions.sort(function (a, b) { return a.diff - b.diff; });
         return {
             solutions: solutions.slice(0, 50),
-            total: solutions.length
+            total: solutions.length,
+            vars: vars
         };
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>序列均值与数字组成联动分析器</title>
+    <title>序列均值与数字组成联动分析器（预设经典示例版）</title>
     <!-- 引入 Tailwind CSS（若离线，下方已有内联后备样式保障） -->
     <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
     <style>
@@ -64,21 +64,25 @@
         (function (w) {
             'use strict';
 
-            var DEFAULT_DATA = {
+                        var DEFAULT_DATA = {
                 numbers: [
-                    {id: 'n1', value: '', locked: false, label: '数1'},
-                    {id: 'n2', value: '', locked: false, label: '数2'},
-                    {id: 'n3', value: '', locked: false, label: '数3'},
-                    {id: 'n4', value: '', locked: false, label: '数4'},
-                    {id: 'n5', value: '', locked: false, label: '数5'},
-                    {id: 'n6', value: '', locked: false, label: '数6'}
+                    {id: 'n1', value: 38, locked: true, label: '固定数1'},
+                    {id: 'n2', value: 19, locked: true, label: '固定数2'},
+                    {id: 'n3', value: 57.9, locked: true, label: '固定数3'},
+                    {id: 'n4', value: 320, locked: false, label: '额外数1'},
+                    {id: 'n5', value: 336.1, locked: false, label: '额外数2'},
+                    {id: 'n6', value: 238, locked: false, label: '达标后数1'},
+                    {id: 'n7', value: 238, locked: false, label: '达标后数2'}
                 ],
                 targets: {
                     t1: {start: 3, end: 5, targetAvg: 238},
-                    t3: {start: 1, end: 6, minAvg: 200, maxAvg: 205}
+                    t3: {start: 2, end: 7, minAvg: 200, maxAvg: 205}
                 },
-                compositions: [],
-                supplements: []
+                compositions: [
+                    {id: 'c1', targetNumberId: 'n4', items: [206, 19.9, 19.9, 30, 30]},
+                    {id: 'c2', targetNumberId: 'n5', items: [8, 198, 60, 30, 30]}
+                ],
+                supplements: [19.9, 2]
             };
 
             function createDefaultState() {
@@ -469,10 +473,10 @@
         <div class="flex items-center gap-2.5">
             <span class="text-2xl">🎯</span>
             <h1 class="text-xl md:text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                序列均值与数字组成联动分析器
+                序列均值与数字组成联动分析器（预设经典示例版）
             </h1>
         </div>
-        <p class="text-xs text-slate-400 mt-1">默认同步呈现 6 个数字框 · 自定义输入已知数 · 点击【匹配数字】补齐剩余空框</p>
+        <p class="text-xs text-slate-400 mt-1">完整预设数据示例 · 经典 7 数与拆解流水线 · 支持自由修改与智能匹配</p>
     </div>
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -490,7 +494,7 @@
         </button>
         <button id="btn-reset"
                 class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1 border border-slate-700 transition">
-            <span>🔄 重置清空</span>
+            <span>🔄 重置预设示例</span>
         </button>
     </div>
 </header>
@@ -546,12 +550,12 @@
             <div class="grid grid-cols-4 gap-1.5">
                 <div>
                     <label class="text-[11px] text-slate-400 block mb-0.5">起始序号</label>
-                    <input type="number" id="cfg-t3-start" min="1" value="1"
+                    <input type="number" id="cfg-t3-start" min="1" value="2"
                            class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center font-mono text-xs">
                 </div>
                 <div>
                     <label class="text-[11px] text-slate-400 block mb-0.5">结束序号</label>
-                    <input type="number" id="cfg-t3-end" min="1" value="6"
+                    <input type="number" id="cfg-t3-end" min="1" value="7"
                            class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center font-mono text-xs">
                 </div>
                 <div>

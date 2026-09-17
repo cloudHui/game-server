@@ -39,6 +39,7 @@
     }
 
     function renderAll() {
+        ensureNumberCapacity();
         var calc = Model.calculate(state);
         renderSequence(calc);
         renderCompositions(calc);
@@ -65,6 +66,8 @@
                 (item.locked ? ' is-locked' : '') +
                 (inT1 && inT3 ? ' in-both' : inT1 ? ' in-t1' : inT3 ? ' in-t3' : '');
 
+            var isBlank = item.value === '' || item.value == null;
+
             card.innerHTML = [
                 '<div class="seq-num-card-head">',
                 '  <span class="seq-num-idx' + (item.locked ? ' is-locked' : '') + '">#' + seqNum + '</span>',
@@ -77,10 +80,10 @@
                 '  </div>',
                 '</div>',
                 '<div class="seq-num-card-body">',
-                '  <input class="tool-input" type="number" step="any" value="' + item.value + '" ' + (item.locked ? 'disabled' : '') + ' onchange="updateSequenceValue(\'' + item.id + '\', this.value)">',
+                '  <input class="tool-input' + (item.locked ? ' is-locked' : '') + '" type="number" step="any" placeholder="待填" value="' + (isBlank ? '' : item.value) + '" ' + (item.locked ? 'readonly title="已锁定（点击上方 🔒 解锁）"' : '') + ' oninput="updateSequenceValueInput(\'' + item.id + '\', this.value)" onchange="updateSequenceValue(\'' + item.id + '\', this.value)">',
                 '</div>',
                 '<div class="seq-num-tags">',
-                item.locked ? '<span style="color:#e6a23c;">固定</span>' : '<span>可改</span>',
+                item.locked ? '<span style="color:#e6a23c;font-weight:bold;">固定</span>' : (isBlank ? '<span style="color:#e6a23c;">待匹配</span>' : '<span style="color:#909399;">已输入</span>'),
                 inT1 ? '<span style="color:#409eff;font-weight:bold;">[3连]</span>' : '',
                 inT3 ? '<span style="color:#67c23a;font-weight:bold;">[6连]</span>' : '',
                 '</div>'
@@ -188,20 +191,36 @@
         byId('seqT1Sum').textContent = calc.t1.sum;
         byId('seqT1Avg').textContent = calc.t1.avg;
         byId('seqDispSum3').textContent = calc.t1.sum;
-        byId('seqDispAvg3').textContent = calc.t1.avg;
+        byId('seqDispAvg3').textContent = calc.t1.isFilled ? calc.t1.avg : '-';
 
         var bT1 = byId('seqBadgeT1');
-        bT1.className = 'seq-badge ' + (calc.t1.isValid ? 'seq-badge-success' : 'seq-badge-warn');
-        bT1.textContent = calc.t1.isValid ? '✔ 达标 ' + calc.t1.target : '差 ' + (calc.t1.diff > 0 ? '+' + calc.t1.diff : calc.t1.diff);
+        if (!calc.t1.isFilled) {
+            bT1.className = 'seq-badge seq-badge-info';
+            bT1.textContent = '待匹配';
+        } else if (calc.t1.isValid) {
+            bT1.className = 'seq-badge seq-badge-success';
+            bT1.textContent = '✔ 达标 ' + calc.t1.target;
+        } else {
+            bT1.className = 'seq-badge seq-badge-warn';
+            bT1.textContent = '差 ' + (calc.t1.diff > 0 ? '+' + calc.t1.diff : calc.t1.diff);
+        }
 
         byId('seqT3Sum').textContent = calc.t3.sum;
         byId('seqT3Avg').textContent = calc.t3.avg;
         byId('seqDispSum6').textContent = calc.t3.sum;
-        byId('seqDispAvg6').textContent = calc.t3.avg;
+        byId('seqDispAvg6').textContent = calc.t3.isFilled ? calc.t3.avg : '-';
 
         var bT3 = byId('seqBadgeT3');
-        bT3.className = 'seq-badge ' + (calc.t3.isValid ? 'seq-badge-success' : 'seq-badge-danger');
-        bT3.textContent = (calc.t3.isValid ? '✔ 达标 (' : '未达标 (') + calc.t3.avg + ')';
+        if (!calc.t3.isFilled) {
+            bT3.className = 'seq-badge seq-badge-info';
+            bT3.textContent = '待匹配';
+        } else if (calc.t3.isValid) {
+            bT3.className = 'seq-badge seq-badge-success';
+            bT3.textContent = '✔ 达标 (' + calc.t3.avg + ')';
+        } else {
+            bT3.className = 'seq-badge seq-badge-danger';
+            bT3.textContent = '未达标 (' + calc.t3.avg + ')';
+        }
 
         byId('seqT1EndDisp').textContent = calc.t1.end;
         byId('seqT2Count').textContent = calc.t2.count;
@@ -211,6 +230,11 @@
             bT2.className = 'seq-badge seq-badge-info';
             bT2.textContent = '无后续数';
             sT2.textContent = '无后续数';
+            sT2.className = 'seq-val-highlight';
+        } else if (!calc.t2.isFilled) {
+            bT2.className = 'seq-badge seq-badge-info';
+            bT2.textContent = '待检测';
+            sT2.textContent = '输入或匹配后检测';
             sT2.className = 'seq-val-highlight';
         } else if (calc.t2.isValid) {
             bT2.className = 'seq-badge seq-badge-success';
@@ -338,10 +362,21 @@
         if (item) { item.locked = !item.locked; renderAll(); }
     };
 
+    w.updateSequenceValueInput = function (id, val) {
+        var item = state.numbers.find(function (n) { return n.id === id; });
+        if (item) {
+            item.value = (val === '' || val == null) ? '' : (Number(val) || 0);
+            var calc = Model.calculate(state);
+            updateSummary(calc);
+            updateArtPreview(calc);
+            setTimeout(drawConnectionLines, 30);
+        }
+    };
+
     w.updateSequenceValue = function (id, val) {
         var item = state.numbers.find(function (n) { return n.id === id; });
         if (item) {
-            item.value = Number(val) || 0;
+            item.value = (val === '' || val == null) ? '' : (Number(val) || 0);
             renderAll();
         }
     };
@@ -353,7 +388,7 @@
     };
 
     w.addSequenceNumber = function () {
-        state.numbers.push({ id: 'n_' + Date.now(), value: 238, locked: false, label: '新增数' });
+        state.numbers.push({ id: 'n_' + Date.now(), value: '', locked: false, label: '新增数' });
         renderAll();
     };
 
@@ -469,8 +504,10 @@
         byId('seqT3End').value = state.targets.t3.end;
         byId('seqT3Min').value = state.targets.t3.minAvg;
         byId('seqT3Max').value = state.targets.t3.maxAvg;
+        var panel = byId('seqSolverPanel');
+        if (panel) panel.style.display = 'none';
         renderAll();
-        showMsg('已重置为默认示例数据', true);
+        showMsg('已重置清空为初始 6 个待填项', true);
     };
 
     function ensureNumberCapacity() {
@@ -479,9 +516,9 @@
             var seq = state.numbers.length + 1;
             state.numbers.push({
                 id: 'n_' + Date.now() + '_' + seq,
-                value: Number(state.targets.t1.targetAvg || 238),
+                value: '',
                 locked: false,
-                label: '目标数' + seq
+                label: '数' + seq
             });
         }
     }
@@ -512,9 +549,14 @@
         var res = Model.solveSolutions(state);
         var panel = byId('seqSolverPanel');
 
+        if (res.reason === 'all_fixed') {
+            showMsg('所有数字均已填写或锁定！如需匹配，请将部分输入框留空或点击 🔓 解锁', false);
+            return;
+        }
+
         if (!res.solutions || res.solutions.length === 0) {
             if (panel) panel.style.display = 'none';
-            showMsg('未找到满足所有目标的方案，请放宽目标均值或解锁更多数字', false);
+            showMsg('未找到满足所有目标的匹配方案，请检查已填数字或放宽目标均值', false);
             return;
         }
 
@@ -526,7 +568,7 @@
         }
 
         applySolution(0);
-        showMsg(currentSolutions.length > 1 ? ('已计算出 ' + res.total + ' 组达标方案，可点击 ◀ ▶ 切换') : '已自动填入唯一达标解！', true);
+        showMsg(currentSolutions.length > 1 ? ('已匹配出 ' + res.total + ' 组达标方案，可点击 ◀ ▶ 切换') : '已自动补齐剩余空位！', true);
     };
 
     function applySolution(index) {
@@ -536,18 +578,16 @@
         currentSolutionIdx = index;
 
         var sol = currentSolutions[currentSolutionIdx];
-        if (sol && sol.numbers) {
-            sol.numbers.forEach(function (sn, i) {
-                if (!state.numbers[i]) {
-                    state.numbers.push({
-                        id: sn.id || ('n_' + Date.now() + '_' + (i + 1)),
-                        value: sn.value,
-                        locked: sn.locked || false,
-                        label: sn.label || ('目标数' + (i + 1))
-                    });
-                } else {
-                    state.numbers[i].value = sn.value;
+        if (sol && sol.assign) {
+            // 仅将分配给空位的解填入，保护用户已输入的数字
+            Object.keys(sol.assign).forEach(function (idx) {
+                if (state.numbers[idx]) {
+                    state.numbers[idx].value = sol.assign[idx];
                 }
+            });
+        } else if (sol && sol.numbers) {
+            sol.numbers.forEach(function (sn, i) {
+                if (state.numbers[i]) state.numbers[i].value = sn.value;
             });
         }
 

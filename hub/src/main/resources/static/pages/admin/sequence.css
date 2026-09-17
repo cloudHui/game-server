@@ -362,6 +362,13 @@ input[type="number"] {
     font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
+.seq-num-card-body .tool-input.is-locked {
+    background: #fdf6ec;
+    border-color: #f3d19e;
+    color: #e6a23c;
+    cursor: not-allowed;
+}
+
 .seq-num-tags {
     margin-top: 5px;
     font-size: 10px;
