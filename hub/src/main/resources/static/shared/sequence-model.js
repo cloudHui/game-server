@@ -153,7 +153,7 @@
         var c2 = compStrs[1] || '';
 
         // 7 个数标准模板（与用户提供图片 100% 对齐）
-        if (nums.length === 7) {
+        if (nums.length === 7 && compStrs.length <= 2) {
             return [
                 '第一排：       ┌────────────────────── ' + calc.t3.count + '个平均: ' + calc.t3.avg + ' ──────────────────────┐',
                 '               │             ┌───── ' + calc.t1.count + '个平均: ' + calc.t1.avg + ' ─────┐                     │',
@@ -183,6 +183,17 @@
         var targets = state.targets || {};
         var t1 = targets.t1 || { start: 3, end: 5, targetAvg: 238 };
         var t3 = targets.t3 || { start: 1, end: 6, minAvg: 200, maxAvg: 205 };
+
+        // 若当前数字不足目标最大序号，自动补齐缺失空位
+        var maxRequired = Math.max(Number(t1.end || 0), Number(t3.end || 0));
+        while (numbers.length < maxRequired) {
+            numbers.push({
+                id: 'n_' + (numbers.length + 1) + '_' + Date.now(),
+                value: Number(t1.targetAvg || 238),
+                locked: false,
+                label: '目标所需数' + (numbers.length + 1)
+            });
+        }
 
         // 识别未锁定的空位序号
         var vars = [];
@@ -226,31 +237,73 @@
             t1Combos.push({});
         }
 
+        var inT3Vars = outT1.filter(function (i) { return (i + 1) >= t3.start && (i + 1) <= t3.end; });
+        var outT3Vars = outT1.filter(function (i) { return inT3Vars.indexOf(i) === -1; });
+
         // 结合 t1 外空位并用 calculate 统一通关校验
         var solutions = [];
         t1Combos.forEach(function (base) {
-            if (outT1.length === 1) {
-                var outIdx = outT1[0];
-                var t3Known = 0;
-                for (var j = t3.start - 1; j < t3.end; j++) {
-                    if (j !== outIdx) {
-                        t3Known += (base[j] !== undefined) ? base[j] : Number(numbers[j].value || 0);
-                    }
-                }
-                var minVal = round(t3MinSum - t3Known, 2);
-                var maxVal = round(t3MaxSum - t3Known, 2);
-                if (outIdx + 1 > t1.end) minVal = Math.max(minVal, Number(t1.targetAvg || 0));
+            var extendedBase = Object.assign({}, base);
+            outT3Vars.forEach(function (idx) {
+                extendedBase[idx] = (idx + 1 > t1.end) ? Number(t1.targetAvg || 238) : Number(numbers[idx].value || 238);
+            });
 
-                for (var val = Math.ceil(minVal); val <= maxVal; val++) {
-                    if (val % step === 0 || val === Math.ceil(minVal) || val === Math.floor(maxVal)) {
-                        var candidate = Object.assign({}, base);
-                        candidate[outIdx] = val;
-                        checkAndCollect(candidate);
+            if (inT3Vars.length === 0) {
+                checkAndCollect(extendedBase);
+                return;
+            }
+
+            var t3Known = 0;
+            for (var j = t3.start - 1; j < t3.end; j++) {
+                if (inT3Vars.indexOf(j) === -1) {
+                    t3Known += (extendedBase[j] !== undefined) ? extendedBase[j] : Number(numbers[j].value || 0);
+                }
+            }
+
+            function recurseOut(idxInList, currentAllocatedSum, currentAssign) {
+                if (idxInList === inT3Vars.length) {
+                    var tot = t3Known + currentAllocatedSum;
+                    if (tot >= t3MinSum - 0.001 && tot <= t3MaxSum + 0.001) {
+                        checkAndCollect(Object.assign({}, extendedBase, currentAssign));
+                    }
+                    return;
+                }
+                var varIdx = inT3Vars[idxInList];
+                var isLast = (idxInList === inT3Vars.length - 1);
+                var minVal = (varIdx + 1 > t1.end) ? Number(t1.targetAvg || 0) : 1;
+                var remainingCount = inT3Vars.length - 1 - idxInList;
+                var remainingMinSum = remainingCount * ((varIdx + 1 > t1.end) ? Number(t1.targetAvg || 0) : 1);
+                var minNeeded = t3MinSum - t3Known - currentAllocatedSum;
+                var maxNeeded = t3MaxSum - t3Known - currentAllocatedSum;
+
+                if (isLast) {
+                    var low = Math.max(minVal, Math.ceil(minNeeded));
+                    var high = Math.floor(maxNeeded);
+                    for (var v = low; v <= high; v++) {
+                        if (v % step === 0 || v === low || v === high || v === Number(t1.targetAvg || 0)) {
+                            var nextAssign = Object.assign({}, currentAssign);
+                            nextAssign[varIdx] = v;
+                            recurseOut(idxInList + 1, currentAllocatedSum + v, nextAssign);
+                        }
+                    }
+                } else {
+                    var low = minVal;
+                    var high = Math.floor(maxNeeded - remainingMinSum);
+                    for (var v = low; v <= high; v += step) {
+                        var nextAssign = Object.assign({}, currentAssign);
+                        nextAssign[varIdx] = v;
+                        recurseOut(idxInList + 1, currentAllocatedSum + v, nextAssign);
+                    }
+                    var specialVal = Number(t1.targetAvg || 0);
+                    if (specialVal >= low && specialVal <= high && (specialVal - low) % step !== 0) {
+                        var nextAssign = Object.assign({}, currentAssign);
+                        nextAssign[varIdx] = specialVal;
+                        recurseOut(idxInList + 1, currentAllocatedSum + specialVal, nextAssign);
                     }
                 }
-            } else {
-                checkAndCollect(base);
             }
+
+            recurseOut(0, 0, {});
         });
 
         function checkAndCollect(assign) {
@@ -261,6 +314,7 @@
             var calc = calculate(testState);
             if (calc.t1.isValid && calc.t3.isValid && calc.t2.isValid) {
                 var diff = inT1.length === 2 ? Math.abs(assign[inT1[0]] - assign[inT1[1]]) : 0;
+                if (inT3Vars.length === 2) diff += Math.abs(assign[inT3Vars[0]] - assign[inT3Vars[1]]);
                 solutions.push({
                     numbers: testState.numbers,
                     summary: vars.map(function (idx) { return '#' + (idx + 1) + '=' + assign[idx]; }).join(', '),
@@ -282,7 +336,8 @@
         createDefaultState: createDefaultState,
         calculate: calculate,
         toTextArt: toTextArt,
-        solveSolutions: solveSolutions
+        solveSolutions: solveSolutions,
+        round: round
     };
 
 })(typeof window !== 'undefined' ? window : global);

@@ -15,6 +15,12 @@
         return document.getElementById(id);
     }
 
+    function round(num, decimals) {
+        if (Model && typeof Model.round === 'function') return Model.round(num, decimals);
+        var factor = Math.pow(10, decimals == null ? 2 : decimals);
+        return Math.round(num * factor) / factor;
+    }
+
     var state = Model.createDefaultState();
 
     function showMsg(msg, isSuccess) {
@@ -63,6 +69,7 @@
                 '<div class="seq-num-card-head">',
                 '  <span class="seq-num-idx' + (item.locked ? ' is-locked' : '') + '">#' + seqNum + '</span>',
                 '  <div class="seq-num-actions">',
+                '    <button class="seq-icon-btn" onclick="addSequenceCompositionForNumber(\'' + item.id + '\')" title="为此数添加拆解框">🧩</button>',
                 '    <button class="seq-icon-btn" onclick="toggleSequenceLock(\'' + item.id + '\')" title="' + (item.locked ? '点击解锁' : '点击锁定') + '">',
                 item.locked ? '🔒' : '🔓',
                 '    </button>',
@@ -79,8 +86,35 @@
                 '</div>'
             ].join('');
 
+            // 右键菜单支持
+            card.oncontextmenu = function (e) {
+                e.preventDefault();
+                openContextMenu(e, item.id);
+            };
+
             container.appendChild(card);
         });
+
+        // 序列末尾的便捷加号卡片（当目标需要更多数字时高亮提示）
+        var maxRequired = Math.max(state.targets.t1.end || 0, state.targets.t3.end || 0);
+        var isMissing = state.numbers.length < maxRequired;
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'seq-num-card' + (isMissing ? ' is-missing' : '');
+        addBtn.style.borderStyle = 'dashed';
+        addBtn.style.cursor = 'pointer';
+        addBtn.style.display = 'flex';
+        addBtn.style.flexDirection = 'column';
+        addBtn.style.alignItems = 'center';
+        addBtn.style.justifyContent = 'center';
+        addBtn.style.gap = '4px';
+        addBtn.onclick = function () {
+            w.addSequenceNumber();
+        };
+        addBtn.innerHTML = isMissing
+            ? '<span style="font-size:16px;">⚡</span><b style="font-size:11px;color:#e6a23c;">补全 #' + (state.numbers.length + 1) + '</b><span style="font-size:10px;color:#909399;">需至 #' + maxRequired + '</span>'
+            : '<span style="font-size:18px;">➕</span><span style="font-size:12px;color:#909399;">添加数字</span><span style="font-size:10px;color:#606266;">#' + (state.numbers.length + 1) + '</span>';
+        container.appendChild(addBtn);
     }
 
     // 渲染第三排拆解框
@@ -121,7 +155,9 @@
                 '</div>',
                 '<div class="seq-comp-summary">',
                 '  <div>组成累加和: <strong style="font-family:ui-monospace,monospace;">' + comp.sum + '</strong></div>',
-                '  <div>' + (comp.isBalanced ? '<span style="color:#67c23a;font-weight:bold;">✔ 刚好平衡</span>' : '<span style="color:#e6a23c;">还差: <strong style="color:#f56c6c;font-family:ui-monospace,monospace;font-size:14px;">' + comp.diff + '</strong></span>') + '</div>',
+                '  <div style="display:flex;align-items:center;gap:6px;">' +
+                   (comp.isBalanced ? '<span style="color:#67c23a;font-weight:bold;">✔ 刚好平衡</span>' : '<span style="color:#e6a23c;">还差: <strong style="color:#f56c6c;font-family:ui-monospace,monospace;font-size:14px;">' + comp.diff + '</strong></span><button class="btn btn-ghost btn-sm" type="button" style="padding:1px 6px;min-height:20px;font-size:11px;color:#409eff;" onclick="autoBalanceComp(\'' + comp.id + '\')">⚡ 补齐差额</button>') +
+                '  </div>',
                 '</div>'
             ].join('');
 
@@ -304,7 +340,10 @@
 
     w.updateSequenceValue = function (id, val) {
         var item = state.numbers.find(function (n) { return n.id === id; });
-        if (item) { item.value = Number(val) || 0; renderAll(); }
+        if (item) {
+            item.value = Number(val) || 0;
+            renderAll();
+        }
     };
 
     w.deleteSequenceNumber = function (id) {
@@ -348,6 +387,56 @@
         renderAll();
     };
 
+    // 为指定数字卡片创建拆解组成框（支持右键菜单或按钮触发）
+    w.addSequenceCompositionForNumber = function (targetId) {
+        var target = state.numbers.find(function (n) { return n.id === targetId; });
+        var targetVal = target ? Number(target.value || 0) : 100;
+        var items = suggestCompositionItems(targetVal);
+
+        state.compositions.push({
+            id: 'c_' + Date.now(),
+            targetNumberId: targetId,
+            items: items
+        });
+        renderAll();
+        var targetIdx = target ? state.numbers.indexOf(target) + 1 : '';
+        showMsg('已成功为 #' + targetIdx + ' (目标值: ' + targetVal + ') 添加组成拆解框！', true);
+    };
+
+    // 智能分解建议（优先常用规整档位）
+    function suggestCompositionItems(val) {
+        val = Number(val || 0);
+        if (val <= 0) return [10, 10];
+        var tiers = [648, 328, 198, 98, 68, 30, 19.9, 8, 6];
+        var items = [];
+        var rem = val;
+        for (var i = 0; i < tiers.length; i++) {
+            while (rem >= tiers[i] && items.length < 5) {
+                items.push(tiers[i]);
+                rem = round(rem - tiers[i], 2);
+            }
+        }
+        if (rem > 0 && items.length < 6) {
+            items.push(rem);
+        }
+        return items.length > 0 ? items : [val];
+    }
+
+    // 自动补齐拆解差额
+    w.autoBalanceComp = function (compId) {
+        var comp = state.compositions.find(function (c) { return c.id === compId; });
+        if (!comp) return;
+        var target = state.numbers.find(function (n) { return n.id === comp.targetNumberId; });
+        var targetVal = target ? Number(target.value || 0) : 0;
+        var currentSum = (comp.items || []).reduce(function (s, v) { return s + Number(v || 0); }, 0);
+        var diff = round(targetVal - currentSum, 2);
+        if (diff !== 0) {
+            comp.items.push(diff);
+            renderAll();
+            showMsg('已自动补齐差额 ' + diff + '，当前刚好平衡！', true);
+        }
+    };
+
     w.updateSequenceSupplement = function (idx, val) {
         state.supplements[idx] = Number(val) || 0;
         var calc = Model.calculate(state);
@@ -384,6 +473,19 @@
         showMsg('已重置为默认示例数据', true);
     };
 
+    function ensureNumberCapacity() {
+        var maxRequired = Math.max(state.targets.t1.end || 0, state.targets.t3.end || 0);
+        while (state.numbers.length < maxRequired) {
+            var seq = state.numbers.length + 1;
+            state.numbers.push({
+                id: 'n_' + Date.now() + '_' + seq,
+                value: Number(state.targets.t1.targetAvg || 238),
+                locked: false,
+                label: '目标数' + seq
+            });
+        }
+    }
+
     ['seqT1Start', 'seqT1End', 'seqT1Val', 'seqT3Start', 'seqT3End', 'seqT3Min', 'seqT3Max'].forEach(function (id) {
         var el = byId(id);
         if (el) {
@@ -395,6 +497,7 @@
                 state.targets.t3.end = parseInt(byId('seqT3End').value, 10) || 1;
                 state.targets.t3.minAvg = parseFloat(byId('seqT3Min').value) || 0;
                 state.targets.t3.maxAvg = parseFloat(byId('seqT3Max').value) || 0;
+                ensureNumberCapacity();
                 renderAll();
             });
         }
@@ -405,6 +508,7 @@
     var currentSolutionIdx = 0;
 
     w.triggerSequenceSolve = function () {
+        ensureNumberCapacity();
         var res = Model.solveSolutions(state);
         var panel = byId('seqSolverPanel');
 
@@ -434,7 +538,16 @@
         var sol = currentSolutions[currentSolutionIdx];
         if (sol && sol.numbers) {
             sol.numbers.forEach(function (sn, i) {
-                if (state.numbers[i]) state.numbers[i].value = sn.value;
+                if (!state.numbers[i]) {
+                    state.numbers.push({
+                        id: sn.id || ('n_' + Date.now() + '_' + (i + 1)),
+                        value: sn.value,
+                        locked: sn.locked || false,
+                        label: sn.label || ('目标数' + (i + 1))
+                    });
+                } else {
+                    state.numbers[i].value = sn.value;
+                }
             });
         }
 
@@ -448,6 +561,38 @@
 
     w.prevSolution = function () { applySolution(currentSolutionIdx - 1); };
     w.nextSolution = function () { applySolution(currentSolutionIdx + 1); };
+
+    // 右键上下文菜单事件处理
+    var currentCtxId = null;
+    function openContextMenu(e, numId) {
+        currentCtxId = numId;
+        var menu = byId('seqContextMenu');
+        if (!menu) return;
+        menu.style.display = 'block';
+        var x = e.clientX;
+        var y = e.clientY;
+        if (x + 190 > window.innerWidth) x = window.innerWidth - 190;
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+    }
+
+    document.addEventListener('click', function () {
+        var menu = byId('seqContextMenu');
+        if (menu) menu.style.display = 'none';
+    });
+
+    var ctxAddBtn = byId('seqCtxAddComp');
+    if (ctxAddBtn) {
+        ctxAddBtn.onclick = function () {
+            if (currentCtxId) w.addSequenceCompositionForNumber(currentCtxId);
+        };
+    }
+    var ctxLockBtn = byId('seqCtxToggleLock');
+    if (ctxLockBtn) {
+        ctxLockBtn.onclick = function () {
+            if (currentCtxId) w.toggleSequenceLock(currentCtxId);
+        };
+    }
 
     window.addEventListener('keydown', function (e) {
         if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(document.activeElement.tagName) !== -1) return;
