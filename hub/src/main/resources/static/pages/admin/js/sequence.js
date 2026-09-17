@@ -400,6 +400,68 @@
         }
     });
 
+    // 自动求解与翻页
+    var currentSolutions = [];
+    var currentSolutionIdx = 0;
+
+    w.triggerSequenceSolve = function () {
+        var res = Model.solveSolutions(state);
+        var panel = byId('seqSolverPanel');
+
+        if (!res.solutions || res.solutions.length === 0) {
+            if (panel) panel.style.display = 'none';
+            showMsg('未找到满足所有目标的方案，请放宽目标均值或解锁更多数字', false);
+            return;
+        }
+
+        currentSolutions = res.solutions;
+        currentSolutionIdx = 0;
+
+        if (panel) {
+            panel.style.display = currentSolutions.length > 1 ? 'inline-flex' : 'none';
+        }
+
+        applySolution(0);
+        showMsg(currentSolutions.length > 1 ? ('已计算出 ' + res.total + ' 组达标方案，可点击 ◀ ▶ 切换') : '已自动填入唯一达标解！', true);
+    };
+
+    function applySolution(index) {
+        if (!currentSolutions || currentSolutions.length === 0) return;
+        if (index < 0) index = currentSolutions.length - 1;
+        if (index >= currentSolutions.length) index = 0;
+        currentSolutionIdx = index;
+
+        var sol = currentSolutions[currentSolutionIdx];
+        if (sol && sol.numbers) {
+            sol.numbers.forEach(function (sn, i) {
+                if (state.numbers[i]) state.numbers[i].value = sn.value;
+            });
+        }
+
+        var curEl = byId('seqSolCurrentIdx');
+        var totEl = byId('seqSolTotalCount');
+        if (curEl) curEl.textContent = currentSolutionIdx + 1;
+        if (totEl) totEl.textContent = currentSolutions.length;
+
+        renderAll();
+    }
+
+    w.prevSolution = function () { applySolution(currentSolutionIdx - 1); };
+    w.nextSolution = function () { applySolution(currentSolutionIdx + 1); };
+
+    window.addEventListener('keydown', function (e) {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].indexOf(document.activeElement.tagName) !== -1) return;
+        if (currentSolutions.length > 1) {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                w.prevSolution();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                w.nextSolution();
+            }
+        }
+    });
+
     window.addEventListener('resize', drawConnectionLines);
     var canvasCard = document.querySelector('.seq-canvas-card');
     if (canvasCard) canvasCard.addEventListener('scroll', drawConnectionLines);

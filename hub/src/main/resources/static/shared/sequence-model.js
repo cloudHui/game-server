@@ -171,11 +171,118 @@
         ].join('\n');
     }
 
+    /**
+     * 智能求解器：根据目标与已知数字，反算未锁定空位（通用、极简）
+     * @param {Object} state 当前状态
+     * @param {number} [step=5] 遍历步长
+     * @returns {Object} { solutions: Array, total: Number }
+     */
+    function solveSolutions(state, step) {
+        step = step || 5;
+        var numbers = state.numbers || [];
+        var targets = state.targets || {};
+        var t1 = targets.t1 || { start: 3, end: 5, targetAvg: 238 };
+        var t3 = targets.t3 || { start: 1, end: 6, minAvg: 200, maxAvg: 205 };
+
+        // 识别未锁定的空位序号
+        var vars = [];
+        numbers.forEach(function (n, idx) {
+            if (!n.locked) vars.push(idx);
+        });
+        if (vars.length === 0) return { solutions: [], total: 0 };
+
+        var t1SumTarget = round(Number(t1.targetAvg || 0) * (t1.end - t1.start + 1), 2);
+        var t3MinSum = round(Number(t3.minAvg || 0) * (t3.end - t3.start + 1), 2);
+        var t3MaxSum = round(Number(t3.maxAvg || 0) * (t3.end - t3.start + 1), 2);
+
+        // 划分 t1 内与 t1 外的空位
+        var inT1 = vars.filter(function (i) { return (i + 1) >= t1.start && (i + 1) <= t1.end; });
+        var outT1 = vars.filter(function (i) { return inT1.indexOf(i) === -1; });
+
+        // t1 内固定数字和，推导所需空位和
+        var fixedInT1 = 0;
+        for (var i = t1.start - 1; i < t1.end; i++) {
+            if (inT1.indexOf(i) === -1) fixedInT1 += Number(numbers[i].value || 0);
+        }
+        var t1Need = round(t1SumTarget - fixedInT1, 2);
+
+        // 生成 t1 空位分配
+        var t1Combos = [];
+        if (inT1.length === 1) {
+            var m1 = {}; m1[inT1[0]] = t1Need;
+            t1Combos.push(m1);
+        } else if (inT1.length === 2) {
+            var mid = t1Need / 2;
+            var startVal = Math.max(1, Math.floor((mid - 160) / step) * step);
+            var endVal = Math.min(t1Need - 1, Math.ceil((mid + 160) / step) * step);
+            for (var v = startVal; v <= endVal; v += step) {
+                var v2 = round(t1Need - v, 2);
+                if (v2 > 0) {
+                    var m2 = {}; m2[inT1[0]] = v; m2[inT1[1]] = v2;
+                    t1Combos.push(m2);
+                }
+            }
+        } else if (inT1.length === 0) {
+            t1Combos.push({});
+        }
+
+        // 结合 t1 外空位并用 calculate 统一通关校验
+        var solutions = [];
+        t1Combos.forEach(function (base) {
+            if (outT1.length === 1) {
+                var outIdx = outT1[0];
+                var t3Known = 0;
+                for (var j = t3.start - 1; j < t3.end; j++) {
+                    if (j !== outIdx) {
+                        t3Known += (base[j] !== undefined) ? base[j] : Number(numbers[j].value || 0);
+                    }
+                }
+                var minVal = round(t3MinSum - t3Known, 2);
+                var maxVal = round(t3MaxSum - t3Known, 2);
+                if (outIdx + 1 > t1.end) minVal = Math.max(minVal, Number(t1.targetAvg || 0));
+
+                for (var val = Math.ceil(minVal); val <= maxVal; val++) {
+                    if (val % step === 0 || val === Math.ceil(minVal) || val === Math.floor(maxVal)) {
+                        var candidate = Object.assign({}, base);
+                        candidate[outIdx] = val;
+                        checkAndCollect(candidate);
+                    }
+                }
+            } else {
+                checkAndCollect(base);
+            }
+        });
+
+        function checkAndCollect(assign) {
+            var testState = JSON.parse(JSON.stringify(state));
+            Object.keys(assign).forEach(function (k) {
+                testState.numbers[k].value = assign[k];
+            });
+            var calc = calculate(testState);
+            if (calc.t1.isValid && calc.t3.isValid && calc.t2.isValid) {
+                var diff = inT1.length === 2 ? Math.abs(assign[inT1[0]] - assign[inT1[1]]) : 0;
+                solutions.push({
+                    numbers: testState.numbers,
+                    summary: vars.map(function (idx) { return '#' + (idx + 1) + '=' + assign[idx]; }).join(', '),
+                    diff: diff
+                });
+            }
+        }
+
+        // 按两数更均衡优先排序，返回前 50 组
+        solutions.sort(function (a, b) { return a.diff - b.diff; });
+        return {
+            solutions: solutions.slice(0, 50),
+            total: solutions.length
+        };
+    }
+
     w.SequenceModel = {
         DEFAULT_DATA: DEFAULT_DATA,
         createDefaultState: createDefaultState,
         calculate: calculate,
-        toTextArt: toTextArt
+        toTextArt: toTextArt,
+        solveSolutions: solveSolutions
     };
 
 })(typeof window !== 'undefined' ? window : global);

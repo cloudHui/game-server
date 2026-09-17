@@ -146,9 +146,20 @@
 
         <!-- 【第二排】数字序列展示 -->
         <div class="seq-row-section">
-            <div class="seq-row-label">
-                <span class="seq-dot seq-dot-indigo"></span>
-                <span>第二排：数字序列（可自由修改数值，点击 🔒/🔓 切换锁定状态）</span>
+            <div class="seq-row-label" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="seq-dot seq-dot-indigo"></span>
+                    <span>第二排：数字序列（点击 🔒/🔓 切换锁定）</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <!-- 方案翻页控件（自动显示） -->
+                    <div id="seqSolverPanel" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                        <button class="btn btn-ghost btn-sm" type="button" style="padding:2px 8px;min-height:24px;" onclick="prevSolution()" title="上一方案">◀</button>
+                        <span style="font-weight:bold;color:#409eff;font-family:ui-monospace,monospace;">方案 <span id="seqSolCurrentIdx">1</span>/<span id="seqSolTotalCount">1</span></span>
+                        <button class="btn btn-ghost btn-sm" type="button" style="padding:2px 8px;min-height:24px;" onclick="nextSolution()" title="下一方案">▶</button>
+                    </div>
+                    <button class="btn tool-primary" type="button" style="background:#67c23a;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="triggerSequenceSolve()">⚡ 自动算空位</button>
+                </div>
             </div>
             <div id="seqSequenceContainer" class="seq-sequence-list"></div>
         </div>
