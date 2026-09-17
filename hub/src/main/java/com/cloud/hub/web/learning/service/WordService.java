@@ -1,19 +1,17 @@
 package com.cloud.hub.web.learning.service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-import com.cloud.hub.web.learning.model.WordItem;
-import com.cloud.hub.web.learning.service.JsonFileStore;
-
-import javax.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.learning.model.WordItem;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class WordService {
@@ -29,16 +27,19 @@ public class WordService {
     public synchronized void init() throws Exception {
         if (!store.exists(store.path("content", "words"))) {
             try (InputStream input = getClass().getResourceAsStream("/content/words.json")) {
-                if (input == null) throw new IllegalStateException("缺少字词数据");
-                store.write(store.path("content", "words"), mapper.readValue(input, new TypeReference<List<WordItem>>() {
-                }));
+                if (input == null)
+                    throw new IllegalStateException("缺少字词数据");
+                store.write(store.path("content", "words"),
+                        mapper.readValue(input, new TypeReference<List<WordItem>>() {
+                        }));
             }
         }
     }
 
     public synchronized List<WordItem> list(String stage) throws Exception {
         List<WordItem> words = all();
-        if (stage == null || stage.trim().isEmpty()) return words;
+        if (stage == null || stage.trim().isEmpty())
+            return words;
         return words.stream().filter(word -> stage.equals(word.stage)).collect(Collectors.toList());
     }
 
@@ -51,18 +52,24 @@ public class WordService {
             words.add(item);
         } else {
             int index = -1;
-            for (int i = 0; i < words.size(); i++) if (item.id.equals(words.get(i).id)) index = i;
-            if (index >= 0) words.set(index, item);
-            else words.add(item);
+            for (int i = 0; i < words.size(); i++)
+                if (item.id.equals(words.get(i).id))
+                    index = i;
+            if (index >= 0)
+                words.set(index, item);
+            else
+                words.add(item);
         }
-        if (item.stage == null) item.stage = "幼小衔接";
+        if (item.stage == null)
+            item.stage = "幼小衔接";
         store.write(store.path("content", "words"), words);
         return item;
     }
 
     public synchronized void delete(String id) throws Exception {
         List<WordItem> words = all();
-        if (!words.removeIf(word -> id.equals(word.id))) throw new IllegalArgumentException("找不到汉字");
+        if (!words.removeIf(word -> id.equals(word.id)))
+            throw new IllegalArgumentException("找不到汉字");
         store.write(store.path("content", "words"), words);
     }
 

@@ -1,15 +1,10 @@
 package com.cloud.hub.game;
 
-import com.cloud.hub.game.client.ClientProto;
-import com.cloud.hub.game.client.GameClient;
 import com.cloud.hub.game.config.GameRuntimeConfig;
 import com.cloud.hub.game.db.DatabaseExecutorManager;
 import com.cloud.hub.game.db.ScoreRepository;
 import com.cloud.hub.game.manager.TableManager;
 import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
-import msg.registor.HandleTypeRegister;
-import msg.registor.enums.ServerType;
-import net.service.ServerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ModelProto;
@@ -17,16 +12,9 @@ import threadtutil.thread.ExecutorPool;
 import threadtutil.thread.Task;
 import threadtutil.timer.Runner;
 import threadtutil.timer.Timer;
-import threadtutil.utils.TimeUtils;
 import tools.ServerClientManager;
 import tools.ServerManager;
-import utils.metrics.MetricsCollector;
 import utils.metrics.MetricsHttpServer;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author cloud
@@ -97,10 +85,14 @@ public class Game {
      * 统一释放桌子、定时器和数据库线程池，避免服务重启遗留非守护线程。
      */
     public void shutdown() {
-        if (tableManager != null) tableManager.shutdown();
-        if (threadPoolManager != null) threadPoolManager.shutdown();
-        if (timer != null) timer.stop();
-        if (databaseExecutorManager != null) databaseExecutorManager.shutdown();
+        if (tableManager != null)
+            tableManager.shutdown();
+        if (threadPoolManager != null)
+            threadPoolManager.shutdown();
+        if (timer != null)
+            timer.stop();
+        if (databaseExecutorManager != null)
+            databaseExecutorManager.shutdown();
         tableManager = null;
         threadPoolManager = null;
         timer = null;
@@ -109,8 +101,9 @@ public class Game {
     }
 
     public synchronized void startEmbedded(String scoreDatabasePath, int workers,
-                                            int queueCapacity, int databaseThreads) {
-        if (tableManager != null) return;
+            int queueCapacity, int databaseThreads) {
+        if (tableManager != null)
+            return;
         if (workers <= 0 || queueCapacity <= 0 || databaseThreads <= 0) {
             throw new IllegalArgumentException("Game线程与队列配置必须大于0");
         }
@@ -151,12 +144,12 @@ public class Game {
     /**
      * 注册串行定时器并返回ID（用于后续替换间隔）
      */
-    public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner, T param) {
+    public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner,
+            T param) {
         int id = timer.registerSerialWithId(groupId, delay, interval, count, runner, param);
         logger.debug("注册串行定时器, id: {}, groupId: {}, delay: {}, interval: {}", id, groupId, delay, interval);
         return id;
     }
-
 
     /**
      * 注销定时器

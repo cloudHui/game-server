@@ -1,13 +1,5 @@
 package com.cloud.hub.web.learning.service;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import com.cloud.hub.web.learning.model.DailyUsage;
-import com.cloud.hub.web.learning.model.OnlineState;
-import com.cloud.hub.web.learning.model.Student;
-import com.cloud.hub.web.learning.service.JsonFileStore;
-
-import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,6 +8,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.PreDestroy;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.learning.model.DailyUsage;
+import com.cloud.hub.web.learning.model.OnlineState;
+import com.cloud.hub.web.learning.model.Student;
 
 @Service
 public class UsageService {
@@ -30,7 +31,8 @@ public class UsageService {
     public synchronized void login(Student user, String device, boolean created) throws Exception {
         ensureDay();
         daily.loginCount++;
-        if (created) daily.newUsers++;
+        if (created)
+            daily.newUsers++;
         daily.activeUserIds.add(user.id);
         increment(daily.userLogins, user.id, 1);
         increment(daily.devices, clean(device, "未知设备"), 1);
@@ -74,7 +76,8 @@ public class UsageService {
                 increment(daily.featureSeconds, previous.feature, seconds);
             String nextPage = clean(page, "首页");
             String nextFeature = clean(feature, "");
-            if (!nextPage.equals(previous.page)) increment(daily.pageViews, nextPage, 1);
+            if (!nextPage.equals(previous.page))
+                increment(daily.pageViews, nextPage, 1);
             if (!nextFeature.isEmpty() && !nextFeature.equals(previous.feature))
                 increment(daily.featureStarts, nextFeature, 1);
             previous.page = nextPage;
@@ -144,7 +147,8 @@ public class UsageService {
     private void ensureDay() throws Exception {
         String today = LocalDate.now().toString();
         if (daily == null || !today.equals(daily.date)) {
-            if (daily != null) flush();
+            if (daily != null)
+                flush();
             daily = store.read(store.path("usage", today), DailyUsage.class);
             if (daily == null) {
                 daily = new DailyUsage();
@@ -154,12 +158,14 @@ public class UsageService {
     }
 
     private void flush() throws Exception {
-        if (daily != null) store.write(store.path("usage", daily.date), daily);
+        if (daily != null)
+            store.write(store.path("usage", daily.date), daily);
     }
 
     private void prune() {
         LocalDateTime cutoff = LocalDateTime.now().minusSeconds(30);
-        online.entrySet().removeIf(entry -> entry.getValue().lastSeenAt == null || entry.getValue().lastSeenAt.isBefore(cutoff));
+        online.entrySet()
+                .removeIf(entry -> entry.getValue().lastSeenAt == null || entry.getValue().lastSeenAt.isBefore(cutoff));
     }
 
     private void updatePeak() {
@@ -168,7 +174,8 @@ public class UsageService {
     }
 
     private String clean(String value, String fallback) {
-        return value == null || value.trim().isEmpty() ? fallback : value.trim().substring(0, Math.min(60, value.trim().length()));
+        return value == null || value.trim().isEmpty() ? fallback
+                : value.trim().substring(0, Math.min(60, value.trim().length()));
     }
 
     private <K> void increment(Map<K, Integer> map, K key, int value) {

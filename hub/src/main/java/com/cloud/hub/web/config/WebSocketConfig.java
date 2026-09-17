@@ -1,13 +1,10 @@
 package com.cloud.hub.web.config;
 
-import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
 import com.cloud.hub.web.handler.GameWebSocketHandler;
 import com.cloud.hub.web.handler.MiniGameWebSocketHandler;
 
@@ -22,7 +19,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final MiniGameWebSocketHandler miniGameWebSocketHandler;
 
     public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler,
-                           MiniGameWebSocketHandler miniGameWebSocketHandler) {
+            MiniGameWebSocketHandler miniGameWebSocketHandler) {
         this.gameWebSocketHandler = gameWebSocketHandler;
         this.miniGameWebSocketHandler = miniGameWebSocketHandler;
     }

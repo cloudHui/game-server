@@ -1,19 +1,5 @@
 package com.cloud.hub.web.learning.service;
 
-import com.cloud.hub.storage.DataPathResolver;
-import com.cloud.hub.web.learning.service.poetry.PoetryCatalogReader;
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +12,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +26,18 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.storage.DataPathResolver;
+import com.cloud.hub.web.learning.service.poetry.PoetryCatalogReader;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * 开放学习库：本地 datasets 查询。
@@ -66,8 +63,8 @@ public class LibraryService {
     private volatile List<JsonNode> featuredPoetryCache;
 
     public LibraryService(@Value("${family-learning.dataset-dir}") String dir,
-                          @Value("${family-learning.resource-dir}") String resourceDir,
-                          ObjectMapper mapper, DataPathResolver paths) {
+            @Value("${family-learning.resource-dir}") String resourceDir,
+            ObjectMapper mapper, DataPathResolver paths) {
         this.root = paths.resolve(dir);
         this.resourceRoot = paths.resolve(resourceDir);
         this.mapper = mapper;
@@ -141,19 +138,23 @@ public class LibraryService {
             return result;
         }
         Path cache = root.resolve("textbooks.json");
-        if (!Files.isRegularFile(cache)) refreshTextbooks(cache);
+        if (!Files.isRegularFile(cache))
+            refreshTextbooks(cache);
         String base = normalizePrefix(prefix);
         Set<String> folders = new TreeSet<>();
         List<JsonNode> books = new ArrayList<>();
         for (JsonNode item : mapper.readTree(cache.toFile())) {
             String path = item.path("path").asText();
-            if (!base.isEmpty() && !path.startsWith(base)) continue;
+            if (!base.isEmpty() && !path.startsWith(base))
+                continue;
             String rest = base.isEmpty() ? path : path.substring(base.length());
             int slash = rest.indexOf('/');
-            if (slash >= 0) folders.add(rest.substring(0, slash));
+            if (slash >= 0)
+                folders.add(rest.substring(0, slash));
             else if (!rest.isEmpty()) {
                 books.add(item);
-                if (books.size() >= LIMIT) break;
+                if (books.size() >= LIMIT)
+                    break;
             }
         }
         result.put("mode", "browse");
@@ -171,7 +172,8 @@ public class LibraryService {
             throw new IllegalArgumentException("请输入一个汉字");
         }
         Path file = root.resolve("characters").resolve(Integer.toHexString(value.codePointAt(0)) + ".json");
-        if (!Files.isRegularFile(file)) throw new IllegalArgumentException("字库中没有这个汉字");
+        if (!Files.isRegularFile(file))
+            throw new IllegalArgumentException("字库中没有这个汉字");
         return mapper.readTree(file.toFile());
     }
 
@@ -202,7 +204,8 @@ public class LibraryService {
         if ("common".equals(tagKey)) {
             Set<String> all = new HashSet<>(loadCharacters());
             for (String ch : commonCharacters()) {
-                if (!all.contains(ch)) continue;
+                if (!all.contains(ch))
+                    continue;
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("character", ch);
                 items.add(row);
@@ -244,7 +247,8 @@ public class LibraryService {
         if (letter.isEmpty()) {
             rows = readDictionaryBrowseAll();
         } else {
-            if (letter.length() > 1) letter = letter.substring(0, 1);
+            if (letter.length() > 1)
+                letter = letter.substring(0, 1);
             rows = readDictionaryLetter(letter);
         }
         return pageNodes(toDictRows(rows), tags, page, size);
@@ -262,7 +266,8 @@ public class LibraryService {
      * 古诗词翻页（统一 query + tag）。
      * 空 tag=精选；tag=作者；query 与 tag 可叠加。
      */
-    public Map<String, Object> poetryPage(String query, String dynasty, String tag, int page, int size) throws IOException {
+    public Map<String, Object> poetryPage(String query, String dynasty, String tag, int page, int size)
+            throws IOException {
         String key = clean(query);
         String era = clean(dynasty);
         String author = clean(tag);
@@ -272,8 +277,10 @@ public class LibraryService {
         List<JsonNode> source = key.isEmpty() ? loadFeaturedPoetry() : poetry(key);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (JsonNode node : source) {
-            if (!era.isEmpty() && !era.equals(node.path("dynasty").asText(""))) continue;
-            if (!author.isEmpty() && !node.path("author").asText("").contains(author)) continue;
+            if (!era.isEmpty() && !era.equals(node.path("dynasty").asText("")))
+                continue;
+            if (!author.isEmpty() && !node.path("author").asText("").contains(author))
+                continue;
             rows.add(lightPoetry(node));
         }
         Map<String, Object> result = pageNodes(rows, poetryAuthorTags(source), page, size);
@@ -286,7 +293,8 @@ public class LibraryService {
      */
     public List<JsonNode> poetry(String query) throws IOException {
         String key = clean(query);
-        if (key.isEmpty()) return Collections.emptyList();
+        if (key.isEmpty())
+            return Collections.emptyList();
         Path data = root.resolve("poetry.jsonl");
         Path indexDir = root.resolve("poetry-idx");
         if (Files.isDirectory(indexDir) && Files.isRegularFile(data)) {
@@ -304,13 +312,15 @@ public class LibraryService {
      */
     public List<JsonNode> textbooks(String query) throws IOException {
         Path cache = root.resolve("textbooks.json");
-        if (!Files.isRegularFile(cache)) refreshTextbooks(cache);
+        if (!Files.isRegularFile(cache))
+            refreshTextbooks(cache);
         String key = clean(query).toLowerCase(Locale.ROOT);
         List<JsonNode> result = new ArrayList<>();
         for (JsonNode item : mapper.readTree(cache.toFile())) {
             if (key.isEmpty() || item.path("path").asText().toLowerCase(Locale.ROOT).contains(key)) {
                 result.add(item);
-                if (result.size() >= LIMIT) break;
+                if (result.size() >= LIMIT)
+                    break;
             }
         }
         return result;
@@ -320,7 +330,8 @@ public class LibraryService {
      * 通用 JSONL 检索：精确字段优先，其次字段包含，再次全文包含。
      */
     private List<JsonNode> searchJsonl(Path file, String query, String exactField) throws IOException {
-        if (!Files.isRegularFile(file)) return Collections.emptyList();
+        if (!Files.isRegularFile(file))
+            return Collections.emptyList();
         List<JsonNode> exact = new ArrayList<>(), partial = new ArrayList<>(), fuzzy = new ArrayList<>();
         String key = query.toLowerCase(Locale.ROOT);
         try (Stream<String> lines = Files.lines(file, StandardCharsets.UTF_8)) {
@@ -333,16 +344,20 @@ public class LibraryService {
                     continue;
                 }
                 String text = item.toString().toLowerCase(Locale.ROOT);
-                if (!text.contains(key)) continue;
+                if (!text.contains(key))
+                    continue;
                 String field = exactField == null ? "" : item.path(exactField).asText();
                 if (exactField != null && field.equalsIgnoreCase(query)) {
-                    if (exact.size() < LIMIT) exact.add(item);
+                    if (exact.size() < LIMIT)
+                        exact.add(item);
                 } else if (exactField != null && field.toLowerCase(Locale.ROOT).contains(key)) {
-                    if (partial.size() < LIMIT) partial.add(item);
+                    if (partial.size() < LIMIT)
+                        partial.add(item);
                 } else if (fuzzy.size() < LIMIT) {
                     fuzzy.add(item);
                 }
-                if (exact.size() >= LIMIT) break;
+                if (exact.size() >= LIMIT)
+                    break;
             }
         }
         return merge(exact, partial, fuzzy);
@@ -373,28 +388,35 @@ public class LibraryService {
      * 按标题精确 / 标题作者包含 / 摘要包含 三档收集偏移。
      */
     private void collectPoetryHits(Path index, String query,
-                                   List<long[]> exact, List<long[]> partial, List<long[]> fuzzy) throws IOException {
-        if (!Files.isRegularFile(index)) return;
+            List<long[]> exact, List<long[]> partial, List<long[]> fuzzy) throws IOException {
+        if (!Files.isRegularFile(index))
+            return;
         String key = query.toLowerCase(Locale.ROOT);
         try (BufferedReader reader = Files.newBufferedReader(index, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("\t", 5);
-                if (parts.length < 4) continue;
+                if (parts.length < 4)
+                    continue;
                 String title = parts[2];
                 String author = parts[3];
                 String snippet = parts.length > 4 ? parts[4] : "";
                 String hay = (title + " " + author + " " + snippet).toLowerCase(Locale.ROOT);
-                if (!hay.contains(key)) continue;
-                long[] hit = new long[]{Long.parseLong(parts[0]), Integer.parseInt(parts[1])};
+                if (!hay.contains(key))
+                    continue;
+                long[] hit = new long[] { Long.parseLong(parts[0]), Integer.parseInt(parts[1]) };
                 if (title.equalsIgnoreCase(query)) {
-                    if (exact.size() < LIMIT) exact.add(hit);
-                } else if (title.toLowerCase(Locale.ROOT).contains(key) || author.toLowerCase(Locale.ROOT).contains(key)) {
-                    if (partial.size() < LIMIT) partial.add(hit);
+                    if (exact.size() < LIMIT)
+                        exact.add(hit);
+                } else if (title.toLowerCase(Locale.ROOT).contains(key)
+                        || author.toLowerCase(Locale.ROOT).contains(key)) {
+                    if (partial.size() < LIMIT)
+                        partial.add(hit);
                 } else if (fuzzy.size() < LIMIT) {
                     fuzzy.add(hit);
                 }
-                if (exact.size() >= LIMIT) return;
+                if (exact.size() >= LIMIT)
+                    return;
             }
         }
     }
@@ -420,8 +442,12 @@ public class LibraryService {
      */
     private <T> List<T> merge(List<T> exact, List<T> partial, List<T> fuzzy) {
         List<T> result = new ArrayList<>(exact);
-        for (T item : partial) if (result.size() < LIMIT) result.add(item);
-        for (T item : fuzzy) if (result.size() < LIMIT) result.add(item);
+        for (T item : partial)
+            if (result.size() < LIMIT)
+                result.add(item);
+        for (T item : fuzzy)
+            if (result.size() < LIMIT)
+                result.add(item);
         return result;
     }
 
@@ -434,12 +460,14 @@ public class LibraryService {
         connection.setReadTimeout(30000);
         connection.setRequestProperty("Accept", "application/vnd.github+json");
         connection.setRequestProperty("User-Agent", "family-learning");
-        if (connection.getResponseCode() != 200) throw new IOException("教材目录暂时无法连接");
+        if (connection.getResponseCode() != 200)
+            throw new IOException("教材目录暂时无法连接");
         ArrayNode output = mapper.createArrayNode();
         try (InputStream input = connection.getInputStream()) {
             for (JsonNode item : mapper.readTree(input).path("tree")) {
                 String path = item.path("path").asText();
-                if (!"blob".equals(item.path("type").asText()) || !path.matches("(?i).*\\.pdf(?:\\.\\d+)?$")) continue;
+                if (!"blob".equals(item.path("type").asText()) || !path.matches("(?i).*\\.pdf(?:\\.\\d+)?$"))
+                    continue;
                 ObjectNode row = output.addObject();
                 row.put("path", path);
                 row.put("size", item.path("size").asLong());
@@ -460,7 +488,8 @@ public class LibraryService {
         String[] parts = path.split("/", -1);
         StringBuilder result = new StringBuilder();
         for (String part : parts) {
-            if (result.length() > 0) result.append('/');
+            if (result.length() > 0)
+                result.append('/');
             result.append(URLEncoder.encode(part, "UTF-8").replace("+", "%20"));
         }
         return result.toString();
@@ -470,16 +499,19 @@ public class LibraryService {
      * 去掉首尾空白并限制长度，防止超长查询。
      */
     private String clean(String value) {
-        if (value == null) return "";
+        if (value == null)
+            return "";
         String text = value.trim();
         return text.substring(0, Math.min(text.length(), 80));
     }
 
     private Path englishKidsRoot() {
         Path nested = resourceRoot.resolve("english").resolve("kids");
-        if (Files.isDirectory(nested)) return nested;
+        if (Files.isDirectory(nested))
+            return nested;
         Path legacy = resourceRoot.resolve("english").resolve("english-kids");
-        if (Files.isDirectory(legacy)) return legacy;
+        if (Files.isDirectory(legacy))
+            return legacy;
         return nested;
     }
 
@@ -494,36 +526,45 @@ public class LibraryService {
             JsonNode rootNode = mapper.readTree(cardsFile.toFile());
             for (JsonNode node : rootNode.path("cards")) {
                 String word = node.path("word").asText("");
-                if (word.isEmpty()) continue;
+                if (word.isEmpty())
+                    continue;
                 String stem = node.path("stem").asText(word);
                 stemMap.put(word.toLowerCase(Locale.ROOT), stem);
                 List<String> tags = new ArrayList<>();
-                for (JsonNode t : node.path("tags")) tags.add(t.asText());
+                for (JsonNode t : node.path("tags"))
+                    tags.add(t.asText());
                 tagMap.put(word.toLowerCase(Locale.ROOT), tags);
             }
         }
         Map<String, Map<String, Object>> cards = new TreeMap<>();
-        if (Files.isDirectory(images)) try (Stream<Path> paths = Files.list(images)) {
-            paths.filter(Files::isRegularFile).forEach(path -> {
-                String fileStem = stem(path.getFileName().toString());
-                if (fileStem.isEmpty() || isUiAsset(fileStem)) return;
-                String word = "fish1".equalsIgnoreCase(fileStem) ? "fish" : fileStem;
-                Map<String, Object> card = cards.computeIfAbsent(word.toLowerCase(Locale.ROOT), key -> emptyCard(word));
-                card.put("imagePath", relativizeResource(path));
-            });
-        }
-        if (Files.isDirectory(audios)) try (Stream<Path> paths = Files.list(audios)) {
-            paths.filter(Files::isRegularFile).forEach(path -> {
-                String fileStem = stem(path.getFileName().toString());
-                if (fileStem.isEmpty() || isUiAsset(fileStem)) return;
-                String word = "fish1".equalsIgnoreCase(fileStem) ? "fish" : fileStem;
-                Map<String, Object> card = cards.computeIfAbsent(word.toLowerCase(Locale.ROOT), key -> emptyCard(word));
-                card.put("audioPath", relativizeResource(path));
-            });
-        }
+        if (Files.isDirectory(images))
+            try (Stream<Path> paths = Files.list(images)) {
+                paths.filter(Files::isRegularFile).forEach(path -> {
+                    String fileStem = stem(path.getFileName().toString());
+                    if (fileStem.isEmpty() || isUiAsset(fileStem))
+                        return;
+                    String word = "fish1".equalsIgnoreCase(fileStem) ? "fish" : fileStem;
+                    Map<String, Object> card = cards.computeIfAbsent(word.toLowerCase(Locale.ROOT),
+                            key -> emptyCard(word));
+                    card.put("imagePath", relativizeResource(path));
+                });
+            }
+        if (Files.isDirectory(audios))
+            try (Stream<Path> paths = Files.list(audios)) {
+                paths.filter(Files::isRegularFile).forEach(path -> {
+                    String fileStem = stem(path.getFileName().toString());
+                    if (fileStem.isEmpty() || isUiAsset(fileStem))
+                        return;
+                    String word = "fish1".equalsIgnoreCase(fileStem) ? "fish" : fileStem;
+                    Map<String, Object> card = cards.computeIfAbsent(word.toLowerCase(Locale.ROOT),
+                            key -> emptyCard(word));
+                    card.put("audioPath", relativizeResource(path));
+                });
+            }
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> card : cards.values()) {
-            if (card.get("imagePath") == null && card.get("audioPath") == null) continue;
+            if (card.get("imagePath") == null && card.get("audioPath") == null)
+                continue;
             String word = String.valueOf(card.get("word"));
             List<String> tags = tagMap.getOrDefault(word.toLowerCase(Locale.ROOT), Collections.singletonList("其他"));
             card.put("tags", tags);
@@ -538,9 +579,11 @@ public class LibraryService {
 
     private List<Map<String, Object>> loadVocab() throws IOException {
         List<Map<String, Object>> cached = vocabCache;
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
         synchronized (this) {
-            if (vocabCache != null) return vocabCache;
+            if (vocabCache != null)
+                return vocabCache;
             Path file = root.resolve("english-vocab").resolve("words.jsonl");
             if (!Files.isRegularFile(file)) {
                 vocabCache = Collections.emptyList();
@@ -551,14 +594,16 @@ public class LibraryService {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
-                    if (line.isEmpty()) continue;
+                    if (line.isEmpty())
+                        continue;
                     JsonNode node = mapper.readTree(line);
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("word", node.path("word").asText());
                     item.put("phonetic", node.path("phonetic").asText(""));
                     item.put("translation", node.path("translation").asText(""));
                     List<String> tags = new ArrayList<>();
-                    for (JsonNode t : node.path("tags")) tags.add(t.asText());
+                    for (JsonNode t : node.path("tags"))
+                        tags.add(t.asText());
                     item.put("tags", tags);
                     String audio = node.path("audioPath").asText("");
                     item.put("audioPath", audio.isEmpty() ? null : audio);
@@ -579,12 +624,14 @@ public class LibraryService {
             if (!tagKey.isEmpty()) {
                 @SuppressWarnings("unchecked")
                 List<String> tags = (List<String>) item.getOrDefault("tags", Collections.emptyList());
-                if (tags.stream().noneMatch(t -> tagKey.equals(t))) continue;
+                if (tags.stream().noneMatch(t -> tagKey.equals(t)))
+                    continue;
             }
             if (!key.isEmpty()) {
                 String hay = word.toLowerCase(Locale.ROOT);
                 String translation = String.valueOf(item.getOrDefault("translation", "")).toLowerCase(Locale.ROOT);
-                if (!hay.contains(key) && !translation.contains(key)) continue;
+                if (!hay.contains(key) && !translation.contains(key))
+                    continue;
             }
             filtered.add(item);
         }
@@ -597,7 +644,8 @@ public class LibraryService {
             @SuppressWarnings("unchecked")
             List<String> tags = (List<String>) item.getOrDefault("tags", Collections.emptyList());
             for (String tag : tags) {
-                if (tag.startsWith("字母")) continue; // 字母标签太多，前端用搜索即可
+                if (tag.startsWith("字母"))
+                    continue; // 字母标签太多，前端用搜索即可
                 counts.merge(tag, 1, Integer::sum);
             }
         }
@@ -617,14 +665,16 @@ public class LibraryService {
         return tags;
     }
 
-    private Map<String, Object> pageItems(List<Map<String, Object>> filtered, List<Map<String, Object>> tags, int page, int size) {
+    private Map<String, Object> pageItems(List<Map<String, Object>> filtered, List<Map<String, Object>> tags, int page,
+            int size) {
         return pageNodes(filtered, tags, page, size);
     }
 
     /**
      * 统一翻页响应：items/total/page/size/pageCount/tags。
      */
-    private Map<String, Object> pageNodes(List<Map<String, Object>> filtered, List<Map<String, Object>> tags, int page, int size) {
+    private Map<String, Object> pageNodes(List<Map<String, Object>> filtered, List<Map<String, Object>> tags, int page,
+            int size) {
         int pageSize = Math.max(1, Math.min(size <= 0 ? 24 : size, 60));
         int total = filtered.size();
         int pageCount = Math.max(1, (int) Math.ceil(total / (double) pageSize));
@@ -646,9 +696,11 @@ public class LibraryService {
      */
     private List<String> loadCharacters() throws IOException {
         List<String> cached = characterCache;
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
         synchronized (this) {
-            if (characterCache != null) return characterCache;
+            if (characterCache != null)
+                return characterCache;
             Path dir = root.resolve("characters");
             if (!Files.isDirectory(dir)) {
                 characterCache = Collections.emptyList();
@@ -664,7 +716,8 @@ public class LibraryService {
                             try {
                                 int cp = Integer.parseInt(name.substring(0, name.length() - 5), 16);
                                 list.add(new String(Character.toChars(cp)));
-                            } catch (Exception ignored) { /* 跳过坏文件名 */ }
+                            } catch (Exception ignored) {
+                                /* 跳过坏文件名 */ }
                         });
             }
             characterCache = list;
@@ -710,7 +763,8 @@ public class LibraryService {
                         .filter(name -> name.endsWith(".jsonl") && !name.isEmpty())
                         .forEach(name -> {
                             char c = Character.toLowerCase(name.charAt(0));
-                            if (c >= 'a' && c <= 'z') letters.add(String.valueOf(c));
+                            if (c >= 'a' && c <= 'z')
+                                letters.add(String.valueOf(c));
                         });
             }
         }
@@ -743,13 +797,15 @@ public class LibraryService {
      */
     private List<JsonNode> readDictionaryShards(String letter, int cap) throws IOException {
         Path dir = root.resolve("dictionary");
-        if (!Files.isDirectory(dir)) return Collections.emptyList();
+        if (!Files.isDirectory(dir))
+            return Collections.emptyList();
         List<Path> shards = new ArrayList<>();
         try (Stream<Path> paths = Files.list(dir)) {
             paths.filter(Files::isRegularFile)
                     .filter(path -> {
                         String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
-                        if (!name.endsWith(".jsonl") || name.isEmpty()) return false;
+                        if (!name.endsWith(".jsonl") || name.isEmpty())
+                            return false;
                         return letter.isEmpty() || name.startsWith(letter);
                     })
                     .sorted()
@@ -761,13 +817,15 @@ public class LibraryService {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
-                    if (line.isEmpty()) continue;
+                    if (line.isEmpty())
+                        continue;
                     try {
                         rows.add(mapper.readTree(line));
                     } catch (Exception ignored) {
                         continue;
                     }
-                    if (rows.size() >= cap) return rows;
+                    if (rows.size() >= cap)
+                        return rows;
                 }
             }
         }
@@ -807,9 +865,11 @@ public class LibraryService {
 
     private List<JsonNode> loadFeaturedPoetry() throws IOException {
         List<JsonNode> cached = featuredPoetryCache;
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
         synchronized (this) {
-            if (featuredPoetryCache != null) return featuredPoetryCache;
+            if (featuredPoetryCache != null)
+                return featuredPoetryCache;
             List<JsonNode> list = new ArrayList<>();
             Path local = root.resolve("poetry-featured.jsonl");
             if (Files.isRegularFile(local)) {
@@ -817,24 +877,29 @@ public class LibraryService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
-                        if (line.isEmpty()) continue;
+                        if (line.isEmpty())
+                            continue;
                         try {
                             list.add(mapper.readTree(line));
-                        } catch (Exception ignored) { /* skip */ }
+                        } catch (Exception ignored) {
+                            /* skip */ }
                     }
                 }
             }
             if (list.isEmpty()) {
                 try (InputStream in = LibraryService.class.getResourceAsStream("/library/poetry-featured.jsonl")) {
                     if (in != null) {
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                        try (BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(in, StandardCharsets.UTF_8))) {
                             String line;
                             while ((line = reader.readLine()) != null) {
                                 line = line.trim();
-                                if (line.isEmpty()) continue;
+                                if (line.isEmpty())
+                                    continue;
                                 try {
                                     list.add(mapper.readTree(line));
-                                } catch (Exception ignored) { /* skip */ }
+                                } catch (Exception ignored) {
+                                    /* skip */ }
                             }
                         }
                     }
@@ -849,7 +914,8 @@ public class LibraryService {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (JsonNode node : source) {
             String author = node.path("author").asText("").trim();
-            if (author.isEmpty()) continue;
+            if (author.isEmpty())
+                continue;
             counts.merge(author, 1, Integer::sum);
         }
         List<Map<String, Object>> tags = new ArrayList<>();
@@ -870,7 +936,8 @@ public class LibraryService {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (JsonNode node : source) {
             String dynasty = node.path("dynasty").asText("").trim();
-            if (!dynasty.isEmpty()) counts.merge(dynasty, 1, Integer::sum);
+            if (!dynasty.isEmpty())
+                counts.merge(dynasty, 1, Integer::sum);
         }
         List<Map<String, Object>> tags = new ArrayList<>();
         counts.forEach((name, count) -> {
@@ -899,10 +966,12 @@ public class LibraryService {
     @SuppressWarnings("unchecked")
     private List<JsonNode> castItems(Map<String, Object> page) {
         Object items = page.get("items");
-        if (!(items instanceof List)) return Collections.emptyList();
+        if (!(items instanceof List))
+            return Collections.emptyList();
         List<Map<String, Object>> rows = (List<Map<String, Object>>) items;
         List<JsonNode> nodes = new ArrayList<>();
-        for (Map<String, Object> row : rows) nodes.add(mapper.valueToTree(row));
+        for (Map<String, Object> row : rows)
+            nodes.add(mapper.valueToTree(row));
         return nodes;
     }
 
@@ -932,13 +1001,16 @@ public class LibraryService {
 
     private String normalizePrefix(String prefix) {
         String value = prefix == null ? "" : prefix.trim().replace('\\', '/');
-        while (value.startsWith("/")) value = value.substring(1);
-        if (value.isEmpty()) return "";
+        while (value.startsWith("/"))
+            value = value.substring(1);
+        if (value.isEmpty())
+            return "";
         return value.endsWith("/") ? value : value + "/";
     }
 
     private long countFiles(Path dir, String suffix) throws IOException {
-        if (!Files.isDirectory(dir)) return 0;
+        if (!Files.isDirectory(dir))
+            return 0;
         try (Stream<Path> paths = Files.list(dir)) {
             return paths.filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().endsWith(suffix))

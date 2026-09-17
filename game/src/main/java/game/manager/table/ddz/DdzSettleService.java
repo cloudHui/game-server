@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.ByteString;
 
-import game.manager.table.ddz.DdzTable;
 import game.manager.table.GameResult;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
@@ -29,10 +28,12 @@ public final class DdzSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(DdzSettleService.class);
 
-	private DdzSettleService() {}
+	private DdzSettleService() {
+	}
 
 	/**
 	 * 结束游戏：计算得分、记录回放、发送结算通知
+	 * 
 	 * @param table  桌子
 	 * @param winner 赢家
 	 */
@@ -48,8 +49,10 @@ public final class DdzSettleService {
 		boolean antiSpring = !landlordWin && ctx.getLandlordPlayCount() <= 1;
 
 		int settleFactor = ctx.getCurrentMultiplier();
-		if (spring) settleFactor *= 2;
-		if (antiSpring) settleFactor *= 2;
+		if (spring)
+			settleFactor *= 2;
+		if (antiSpring)
+			settleFactor *= 2;
 
 		int seatNum = table.getTableModel().getSeatNum();
 		int[] scores = calcScores(seatNum, landlordSeat, landlordWin, settleFactor);
@@ -59,7 +62,8 @@ public final class DdzSettleService {
 		ScoreRepository.getInstance().saveRound(table);
 
 		saveReplay(table, winner, settleFactor, winType, scores);
-		sendResultMessage(table, winner, rPlayers(table), landlordUserId, winTeam, ctx, spring, antiSpring, settleFactor, seatNum, scores, winType);
+		sendResultMessage(table, winner, rPlayers(table), landlordUserId, winTeam, ctx, spring, antiSpring,
+				settleFactor, seatNum, scores, winType);
 
 		// 地主胜连庄优先叫；农民胜则地主下家优先叫牌。
 		int nextCall = landlordWin ? landlordSeat : (landlordSeat + 1) % seatNum;
@@ -151,7 +155,8 @@ public final class DdzSettleService {
 		} catch (IOException e) {
 			logger.error("encode NotResult failed table:{}", table.getTableId(), e);
 			GameProto.NotResult.Builder b = GameProto.NotResult.newBuilder().setWinner(winner.getUserId());
-			for (GameProto.RPlayer rp : rPlayers) b.addRPlayers(rp);
+			for (GameProto.RPlayer rp : rPlayers)
+				b.addRPlayers(rp);
 			table.sendTableMessage(b.build(), GMsg.NOT_RESULT);
 		}
 

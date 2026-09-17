@@ -83,6 +83,8 @@
                         <configuration>
                             <outputDirectory>${project.build.directory}/lib</outputDirectory>
                             <includeScope>runtime</includeScope>
+                             <!-- 关键：排除本项目内部模块，避免 IDE 增量构建时因尚未打出 jar 包而报错 (MDEP-187) -->
+                            <excludeGroupIds>com.cloud</excludeGroupIds>
                         </configuration>
                     </execution>
                 </executions>

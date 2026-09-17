@@ -1,16 +1,23 @@
 package com.cloud.hub.web.learning.controller.admin;
 
-import org.springframework.web.bind.annotation.*;
-
-import com.cloud.hub.web.account.AccountService;
-import com.cloud.hub.web.learning.controller.admin.LearningAdminAccess;
-import com.cloud.hub.web.learning.model.Student;
-import com.cloud.hub.web.learning.service.StudentService;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cloud.hub.web.account.AccountService;
+import com.cloud.hub.web.learning.model.Student;
+import com.cloud.hub.web.learning.service.StudentService;
 
 @RestController
 @RequestMapping("/api/learning/admin/users")
@@ -20,21 +27,22 @@ public class LearningUserAdminController {
     private final AccountService accounts;
 
     public LearningUserAdminController(LearningAdminAccess access, StudentService students,
-                                       AccountService accounts) {
+            AccountService accounts) {
         this.access = access;
         this.students = students;
         this.accounts = accounts;
     }
 
     @GetMapping
-    public List<Map<String, Object>> list(@RequestHeader(value = "X-Session-Token", required = false) String token) throws Exception {
+    public List<Map<String, Object>> list(@RequestHeader(value = "X-Session-Token", required = false) String token)
+            throws Exception {
         access.require(token);
         return students.list().stream().map(students::view).collect(Collectors.toList());
     }
 
     @PostMapping
     public Map<String, Object> create(@RequestHeader(value = "X-Session-Token", required = false) String token,
-                                      @RequestBody UserRequest request) throws Exception {
+            @RequestBody UserRequest request) throws Exception {
         access.require(token);
         if (!accounts.createManagedUser(request.username, request.name).isPresent()) {
             throw new IllegalArgumentException("用户名已存在或创建失败");
@@ -45,8 +53,8 @@ public class LearningUserAdminController {
 
     @PutMapping("/{id}")
     public Map<String, Object> update(@RequestHeader(value = "X-Session-Token", required = false) String token,
-                                      @PathVariable String id,
-                                      @RequestBody Student changes) throws Exception {
+            @PathVariable String id,
+            @RequestBody Student changes) throws Exception {
         access.require(token);
         Student updated = students.update(id, changes);
         accounts.setEnabled(updated.username, updated.enabled);
@@ -55,17 +63,18 @@ public class LearningUserAdminController {
 
     @DeleteMapping("/{id}")
     public Map<String, Object> delete(@RequestHeader(value = "X-Session-Token", required = false) String token,
-                                      @PathVariable String id) throws Exception {
+            @PathVariable String id) throws Exception {
         access.require(token);
         Student user = require(id);
-        if (!accounts.deleteUser(user.username)) throw new IllegalArgumentException("不能删除该用户");
+        if (!accounts.deleteUser(user.username))
+            throw new IllegalArgumentException("不能删除该用户");
         students.delete(id);
         return message("用户已删除");
     }
 
     @PostMapping("/{id}/reset-password")
     public Map<String, Object> resetPassword(@RequestHeader(value = "X-Session-Token", required = false) String token,
-                                             @PathVariable String id) throws Exception {
+            @PathVariable String id) throws Exception {
         access.require(token);
         if (!accounts.resetPassword(require(id).username)) {
             throw new IllegalArgumentException("密码重置失败");
@@ -75,7 +84,8 @@ public class LearningUserAdminController {
 
     private Student require(String id) throws Exception {
         Student student = students.get(id);
-        if (student == null) throw new IllegalArgumentException("找不到用户");
+        if (student == null)
+            throw new IllegalArgumentException("找不到用户");
         return student;
     }
 

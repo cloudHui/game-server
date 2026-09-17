@@ -1,15 +1,5 @@
 package com.cloud.hub.web.learning.service;
 
-import java.util.Comparator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import com.cloud.hub.web.learning.model.DailyUsage;
-import com.cloud.hub.web.learning.model.LearningRecord;
-import com.cloud.hub.web.learning.model.Mistake;
-import com.cloud.hub.web.learning.model.Student;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +8,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.learning.model.DailyUsage;
+import com.cloud.hub.web.learning.model.LearningRecord;
+import com.cloud.hub.web.learning.model.Mistake;
+import com.cloud.hub.web.learning.model.Student;
 
 @Service
 public class StatsService {
@@ -29,7 +28,7 @@ public class StatsService {
     private final WordService words;
 
     public StatsService(RecordService records, MistakeService mistakes, StudentService students,
-                        UsageService usage, WordService words) {
+            UsageService usage, WordService words) {
         this.records = records;
         this.mistakes = mistakes;
         this.students = students;
@@ -92,16 +91,19 @@ public class StatsService {
                 if (character != null) {
                     String text = String.valueOf(character);
                     practicedWords.add(text);
-                    if (currentStage.equals(safe(record.stage, "幼小衔接"))) stagePracticedWords.add(text);
+                    if (currentStage.equals(safe(record.stage, "幼小衔接")))
+                        stagePracticedWords.add(text);
                     if (!latestWords.containsKey(text))
                         latestWords.put(text, record.correct >= record.total && record.total > 0);
                 }
             }
         }
         for (Mistake item : allMistakes)
-            if (item.firstWrongAt != null && today.equals(item.firstWrongAt.toLocalDate())) newMistakes++;
+            if (item.firstWrongAt != null && today.equals(item.firstWrongAt.toLocalDate()))
+                newMistakes++;
 
-        if (todaySeconds == 0) todaySeconds = recordedTodaySeconds;
+        if (todaySeconds == 0)
+            todaySeconds = recordedTodaySeconds;
         Map<String, Object> overview = new LinkedHashMap<>();
         overview.put("studySeconds", todaySeconds);
         overview.put("sessions", todaySessions);
@@ -133,7 +135,8 @@ public class StatsService {
         result.put("math", math);
 
         Map<String, Integer> mistakeStatus = new LinkedHashMap<>();
-        for (String status : new String[]{"待复习", "复习中", "基本掌握", "已掌握"}) mistakeStatus.put(status, 0);
+        for (String status : new String[] { "待复习", "复习中", "基本掌握", "已掌握" })
+            mistakeStatus.put(status, 0);
         Map<String, Integer> mistakeSubjects = new LinkedHashMap<>();
         for (Mistake item : allMistakes) {
             mistakeStatus.put(item.status, mistakeStatus.getOrDefault(item.status, 0) + 1);
@@ -205,7 +208,8 @@ public class StatsService {
         return result;
     }
 
-    private List<Map<String, Object>> trends(String userId, Map<LocalDate, long[]> dailyRecords, int days) throws Exception {
+    private List<Map<String, Object>> trends(String userId, Map<LocalDate, long[]> dailyRecords, int days)
+            throws Exception {
         List<Map<String, Object>> result = new ArrayList<>();
         LocalDate today = LocalDate.now();
         for (int offset = days - 1; offset >= 0; offset--) {
@@ -213,7 +217,8 @@ public class StatsService {
             long[] recorded = dailyRecords.getOrDefault(date, new long[3]);
             int total = (int) recorded[0], correct = (int) recorded[1];
             long seconds = usage.day(date).userSeconds.getOrDefault(userId, 0L);
-            if (seconds == 0) seconds = recorded[2];
+            if (seconds == 0)
+                seconds = recorded[2];
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("date", date);
             item.put("seconds", seconds);
@@ -243,13 +248,14 @@ public class StatsService {
                 value[1]++;
             }
         List<Map<String, Object>> result = new ArrayList<>();
-        counts.entrySet().stream().sorted((a, b) -> Integer.compare(b.getValue()[0], a.getValue()[0])).limit(limit).forEach(entry -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("question", entry.getKey());
-            row.put("errors", entry.getValue()[0]);
-            row.put("users", entry.getValue()[1]);
-            result.add(row);
-        });
+        counts.entrySet().stream().sorted((a, b) -> Integer.compare(b.getValue()[0], a.getValue()[0])).limit(limit)
+                .forEach(entry -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("question", entry.getKey());
+                    row.put("errors", entry.getValue()[0]);
+                    row.put("users", entry.getValue()[1]);
+                    result.add(row);
+                });
         return result;
     }
 
@@ -281,14 +287,17 @@ public class StatsService {
 
     private Map<String, ? extends Number> sortMap(Map<String, ? extends Number> source) {
         Map<String, Number> result = new LinkedHashMap<>();
-        source.entrySet().stream().sorted((a, b) -> Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue())).forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        source.entrySet().stream()
+                .sorted((a, b) -> Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue()))
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
         return result;
     }
 
     private int streak(Set<LocalDate> days) {
         int count = 0;
         LocalDate day = LocalDate.now();
-        if (!days.contains(day)) day = day.minusDays(1);
+        if (!days.contains(day))
+            day = day.minusDays(1);
         while (days.contains(day)) {
             count++;
             day = day.minusDays(1);

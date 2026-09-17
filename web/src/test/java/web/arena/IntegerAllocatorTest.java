@@ -1,6 +1,4 @@
-package game.arena;
-
-import web.arena.IntegerAllocator;
+package web.arena;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +45,7 @@ public class IntegerAllocatorTest {
     }
 
     private static void printResult(IntegerAllocator.Result result,
-                                    double totalAverage, Double subAverage) {
+            double totalAverage, Double subAverage) {
         int[] values = result.getValues();
         System.out.println("\n================ 最终数值分配结果 ================");
         for (int i = 0; i < values.length; i++) {

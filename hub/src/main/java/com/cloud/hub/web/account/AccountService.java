@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import utils.other.MD5Utils;
-import com.cloud.hub.web.account.AccountDatabase;
-import com.cloud.hub.web.account.AccountUser;
 
 import javax.annotation.PostConstruct;
 import java.sql.Connection;
@@ -65,7 +63,7 @@ public class AccountService {
     private void upgradeDefaultAdminPassword() {
         String sql = "UPDATE user SET password_hash = ? WHERE username = 'admin' AND password_hash IN (?, ?)";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, MD5Utils.MD5(DEFAULT_ADMIN_PASSWORD));
             ps.setString(2, MD5Utils.MD5(DEFAULT_USER_PASSWORD));
             ps.setString(3, MD5Utils.MD5("admin123"));
@@ -161,7 +159,7 @@ public class AccountService {
     public boolean peekInviteValid(String token) {
         String sql = "SELECT enabled, expires_at, max_uses, used_count FROM invite WHERE token = ?";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
@@ -188,7 +186,7 @@ public class AccountService {
                 + " AND enabled = 1 AND used_count < max_uses"
                 + " AND (expires_at IS NULL OR expires_at = 0 OR expires_at > ?)";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);
             ps.setLong(2, now);
             return ps.executeUpdate() > 0;
@@ -212,9 +210,10 @@ public class AccountService {
     public List<AccountUser> listUsers() {
         List<AccountUser> users = new ArrayList<>();
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT * FROM user ORDER BY id");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) users.add(map(rs));
+                PreparedStatement ps = conn.prepareStatement("SELECT * FROM user ORDER BY id");
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next())
+                users.add(map(rs));
         } catch (SQLException e) {
             logger.error("listUsers 失败", e);
         }
@@ -224,7 +223,8 @@ public class AccountService {
     public Optional<AccountUser> createManagedUser(String username, String nickname) {
         username = username == null ? "" : username.trim();
         nickname = nickname == null || nickname.trim().isEmpty() ? username : nickname.trim();
-        if (username.isEmpty() || findByUsername(username).isPresent()) return Optional.empty();
+        if (username.isEmpty() || findByUsername(username).isPresent())
+            return Optional.empty();
         AccountUser user = new AccountUser();
         user.username = username;
         user.nickname = nickname;
@@ -240,15 +240,17 @@ public class AccountService {
     }
 
     public boolean deleteUser(String username) {
-        if ("admin".equals(username)) return false;
+        if ("admin".equals(username))
+            return false;
         return update("DELETE FROM user WHERE username = ?", username);
     }
 
     public boolean changePassword(long userId, String oldPassword, String newPassword) {
-        if (!validPassword(newPassword)) return false;
+        if (!validPassword(newPassword))
+            return false;
         String sql = "UPDATE user SET password_hash = ? WHERE id = ? AND password_hash = ?";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, MD5Utils.MD5(newPassword));
             ps.setLong(2, userId);
             ps.setString(3, MD5Utils.MD5(oldPassword == null ? "" : oldPassword));
@@ -262,7 +264,7 @@ public class AccountService {
     public boolean resetPassword(String username) {
         String sql = "UPDATE user SET password_hash = ? WHERE username = ?";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, MD5Utils.MD5(DEFAULT_USER_PASSWORD));
             ps.setString(2, username);
             return ps.executeUpdate() > 0;
@@ -278,8 +280,9 @@ public class AccountService {
 
     private boolean update(String sql, Object... values) {
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < values.length; i++) ps.setObject(i + 1, values[i]);
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < values.length; i++)
+                ps.setObject(i + 1, values[i]);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             logger.error("账号更新失败", e);
@@ -289,8 +292,8 @@ public class AccountService {
 
     private long countUsers() {
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(1) FROM user");
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement("SELECT COUNT(1) FROM user");
+                ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getLong(1) : 0;
         } catch (SQLException e) {
             logger.error("countUsers 失败", e);
@@ -302,7 +305,7 @@ public class AccountService {
         String sql = "INSERT INTO user(username, nickname, password_hash, enabled, token, created_at, last_login_at)"
                 + " VALUES(?,?,?,?,?,?,?)";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, user.username);
             ps.setString(2, user.nickname);
             ps.setString(3, user.passwordHash);
@@ -327,7 +330,7 @@ public class AccountService {
     private boolean updateLogin(long userId, String token, long lastLoginAt) {
         String sql = "UPDATE user SET token = ?, last_login_at = ? WHERE id = ?";
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, token);
             ps.setLong(2, lastLoginAt);
             ps.setLong(3, userId);
@@ -340,7 +343,7 @@ public class AccountService {
 
     private Optional<AccountUser> queryOne(String sql, String arg) {
         try (Connection conn = database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, arg);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

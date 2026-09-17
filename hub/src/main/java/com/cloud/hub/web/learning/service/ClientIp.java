@@ -1,13 +1,11 @@
 package com.cloud.hub.web.learning.service;
 
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.regex.Pattern;
+
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * 读取客户端 IP。
@@ -23,7 +21,8 @@ public final class ClientIp {
     public static String current() {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attrs == null) return "-";
+            if (attrs == null)
+                return "-";
             return from(attrs.getRequest());
         } catch (Exception ignored) {
             return "-";
@@ -31,14 +30,16 @@ public final class ClientIp {
     }
 
     public static String from(HttpServletRequest request) {
-        if (request == null) return "-";
+        if (request == null)
+            return "-";
         String remote = normalize(request.getRemoteAddr());
 
         // 仅当直连来自本机反代，或 Spring 已把 remoteAddr 解析成公网 IP 时，才采信转发头
         boolean trustForward = isLoopback(remote) || isPublicIp(remote);
         if (trustForward) {
             String realIp = normalize(header(request, "X-Real-IP"));
-            if (isValidIp(realIp)) return realIp;
+            if (isValidIp(realIp))
+                return realIp;
 
             String forwarded = header(request, "X-Forwarded-For");
             if (forwarded != null) {
@@ -46,7 +47,8 @@ public final class ClientIp {
                 String[] parts = forwarded.split(",");
                 for (int i = parts.length - 1; i >= 0; i--) {
                     String ip = normalize(parts[i]);
-                    if (isValidIp(ip)) return ip;
+                    if (isValidIp(ip))
+                        return ip;
                 }
             }
         }
@@ -54,16 +56,21 @@ public final class ClientIp {
     }
 
     static String normalize(String value) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         String ip = value.trim();
-        if (ip.isEmpty()) return null;
-        if (ip.regionMatches(true, 0, "::ffff:", 0, 7)) ip = ip.substring(7);
+        if (ip.isEmpty())
+            return null;
+        if (ip.regionMatches(true, 0, "::ffff:", 0, 7))
+            ip = ip.substring(7);
         return ip;
     }
 
     static boolean isLoopback(String ip) {
-        if (ip == null || ip.isEmpty()) return false;
-        return "127.0.0.1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip) || "::1".equals(ip) || "localhost".equalsIgnoreCase(ip);
+        if (ip == null || ip.isEmpty())
+            return false;
+        return "127.0.0.1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip) || "::1".equals(ip)
+                || "localhost".equalsIgnoreCase(ip);
     }
 
     static boolean isPublicIp(String ip) {
@@ -71,11 +78,13 @@ public final class ClientIp {
     }
 
     static boolean isValidIp(String ip) {
-        if (ip == null || ip.isEmpty() || "-".equals(ip)) return false;
-        if (IPV4.matcher(ip).matches()) return true;
+        if (ip == null || ip.isEmpty() || "-".equals(ip))
+            return false;
+        if (IPV4.matcher(ip).matches())
+            return true;
         // 宽松接受常见 IPv6（含压缩形式）
-        return ip.indexOf(':') >= 0 && ip.length() <= 45 && ip.chars().allMatch(c ->
-                (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == ':' || c == '.');
+        return ip.indexOf(':') >= 0 && ip.length() <= 45 && ip.chars().allMatch(c -> (c >= '0' && c <= '9')
+                || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == ':' || c == '.');
     }
 
     private static String header(HttpServletRequest request, String name) {

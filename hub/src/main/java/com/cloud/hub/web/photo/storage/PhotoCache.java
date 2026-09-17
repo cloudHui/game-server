@@ -1,12 +1,5 @@
 package com.cloud.hub.web.photo.storage;
 
-import java.nio.file.*;
-import java.util.*;
-
-import org.springframework.stereotype.Component;
-import com.cloud.hub.web.photo.config.PhotoProperties;
-
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -23,6 +16,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.stereotype.Component;
+
+import com.cloud.hub.web.photo.config.PhotoProperties;
 
 @Component
 public class PhotoCache {
@@ -44,13 +43,17 @@ public class PhotoCache {
         try (DirectoryStream<Path> directory = Files.newDirectoryStream(root)) {
             for (Path file : directory) {
                 String name = file.getFileName().toString();
-                if (name.endsWith(".tmp")) Files.deleteIfExists(file);
-                else if (name.matches("[0-9]+\\.[a-z0-9]+")) files.add(file);
-                else Files.deleteIfExists(file);
+                if (name.endsWith(".tmp"))
+                    Files.deleteIfExists(file);
+                else if (name.matches("[0-9]+\\.[a-z0-9]+"))
+                    files.add(file);
+                else
+                    Files.deleteIfExists(file);
             }
         }
         files.sort(Comparator.comparing(this::modified));
-        for (Path file : files) lru.put(idOf(file), file);
+        for (Path file : files)
+            lru.put(idOf(file), file);
         trim();
     }
 
@@ -60,8 +63,10 @@ public class PhotoCache {
             lru.remove(id);
             return null;
         }
-        try { Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis())); }
-        catch (IOException ignored) { }
+        try {
+            Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis()));
+        } catch (IOException ignored) {
+        }
         return file;
     }
 
@@ -76,7 +81,8 @@ public class PhotoCache {
 
     public synchronized Lease acquire(long id) throws IOException {
         Path file = get(id);
-        if (file == null) throw new NoSuchFileException("高清缓存不存在: " + id);
+        if (file == null)
+            throw new NoSuchFileException("高清缓存不存在: " + id);
         leases.put(id, leases.getOrDefault(id, 0) + 1);
         return new Lease(id, file, Files.size(file), this);
     }
@@ -87,7 +93,8 @@ public class PhotoCache {
             return;
         }
         Path file = lru.remove(id);
-        if (file != null) Files.deleteIfExists(file);
+        if (file != null)
+            Files.deleteIfExists(file);
     }
 
     public synchronized int clear() throws IOException {
@@ -95,7 +102,8 @@ public class PhotoCache {
         Iterator<Map.Entry<Long, Path>> iterator = lru.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<Long, Path> entry = iterator.next();
-            if (leases.containsKey(entry.getKey())) continue;
+            if (leases.containsKey(entry.getKey()))
+                continue;
             Files.deleteIfExists(entry.getValue());
             iterator.remove();
             removed++;
@@ -109,13 +117,24 @@ public class PhotoCache {
 
     private synchronized void release(long id) {
         Integer count = leases.get(id);
-        if (count == null) return;
-        if (count <= 1) leases.remove(id); else leases.put(id, count - 1);
+        if (count == null)
+            return;
+        if (count <= 1)
+            leases.remove(id);
+        else
+            leases.put(id, count - 1);
         if (!leases.containsKey(id) && pendingDeletes.remove(id)) {
             Path file = lru.remove(id);
-            if (file != null) try { Files.deleteIfExists(file); } catch (IOException ignored) { }
+            if (file != null)
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException ignored) {
+                }
         }
-        try { trim(); } catch (IOException ignored) { }
+        try {
+            trim();
+        } catch (IOException ignored) {
+        }
     }
 
     private void trim() throws IOException {
@@ -124,19 +143,24 @@ public class PhotoCache {
             Iterator<Map.Entry<Long, Path>> iterator = lru.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<Long, Path> entry = iterator.next();
-                if (leases.containsKey(entry.getKey())) continue;
+                if (leases.containsKey(entry.getKey()))
+                    continue;
                 Files.deleteIfExists(entry.getValue());
                 iterator.remove();
                 removed = true;
                 break;
             }
-            if (!removed) throw new IOException("高清缓存正在使用，请稍后重试");
+            if (!removed)
+                throw new IOException("高清缓存正在使用，请稍后重试");
         }
     }
 
     private FileTime modified(Path path) {
-        try { return Files.getLastModifiedTime(path); }
-        catch (IOException e) { return FileTime.fromMillis(0); }
+        try {
+            return Files.getLastModifiedTime(path);
+        } catch (IOException e) {
+            return FileTime.fromMillis(0);
+        }
     }
 
     private long idOf(Path path) {
@@ -151,14 +175,26 @@ public class PhotoCache {
         private PhotoCache owner;
 
         private Lease(long id, Path path, long size, PhotoCache owner) {
-            this.id = id; this.path = path; this.size = size; this.owner = owner;
+            this.id = id;
+            this.path = path;
+            this.size = size;
+            this.owner = owner;
         }
-        public Path getPath() { return path; }
-        public long getSize() { return size; }
-        @Override public void close() {
+
+        public Path getPath() {
+            return path;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        @Override
+        public void close() {
             PhotoCache current = owner;
             owner = null;
-            if (current != null) current.release(id);
+            if (current != null)
+                current.release(id);
         }
     }
 }

@@ -1,16 +1,13 @@
 package com.cloud.hub.web.handler;
 
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-import msg.registor.HandleTypeRegister;
-import msg.registor.message.GMsg;
-import net.message.TCPMessage;
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,17 +15,18 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import proto.ConstProto;
-import proto.GameProto;
+
 import com.cloud.hub.web.service.GatewayTransport;
 import com.cloud.hub.web.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
 
-import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import msg.registor.HandleTypeRegister;
+import msg.registor.message.GMsg;
+import net.message.TCPMessage;
+import proto.ConstProto;
+import proto.GameProto;
 
 /**
  * 游戏WebSocket处理器
@@ -162,7 +160,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void handleHeartbeat(WebSocketSession wsSession, Map<String, Object> data) {
         String sessionId = getSessionId(wsSession);
         Number tableId = data == null ? null : (Number) data.get("tableId");
-        if (sessionId == null || tableId == null) return;
+        if (sessionId == null || tableId == null)
+            return;
         gateClient.send(sessionId, GMsg.REQ_TABLE_HEARTBEAT,
                 GameProto.ReqTableHeartbeat.newBuilder().setTableId(tableId.longValue()).build());
     }
@@ -208,7 +207,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         return;
                     }
                     Map<String, Object> resultData = new HashMap<>();
-                    resultData.put("players", GameWsPushFormatter.formatPlayers(ack.getPlayersList(), user.getUserId()));
+                    resultData.put("players",
+                            GameWsPushFormatter.formatPlayers(ack.getPlayersList(), user.getUserId()));
                     resultData.put("tableInfo", GameWsPushFormatter.formatTableInfo(ack.getTableInfo()));
                     sendResponse(wsSession, "enterTable", seq, 0, "success", resultData);
                 } else {
@@ -289,14 +289,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         });
     }
 
-
     /**
      * 将协议 Result 转为可读提示，避免一律显示「操作超时」
      */
     private static String resultMsg(int result) {
-        if (result == ConstProto.Result.OP_CURR_ERROR_VALUE) return "当前无法操作";
-        if (result == ConstProto.Result.TABLE_NOT_START_VALUE) return "牌局未开始";
-        if (result == ConstProto.Result.TIME_OUT_VALUE) return "操作超时";
+        if (result == ConstProto.Result.OP_CURR_ERROR_VALUE)
+            return "当前无法操作";
+        if (result == ConstProto.Result.TABLE_NOT_START_VALUE)
+            return "牌局未开始";
+        if (result == ConstProto.Result.TIME_OUT_VALUE)
+            return "操作超时";
         return "操作失败";
     }
 
@@ -374,7 +376,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
             String json = objectMapper.writeValueAsString(response);
             synchronized (session) {
-                if (!session.isOpen()) return;
+                if (!session.isOpen())
+                    return;
                 session.sendMessage(new TextMessage(json));
             }
         } catch (Exception e) {

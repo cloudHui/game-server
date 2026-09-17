@@ -1,26 +1,5 @@
 package com.cloud.hub.web.handler;
 
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
-import com.cloud.hub.web.minigame.ChessBoard;
-import com.cloud.hub.web.minigame.GomokuBoard;
-import com.cloud.hub.web.minigame.MiniRoom;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
-import com.cloud.hub.web.minigame.ChessBoard;
-import com.cloud.hub.web.minigame.GomokuBoard;
-import com.cloud.hub.web.minigame.MiniRoom;
-import com.cloud.hub.web.service.UserService;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +7,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import com.cloud.hub.web.minigame.ChessBoard;
+import com.cloud.hub.web.minigame.GomokuBoard;
+import com.cloud.hub.web.minigame.MiniRoom;
+import com.cloud.hub.web.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 休闲小游戏 WebSocket：五子棋 / 象棋匹配与对战。

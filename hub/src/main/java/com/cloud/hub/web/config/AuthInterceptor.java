@@ -1,18 +1,17 @@
 package com.cloud.hub.web.config;
 
-import org.springframework.web.servlet.HandlerInterceptor;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerInterceptor;
-import com.cloud.hub.web.identity.SessionResolver;
-import com.cloud.hub.web.service.UserService;
-
-import com.cloud.hub.framework.security.LoginUser;
-import com.cloud.hub.framework.security.SecurityUtils;
+import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import com.cloud.hub.framework.security.LoginUser;
+import com.cloud.hub.framework.security.SecurityUtils;
+import com.cloud.hub.web.identity.SessionResolver;
+import com.cloud.hub.web.service.UserService;
 
 /**
  * 保护页面与接口访问，并自动将登录态绑定到当前线程 SecurityUtils（参照 RuoYi 设计）。
@@ -46,8 +45,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                     userInfo.getNickname(),
                     userInfo.getToken(),
                     userInfo.getSessionId(),
-                    userInfo.isAdmin()
-            );
+                    userInfo.isAdmin());
             SecurityUtils.setLoginUser(loginUser);
             return true;
         }
@@ -64,7 +62,8 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
+            Exception ex) {
         SecurityUtils.clear();
     }
 }

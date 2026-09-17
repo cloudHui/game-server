@@ -11,7 +11,6 @@ import com.google.protobuf.ByteString;
 import game.manager.table.GameResult;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
-import game.manager.table.tractor.TractorTable;
 import game.manager.table.cards.Card;
 import game.db.ScoreRepository;
 import game.manager.table.replay.ReplayRecorder;
@@ -27,7 +26,8 @@ public final class TractorSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(TractorSettleService.class);
 
-	private TractorSettleService() {}
+	private TractorSettleService() {
+	}
 
 	static void finishGame(TractorTable table) {
 		TractorTableContext ctx = table.getTractor();
@@ -44,10 +44,10 @@ public final class TractorSettleService {
 			scores[s] = ctx.isBankerTeam(s) ? delta : -delta;
 		}
 		int oldBanker = ctx.getBankerSeat();
-        int winnerSeat = bankerWin ? oldBanker : ctx.getRoundWinnerSeat();
-        if (winnerSeat < 0 || ctx.isBankerTeam(winnerSeat)) {
-            winnerSeat = (oldBanker + 1) % 4;
-        }
+		int winnerSeat = bankerWin ? oldBanker : ctx.getRoundWinnerSeat();
+		if (winnerSeat < 0 || ctx.isBankerTeam(winnerSeat)) {
+			winnerSeat = (oldBanker + 1) % 4;
+		}
 		table.getGameResult().addRound(table.getCurrentRound(), winnerSeat, Math.abs(delta), scores, winType);
 		ScoreRepository.getInstance().saveRound(table);
 		ReplayRecorder replay = table.getReplayRecorder();
@@ -63,16 +63,18 @@ public final class TractorSettleService {
 		if (bankerWin) {
 			ctx.upgradeBankerTeam(upgrade);
 		} else {
-            // 闲家胜利时由实际赢下最后一墩的座位接庄，而不是机械取庄家下家。
-            int newBanker = winnerSeat;
+			// 闲家胜利时由实际赢下最后一墩的座位接庄，而不是机械取庄家下家。
+			int newBanker = winnerSeat;
 			ctx.setBankerSeat(newBanker);
-			if (upgrade > 0) ctx.upgradeSeatTeam(newBanker, upgrade);
+			if (upgrade > 0)
+				ctx.upgradeSeatTeam(newBanker, upgrade);
 		}
 
 		GameProto.NotResult.Builder result = GameProto.NotResult.newBuilder()
 				.setWinner(table.getSeatUser(winnerSeat) != null ? table.getSeatUser(winnerSeat).getUserId() : 0)
 				.setLandlordId(table.getSeatUser(ctx.getBankerSeat()) != null
-						? table.getSeatUser(ctx.getBankerSeat()).getUserId() : 0)
+						? table.getSeatUser(ctx.getBankerSeat()).getUserId()
+						: 0)
 				.setWinTeam(bankerWin ? 0 : 1)
 				.setBaseScore(def)
 				.setRobMultiplier(upgrade)
@@ -84,7 +86,8 @@ public final class TractorSettleService {
 			// 小结算余牌按拖拉机手牌序展示
 			List<Card> remain = new ArrayList<>(u.getCards());
 			TractorRules.sortHand(remain, ctx.getLevelRank(), ctx.getTrumpSuit());
-			for (Card c : remain) rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
+			for (Card c : remain)
+				rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
 			result.addRPlayers(rp.build());
 		}
 		table.sendTableMessage(result.build(), GMsg.NOT_RESULT);

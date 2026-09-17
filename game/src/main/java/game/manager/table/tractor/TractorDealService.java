@@ -4,7 +4,6 @@ import game.manager.table.TableUser;
 import game.manager.table.state.Waiting;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
-import proto.GameProto;
 
 /**
  * 拖拉机发牌：服务端一次发完，客户端本地按间隔播动画；动画期内可抢主。
@@ -56,7 +55,8 @@ public final class TractorDealService {
     }
 
     private static void maybeRobotBid(TractorTable table, long now) {
-        if ((now / 400) % 2 != 0) return;
+        if ((now / 400) % 2 != 0)
+            return;
         for (TableUser u : table.getSeatUsers().values()) {
             if (u != null && u.isRobot() && u.getSeated() >= 0) {
                 TractorBidService.autoBidDuringDeal(table, u.getSeated());

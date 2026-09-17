@@ -1,15 +1,15 @@
 package com.cloud.hub.web.learning.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.stereotype.Service;
-import com.cloud.hub.web.learning.model.Mistake;
-import com.cloud.hub.web.learning.service.JsonFileStore;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.learning.model.Mistake;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 public class MistakeService {
@@ -83,13 +83,20 @@ public class MistakeService {
                 Mistake current = all.get(i);
                 changes.id = current.id;
                 changes.studentId = studentId;
-                if (changes.firstWrongAt == null) changes.firstWrongAt = current.firstWrongAt;
-                if (changes.lastWrongAt == null) changes.lastWrongAt = current.lastWrongAt;
-                if (changes.lastReviewedAt == null) changes.lastReviewedAt = current.lastReviewedAt;
-                if (changes.errorCount <= 0) changes.errorCount = current.errorCount;
-                if (changes.reviewCount <= 0) changes.reviewCount = current.reviewCount;
-                if (changes.consecutiveCorrect <= 0) changes.consecutiveCorrect = current.consecutiveCorrect;
-                if (changes.status == null || changes.status.trim().isEmpty()) changes.status = current.status;
+                if (changes.firstWrongAt == null)
+                    changes.firstWrongAt = current.firstWrongAt;
+                if (changes.lastWrongAt == null)
+                    changes.lastWrongAt = current.lastWrongAt;
+                if (changes.lastReviewedAt == null)
+                    changes.lastReviewedAt = current.lastReviewedAt;
+                if (changes.errorCount <= 0)
+                    changes.errorCount = current.errorCount;
+                if (changes.reviewCount <= 0)
+                    changes.reviewCount = current.reviewCount;
+                if (changes.consecutiveCorrect <= 0)
+                    changes.consecutiveCorrect = current.consecutiveCorrect;
+                if (changes.status == null || changes.status.trim().isEmpty())
+                    changes.status = current.status;
                 all.set(i, changes);
                 store.write(store.path("mistakes", studentId), all);
                 return changes;
@@ -99,12 +106,14 @@ public class MistakeService {
 
     public synchronized void delete(String studentId, String mistakeId) throws Exception {
         List<Mistake> all = all(studentId);
-        if (!all.removeIf(item -> mistakeId.equals(item.id))) throw new IllegalArgumentException("找不到错题");
+        if (!all.removeIf(item -> mistakeId.equals(item.id)))
+            throw new IllegalArgumentException("找不到错题");
         store.write(store.path("mistakes", studentId), all);
     }
 
     private List<Mistake> all(String studentId) throws Exception {
-        if (!StudentService.isValidArchiveId(studentId)) return new ArrayList<>();
+        if (!StudentService.isValidArchiveId(studentId))
+            return new ArrayList<>();
         return store.readList(store.path("mistakes", studentId), new TypeReference<List<Mistake>>() {
         });
     }
@@ -118,7 +127,8 @@ public class MistakeService {
     }
 
     private void validateId(String id) {
-        if (!StudentService.isValidArchiveId(id)) throw new IllegalArgumentException("无效的学习档案");
+        if (!StudentService.isValidArchiveId(id))
+            throw new IllegalArgumentException("无效的学习档案");
     }
 
     private void validate(Mistake mistake) {
@@ -126,6 +136,7 @@ public class MistakeService {
             throw new IllegalArgumentException("错题科目不能为空");
         if (mistake.question == null || mistake.question.trim().isEmpty())
             throw new IllegalArgumentException("错题内容不能为空");
-        if (mistake.correctAnswer == null) mistake.correctAnswer = "";
+        if (mistake.correctAnswer == null)
+            mistake.correctAnswer = "";
     }
 }

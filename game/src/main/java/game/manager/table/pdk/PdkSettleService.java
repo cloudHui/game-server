@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.ByteString;
 
 import game.manager.table.GameResult;
-import game.manager.table.pdk.PdkTable;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
@@ -26,7 +25,8 @@ public final class PdkSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(PdkSettleService.class);
 
-	private PdkSettleService() {}
+	private PdkSettleService() {
+	}
 
 	static void finishGame(PdkTable table, TableUser winner) {
 		PdkTableContext ctx = table.getPdk();
@@ -35,11 +35,13 @@ public final class PdkSettleService {
 		int winSeat = winner.getSeated();
 		int totalGain = 0;
 		for (int s = 0; s < seatNum; s++) {
-			if (s == winSeat) continue;
+			if (s == winSeat)
+				continue;
 			TableUser u = table.getSeatUser(s);
 			int left = u == null ? 0 : u.getCards().size();
 			int lose = left;
-			if (!ctx.hasPlayed(s) && left > 0) lose *= 2;
+			if (!ctx.hasPlayed(s) && left > 0)
+				lose *= 2;
 			scores[s] = -lose;
 			totalGain += lose;
 		}
@@ -76,7 +78,8 @@ public final class PdkSettleService {
 				.setSpring(false)
 				.setAntiSpring(false)
 				.setSettleFactor(totalGain);
-		for (GameProto.RPlayer rp : rPlayers) result.addRPlayers(rp);
+		for (GameProto.RPlayer rp : rPlayers)
+			result.addRPlayers(rp);
 		table.sendTableMessage(result.build(), GMsg.NOT_RESULT);
 
 		if (table.isMultiRound()) {

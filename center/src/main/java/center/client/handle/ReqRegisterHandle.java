@@ -2,7 +2,6 @@ package center.client.handle;
 
 import center.Center;
 import center.client.CenterClient;
-import msg.annotation.ProcessType;
 import msg.registor.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
