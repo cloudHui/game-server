@@ -47,9 +47,9 @@ public class ConnectionRateLimiter {
      * @param deviceId 设备ID
      * @return true=允许 false=拒绝
      */
-    public boolean allow(String deviceId) {
+    public boolean notAllow(String deviceId) {
         if (deviceId == null || deviceId.isEmpty()) {
-            return true;
+            return false;
         }
 
         long now = System.currentTimeMillis();
@@ -64,7 +64,7 @@ public class ConnectionRateLimiter {
         if (timestamps.size() >= MAX_CONNECTIONS) {
             logger.warn("设备连接频率超限, deviceId: {}, 10秒内连接{}次",
                     deviceId, timestamps.size());
-            return false;
+            return true;
         }
 
         timestamps.addLast(now);
@@ -75,7 +75,7 @@ public class ConnectionRateLimiter {
             cleanupExpired();
         }
 
-        return true;
+        return false;
     }
 
     /**

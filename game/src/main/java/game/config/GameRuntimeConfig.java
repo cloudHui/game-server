@@ -31,17 +31,23 @@ public final class GameRuntimeConfig {
     private GameRuntimeConfig() {
     }
 
-    /** 首次加载运行时配置；失败时保留安全默认值。 */
+    /**
+     * 首次加载运行时配置；失败时保留安全默认值。
+     */
     public static void initialize() {
         reload();
     }
 
-    /** 到达当前配置指定的重读时间后重新加载，供轻量定时任务调用。 */
+    /**
+     * 到达当前配置指定的重读时间后重新加载，供轻量定时任务调用。
+     */
     public static void reloadIfDue() {
         if (System.currentTimeMillis() >= nextReloadAt) reload();
     }
 
-    /** 完整读取并校验配置；任何字段非法时整份配置均不生效。 */
+    /**
+     * 完整读取并校验配置；任何字段非法时整份配置均不生效。
+     */
     public static synchronized void reload() {
         File file = new File(System.getProperty("user.dir"), "app.properties");
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -72,7 +78,9 @@ public final class GameRuntimeConfig {
         return current.webOfflineTimeoutSeconds * 1000L;
     }
 
-    /** 不可变配置快照，确保桌线程始终读取同一批次的配置值。 */
+    /**
+     * 不可变配置快照，确保桌线程始终读取同一批次的配置值。
+     */
     private static final class Snapshot {
         private final int reloadSeconds;
         private final int webOfflineTimeoutSeconds;

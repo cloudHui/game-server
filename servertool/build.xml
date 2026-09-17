@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="servertool" basedir=".">
+
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="tool.output.dir" value="../../Common/Tools/Bin/server"/>
+    <property name="desktop.output.dir" value="${user.home}/Desktop/work/tool"/>
+    <property name="message.output.dir" value="../../Common/Tools/Bin/opcode"/>
+    <property name="view.output.dir"
+              value="../../Document/DevelopmentGD&amp;ConfigurationExcel/ConfigurationExcel/xls2gd_zh"/>
+    <property name="jpackage.home" value="D:/download/jdk-17.0.12"/>
+    <property name="jpackage.exe" value="${jpackage.home}/bin/jpackage.exe"/>
+
+    <!-- 类切片：StrategyTool/CodeTool 共用 excel+gdg+map+read+ViewUi；WindowsTools / MCP Excel 另用白名单 -->
+    <property name="pkg.read.util" value="com/gamer/data/read/**/*.class,com/gamer/data/message/Util.class"/>
+    <property name="pkg.gdg.limit" value="com/gamer/data/gdg/**/*.class,com/gamer/data/limit/**/*.class"/>
+    <property name="pkg.excel" value="com/gamer/data/excel/**/*.class"/>
+    <property name="pkg.map" value="com/gamer/data/map/**/*.class"/>
+    <property name="pkg.view.ui" value="com/gamer/data/ui/**/*.class"/>
+    <property name="pkg.process" value="com/gamer/data/process/**/*.class"/>
+    <property name="pkg.log" value="com/gamer/data/log/**/*.class"/>
+    <property name="pkg.task" value="com/gamer/data/task/**/*.class"/>
+    <property name="pkg.excel.file"
+              value="com/gamer/data/excel/framework/BaseCheck*.class,com/gamer/data/excel/shared/**/*.class,com/gamer/data/excel/diff/core/SheetDiffComparator*.class,com/gamer/data/excel/diff/core/ExcelSheetSnapshot*.class,com/gamer/data/excel/diff/core/IdRowDiffEngine*.class,com/gamer/data/excel/diff/core/ExcelSheetLayout*.class,com/gamer/data/excel/diff/util/**/*.class,com/gamer/data/excel/ui/ViewUtils*.class,com/gamer/data/excel/ui/ViewHtmlHighlightUtil*.class,com/gamer/data/excel/ui/PagedListModel*.class,com/gamer/data/excel/ui/PaginationController*.class,com/gamer/data/excel/ui/ViewPaginationConstants*.class"/>
+    <property name="StrategyTool.includes" value="com/gamer/data/StrategyTool.class,${pkg.excel},${pkg.gdg.limit},${pkg.map},${pkg.read.util},${pkg.view.ui},${pkg.process},${pkg.log},${pkg.task}"/>
+    <property name="CodeTool.includes" value="com/gamer/data/CodeTool.class,${pkg.excel},${pkg.gdg.limit},${pkg.map},${pkg.read.util},${pkg.view.ui},${pkg.process},${pkg.log},${pkg.task}"/>
+    <property name="CodeTool.excludes"
+              value="com/gamer/data/excel/diff/**,com/gamer/data/gdg/generate/**,com/gamer/data/gdg/validate/**,com/gamer/data/limit/validate/**,com/gamer/data/gdg/util/GdBatchResult.class,com/gamer/data/gdg/util/GdProcessResult.class"/>
+    <property name="WindowsTools.includes"
+              value="com/gamer/data/file/**/*.class,com/gamer/data/file/copylog.sh,${pkg.gdg.limit},${pkg.read.util},${pkg.excel.file},${pkg.view.ui},${pkg.process},${pkg.log},${pkg.task}"/>
+    <property name="pkg.file.config"
+              value="com/gamer/data/file/config/PathConfig*.class,com/gamer/data/file/config/DbConfig*.class,com/gamer/data/file/config/RedisConfig*.class,com/gamer/data/file/db/ConnectionConfig*.class,com/gamer/data/file/db/BlobParseRule*.class"/>
+    <property name="Mcp.base"
+              value="com/gamer/data/mpcserver/McpServer*.class,com/gamer/data/mpcserver/McpConfig*.class,com/gamer/data/mpcserver/core/**/*,com/gamer/data/mpcserver/log/**/*,${pkg.file.config},${pkg.log},${pkg.process}"/>
+
+    <!-- lib 目录现有 jar 名；commons-* 正好是 POI 那四个 -->
+    <property name="lib.poi" value="poi*.jar,xmlbeans*.jar,commons-*.jar,curvesapi*.jar,SparseBitSet*.jar"/>
+    <property name="lib.jackson" value="jackson-*.jar"/>
+    <property name="lib.poi.jackson" value="${lib.poi},${lib.jackson}"/>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${tool.output.dir}"/>
+        <mkdir dir="${message.output.dir}"/>
+        <mkdir dir="${view.output.dir}"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <delete dir="${classes.dir}"/>
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" source="1.8" target="1.8"
+               encoding="UTF-8" debug="true" includeantruntime="false">
+            <classpath>
+                <fileset dir="${lib.dir}" includes="**/*.jar"/>
+            </classpath>
+        </javac>
+        <copy todir="${classes.dir}" overwrite="true">
+            <fileset dir="${src.dir}" excludes="**/*.java"/>
+        </copy>
+    </target>
+
+    <!-- 任意产物：先生成 tmp，再 copy 原地覆盖；失败必须中止，禁止保留旧 jar 却报告成功。 -->
+    <macrodef name="replace-jar">
+        <attribute name="name"/>
+        <attribute name="dir"/>
+        <sequential>
+            <copy file="@{dir}/@{name}.jar.tmp" tofile="@{dir}/@{name}.jar"
+                  overwrite="true" preservelastmodified="false" failonerror="true"/>
+            <delete file="@{dir}/@{name}.jar.tmp" failonerror="true"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="pkg">
+        <attribute name="name"/>
+        <attribute name="main"/>
+        <attribute name="out"/>
+        <attribute name="includes"/>
+        <attribute name="excludes" default=""/>
+        <attribute name="libs"/>
+        <sequential>
+            <echo message="[INFO] @{name} -> @{out}/@{name}.jar"/>
+            <mkdir dir="@{out}"/>
+            <delete file="@{out}/@{name}.jar.tmp" failonerror="false"/>
+            <jar destfile="@{out}/@{name}.jar.tmp" duplicate="preserve">
+                <manifest>
+                    <attribute name="Main-Class" value="@{main}"/>
+                </manifest>
+                <fileset dir="${classes.dir}" includes="@{includes}" excludes="@{excludes}"/>
+                <zipgroupfileset dir="${lib.dir}" includes="@{libs}">
+                    <patternset>
+                        <exclude name="META-INF/*.SF"/>
+                        <exclude name="META-INF/*.DSA"/>
+                        <exclude name="META-INF/*.RSA"/>
+                        <exclude name="META-INF/*.MF"/>
+                        <exclude name="module-info.class"/>
+                        <exclude name="META-INF/versions/**/module-info.class"/>
+                    </patternset>
+                </zipgroupfileset>
+            </jar>
+            <replace-jar name="@{name}" dir="@{out}"/>
+        </sequential>
+    </macrodef>
+
+    <target name="p-CodeTool" depends="compile">
+        <pkg name="CodeTool" main="com.gamer.data.CodeTool" out="${tool.output.dir}"
+             includes="${CodeTool.includes}" excludes="${CodeTool.excludes}" libs="${lib.poi.jackson}"/>
+    </target>
+
+    <target name="p-StrategyTool" depends="compile">
+        <pkg name="StrategyTool" main="com.gamer.data.StrategyTool" out="${view.output.dir}"
+             includes="${StrategyTool.includes}" excludes="com/gamer/data/excel/modelgen/**" libs="${lib.poi.jackson}"/>
+    </target>
+
+    <target name="p-WindowsTools" depends="compile">
+        <pkg name="WindowsTools" main="com.gamer.data.file.WindowsTools" out="${desktop.output.dir}"
+             includes="${WindowsTools.includes}" libs="${lib.poi}"/>
+    </target>
+
+    <target name="p-NetOpcode" depends="compile">
+        <pkg name="NetOpcode" main="com.gamer.data.message.NetOpcodeMaker" out="${message.output.dir}"
+             includes="com/gamer/data/message/**/*" libs="dom4j*.jar,xmlbeans*.jar"/>
+    </target>
+
+    <target name="p-McpServer" depends="compile">
+        <pkg name="McpServer" main="com.gamer.data.mpcserver.McpServerMain" out="${tool.output.dir}"
+             includes="${Mcp.base},com/gamer/data/mpcserver/commands/**/*,com/gamer/data/excel/shared/ExcelExtensions*.class,com/gamer/data/gdg/excel/XlsxStyles*.class"
+             libs="${lib.poi.jackson},mysql-connector*.jar"/>
+
+        <copy todir="${tool.output.dir}" overwrite="true">
+            <fileset dir="." includes="McpServer.bat,McpServer.md"/>
+        </copy>
+        <!-- 配置单独维护，打包不得覆盖已有账号密码。 -->
+        <copy todir="${tool.output.dir}">
+            <fileset dir="." includes="McpDatabaseConfig.json">
+                <present targetdir="${tool.output.dir}" present="srconly"/>
+            </fileset>
+        </copy>
+
+        <delete failonerror="false">
+            <fileset dir="${tool.output.dir}"
+                includes="McpDbServer.jar,McpExcelServer.jar,McpFsServer.jar,McpGitServer.jar,McpRedisServer.jar"/>
+        </delete>
+    </target>
+
+    <!-- JDK17 jpackage；BaseCheck 需要 user.dir=xls2gd_zh -->
+    <target name="p-StrategyTool-exe" depends="p-StrategyTool">
+        <available file="${jpackage.exe}" property="jpackage.found"/>
+        <fail unless="jpackage.found" message="未找到 ${jpackage.exe}，用 -Djpackage.home= 指定 JDK17。"/>
+        <available file="${view.output.dir}/StrategyTool.jar" property="strategytool.jar.found"/>
+        <fail unless="strategytool.jar.found" message="请先 p-StrategyTool。"/>
+        <pathconvert property="view.output.dir.abs" targetos="windows">
+            <path location="${view.output.dir}"/>
+        </pathconvert>
+        <delete dir="${build.dir}/jpackage-input-StrategyTool" failonerror="false"/>
+        <mkdir dir="${build.dir}/jpackage-input-StrategyTool"/>
+        <copy file="${view.output.dir}/StrategyTool.jar" todir="${build.dir}/jpackage-input-StrategyTool" overwrite="true"/>
+        <delete dir="${view.output.dir}/StrategyTool" failonerror="false"/>
+        <exec executable="${jpackage.exe}" failonerror="true">
+            <arg line="--type app-image --name StrategyTool --main-jar StrategyTool.jar --main-class com.gamer.data.StrategyTool"/>
+            <arg value="--input"/>
+            <arg file="${build.dir}/jpackage-input-StrategyTool"/>
+            <arg value="--dest"/>
+            <arg file="${view.output.dir}"/>
+            <arg value="--java-options"/>
+            <arg value="-Duser.dir=${view.output.dir.abs}"/>
+        </exec>
+    </target>
+
+</project>

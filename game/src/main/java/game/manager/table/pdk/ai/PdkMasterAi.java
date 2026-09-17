@@ -53,7 +53,7 @@ public final class PdkMasterAi {
 		double bestScore = Double.POSITIVE_INFINITY;
 		int phase = PdkSimpleAi.phaseOf(hand.size());
 		for (DdzHand candidate : candidates) {
-			if (!budget.tryVisit()) break;
+			if (budget.tryNotVisit()) break;
 			double score = scorePlay(hand, candidate, phase, minOpp, budget);
 			if (score < bestScore) {
 				bestScore = score;
@@ -72,7 +72,7 @@ public final class PdkMasterAi {
 		DdzHand best = beats.get(0);
 		double bestScore = Double.POSITIVE_INFINITY;
 		for (DdzHand beat : beats) {
-			if (!budget.tryVisit()) break;
+			if (budget.tryNotVisit()) break;
 			double score = scorePlay(hand, beat, phase, minOpp, budget);
 			score += beatCost(beat, minOpp);
 			if (score < bestScore) {
@@ -95,7 +95,7 @@ public final class PdkMasterAi {
 			score += PdkAiConstants.FINISH_NEXT_BONUS;
 		}
 		for (CardGroup group : plan) {
-			if (!budget.tryVisit()) break;
+			if (budget.tryNotVisit()) break;
 			Optional<DdzHand> analyzed = PdkRules.analyze(group.getCards());
 			if (analyzed.isPresent()) {
 				score += preserveHint(analyzed.get()) * 0.15;
@@ -179,7 +179,7 @@ public final class PdkMasterAi {
 			List<Card> hand, List<DdzHand> result, Set<Long> seen, AiSearchBudget budget) {
 		int n = hand.size();
 		int combinations = 1 << n;
-		for (int mask = 1; mask < combinations && !budget.isExhausted(); mask++) {
+		for (int mask = 1; mask < combinations && budget.isNotExhausted(); mask++) {
 			List<Card> subset = new ArrayList<>();
 			for (int i = 0; i < n; i++) {
 				if ((mask & (1 << i)) != 0) subset.add(hand.get(i));

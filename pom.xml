@@ -19,6 +19,7 @@
         <module>web</module>
         <module>manager</module>
         <module>hub</module>
+        <module>servertool</module>
     </modules>
 
     <build>

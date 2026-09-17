@@ -20,7 +20,7 @@ final class DdzMasterAi {
         DdzHand best = null;
         double bestScore = Double.POSITIVE_INFINITY;
         for (DdzHand candidate : candidates) {
-            if (!budget.tryVisit()) break;
+            if (budget.tryNotVisit()) break;
             double score = scoreResidual(hand, candidate, phase, budget);
             if (score < bestScore) {
                 bestScore = score;
@@ -35,7 +35,7 @@ final class DdzMasterAi {
         DdzHand best = DdzSimpleAi.pickCheapestBeat(beats, minOppCards);
         double bestScore = Double.POSITIVE_INFINITY;
         for (DdzHand beat : beats) {
-            if (!budget.tryVisit()) break;
+            if (budget.tryNotVisit()) break;
             double score = scoreResidual(hand, beat, DdzSimpleAi.phaseOf(hand.size()), budget);
             if (beat.isBomb()) score += minOppCards <= 2 ? 20 : 180;
             if (beat.isRocket()) score += minOppCards <= 2 ? 30 : 260;
@@ -55,7 +55,7 @@ final class DdzMasterAi {
         List<CardGroup> plan = DdzSplitPlanner.planBest(remaining);
         score += plan.size() * 120;
         for (CardGroup group : plan) {
-            if (!budget.tryVisit()) break;
+            if (budget.tryNotVisit()) break;
             Optional<DdzHand> analyzed = DdzRules.analyze(group.getCards());
             if (analyzed.isPresent()) score += DdzSimpleAi.preserveHint(analyzed.get()) * 0.2;
         }
@@ -78,7 +78,7 @@ final class DdzMasterAi {
     private static void addSubsets(List<Card> hand, List<DdzHand> result,
                                    Set<Long> seen, AiSearchBudget budget) {
         int combinations = 1 << hand.size();
-        for (int mask = 1; mask < combinations && !budget.isExhausted(); mask++) {
+        for (int mask = 1; mask < combinations && budget.isNotExhausted(); mask++) {
             DdzHand candidate = analyzeSubset(hand, mask);
             if (candidate != null && seen.add(DdzLegalBeatFinder.hashHand(candidate))) result.add(candidate);
         }

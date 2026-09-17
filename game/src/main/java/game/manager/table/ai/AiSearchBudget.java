@@ -17,16 +17,16 @@ public final class AiSearchBudget {
     /**
      * 尝试占用一个搜索节点；预算耗尽时返回 false。
      */
-    public boolean tryVisit() {
+    public boolean tryNotVisit() {
         if (nodes >= maxNodes || System.nanoTime() >= deadlineNanos) {
-            return false;
+            return true;
         }
         nodes++;
-        return true;
+        return false;
     }
 
-    public boolean isExhausted() {
-        return nodes >= maxNodes || System.nanoTime() >= deadlineNanos;
+    public boolean isNotExhausted() {
+        return nodes < maxNodes && System.nanoTime() < deadlineNanos;
     }
 
     public int getVisitedNodes() {

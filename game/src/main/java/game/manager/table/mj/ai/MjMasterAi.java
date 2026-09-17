@@ -23,7 +23,7 @@ final class MjMasterAi {
         for (Card discard : hand) {
             int tileId = discard.getId();
             if (seen.put(tileId, tileId) != null || tileId == vision.getLaiZiTileId()) continue;
-            if (!budget.tryVisit()) break;
+            if (budget.tryNotVisit()) break;
             counts[tileId]--;
             double score = expectedDrawScore(counts, vision, budget);
             counts[tileId]++;
@@ -41,7 +41,7 @@ final class MjMasterAi {
         for (int tileId : MjSimpleAi.allTileTypes()) {
             int remaining = vision.getPublicRemainingCount(tileId);
             if (remaining <= 0) continue;
-            if (!budget.tryVisit()) break;
+            if (budget.tryNotVisit()) break;
             counts[tileId]++;
             int shanten = MjSimpleAi.calcShanten(counts);
             int efficiency = MjSimpleAi.countEffectiveDraws(counts, vision.getLaiZiTileId());

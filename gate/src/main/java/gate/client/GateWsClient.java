@@ -59,7 +59,7 @@ public class GateWsClient extends WsClientHandler {
                             LobbyProto.ReqUserRegister reg = LobbyProto.ReqUserRegister.parseFrom(data);
                             key = reg.getUsername().toStringUtf8();
                         }
-                        if (!key.isEmpty() && !rateLimiter.allow(key)) {
+                        if (!key.isEmpty() && rateLimiter.notAllow(key)) {
                             logger.warn("连接频率超限，静默拒绝, key: {}", key);
                             if (connectHandler instanceof WsClientHandler) {
                                 ((WsClientHandler) connectHandler).closeChannel();

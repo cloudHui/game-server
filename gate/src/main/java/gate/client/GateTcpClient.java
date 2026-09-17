@@ -62,7 +62,7 @@ public class GateTcpClient extends ClientHandler {
                             LobbyProto.ReqUserRegister reg = LobbyProto.ReqUserRegister.parseFrom(data);
                             key = reg.getUsername().toStringUtf8();
                         }
-                        if (!key.isEmpty() && !rateLimiter.allow(key)) {
+                        if (!key.isEmpty() && rateLimiter.notAllow(key)) {
                             logger.warn("连接频率超限，静默拒绝, key: {}", key);
                             if (connectHandler instanceof ClientHandler) {
                                 ((ClientHandler) connectHandler).closeChannel();
