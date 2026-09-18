@@ -118,7 +118,7 @@
     transform: translateX(-50%);
 }
 
-/* 左家与右家：紧贴两侧居中 */
+/* 左家与右家：紧贴两侧居中（麻将模式保持默认垂直） */
 .replay-seat.player-left {
     left: 8px;
     top: 46%;
@@ -129,6 +129,29 @@
     right: 8px;
     top: 46%;
     transform: translateY(-50%);
+}
+
+/* 扑克模式专属：左右两家移至上方两翼，避免横向展开时在中间撞车并压迫底家手牌 */
+.replay-table:not(.replay-mahjong) .player-left {
+    left: 12px;
+    top: 42px;
+    transform: none;
+    text-align: left;
+}
+
+.replay-table:not(.replay-mahjong) .player-right {
+    right: 12px;
+    top: 42px;
+    transform: none;
+    text-align: right;
+}
+
+.replay-table:not(.replay-mahjong) .player-left .replay-hand-row {
+    justify-content: flex-start;
+}
+
+.replay-table:not(.replay-mahjong) .player-right .replay-hand-row {
+    justify-content: flex-end;
 }
 
 /* 玩家头像信息胶囊 */
@@ -205,7 +228,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   手牌排版（底家大牌面，旁家紧凑层叠）
+   手牌排版（紧凑覆盖式：隐藏居中大字，突出左上角清晰角标）
    -------------------------------------------------------------------------- */
 .replay-hand-row {
     display: flex;
@@ -218,18 +241,25 @@
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    min-height: 54px;
+    min-height: 46px;
 }
 
-/* 扑克主视角手牌（底家）：52×72px，适度负 margin 压叠，保证点数可见 */
+/* 扑克手牌重叠核心规则：隐藏居中大字与右下角标，避免重叠切断后出现字影重叠与视觉杂乱 */
+.replay-table:not(.replay-mahjong) .replay-hand .card-art,
+.replay-table:not(.replay-mahjong) .replay-hand .card-corner-br {
+    display: none;
+}
+
+/* 扑克主视角手牌（底家）：48×66px，每张露 18px，突出清晰左上角标 */
 .replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card {
     position: relative;
-    width: 52px;
-    height: 72px;
-    margin-left: -32px;
+    width: 48px;
+    height: 66px;
+    margin-left: -30px;
     border-radius: 5px;
     background: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    box-shadow: -1px 0 2px rgba(0, 0, 0, 0.2), 0 2px 5px rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
 }
 
@@ -242,17 +272,30 @@
     height: 100%!important;
 }
 
-/* 扑克旁家（上帝明牌视角）：缩至 36×50px，更紧凑压叠，防止遮挡出牌区 */
+/* 底家角标：点数 15px 加粗、花色 13px，露出一角即清晰辨识 */
+.replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card-corner-tl {
+    top: 3px;
+    left: 4px;
+    font-size: 15px;
+}
+
+.replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card-corner-tl .suit {
+    font-size: 13px;
+    margin-top: 1px;
+}
+
+/* 扑克旁家（上帝明牌视角）：缩至 30×42px，每张露 11px，轻巧不挡道 */
 .replay-table:not(.replay-mahjong) .player-top .replay-hand .card,
 .replay-table:not(.replay-mahjong) .player-left .replay-hand .card,
 .replay-table:not(.replay-mahjong) .player-right .replay-hand .card {
     position: relative;
-    width: 36px;
-    height: 50px;
-    margin-left: -24px;
-    border-radius: 4px;
+    width: 30px;
+    height: 42px;
+    margin-left: -19px;
+    border-radius: 3px;
     background: #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    box-shadow: -1px 0 2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
 }
 
@@ -267,6 +310,18 @@
 .replay-table:not(.replay-mahjong) .player-right .replay-hand .card .card-face {
     width: 100%!important;
     height: 100%!important;
+}
+
+/* 旁家角标尺寸适配 */
+.replay-table:not(.replay-mahjong) :is(.player-top, .player-left, .player-right) .replay-hand .card-corner-tl {
+    top: 2px;
+    left: 3px;
+    font-size: 11px;
+}
+
+.replay-table:not(.replay-mahjong) :is(.player-top, .player-left, .player-right) .replay-hand .card-corner-tl .suit {
+    font-size: 9px;
+    margin-top: 0;
 }
 
 /* 麻将手牌排版：底家大单排，最新摸到的牌单独隔开 12px */
@@ -331,31 +386,31 @@
     pointer-events: none;
 }
 
-/* 底家门前出牌区：位于手牌上方 */
+/* 底家门前出牌区：位于手牌上方偏中，手牌紧凑下沉后出牌区随之自然下移 */
 .played-cards.played-bottom {
-    bottom: 125px;
+    bottom: 96px;
     left: 50%;
     transform: translateX(-50%);
 }
 
 /* 顶家门前出牌区：位于对家下方 */
 .played-cards.played-top {
-    top: 120px;
+    top: 105px;
     left: 50%;
     transform: translateX(-50%);
 }
 
-/* 左家门前出牌区：位于左家右手侧偏中 */
+/* 左家门前出牌区：位于左家下方偏内侧 */
 .played-cards.played-left {
     left: 18%;
-    top: 46%;
+    top: 44%;
     transform: translateY(-50%);
 }
 
-/* 右家门前出牌区：位于右家左手侧偏中 */
+/* 右家门前出牌区：位于右家下方偏内侧 */
 .played-cards.played-right {
     right: 18%;
-    top: 46%;
+    top: 44%;
     transform: translateY(-50%);
 }
 
@@ -498,7 +553,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   小屏与移动端响应式微调
+   小屏与移动端响应式微调（手机横屏/低高度自适应）
    -------------------------------------------------------------------------- */
 @media (max-width: 720px), (max-height: 520px) {
     .replay-table {
@@ -513,23 +568,47 @@
         font-size: 11px;
     }
     .replay-seat.player-top {
-        top: 36px;
+        top: 34px;
     }
+    /* 扑克模式：左右家在小屏下进一步上移贴顶，空出核心区域 */
+    .replay-table:not(.replay-mahjong) .player-left,
+    .replay-table:not(.replay-mahjong) .player-right {
+        top: 30px;
+    }
+    /* 门前出牌区下移居中，紧贴各家门前 */
     .played-cards.played-bottom {
-        bottom: 95px;
+        bottom: 82px;
     }
     .played-cards.played-top {
-        top: 90px;
+        top: 76px;
     }
     .played-cards .card {
         width: 36px;
         height: 50px;
         margin-left: -22px;
     }
+    /* 底家手牌尺寸与角标适配 */
     .replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card {
-        width: 42px;
-        height: 58px;
-        margin-left: -26px;
+        width: 40px;
+        height: 56px;
+        margin-left: -25px;
+    }
+    .replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card-corner-tl {
+        top: 2px;
+        left: 3px;
+        font-size: 13px;
+    }
+    .replay-table:not(.replay-mahjong) .player-bottom .replay-hand .card-corner-tl .suit {
+        font-size: 11px;
+    }
+    /* 旁家手牌小屏缩减 */
+    .replay-table:not(.replay-mahjong) :is(.player-top, .player-left, .player-right) .replay-hand .card {
+        width: 26px;
+        height: 36px;
+        margin-left: -16px;
+    }
+    .replay-table:not(.replay-mahjong) :is(.player-top, .player-left, .player-right) .replay-hand .card-corner-tl {
+        font-size: 10px;
     }
     .replay-action-toast {
         bottom: 68px;
