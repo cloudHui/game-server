@@ -34,6 +34,9 @@ public class ReplayService {
         this.replayDir = replayDir;
     }
 
+    /**
+     * 列出所有回放
+     */
     public List<Map<String, Object>> listReplays(int limit) {
         Path root = resolveRoot();
         List<Map<String, Object>> items = new ArrayList<>();
@@ -65,10 +68,16 @@ public class ReplayService {
         return items;
     }
 
+    /**
+     * 分页查询回放
+     */
     public Map<String, Object> page(int page, int pageSize) {
         return page(page, pageSize, "", "");
     }
 
+    /**
+     * 分页查询回放
+     */
     public Map<String, Object> page(int page, int pageSize, String category, String gameType) {
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
         List<Map<String, Object>> all = listReplays(100000);
@@ -76,7 +85,7 @@ public class ReplayService {
         String safeGameType = gameType == null ? "" : gameType.trim();
         if (!safeCategory.isEmpty() || !safeGameType.isEmpty()) {
             all = all.stream().filter(item -> (safeCategory.isEmpty()
-                            || safeCategory.equals(String.valueOf(item.get("category"))))
+                    || safeCategory.equals(String.valueOf(item.get("category"))))
                     && (safeGameType.isEmpty()
                             || safeGameType.equals(String.valueOf(item.get("gameType")))))
                     .collect(Collectors.toList());
@@ -97,10 +106,14 @@ public class ReplayService {
         return result;
     }
 
+    /**
+     * 分页查询玩家回放
+     */
     public Map<String, Object> pageForUser(int userId, int page, int pageSize) {
         List<Map<String, Object>> visible = new ArrayList<>();
         try {
-            for (ReplayRetention.FileRef file : ReplayRetention.visibleForUser(ReplayRetention.scan(resolveRoot()), userId)) {
+            for (ReplayRetention.FileRef file : ReplayRetention.visibleForUser(ReplayRetention.scan(resolveRoot()),
+                    userId)) {
                 visible.add(summarize(file.path.getParent().getFileName().toString(), file.path));
             }
         } catch (IOException e) {
@@ -121,6 +134,9 @@ public class ReplayService {
         return result;
     }
 
+    /**
+     * 获取玩家回放
+     */
     public Map<String, Object> getReplayForUser(int userId, String date, String name) {
         Map<String, Object> result = getReplay(date, name);
         if (Integer.valueOf(0).equals(result.get("code"))) {
@@ -135,16 +151,23 @@ public class ReplayService {
         return result;
     }
 
+    /**
+     * 检查玩家是否可见回放
+     */
     private boolean containsUser(Path file, int userId) {
         try {
             for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
-                if (line.contains("userId=" + userId + ",")) return true;
+                if (line.contains("userId=" + userId + ","))
+                    return true;
             }
         } catch (IOException ignored) {
         }
         return false;
     }
 
+    /**
+     * 获取回放
+     */
     public Map<String, Object> getReplay(String date, String name) {
         Map<String, Object> result = new HashMap<>();
         if (date == null || name == null || date.contains("..") || name.contains("..")
@@ -183,6 +206,9 @@ public class ReplayService {
         }
     }
 
+    /**
+     * 摘要回放信息
+     */
     private Map<String, Object> summarize(String date, Path file) {
         Map<String, Object> m = new HashMap<>();
         String name = file.getFileName().toString();
@@ -199,10 +225,14 @@ public class ReplayService {
         try {
             List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
             for (String line : lines) {
-                if (line.startsWith("桌号:")) tableId = line.substring(3).trim();
-                else if (line.startsWith("玩法:")) gameType = line.substring(3).trim();
-                else if (line.startsWith("当前局:")) round = line.substring(4).trim();
-                else if (line.startsWith("回放状态:")) status = line.substring(5).trim();
+                if (line.startsWith("桌号:"))
+                    tableId = line.substring(3).trim();
+                else if (line.startsWith("玩法:"))
+                    gameType = line.substring(3).trim();
+                else if (line.startsWith("当前局:"))
+                    round = line.substring(4).trim();
+                else if (line.startsWith("回放状态:"))
+                    status = line.substring(5).trim();
             }
         } catch (IOException ignored) {
         }
