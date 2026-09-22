@@ -155,7 +155,7 @@ public class LobbyAdminClient {
                     .build();
             com.cloud.hub.game.domain.table.Table table = Game.getInstance().getTableManager()
                     .createTableAsync(model.getId(), role).get(5, TimeUnit.SECONDS);
-            table.execute(table::fillRobotSeats).get(5, TimeUnit.SECONDS);
+            table.execute("管理后台填充机器人", table::fillRobotSeats).get(5, TimeUnit.SECONDS);
             ModelProto.RoomTableInfo info = ModelProto.RoomTableInfo.newBuilder()
                     .setTableId(table.getTableId()).setRoomId(model.getId()).setGameType(model.getType())
                     .setCreatorId(robotId).setOwnerId(robotId).addTableRoles(role).build();

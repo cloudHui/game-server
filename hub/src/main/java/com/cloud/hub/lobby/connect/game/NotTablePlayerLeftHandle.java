@@ -14,10 +14,22 @@ import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 
 /**
- * Game 通知 Lobby：玩家已离桌（桌子可能仍保留）。
+ * 游戏服务通知大厅「玩家已离桌」的内部通知处理器。
+ *
+ * <p><b>业务流转背景：</b>
+ * 当玩家在游戏桌内主动退出、解散或被踢出时，Game 服务向大厅广播 {@link ServerProto.NotTablePlayerLeft}。
+ * 大厅接收后需同步更新内部 {@link TableInfo} 维护的玩家列表。
+ *
+ * <p><b>空桌自清理机制：</b>
+ * 移除玩家后若该桌已无人（{@code tableInfo.getTableRoles().isEmpty()}），
+ * 则立即从 {@link TableManager} 中销毁该大厅桌子镜像，防止形成无人的“僵尸桌”。
  */
 @ProcessType(SMsg.NOT_TABLE_PLAYER_LEFT_MSG)
 public class NotTablePlayerLeftHandle implements Handler {
+
+    /**
+     * 日志记录器
+     */
     private static final Logger logger = LoggerFactory.getLogger(NotTablePlayerLeftHandle.class);
 
     @Override

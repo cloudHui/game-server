@@ -24,15 +24,17 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class DdzBidService {
 
+    /** 日志记录器 */
     private static final Logger logger = LoggerFactory.getLogger(DdzBidService.class);
 
     private DdzBidService() {
     }
 
     /**
-     * 叫分超时，自动视为不叫/不抢
+     * 叫分或抢地主操作超时时的自动托管兜底处理：
+     * 处于叫分阶段自动视为「不叫」，处于抢地主阶段自动视为「不抢」。
      *
-     * @param table 桌子
+     * @param table 斗地主牌桌实例
      */
     public static void onBidTimeout(DdzTable table) {
         int seat = table.getOp().getCurrOpSeat();
@@ -53,12 +55,12 @@ public final class DdzBidService {
     }
 
     /**
-     * 应用叫分
+     * 处理客户端提交的叫分/抢地主操作。
      *
-     * @param table  桌子
-     * @param userId 用户ID
-     * @param opInfo 操作信息
-     * @return 结果
+     * @param table  斗地主牌桌实例
+     * @param userId 操作玩家用户 ID
+     * @param opInfo 操作信息载荷（包含 choiceValue）
+     * @return 错误码（0 表示成功，非 0 为 {@link ConstProto.Result} 错误码）
      */
     public static int apply(DdzTable table, int userId, GameProto.OpInfo opInfo) {
         if (table.getTableState() != TableState.IDLE_ROB) {
@@ -69,6 +71,7 @@ public final class DdzBidService {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         Banner banner = table.getBanner();
+        // 根据当前横幅是否处于抢地主阶段，分流至叫分或抢地主分支
         if (!banner.isRobPhase()) {
             return applyCall(table, userId, opInfo, user, banner);
         }
@@ -76,20 +79,22 @@ public final class DdzBidService {
     }
 
     /**
-     * 应用叫分
+     * 执行叫分阶段（第一阶段）的操作判定与状态机转移。
      *
-     * @param table  桌子
-     * @param userId 用户ID
-     * @param opInfo 操作信息
-     * @param user   用户
-     * @param banner 横幅
-     * @return 结果
+     * @param table  斗地主牌桌实例
+     * @param userId 操作玩家用户 ID
+     * @param opInfo 操作信息载荷
+     * @param user   操作玩家座位实体
+     * @param banner 局内横幅与叫分上下文
+     * @return 错误码（0 表示成功）
      */
     private static int applyCall(DdzTable table, int userId, GameProto.OpInfo opInfo, TableUser user, Banner banner) {
         int cv = opInfo.getChoiceValue();
+        // gameSubType == 1：经典二人/三人抢地主玩法（叫地主/不叫）
         if (table.getTableModel().getGameSubType() == 1) {
-            if (cv != ConstProto.Operation.CALL_VALUE && cv != ConstProto.Operation.NOT_CALL_VALUE)
+            if (cv != ConstProto.Operation.CALL_VALUE && cv != ConstProto.Operation.NOT_CALL_VALUE) {
                 return ConstProto.Result.OP_CURR_ERROR_VALUE;
+            }
             if (cv == ConstProto.Operation.NOT_CALL_VALUE) {
                 broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoiceValue(cv).build());
                 banner.setRobPhase(false);
@@ -110,6 +115,8 @@ public final class DdzBidService {
             table.upNextStateWithTime(TableState.ROB, System.currentTimeMillis());
             return ConstProto.Result.SUCCESS_VALUE;
         }
+
+        // 标准 1/2/3 叫分玩法
         if (cv != ConstProto.Operation.NOT_CALL_VALUE && !DdzBidOpcodes.isCallScore(cv)) {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
@@ -137,7 +144,8 @@ public final class DdzBidService {
         }
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoiceValue(cv).build());
         banner.addBidResponse();
-        // 叫到最高分直接定地主，不再进入抢地主阶段。
+
+        // 叫到 3 分直接封顶，无需后续叫牌与抢地主，直接定庄开局
         if (score == 3) {
             banner.setCandidateSeat(user.getSeated());
             banner.setMaxCallScore(3);
@@ -145,6 +153,7 @@ public final class DdzBidService {
             return ConstProto.Result.SUCCESS_VALUE;
         }
         int seatNum = table.getTableModel().getSeatNum();
+        // 若所有人均已叫分完毕，进入农民抢地主阶段；否则顺延下一家继续叫分
         if (banner.getBidResponses() >= seatNum) {
             completeCallPhase(table, banner, seatNum);
         } else {
@@ -156,11 +165,12 @@ public final class DdzBidService {
     }
 
     /**
-     * 完成叫分阶段
+     * 第一轮叫分全部结束后的过渡处理：
+     * 若全场均不叫分，则随机挑选一名玩家作为保底地主；随后初始化农民抢地主次序。
      *
-     * @param table   桌子
-     * @param banner  横幅
-     * @param seatNum 座位数
+     * @param table   斗地主牌桌实例
+     * @param banner  横幅上下文
+     * @param seatNum 总座位数
      */
     private static void completeCallPhase(DdzTable table, Banner banner, int seatNum) {
         if (banner.getMaxCallScore() <= 0) {
@@ -175,14 +185,14 @@ public final class DdzBidService {
     }
 
     /**
-     * 应用抢地主
+     * 执行抢地主阶段（第二阶段）的操作判定与倍率累计。
      *
-     * @param table  桌子
-     * @param userId 用户ID
-     * @param opInfo 操作信息
-     * @param user   用户
-     * @param banner 横幅
-     * @return 结果
+     * @param table  斗地主牌桌实例
+     * @param userId 操作玩家用户 ID
+     * @param opInfo 操作信息载荷
+     * @param user   操作玩家座位实体
+     * @param banner 横幅上下文
+     * @return 错误码（0 表示成功）
      */
     private static int applyRob(DdzTable table, int userId, GameProto.OpInfo opInfo, TableUser user, Banner banner) {
         int cv = opInfo.getChoiceValue();
@@ -205,13 +215,14 @@ public final class DdzBidService {
             }
         }
 
+        // 抢地主倍率翻倍：每次「抢」倍数×2，并更新当前地主候选人
         if (cv == ConstProto.Operation.ROB_VALUE) {
             banner.setRobMultiplierAccum(banner.getRobMultiplierAccum() * 2);
-            // 抢/再抢成功者成为当前地主候选人，后续无人再抢时由其当选。
             banner.setCandidateSeat(user.getSeated());
         }
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoiceValue(cv).build());
         banner.addRobResponse();
+        // 两位农民均表态完毕，抢地主流程彻底闭环，进入开局定庄
         if (banner.getRobResponses() >= banner.getRobFarmerSeats().size()) {
             finishBidding(table, banner);
         } else {
@@ -224,10 +235,10 @@ public final class DdzBidService {
     }
 
     /**
-     * 完成叫分
+     * 叫分与抢地主全部终结，定庄、发底牌并切入正式出牌状态（CARD）。
      *
-     * @param table  桌子
-     * @param banner 横幅
+     * @param table  斗地主牌桌实例
+     * @param banner 横幅上下文
      */
     private static void finishBidding(DdzTable table, Banner banner) {
         int landlordSeat = banner.getCandidateSeat();
@@ -239,6 +250,7 @@ public final class DdzBidService {
         table.getDdz().setLastPlaySeat(-1);
         table.getDdz().setFarmerEverPlayed(false);
         table.getDdz().setLandlordPlayCount(0);
+        // 将三张底牌亮出并装配到地主手牌集合中
         table.getCardPool().attachBottomToLandlord(table, landlordSeat);
 
         DdzReplayRecorder replay = table.getDdzReplay();
@@ -247,17 +259,18 @@ public final class DdzBidService {
             replay.recordBottomCards(landlordSeat, bottomIds);
         }
 
+        // 重置操作计数器并将优先出牌权授予地主，正式切入出牌状态
         table.getOp().reset();
         table.getOp().setCurrOpSeat(landlordSeat);
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
     }
 
     /**
-     * 广播确认
+     * 向桌内全员广播叫分/抢地主操作结果应答并同步当前累计倍数。
      *
-     * @param table       桌子
-     * @param actorUserId 用户ID
-     * @param op          操作信息
+     * @param table       牌桌实例
+     * @param actorUserId 操作发起人用户 ID
+     * @param op          操作数据结构
      */
     private static void broadcastAck(DdzTable table, int actorUserId, GameProto.OpInfo op) {
         int base = Math.max(1, table.getBanner().getMaxCallScore());

@@ -14,13 +14,28 @@ import proto.ServerProto;
 import utils.trace.TraceContext;
 
 /**
- * 处理网关通知的玩家断线事件
- * 设置玩家离线状态，通知同桌其他玩家
+ * 处理网关通知的玩家断线事件处理器。
+ * <p>
+ * 设置玩家离线状态，并在所属桌串行队列排他执行断线状态标记。
  */
 @ProcessType(CMsg.NOT_BREAK)
 public class NotBreakHandle implements Handler {
+
+    /**
+     * 日志记录器。
+     */
     private static final Logger logger = LoggerFactory.getLogger(NotBreakHandle.class);
 
+    /**
+     * 处理网关推送的玩家断线通知。
+     *
+     * @param sender   消息发送者
+     * @param clientId 客户端连接 ID
+     * @param message  断线通知协议体
+     * @param mapId    桌号（通知时常为 0，需动态检索玩家所在桌）
+     * @param sequence 消息序列号
+     * @return 处理结果状态
+     */
     @Override
     public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {
@@ -37,7 +52,7 @@ public class NotBreakHandle implements Handler {
                             return;
                         }
                         for (Table table : tables) {
-                            table.execute(() -> processUserDisconnect(table, userId, gateClientId));
+                            table.execute("玩家断线", () -> processUserDisconnect(table, userId, gateClientId));
                         }
                     });
             return true;
@@ -47,9 +62,17 @@ public class NotBreakHandle implements Handler {
         }
     }
 
+    /**
+     * 在桌串行线程中执行玩家离线标记。
+     *
+     * @param table        目标桌子
+     * @param userId       玩家 ID
+     * @param gateClientId 网关连接句柄 ID
+     */
     private void processUserDisconnect(Table table, int userId, int gateClientId) {
         TableUser user = table.getUsers().get(userId);
         if (user == null) return;
+        // 防旧断线竞争：如果玩家已经建立新连接且 gateId 不匹配，忽略过期的旧断线事件
         if (gateClientId != 0 && user.getGateId() != 0 && user.getGateId() != gateClientId) {
             logger.info("忽略旧连接断线, userId: {}, tableId: {}, noticeGate: {}, currentGate: {}",
                     userId, table.getTableId(), gateClientId, user.getGateId());
@@ -59,7 +82,7 @@ public class NotBreakHandle implements Handler {
         TraceContext.setTableId(table.getTableId());
         logger.info("玩家标记离线, userId: {}, tableId: {}", userId, table.getTableId());
         if (table.gaming()) {
-            logger.info("游戏进行中玩家断线, userId: {}, tableId: {}，等待超时自动处理",
+            logger.info("游戏进行中玩家断线, userId: {}, tableId: {}，等待超时自动托管",
                     userId, table.getTableId());
         }
     }

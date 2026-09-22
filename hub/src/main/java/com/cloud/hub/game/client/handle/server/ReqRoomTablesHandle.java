@@ -11,10 +11,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 
+/**
+ * 处理房间服务（Lobby）拉取牌桌列表请求处理器。
+ */
 @ProcessType(SMsg.REQ_ROOM_TABLES_MSG)
 public class ReqRoomTablesHandle implements Handler {
+
+    /**
+     * 日志记录器。
+     */
     private static final Logger logger = LoggerFactory.getLogger(ReqRoomTablesHandle.class);
 
+    /**
+     * 接收拉取房间牌桌列表请求并异步返回。
+     *
+     * @param sender   发送方句柄
+     * @param clientId 连接 ID
+     * @param message  协议请求
+     * @param mapId    桌号
+     * @param sequence 消息序列号
+     * @return 恒为 true
+     */
     @Override
     public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {

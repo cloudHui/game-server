@@ -13,13 +13,28 @@ import proto.ModelProto;
 import proto.ServerProto;
 
 /**
- * 处理房间服务请求创建桌子
- * 负责创建游戏桌子和分配桌子ID
+ * 处理房间服务请求创建桌子处理器。
+ * <p>
+ * 负责游戏桌子的异步生命周期创建与桌号分配。
  */
 @ProcessType(SMsg.REQ_CREATE_TABLE_MSG)
 public class ReqCreateTableHandle implements Handler {
+
+    /**
+     * 日志记录器。
+     */
     private static final Logger logger = LoggerFactory.getLogger(ReqCreateTableHandle.class);
 
+    /**
+     * 接收房间服务（Lobby）发起的建桌请求。
+     *
+     * @param sender   发送方句柄
+     * @param clientId 客户端/服务连接 ID
+     * @param message  建桌协议请求体
+     * @param mapId    桌号
+     * @param sequence 消息序列号
+     * @return 恒为 true
+     */
     @Override
     public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         final int roomId;
@@ -37,7 +52,7 @@ public class ReqCreateTableHandle implements Handler {
         Game.getInstance().getTableManager().createTableAsync(roomId, role)
                 .whenComplete((table, error) -> {
                     if (error == null && table != null && role.getRoleId() < 0) {
-                        table.execute(table::fillRobotSeats);
+                        table.execute("填充机器人座位", table::fillRobotSeats);
                     }
                     sendCreateResponse(sender, clientId, mapId, sequence, table, error);
                 });
@@ -45,7 +60,14 @@ public class ReqCreateTableHandle implements Handler {
     }
 
     /**
-     * 在生命周期线程完成后返回结果，网络线程不阻塞等待桌子创建。
+     * 在生命周期线程完成后异步回送建桌结果，网络线程不阻塞等待。
+     *
+     * @param sender   发送方
+     * @param clientId 连接 ID
+     * @param mapId    桌号
+     * @param sequence 序列号
+     * @param table    创建完成的牌桌实例
+     * @param error    异常信息（若创建失败）
      */
     private void sendCreateResponse(Sender sender, int clientId, long mapId, int sequence,
                                     Table table, Throwable error) {

@@ -30,13 +30,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TableStateHandleManager {
 
+    /** 日志记录器 */
     private static final Logger logger = LoggerFactory.getLogger(TableStateHandleManager.class);
 
+    /** 桌子状态到对应处理器单例的映射表 <牌桌状态枚举, 状态处理器实现类> */
     private static final Map<TableState, AbstractTableHandle> STATE_TABLE_HANDLE_MAP = HandlerRegistry
             .buildSingle("com.cloud.hub.game.domain", AbstractTableHandle.class, ProcessEnum.class, TableState.class);
-    /**
-     * 缺 Handle 只告警一次，避免桌循环刷屏。
-     */
+
+    /** 记录已告警过的「桌号:状态」集合，用于去重告警防止桌循环高频刷屏 <"tableId:stateName"> */
     private static final Set<String> MISSING_HANDLE_LOGGED = ConcurrentHashMap.newKeySet();
 
     static {
@@ -46,6 +47,8 @@ public class TableStateHandleManager {
 
     /**
      * 校验麻将核心状态处理器是否都已注册，缺少任何一个则抛出异常终止初始化。
+     *
+     * @throws ExceptionInInitializerError 当任一麻将核心状态（发牌/出牌/摸打/吃碰杠胡）未注册时抛出
      */
     private static void validateRequiredHandles() {
         Set<TableState> required = EnumSet.of(
@@ -70,9 +73,10 @@ public class TableStateHandleManager {
     }
 
     /**
-     * 桌子状态处理器处理
+     * 驱动牌桌执行当前状态对应的业务逻辑。
      *
-     * @param table 牌局
+     * @param table 当前牌桌实体
+     * @return true 表示需要中断或退出当前循环轮次，false 表示继续常规状态流转
      */
     public static boolean handle(Table table) {
         AbstractTableHandle handle = STATE_TABLE_HANDLE_MAP.get(table.getTableState());
@@ -99,7 +103,10 @@ public class TableStateHandleManager {
     }
 
     /**
-     * 缺状态处理器时：首次 ERROR，并按枚举 next 或 TABLE_OVER 兜底推进，避免卡死。
+     * 当遇到未配置处理器的异常状态时触发兜底推进：
+     * 首次记录 ERROR 日志，并按枚举定义的 next 状态或降级为 TABLE_OVER 推进，避免桌子无限卡死。
+     *
+     * @param table 目标牌桌实体
      */
     private static void fallbackMissingHandle(Table table) {
         TableState state = table.getTableState();

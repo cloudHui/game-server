@@ -1,8 +1,9 @@
 package com.cloud.hub.web.minigame.gomoku;
 
-import com.cloud.hub.web.minigame.MiniGameEngine;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.cloud.hub.web.minigame.MiniGameEngine;
 
 /**
  * 五子棋引擎实现。
@@ -18,23 +19,44 @@ import java.util.Map;
  */
 public class GomokuEngine implements MiniGameEngine {
 
+    /** 底层五子棋盘核心逻辑状态实例（包含 15x15 棋盘数组、行棋方及连珠判定） */
     private final GomokuBoard board = new GomokuBoard();
 
+    /**
+     * 获取小游戏唯一英文标识。
+     *
+     * @return 游戏类型标识 "gomoku"
+     */
     @Override
     public String gameName() {
         return "gomoku";
     }
 
+    /**
+     * 获取 A 方阵营名称。
+     *
+     * @return A 方对应执黑 "black"（先行方）
+     */
     @Override
     public String sideAName() {
         return "black";
     }
 
+    /**
+     * 获取 B 方阵营名称。
+     *
+     * @return B 方对应执白 "white"（后手方）
+     */
     @Override
     public String sideBName() {
         return "white";
     }
 
+    /**
+     * 判定五子棋当前对局是否已结束（分出胜负或棋盘已满和棋）。
+     *
+     * @return true 表示已终局
+     */
     @Override
     public boolean isFinished() {
         return board.isFinished();
@@ -45,6 +67,10 @@ public class GomokuEngine implements MiniGameEngine {
      * <p>
      * 从 {@code data} 中解析 {@code x}、{@code y} 坐标，根据 {@code isSideA} 确定棋子颜色
      * （A 方执黑先行），委托 {@link GomokuBoard#place(int, int, int)} 完成合法性校验与落子。
+     *
+     * @param data    落子参数字典（包含坐标 x, y）
+     * @param isSideA 是否为 A 方（执黑）
+     * @return 落子执行结果（成功包含棋盘快照与行棋方，失败包含错误原因）
      */
     @Override
     public MoveResult applyMove(Map<String, Object> data, boolean isSideA) {
@@ -72,6 +98,9 @@ public class GomokuEngine implements MiniGameEngine {
      * 五子棋认输：对手获胜。
      * <p>
      * 五子棋无内置 resign 方法，直接构造结果 Map 标记对手为赢家。
+     *
+     * @param isSideA 是否为 A 方认输
+     * @return 认输终局结果字典（包含赢家 winner、原因 reason 等）
      */
     @Override
     public Map<String, Object> resign(boolean isSideA) {
@@ -84,6 +113,11 @@ public class GomokuEngine implements MiniGameEngine {
         return result;
     }
 
+    /**
+     * 生成当前五子棋盘完整快照字典。
+     *
+     * @return 包含 15x15 棋盘矩阵以及当前行棋方 turn 的快照
+     */
     @Override
     public Map<String, Object> snapshot() {
         Map<String, Object> m = new HashMap<>();
@@ -92,6 +126,11 @@ public class GomokuEngine implements MiniGameEngine {
         return m;
     }
 
+    /**
+     * 构造并返回五子棋终局结算信息。
+     *
+     * @return 包含赢家 winner（0和棋、1黑胜、2白胜）、原因 reason 与终局标记
+     */
     @Override
     public Map<String, Object> gameResult() {
         Map<String, Object> m = new HashMap<>();
@@ -101,3 +140,4 @@ public class GomokuEngine implements MiniGameEngine {
         return m;
     }
 }
+
