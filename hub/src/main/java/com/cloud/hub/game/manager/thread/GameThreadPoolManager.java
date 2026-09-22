@@ -1,7 +1,6 @@
 package com.cloud.hub.game.manager.thread;
 
 import threadtutil.thread.ExecutorPool;
-import threadtutil.thread.Task;
 import threadtutil.utils.TimeUtils;
 import utils.trace.TraceContext;
 
@@ -75,15 +74,22 @@ public final class GameThreadPoolManager {
 
     /**
      * 将任务按 tableId 亲和投递，保证同桌串行。
+     * 直接使用 ExecutorPool 提供的单一统一入口，无需外部多余包装。
      */
     public CompletableFuture<Void> submitTable(long tableId, Runnable task) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
         if (!activeTables.contains(tableId)) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("桌子执行器不存在: " + tableId));
             return future;
         }
-        tablePool.serialExecute(new TableTask(tableId, () -> runTableTask(tableId, task, future)));
-        return future;
+        return tablePool.serialExecute(tableId, () -> {
+            try {
+                TraceContext.setTableId(tableId);
+                task.run();
+            } finally {
+                TraceContext.endTrace();
+            }
+        });
     }
 
     /**
@@ -148,46 +154,11 @@ public final class GameThreadPoolManager {
         });
     }
 
-    private void runTableTask(long tableId, Runnable task, CompletableFuture<Void> future) {
-        try {
-            TraceContext.setTableId(tableId);
-            task.run();
-            future.complete(null);
-        } catch (Throwable error) {
-            future.completeExceptionally(error);
-        } finally {
-            TraceContext.endTrace();
-        }
-    }
-
     private <T> void runManagerTask(Callable<T> task, CompletableFuture<T> future) {
         try {
             future.complete(task.call());
         } catch (Throwable error) {
             future.completeExceptionally(error);
-        }
-    }
-
-    /**
-     * 以 tableId 哈希为 groupId，供 ExecutorPool 做同桌串行亲和。
-     */
-    private static final class TableTask implements Task {
-        private final int groupId;
-        private final Runnable runnable;
-
-        private TableTask(long tableId, Runnable runnable) {
-            this.groupId = Long.hashCode(tableId);
-            this.runnable = runnable;
-        }
-
-        @Override
-        public int groupId() {
-            return groupId;
-        }
-
-        @Override
-        public void run() {
-            runnable.run();
         }
     }
 }

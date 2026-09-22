@@ -1,120 +1,210 @@
-# threadtutil 使用说明
+# threadtutil 线程与亲和并发调度机制说明
 
-`threadtutil` 是 utils 模块内的通用线程与定时工具包，供 gate / lobby / game / robot 等进程复用。
+`threadtutil` 是 `utils` 模块内的核心通用线程调度与定时工具包，广泛应用于 `hub`（一体化服务）及底层网关、大厅与游戏模块。
 
-## 包结构
+本文档详细拆解 Hub 服务中的**线程分流模型、单桌串行无锁架构、工作窃取（Work-Stealing）机制以及慢任务卡死告警体系**。
 
-| 包路径                  | 作用                   |
-|----------------------|----------------------|
-| `threadtutil.thread` | 固定线程池、按 groupId 串行执行 |
-| `threadtutil.timer`  | 延迟 / 周期 / 有限次定时器     |
-| `threadtutil.lock`   | 定时器等待唤醒信号            |
-| `threadtutil.utils`  | 时间与默认并发度工具           |
+---
 
-## 1. ExecutorPool：业务线程池
+## 目录
+- [一、Hub 全局线程分流架构](#一hub-全局线程分流架构)
+- [二、单桌串行（Serial Execution）机制图解](#二单桌串行serial-execution机制图解)
+- [三、工作窃取（Work-Stealing）机制图解](#三工作窃取work-stealing机制图解)
+- [四、慢任务告警与卡死现场抓取](#四慢任务告警与卡死现场抓取)
+- [五、外部统一调用 API 规范](#五外部统一调用-api-规范)
+- [六、避坑准则与常见问题](#六避坑准则与常见问题)
 
+---
+
+## 一、Hub 全局线程分流架构
+
+Hub 进程通过 `GameThreadPoolManager` 统筹四类物理线程池与单线程调度器，实现**网络 IO、桌内对局、玩家会话、全局索引与数据库落盘的彻底物理隔离**，杜绝相互阻塞。
+
+### 1. 架构拓扑图
+
+```mermaid
+graph TD
+    Client[客户端消息 Netty/WebSocket] --> NettyIO[网络 IO 线程<br/>只解码，不跑任何重业务]
+    
+    NettyIO -->|玩家个人请求| PlayerPool["【Game-Player 线程池】<br/>个人属性/大厅会话/签到/商城"]
+    NettyIO -->|桌内对局操作| TablePool["【Game-Table 亲和串行池】<br/>打牌/摸牌/抢地主/出关卡 (按 tableId 串行)"]
+    NettyIO -->|建桌/散桌/匹配| MgrPool["【Game-TableManager 单线程池】<br/>全局房间索引修改/防并发冲突"]
+    
+    Scheduler["【Game-TableScheduler】<br/>单线程定时心跳触发器"] -->|周期心跳 Tick| TablePool
+    
+    TablePool -->|异步持久化| DBPool["【Game-Database 线程池】<br/>战绩入库/SQLite 落盘 (阻塞 IO 专用)"]
+```
+
+### 2. 线程资源分配与职责
+
+| 线程池名称 | 类型与配置 | 核心职责 | 绝不允许的行为 |
+| :--- | :--- | :--- | :--- |
+| **`Game-Table`** | `ExecutorPool`<br/>32 线程, 10万容量有界队列 | **牌桌领域状态机**：所有桌内出牌、摸牌、状态轮转、离桌结算 | **严禁任何阻塞 IO**（如查数据库、网络 RPC、Thread.sleep） |
+| **`Game-Player`** | `ExecutorPool`<br/>32 线程, 10万容量有界队列 | 玩家个人背包、大厅交互、签到等用户维度并发事务 | 严禁直接修改桌子内部状态 |
+| **`Game-TableManager`** | `ExecutorPool`<br/>**单物理线程**, 10万容量 | 牌桌生命周期管理、全局桌号生成、跨桌匹配、房间列表快照 | 严禁执行复杂耗时的对局逻辑 |
+| **`Game-Database`** | `ExecutorService`<br/>固定线程池（默认 4~8 线程） | 战绩持久化、SQLite 异步写入、历史回放日志落盘 | 严禁与桌内状态同步调用绑定 |
+| **`Game-TableScheduler`**| `ScheduledExecutorService`<br/>**单物理线程** | 固定频率心跳触发器（仅产生 tick 脉冲，立即投回 TablePool） | 严禁在调度线程内直接执行任何业务逻辑 |
+
+---
+
+## 二、单桌串行（Serial Execution）机制图解
+
+### 1. 为什么必须单桌串行？
+牌桌（Table）是典型的有状态聚合根。若两个玩家同时出牌，或在心跳结算瞬间又有玩家离桌，传统加锁（`synchronized / Lock`）极易引发死锁与剧烈的线程上下文切换。
+
+`ExecutorPool` 借鉴 **Actor / Mailbox 机制**：**“桌内状态绝对不加排他锁，所有同一桌的任务全部按哈希映射到同一槽位无锁队列，任意时刻仅由一个 Worker 物理线程排他执行。”**
+
+### 2. 内存模型与槽位映射图
+
+```text
+【业务桌子】                       【任务队列槽位 (taskLists)】              【底层物理线程池】
+ 
+ +--------------+
+ | 桌子 1000 号 | --(floorMod 取模 0)--> [ 槽位 0 : TaskList ] <========= [ 线程 Thread-1 ]
+ +--------------+                        | [任务A] -> [任务B]   |               (持有令牌，排他消费槽位 0)
+                                         +---------------------+
+ +--------------+
+ | 桌子 1001 号 | --(floorMod 取模 1)--> [ 槽位 1 : TaskList ] <========= [ 线程 Thread-2 ]
+ +--------------+                        | [任务C]              |               (持有令牌，排他消费槽位 1)
+                                         +---------------------+
+ +--------------+
+ | 桌子 1002 号 | --(floorMod 取模 2)--> [ 槽位 2 : TaskList ]              [ 线程 Thread-3 ]
+ +--------------+                        | [任务D] -> [任务E]   |               (空闲，正发起工作窃取)
+                                         +---------------------+
+                                         [ 槽位 3 : TaskList ]              [ 线程 Thread-4 ]
+                                         | (空队列)            |               (空闲)
+                                         +---------------------+
+```
+
+### 3. 单槽排他执行时序流程
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as 客户端请求 (出牌)
+    participant TaskList as 槽位队列 (TaskList)
+    participant Worker1 as 线程 Thread-1
+    participant Worker2 as 线程 Thread-2 (并发)
+    participant Table as 牌桌 Table 实例
+
+    Client->>TaskList: 1. offer(task) 任务入队
+    Note over TaskList: scheduled.compareAndSet(false, true)<br/>首次入队触发拉起 Worker
+    
+    Worker1->>TaskList: 2. getProcessingAuthority(threadId)
+    Note over TaskList: CAS: 0L -> 1 (成功抢占令牌钥匙！)
+    
+    par 并发尝试
+        Worker2->>TaskList: 2.1 getProcessingAuthority(threadId)
+        Note over TaskList: 检查已被 Thread-1 占用 -> 放弃退出！
+    and 排他执行
+        Worker1->>TaskList: 3. poll() 依次取出任务
+        Worker1->>Table: 4. 执行业务逻辑 (桌内无锁修改)
+        Worker1->>TaskList: 5. 消费排空，finally 释放令牌 (CAS: 1 -> 0L)
+        Worker1->>TaskList: 6. finishAndRescheduleIfNeeded()<br/>边缘检查防止退出瞬间漏单
+    end
+```
+
+---
+
+## 三、工作窃取（Work-Stealing）机制图解
+
+### 1. 核心定义：窃取的是“队列”，不是“单个任务”
+> [!IMPORTANT]
+> **绝对准则**：系统绝不会从“正被其他线程处理”的队列中偷取单个任务，否则会破坏单桌串行。
+> **窃取的真正含义**：**闲置线程主动去接管【积压了任务、但当前完全无线程在处理的空闲队列】**。
+
+### 2. 工作窃取运转场景图
+
+```text
+ 假设此时：
+  - 线程 Thread-1 刚跑完了【槽位 0】的所有任务，变成空闲；
+  - 槽位 1 正在被 Thread-2 消费 (isBusy = true)；
+  - 槽位 2 堆积了 2 个任务，但由于线程池调度延迟，暂无线程进入 (isBusy = false)；
+  - 槽位 3 为空队列。
+
+ [ 线程 Thread-1 ] 结束槽位 0 后，立即发起环形巡视：
+ 
+   巡视第 1 站：【槽位 1】
+   [ 槽位 1 ] ------------> 发现：Thread-2 正在忙碌 (isBusy=true)
+                            处理：Thread-1 礼貌路过，绝不插手！
+ 
+   巡视第 2 站：【槽位 2】
+   [ 槽位 2 ] ------------> 发现：有堆积任务 (isNotEmpty) 且 无人处理 (!isBusy)
+                            动作：Thread-1 抢下槽位 2 的处理权令牌！
+                                  整槽接管并全部消费掉（这就是窃取）！
+ 
+   巡视第 3 站：【槽位 3】
+   [ 槽位 3 ] ------------> 发现：是空的队列 (isEmpty)
+                            处理：跳过。
+```
+
+---
+
+## 四、慢任务告警与卡死现场抓取
+
+`ExecutorPool` 内置了两级执行时间雷达，杜绝任何因死循环、死锁或慢 SQL 拖死 Worker 线程的情况：
+
+```text
+ [任务开始执行]
+       │
+       ▼
+ [耗时 > 5000ms]  ──► 触发一级告警：打印 ERROR 慢任务警告，输出 slot、持有线程 ID 及耗时
+       │
+       ▼
+ [耗时 > 60000ms] ──► 触发二级快照：判定为严重死锁/卡死，直接抓取并 Dump 现场完整线程堆栈！
+```
+
+日志输出示例：
+```log
+2026-09-22 14:30:00 ERROR [ExecutorPool 慢任务警告] 槽位:3 处理时间过长! 持有线程:[15:Game-Table_3] 已持续耗时:5230ms
+2026-09-22 14:31:00 ERROR 卡死线程堆栈 Dump [ID:15 Name:Game-Table_3]:
+  at com.cloud.hub.game.domain.mj.MjPlayService.calculateFan(MjPlayService.java:188)
+  at com.cloud.hub.game.domain.table.Table.tableLoop(Table.java:410)
+  ...
+```
+
+---
+
+## 五、外部统一调用 API 规范
+
+经重构后，外部业务无需再自己声明内部类（如 `TableTask`），直接调用统一极简 API：
+
+### 1. 业务端点（Controller / Handler）标准调用
 ```java
-// 名称、线程数、有界队列容量
-ExecutorPool pool = new ExecutorPool("Game-Player", 32, 100000);
+// 1. 同桌串行投递（传入 tableId 与 Lambda，自动返回 CompletableFuture）
+table.execute(() -> {
+    table.processPlayCard(userId, card);
+});
 
-// 普通并行任务
-pool.execute(() -> handlePlayerRequest(msg));
+// 2. 玩家个人会话串行投递（传入 userId 与 Lambda）
+executorPool.serialExecute(userId, () -> {
+    player.updateScore(100);
+});
 
-// 返回 CompletableFuture 的并行任务
-pool.run(() -> doWork()).whenComplete((v, e) -> { /* ... */ });
-
-// 同 groupId 串行（例如同一玩家、同一桌子）
-pool.serialExecute(new Task() {
-    @Override public int groupId() { return userId; }
-    @Override public void run() { updateUserState(); }
+// 3. 普通非串行异步任务
+executorPool.execute(() -> {
+    logger.info("异步统计上报");
 });
 ```
 
-要点：
-
-- 线程数 `<=0` 时使用 `TimeUtils.PROCESS_NUMBER`（默认 CPU*2）。
-- 队列满时采用 `CallerRunsPolicy`，由提交线程执行，形成反压，避免直接丢弃。
-- `serialExecute` 用 `Math.floorMod(groupId, poolSize)` 选队列，保证同组顺序。
-
-## 2. Timer：定时调度
-
+### 2. 周期调度与防堆积标准调用
 ```java
-ExecutorPool pool = new ExecutorPool("Lobby");
-Timer timer = new Timer().setRunners(pool);
+// 每 200ms 一拍，心跳任务内部自带 tickBusy 防堆积
+ScheduledFuture<?> loop = pools.scheduleTable(tableId, table::tableLoop, 1000, 200);
 
-// delay / interval 单位：毫秒；count=-1 表示无限次
-// runner 返回 true 表示提前结束
-timer.register(1000, 5000, -1, param -> {
-    heartbeat(param);
-    return false;
-}, ctx);
-
-// 串行定时：同一 groupId 的回调进入串行队列
-timer.registerSerial(tableIdHash, 0, 200, -1, table -> {
-    table.tick();
-    return false;
-}, table);
-
-int nodeId = timer.registerSerialWithId(groupId, 0, 1000, 10, runner, param);
-timer.unregister(nodeId);
-
-// 进程退出
-timer.stop();
-pool.shutdown();
+// 停桌时取消调度
+pools.cancelTableSchedule(loop);
 ```
 
-要点：
+---
 
-- 调度线程只负责到期检测，业务在 `ExecutorPool` 中执行，避免阻塞调度循环。
-- `SerialTimeNode` 会走 `serialExecute`，适合“同桌 / 同玩家”周期逻辑。
+## 六、避坑准则与常见问题
 
-## 3. DisorderTimer：自定义执行器
-
-当执行器不是 `ExecutorPool` 时使用：
-
-```java
-DisorderTimer timer = new DisorderTimer();
-timer.setRunners(task -> CompletableFuture.runAsync(task));
-timer.register(1, 5, -1, param -> false, null); // 参数单位：秒
-```
-
-## 4. 在 Game 中的推荐用法
-
-Game 进程请通过 `GameThreadPoolManager` 获取池，不要再各自 `new ExecutorPool`：
-
-```java
-GameThreadPoolManager pools = Game.getInstance().getThreadPoolManager();
-
-// 玩家请求
-pools.playerPool().execute(runnable);
-
-// 同桌串行 + 周期调度
-pools.registerTable(tableId);
-pools.submitTable(tableId, () -> table.onAction(msg));
-ScheduledFuture<?> loop = pools.scheduleTable(tableId, table::tick, 1000, 200);
-
-// 桌生命周期 / 全局索引（单线程）
-pools.submitTableManager(() -> tableManager.createTable(roomId, role));
-
-// 数据库
-pools.databasePool().execute(() -> scoreRepository.save(row));
-```
-
-## 5. 性能与使用约束
-
-1. **网络线程不跑重逻辑**：只做解码与投递，状态修改进对应池。
-2. **同资源同 groupId**：需要互斥的状态变更必须串行，避免锁竞争。
-3. **勿在串行任务里阻塞 IO**：数据库走 database 池；远程调用注意超时。
-4. **定时回调要短**：长任务应再投递到业务池，防止拖慢同组后续任务。
-5. **关闭顺序**：先 `timer.stop()`，再 `pool.shutdown()` / `GameThreadPoolManager.shutdown()`。
-
-## 6. 常见问题
-
-**Q: 为什么同桌任务偶尔乱序？**  
-A: 检查是否混用了 `execute` 与 `submitTable`/`serialExecute`。只有串行 API 保证顺序。
-
-**Q: 队列满了会怎样？**  
-A: 提交线程自己执行任务（CallerRuns），表现为调用方变慢，而不是静默丢任务。
-
-**Q: `groupId` 用负数可以吗？**  
-A: 可以。内部使用 `floorMod`，不会因 `Integer.MIN_VALUE` 产生负索引。
+1. **同资源必须同 Key**：
+   凡是修改同一桌子状态的操作（出牌、入桌、离桌、超时判定），必须传同一个 `tableId`，确保进入同一个串行槽位。
+2. **串行任务里绝不跑阻塞 IO**：
+   写数据库、调 HTTP/RPC、`Thread.sleep()` 必须投递到 `databasePool` 或另外异步处理，严禁阻塞槽位 Worker。
+3. **队列满时的反压行为（CallerRuns）**：
+   当队列超过有界容量（10 万）时，底层采用 `CallerRunsPolicy`，由提交方线程（如网络 IO 线程）直接代为执行。这会自然放慢网络接收速率，形成正向背压，保护服务端不发生 OOM。
+4. **负数 groupId 安全性**：
+   内部使用 `Math.floorMod(groupId, slots)`，完全兼容 `hashCode` 为负数或 `Integer.MIN_VALUE` 的情况，永不数组越界。
