@@ -1,70 +1,36 @@
 package com.cloud.hub.game.domain.state;
 
-import com.cloud.hub.game.domain.table.RobotOperationDelay;
 import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.tractor.TractorTable;
 import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 
 /**
- * 等地主明牌 / 拖拉机庄家扣底（拿底后 30 秒内放回 8 张，然后出牌）。
+ * 亮牌/扣底阶段处理器。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>绑定状态 {@link TableState#IDLE_SHOW_CARD}；</li>
+ *   <li>涵盖斗地主的地主明牌确认，以及拖拉机的庄家拿底与扣底流程；</li>
+ *   <li>每 tick 委托 {@link Table#onIdleShowCardHandle()}，超时触发 {@link Table#onIdleShowCardOverTime()}，
+ *       实现各玩法的纯多态隔离，消灭外层类型强转与硬编码分支。</li>
+ * </ul>
  */
 @ProcessEnum(TableState.IDLE_SHOW_CARD)
 public class IdleShowCard extends AbstractTableHandle {
 
-    /**
-     * 拖拉机扣底时限（秒）：拿上来后需在此时限内放回 8 张
-     */
-    public static final int TRACTOR_BURY_SECONDS = 30;
+    /** 拖拉机扣底时限兼容常量 */
+    public static final int TRACTOR_BURY_SECONDS = com.cloud.hub.game.domain.tractor.TractorTable.TRACTOR_BURY_SECONDS;
 
     @Override
     public boolean handle(Table table) {
-        if (!(table instanceof TractorTable)) {
-            return super.handle(table);
-        }
-        TractorTable t = (TractorTable) table;
-        // 亮主后的首次扣底可能尚未正式锁庄；反主重新摸底时也必须由持底者操作。
-        int seat = t.getTractor().getBottomHolderSeat();
-        if (seat < 0) seat = t.getTractor().getBankerSeat();
-        TableUser u = table.getSeatUser(seat);
-        long now = System.currentTimeMillis();
-        long deadline = table.getStateStartTime() + TRACTOR_BURY_SECONDS * 1000L;
-
-        // 机器人到点自动扣底
-        if (u != null && u.isRobot()
-                && now >= table.getStateStartTime() + randomRobotDelay()) {
-            finishBuryAndPlay(t, seat);
+        if (table.onIdleShowCardHandle()) {
             return false;
         }
-        // 30 秒超时：自动扣底并开出
-        if (now >= deadline) {
-            finishBuryAndPlay(t, seat);
-            return false;
-        }
-        return false;
-    }
-
-    private long randomRobotDelay() {
-        return RobotOperationDelay.randomMillis();
+        return super.handle(table);
     }
 
     @Override
     public void overTime(Table table) {
-        if (table instanceof TractorTable) {
-            TractorTable t = (TractorTable) table;
-            finishBuryAndPlay(t, t.getTractor().getBankerSeat());
-            return;
-        }
-        table.upNextState(TableState.CARD);
-    }
-
-    private static void finishBuryAndPlay(TractorTable t, int seat) {
-        if (t.getTractor().getBuriedCards().isEmpty()) {
-            t.getCardPool().autoBury(t, seat);
-        }
-        t.getOp().setCurrOpSeat(seat);
-        t.getTractor().setTrickLeader(seat);
-        t.upNextState(TableState.CARD);
+        table.onIdleShowCardOverTime();
     }
 }

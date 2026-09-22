@@ -1,5 +1,6 @@
 package com.cloud.hub.game.client;
 
+import msg.annotation.ProcessType;
 import msg.registor.HandleTypeRegister;
 import net.handler.Handler;
 import net.handler.Handlers;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.trace.TracedHandler;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,10 +35,9 @@ public class ClientProto {
      */
     public static void init() {
         try {
-            // 绑定专用服务器消息处理
-            HandleTypeRegister.initFactory(ClientProto.class, HANDLER_MAP);
-            // 绑定通用服务器消息处理
-            HandleTypeRegister.initFactory(HANDLER_MAP);
+            HANDLER_MAP.putAll(utils.registry.HandlerRegistry.buildSingle(
+                    Arrays.asList(ClientProto.class.getPackage().getName(), "tools.handle"),
+                    Handler.class, ProcessType.class, Integer.class));
             TracedHandler.wrapAll(HANDLER_MAP);
             logger.info("游戏客户端协议处理器初始化完成,注册处理器数量: {}", HANDLER_MAP.size());
         } catch (Exception e) {

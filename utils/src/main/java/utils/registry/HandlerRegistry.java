@@ -15,34 +15,30 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 通用处理器注册表构建引擎。
  * <p>
- * 通过 {@link KeyBy} 与 {@link KeyResolver} 实现注解与注册引擎的完全解耦。
- * 支持单处理器映射（单 Key 唯一绑定，冲突熔断）与多监听器集合映射，并在同一次构建中实现同类实例去重共享。
+ * <b>职责边界：</b>
+ * 作为全工程通用的组件与消息处理器装配中心，基于注解元驱动，完成类的字节码扫描、
+ * Fail-Fast 冲突校验、单例去重共享与不可变映射构建。
+ *
+ * <p><b>核心使用场景：</b>
+ * <ul>
+ *   <li>状态机处理器注册：{@code TableStateHandleManager} 扫描状态类并绑定 {@code TableState}；</li>
+ *   <li>本地网关消息分发：{@code LocalGatewayTransport} 扫描 role 包并绑定 {@code msgId -> Handler}；</li>
+ *   <li>长连接客户端消息注册：{@code ClientProto} 聚合多包扫描并装配协议路由表。</li>
+ * </ul>
+ *
+ * <p>通过 {@link KeyBy} 与 {@link KeyResolver} 实现注解与注册引擎的完全解耦。
+ * 支持单 Key 唯一绑定与同类单例复用，在类冲突或缺少无参构造时立即中断启动（快速失败）。
  */
 public final class HandlerRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(HandlerRegistry.class);
 
-    /** 注解类型到解析器实例缓存（解析器无状态，全局共享） */
+    /**
+     * 注解类型到解析器实例缓存（解析器无状态，全局共享）
+     */
     private static final Map<Class<? extends Annotation>, KeyResolver<Annotation>> RESOLVERS = new ConcurrentHashMap<>();
 
     private HandlerRegistry() {
-    }
-
-    /**
-     * 根据基类锚点构建单处理器映射表。若不同实现类冲突占用同一 Key 则立即抛异常阻断启动。
-     *
-     * @param baseType       处理器基类型，同时作为扫描包锚点
-     * @param annotationType 标注在处理器上的注册注解（须标注 {@link KeyBy}）
-     * @param keyType        Key 类型 Class，用于类型安全校验
-     * @param <K>            Key 类型
-     * @param <T>            处理器基类类型
-     * @return 不可变的 Key 到处理器实例的映射表
-     */
-    public static <K, T> Map<K, T> buildSingle(Class<T> baseType, Class<? extends Annotation> annotationType, Class<K> keyType) {
-        if (baseType == null) {
-            throw new IllegalArgumentException("baseType 不能为空");
-        }
-        return buildSingle(baseType.getPackage().getName(), baseType, annotationType, keyType);
     }
 
     /**
@@ -56,8 +52,25 @@ public final class HandlerRegistry {
      * @param <T>            处理器基类类型
      * @return 不可变的 Key 到处理器实例的映射表
      */
-    public static <K, T> Map<K, T> buildSingle(String packageName, Class<T> baseType, Class<? extends Annotation> annotationType, Class<K> keyType) {
-        Map<K, Set<T>> multiMap = build(packageName, baseType, annotationType, keyType, false);
+    public static <K, T> Map<K, T> buildSingle(String packageName, Class<T> baseType,
+                                               Class<? extends Annotation> annotationType, Class<K> keyType) {
+        return buildSingle(Collections.singletonList(packageName), baseType, annotationType, keyType);
+    }
+
+    /**
+     * 根据多个指定包名构建单处理器映射表并统一合并去重与冲突校验。
+     *
+     * @param packageNames   扫描包名集合
+     * @param baseType       处理器基类型
+     * @param annotationType 标注在处理器上的注册注解（须标注 {@link KeyBy}）
+     * @param keyType        Key 类型 Class
+     * @param <K>            Key 类型
+     * @param <T>            处理器基类类型
+     * @return 不可变的 Key 到处理器实例的映射表
+     */
+    public static <K, T> Map<K, T> buildSingle(Iterable<String> packageNames, Class<T> baseType,
+                                               Class<? extends Annotation> annotationType, Class<K> keyType) {
+        Map<K, Set<T>> multiMap = build(packageNames, baseType, annotationType, keyType, false);
         Map<K, T> result = new LinkedHashMap<>();
         for (Map.Entry<K, Set<T>> entry : multiMap.entrySet()) {
             result.put(entry.getKey(), entry.getValue().iterator().next());
@@ -66,48 +79,19 @@ public final class HandlerRegistry {
     }
 
     /**
-     * 根据基类锚点构建多监听器映射表。允许不同类共享同一个 Key。
-     *
-     * @param baseType       监听器基类型
-     * @param annotationType 注册注解（须标注 {@link KeyBy}）
-     * @param keyType        Key 类型 Class
-     * @param <K>            Key 类型
-     * @param <T>            监听器类型
-     * @return Key 到监听器集合的映射表
-     */
-    public static <K, T> Map<K, Set<T>> buildMultiple(Class<T> baseType, Class<? extends Annotation> annotationType, Class<K> keyType) {
-        if (baseType == null) {
-            throw new IllegalArgumentException("baseType 不能为空");
-        }
-        return buildMultiple(baseType.getPackage().getName(), baseType, annotationType, keyType);
-    }
-
-    /**
-     * 根据指定包名构建多监听器映射表。
-     *
-     * @param packageName    扫描包名
-     * @param baseType       监听器基类型
-     * @param annotationType 注册注解
-     * @param keyType        Key 类型 Class
-     * @param <K>            Key 类型
-     * @param <T>            监听器类型
-     * @return Key 到监听器集合的映射表
-     */
-    public static <K, T> Map<K, Set<T>> buildMultiple(String packageName, Class<T> baseType, Class<? extends Annotation> annotationType, Class<K> keyType) {
-        return Collections.unmodifiableMap(build(packageName, baseType, annotationType, keyType, true));
-    }
-
-    /**
      * 核心扫描、校验与实例化流程。
      */
-    private static <K, T> Map<K, Set<T>> build(String packageName, Class<T> baseType,
+    private static <K, T> Map<K, Set<T>> build(Iterable<String> packageNames, Class<T> baseType,
                                                Class<? extends Annotation> annotationType,
                                                Class<K> keyType, boolean multiple) {
         long start = System.currentTimeMillis();
         KeyResolver<Annotation> resolver = getResolver(annotationType);
         Map<K, Set<Class<? extends T>>> bindings = new LinkedHashMap<>();
 
-        List<Class<? extends T>> candidateClasses = ClassScanner.scan(packageName, baseType, annotationType);
+        Set<Class<? extends T>> candidateClasses = new LinkedHashSet<>();
+        for (String pkg : packageNames) {
+            candidateClasses.addAll(ClassScanner.scan(pkg, baseType, annotationType));
+        }
 
         // 1. 扫描所有类并严格校验 Key，若有冲突立即快速失败（Fail-Fast）
         for (Class<? extends T> type : candidateClasses) {
@@ -151,8 +135,8 @@ public final class HandlerRegistry {
             resultMap.put(entry.getKey(), handlerSet);
         }
 
-        logger.info("HandlerRegistry 注册完成! 包: [{}], 注解: @{}, Key类型: {}, 映射条数: {}, 实例数: {}, 耗时: {}ms",
-                packageName, annotationType.getSimpleName(), keyType.getSimpleName(),
+        logger.info("HandlerRegistry 注册完成! 包: {}, 注解: @{}, Key类型: {}, 映射条数: {}, 实例数: {}, 耗时: {}ms",
+                packageNames, annotationType.getSimpleName(), keyType.getSimpleName(),
                 resultMap.size(), instanceCache.size(), (System.currentTimeMillis() - start));
         return resultMap;
     }

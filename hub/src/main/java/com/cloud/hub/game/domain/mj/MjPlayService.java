@@ -10,6 +10,9 @@ import proto.ConstProto;
 import proto.GameProto;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * 麻将流程控制服务
@@ -21,6 +24,35 @@ public class MjPlayService {
     private static final Logger logger = LoggerFactory.getLogger(MjPlayService.class);
 
     private MjPlayService() {
+    }
+
+    /**
+     * 子类型 → WinChecker 工厂注册表。
+     * 新增麻将变种时在此添加一行，无需修改 createWinChecker。
+     */
+    private static final Map<Integer, Function<MjTable, MjWinChecker>> CHECKER_FACTORIES = new HashMap<>();
+
+    /**
+     * 子类型 → Scoring 工厂注册表。
+     * 新增麻将变种时在此添加一行，无需修改 createScoring。
+     */
+    private static final Map<Integer, Function<MjTable, MjScoring>> SCORING_FACTORIES = new HashMap<>();
+
+    static {
+        // subType=1: 荆门麻将
+        CHECKER_FACTORIES.put(1, t -> new JmWinChecker(
+                t.getMjContext().getLaiZiTileId(),
+                t.getTableModel().getAllowSevenPairs() != 0));
+        SCORING_FACTORIES.put(1, t -> new JmMjScoring());
+
+        // subType=2: 卡五星
+        CHECKER_FACTORIES.put(2, t -> new KwWinChecker(
+                new int[]{1, 2},
+                t.getTableModel().getAllowSevenPairs() != 0, true));
+        SCORING_FACTORIES.put(2, t -> {
+            MjWinChecker checker = CHECKER_FACTORIES.get(2).apply(t);
+            return new KwMjScoring((KwWinChecker) checker);
+        });
     }
 
     // ======================== 出牌 ========================
@@ -113,40 +145,26 @@ public class MjPlayService {
     // ======================== 工厂方法 ========================
 
     /**
-     * 根据桌子配置创建WinChecker
+     * 根据桌子配置创建 WinChecker。
+     * 新增子类型时在 CHECKER_FACTORIES 注册一行即可，无需修改此处。
      */
     public static MjWinChecker createWinChecker(MjTable table) {
         int subType = table.getTableModel().getGameSubType();
-        MjTableContext ctx = table.getMjContext();
-        boolean allowSevenPairs = table.getTableModel().getAllowSevenPairs() != 0;
-
-        switch (subType) {
-            case 1: // 荆门
-                return new JmWinChecker(ctx.getLaiZiTileId(), allowSevenPairs);
-            case 2: // 卡五星
-                return new KwWinChecker(new int[]{1, 2}, allowSevenPairs, true);
-            default:
-                return new MjWinChecker(allowSevenPairs);
-        }
+        Function<MjTable, MjWinChecker> factory = CHECKER_FACTORIES.get(subType);
+        if (factory != null) return factory.apply(table);
+        // 默认：标准麻将
+        return new MjWinChecker(table.getTableModel().getAllowSevenPairs() != 0);
     }
 
     /**
-     * 根据桌子配置创建Scoring
+     * 根据桌子配置创建 Scoring。
+     * 新增子类型时在 SCORING_FACTORIES 注册一行即可，无需修改此处。
      */
     public static MjScoring createScoring(MjTable table) {
         int subType = table.getTableModel().getGameSubType();
-        switch (subType) {
-            case 1: // 荆门
-                return new JmMjScoring();
-            case 2: // 卡五星
-                MjWinChecker checker = createWinChecker(table);
-                if (checker instanceof KwWinChecker) {
-                    return new KwMjScoring((KwWinChecker) checker);
-                }
-                logger.error("createScoring: 卡五星checker类型不匹配, tableId: {}", table.getTableId());
-                return new JmMjScoring();
-            default:
-                return new JmMjScoring();
-        }
+        Function<MjTable, MjScoring> factory = SCORING_FACTORIES.get(subType);
+        if (factory != null) return factory.apply(table);
+        // 默认：标准麻将计分
+        return new JmMjScoring();
     }
 }

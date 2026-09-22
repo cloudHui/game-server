@@ -23,7 +23,7 @@ public final class TableHeartbeatLifecycle {
         if (!table.beginClosing()) return true;
         logger.info("网页心跳超时，结束机器人房, tableId: {}, completedRounds: {}, timeoutMs: {}",
                 table.getTableId(), table.getGameResult().getCompletedRounds(), timeout);
-        TableSettleSupport.sendFinalResultAndRemove(table);
+        table.dismissAndSettle();
         return true;
     }
 }

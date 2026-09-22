@@ -12,6 +12,7 @@ import proto.GameProto;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,35 @@ public final class MjClaimExecutor {
     private static final Logger logger = LoggerFactory.getLogger(MjClaimExecutor.class);
 
     private MjClaimExecutor() {
+    }
+
+    /**
+     * claim 操作分发函数接口。
+     * 新增操作类型时只需在 CLAIM_ACTIONS 中 put 一行，无需修改 applyClaim。
+     */
+    @FunctionalInterface
+    private interface ClaimAction {
+        boolean apply(MjTable table, int seat, int tileId, int fromSeat, GameProto.OpInfo op);
+    }
+
+    /**
+     * claim 操作注册表（替代 switch）。
+     * key  = 操作枚举；value = 对应处理逻辑。
+     */
+    private static final Map<ConstProto.Operation, ClaimAction> CLAIM_ACTIONS =
+            new EnumMap<>(ConstProto.Operation.class);
+
+    static {
+        CLAIM_ACTIONS.put(ConstProto.Operation.MJ_HU,
+                (t, s, tile, from, op) -> processHuChoice(t, s, tile, from));
+        CLAIM_ACTIONS.put(ConstProto.Operation.MJ_GANG,
+                (t, s, tile, from, op) -> processClaimGang(t, s, tile, from));
+        CLAIM_ACTIONS.put(ConstProto.Operation.MJ_PENG,
+                (t, s, tile, from, op) -> processPeng(t, s, tile, from));
+        CLAIM_ACTIONS.put(ConstProto.Operation.MJ_CHI,
+                (t, s, tile, from, op) -> processChi(t, s, tile, from, op));
+        CLAIM_ACTIONS.put(ConstProto.Operation.MJ_PASS,
+                (t, s, tile, from, op) -> processPass(t, s));
     }
 
     /**
@@ -49,32 +79,18 @@ public final class MjClaimExecutor {
             replay.recordChoice(seat, choiceName(choice), actor != null && actor.isRobot() ? "机器人" : "玩家");
         }
 
-        switch (choice) {
-            case MJ_HU:
-                return processHuChoice(table, seat, tileId, fromSeat);
-            case MJ_GANG:
-                return processClaimGang(table, seat, tileId, fromSeat);
-            case MJ_PENG:
-                return processPeng(table, seat, tileId, fromSeat);
-            case MJ_CHI:
-                return processChi(table, seat, tileId, fromSeat, op);
-            case MJ_PASS:
-                return processPass(table, seat);
-            default:
-                logger.warn("无效的claim操作, table: {}, userId: {}, choice: {}", table.getTableId(), userId, choice);
-                return false;
+        // 注册表分发，替代 switch；新增操作类型只需在 CLAIM_ACTIONS 中登记一行
+        ClaimAction action = CLAIM_ACTIONS.get(choice);
+        if (action == null) {
+            logger.warn("无效的claim操作, table: {}, userId: {}, choice: {}", table.getTableId(), userId, choice);
+            return false;
         }
+        return action.apply(table, seat, tileId, fromSeat, op);
     }
 
     private static String choiceName(ConstProto.Operation choice) {
-        switch (choice) {
-            case MJ_HU: return "胡";
-            case MJ_GANG: return "杠";
-            case MJ_PENG: return "碰";
-            case MJ_CHI: return "吃";
-            case MJ_PASS: return "过";
-            default: return choice.name();
-        }
+        // 委托共享工具类，不在此重复 switch
+        return MjChoiceUtil.choiceName(choice);
     }
 
     private static int findSeat(MjTable table, int userId) {

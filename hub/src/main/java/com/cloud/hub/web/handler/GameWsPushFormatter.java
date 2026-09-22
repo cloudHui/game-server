@@ -2,77 +2,138 @@ package com.cloud.hub.web.handler;
 
 import com.google.protobuf.Message;
 import msg.registor.message.GMsg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import proto.GameProto;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * 将 Gate 推送的 Protobuf 转为前端 WebSocket JSON，独立于连接管理，便于复用与单测。
+ *
+ * <p>基于方法注解 {@link PushMapping} 自动绑定，新增推送消息类型时
+ * 只需在对应格式化方法上标注 {@code @PushMapping}，无需修改任何注册列表。
  */
-final class GameWsPushFormatter {
+public final class GameWsPushFormatter {
+
+    private static final Logger logger = LoggerFactory.getLogger(GameWsPushFormatter.class);
 
     private GameWsPushFormatter() {
     }
 
-    static String pushAction(int msgId) {
-        if (msgId == GMsg.NOT_CARD) return "notCard";
-        if (msgId == GMsg.NOT_OP) return "notOp";
-        if (msgId == GMsg.ACK_OP) return "ackOp";
-        if (msgId == GMsg.NOT_STATE || msgId == GMsg.NOT_TABLE_STATE) return "notState";
-        if (msgId == GMsg.NOT_RESULT) return "notResult";
-        if (msgId == GMsg.MJ_TILE_NOT) return "notMjState";
-        if (msgId == GMsg.NOT_ROUND_RESULT) return "notRoundResult";
-        if (msgId == GMsg.NOT_GAME_RESULT) return "notGameResult";
-        if (msgId == GMsg.ACK_ENTER_TABLE_MSG) return "seatUpdate";
-        return null;
+    // ==================== 注册表 ====================
+
+    /** 推送消息格式化函数接口。 */
+    @FunctionalInterface
+    private interface PushFormatter {
+        Object format(Message proto);
     }
 
-    static Object formatPush(int msgId, Message proto) {
-        if (proto instanceof GameProto.AckEnterTable) {
-            GameProto.AckEnterTable ack = (GameProto.AckEnterTable) proto;
-            Map<String, Object> m = new HashMap<>();
-            m.put("players", formatPlayers(ack.getPlayersList(), 0));
-            if (ack.hasTableInfo()) {
-                m.put("tableInfo", formatTableInfo(ack.getTableInfo()));
+    /** 单条注册项：msgId 对应的 WebSocket action 名与格式化逻辑。 */
+    private static final class PushEntry {
+        final String action;
+        final PushFormatter formatter;
+
+        PushEntry(String action, PushFormatter formatter) {
+            this.action = action;
+            this.formatter = formatter;
+        }
+    }
+
+    /**
+     * msgId → PushEntry 注册表。
+     * 由静态块根据 @PushMapping 方法注解自动发现并组装。
+     */
+    private static final Map<Integer, PushEntry> PUSH_REGISTRY = new HashMap<>();
+
+    static {
+        initPushMappings();
+    }
+
+    private static void initPushMappings() {
+        for (Method method : GameWsPushFormatter.class.getDeclaredMethods()) {
+            PushMapping mapping = method.getAnnotation(PushMapping.class);
+            if (mapping == null) {
+                continue;
             }
-            return m;
+            method.setAccessible(true);
+            Class<?> paramType = method.getParameterTypes().length > 0 ? method.getParameterTypes()[0] : null;
+            PushFormatter formatter = proto -> {
+                if (paramType != null && !paramType.isInstance(proto)) {
+                    logger.warn("推送消息类型不匹配: method={}, expected={}, actual={}",
+                            method.getName(), paramType.getSimpleName(), proto != null ? proto.getClass().getSimpleName() : "null");
+                    return Collections.emptyMap();
+                }
+                try {
+                    return method.invoke(null, proto);
+                } catch (Exception e) {
+                    logger.error("执行推送格式化失败: {}", method.getName(), e);
+                    return Collections.emptyMap();
+                }
+            };
+            if (mapping.values().length > 0) {
+                for (int msgId : mapping.values()) {
+                    PUSH_REGISTRY.put(msgId, new PushEntry(mapping.action(), formatter));
+                }
+            } else if (mapping.value() != 0) {
+                PUSH_REGISTRY.put(mapping.value(), new PushEntry(mapping.action(), formatter));
+            }
         }
-        if (proto instanceof GameProto.NotCard) {
-            return formatNotCard((GameProto.NotCard) proto);
-        }
-        if (proto instanceof GameProto.NotOperation) {
-            return formatNotOp((GameProto.NotOperation) proto);
-        }
-        if (proto instanceof GameProto.AckOp) {
-            return formatAckOp((GameProto.AckOp) proto);
-        }
-        if (proto instanceof GameProto.NotTableState) {
-            GameProto.NotTableState state = (GameProto.NotTableState) proto;
-            Map<String, Object> m = new HashMap<>();
-            m.put("state", state.getState());
-            m.put("currentRound", state.getCurrentRound());
-            m.put("totalRounds", state.getTotalRounds());
-            return m;
-        }
-        if (proto instanceof GameProto.NotResult) {
-            return formatNotResult((GameProto.NotResult) proto);
-        }
-        if (proto instanceof GameProto.NotMjState) {
-            return formatNotMjState((GameProto.NotMjState) proto);
-        }
-        if (proto instanceof GameProto.NotRoundResult) {
-            return formatNotRoundResult((GameProto.NotRoundResult) proto);
-        }
-        if (proto instanceof GameProto.NotGameResult) {
-            return formatNotGameResult((GameProto.NotGameResult) proto);
-        }
-        return new HashMap<>();
+        logger.info("GameWsPushFormatter 自动绑定完成，注册项数量: {}", PUSH_REGISTRY.size());
     }
 
-    static List<Map<String, Object>> formatPlayers(List<GameProto.Player> players, int currentRoleId) {
+    // ==================== 对外接口 ====================
+
+    /**
+     * 根据 msgId 返回对应的 WebSocket action 名。
+     *
+     * @return action 字符串；未注册的 msgId 返回 null
+     */
+    public static String pushAction(int msgId) {
+        PushEntry entry = PUSH_REGISTRY.get(msgId);
+        return entry != null ? entry.action : null;
+    }
+
+    /**
+     * 将 Gate 推送的 Protobuf 转为前端可识别的 JSON 对象。
+     *
+     * @return 格式化结果；未注册或 proto 为 null 时返回空 Map
+     */
+    public static Object formatPush(int msgId, Message proto) {
+        PushEntry entry = PUSH_REGISTRY.get(msgId);
+        if (entry == null || proto == null) return new HashMap<>();
+        return entry.formatter.format(proto);
+    }
+
+    // ==================== 内部格式化方法 ====================
+
+    /** AckEnterTable 格式化，运用于注册表中的 seatUpdate。 */
+    @PushMapping(value = GMsg.ACK_ENTER_TABLE_MSG, action = "seatUpdate")
+    private static Map<String, Object> formatEnterTable(GameProto.AckEnterTable ack) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("players", formatPlayers(ack.getPlayersList(), 0));
+        if (ack.hasTableInfo()) {
+            m.put("tableInfo", formatTableInfo(ack.getTableInfo()));
+        }
+        return m;
+    }
+
+    /** NotTableState 格式化，运用于 NOT_STATE 和 NOT_TABLE_STATE 两个 msgId。 */
+    @PushMapping(values = {GMsg.NOT_STATE, GMsg.NOT_TABLE_STATE}, action = "notState")
+    private static Map<String, Object> formatNotTableState(GameProto.NotTableState state) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("state", state.getState());
+        m.put("currentRound", state.getCurrentRound());
+        m.put("totalRounds", state.getTotalRounds());
+        return m;
+    }
+
+    public static List<Map<String, Object>> formatPlayers(List<GameProto.Player> players, int currentRoleId) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (GameProto.Player player : players) {
             Map<String, Object> p = new HashMap<>();
@@ -93,7 +154,7 @@ final class GameWsPushFormatter {
         return result;
     }
 
-    static Map<String, Object> formatTableInfo(GameProto.TableInfo tableInfo) {
+    public static Map<String, Object> formatTableInfo(GameProto.TableInfo tableInfo) {
         Map<String, Object> result = new HashMap<>();
         result.put("roomId", tableInfo.getRoomId());
         result.put("tableId", tableInfo.getTableId());
@@ -103,7 +164,7 @@ final class GameWsPushFormatter {
         return result;
     }
 
-    static Map<String, Object> formatSnapshot(GameProto.AckTableSnapshot n) {
+    public static Map<String, Object> formatSnapshot(GameProto.AckTableSnapshot n) {
         Map<String, Object> m = new HashMap<>();
         m.put("tableId", n.getTableId());
         m.put("gameType", n.getGameType());
@@ -166,6 +227,7 @@ final class GameWsPushFormatter {
         return m;
     }
 
+    @PushMapping(value = GMsg.ACK_OP, action = "ackOp")
     private static Map<String, Object> formatAckOp(GameProto.AckOp ack) {
         Map<String, Object> m = new HashMap<>();
         m.put("opId", ack.getOpId());
@@ -187,6 +249,7 @@ final class GameWsPushFormatter {
         return m;
     }
 
+    @PushMapping(value = GMsg.NOT_CARD, action = "notCard")
     private static Map<String, Object> formatNotCard(GameProto.NotCard n) {
         Map<String, Object> m = new HashMap<>();
         List<Map<String, Object>> nCards = new ArrayList<>();
@@ -206,6 +269,7 @@ final class GameWsPushFormatter {
         return m;
     }
 
+    @PushMapping(value = GMsg.NOT_OP, action = "notOp")
     private static Map<String, Object> formatNotOp(GameProto.NotOperation n) {
         Map<String, Object> m = new HashMap<>();
         m.put("opSeat", n.getOpSeat());
@@ -214,6 +278,7 @@ final class GameWsPushFormatter {
         return m;
     }
 
+    @PushMapping(value = GMsg.NOT_RESULT, action = "notResult")
     private static Map<String, Object> formatNotResult(GameProto.NotResult n) {
         Map<String, Object> m = new HashMap<>();
         m.put("winner", n.getWinner());
@@ -239,6 +304,7 @@ final class GameWsPushFormatter {
         return m;
     }
 
+    @PushMapping(value = GMsg.MJ_TILE_NOT, action = "notMjState")
     private static Map<String, Object> formatNotMjState(GameProto.NotMjState n) {
         Map<String, Object> m = new HashMap<>();
         m.put("opSeat", n.getOpSeat());
@@ -273,6 +339,7 @@ final class GameWsPushFormatter {
         return choices;
     }
 
+    @PushMapping(value = GMsg.NOT_ROUND_RESULT, action = "notRoundResult")
     private static Map<String, Object> formatNotRoundResult(GameProto.NotRoundResult n) {
         Map<String, Object> m = new HashMap<>();
         m.put("round", n.getRound());
@@ -327,6 +394,7 @@ final class GameWsPushFormatter {
         return out;
     }
 
+    @PushMapping(value = GMsg.NOT_GAME_RESULT, action = "notGameResult")
     private static Map<String, Object> formatNotGameResult(GameProto.NotGameResult n) {
         Map<String, Object> m = new HashMap<>();
         m.put("totalRounds", n.getTotalRounds());

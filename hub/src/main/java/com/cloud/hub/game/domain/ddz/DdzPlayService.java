@@ -5,7 +5,6 @@ import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.cards.CardOps;
 import com.cloud.hub.game.domain.ddz.ai.DdzSimpleAi;
 import com.cloud.hub.game.domain.replay.DdzReplayRecorder;
-import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
@@ -35,14 +34,15 @@ public final class DdzPlayService {
     public static void autoPlaySmallest(DdzTable table, int userId) {
         logger.info("斗地主超时自动出最小牌, tableId: {}, userId: {}", table.getTableId(), userId);
         TableUser user = table.getUsers().get(userId);
-        if (user == null || user.getCards().isEmpty()) return;
+        if (user == null || user.getCards().isEmpty())
+            return;
 
         List<Card> hand = user.getCards();
         Card smallest = Collections.min(hand);
 
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
-            ((DdzReplayRecorder) replay).recordAutoPlay(user.getSeated(), Collections.singletonList(smallest.getId()));
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
+            replay.recordAutoPlay(user.getSeated(), Collections.singletonList(smallest.getId()));
         }
 
         GameProto.OpInfo op = GameProto.OpInfo.newBuilder()
@@ -59,7 +59,8 @@ public final class DdzPlayService {
      */
     public static boolean autoPlayAi(DdzTable table, int userId) {
         TableUser user = table.getUsers().get(userId);
-        if (user == null) return false;
+        if (user == null)
+            return false;
         GameProto.OpInfo op = DdzSimpleAi.decide(table, user);
         return apply(table, userId, op) == ConstProto.Result.SUCCESS_VALUE;
     }
@@ -70,16 +71,17 @@ public final class DdzPlayService {
      */
     public static boolean autoPlayWholeHand(DdzTable table, int seat) {
         TableUser user = table.getSeatUser(seat);
-        if (user == null || !canPlayWholeHand(user.getCards(), table.getDdz().getLastHand())) return false;
+        if (user == null || !canPlayWholeHand(user.getCards(), table.getDdz().getLastHand()))
+            return false;
         List<Integer> ids = new ArrayList<>();
         GameProto.CardInfo.Builder cards = GameProto.CardInfo.newBuilder();
         for (Card card : user.getCards()) {
             ids.add(card.getId());
             cards.addCards(GameProto.Card.newBuilder().setValue(card.getId()));
         }
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
-            ((DdzReplayRecorder) replay).recordAutoPlay(seat, ids);
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
+            replay.recordAutoPlay(seat, ids);
         }
         logger.info("斗地主最后一手自动打出, tableId:{}, seat:{}, cards:{}", table.getTableId(), seat, ids);
         GameProto.OpInfo op = GameProto.OpInfo.newBuilder()
@@ -96,14 +98,17 @@ public final class DdzPlayService {
      * 应用操作（出牌/过牌）
      */
     public static int apply(DdzTable table, int userId, GameProto.OpInfo opInfo) {
-        if (table.getTableState() != TableState.IDLE_CARD) return ConstProto.Result.OP_CURR_ERROR_VALUE;
+        if (table.getTableState() != TableState.IDLE_CARD)
+            return ConstProto.Result.OP_CURR_ERROR_VALUE;
         TableUser user = table.getUsers().get(userId);
         if (user == null || user.getSeated() != table.getOp().getCurrOpSeat())
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
 
         ConstProto.Operation choice = opInfo.getChoice();
-        if (choice == ConstProto.Operation.PASS) return applyPass(table, userId);
-        if (choice == ConstProto.Operation.PLAY) return applyPlay(table, user, opInfo);
+        if (choice == ConstProto.Operation.PASS)
+            return applyPass(table, userId);
+        if (choice == ConstProto.Operation.PLAY)
+            return applyPlay(table, user, opInfo);
         return ConstProto.Result.OP_CURR_ERROR_VALUE;
     }
 
@@ -114,14 +119,15 @@ public final class DdzPlayService {
      */
     private static int applyPass(DdzTable table, int userId) {
         DdzTableContext ctx = table.getDdz();
-        if (ctx.getLastHand() == null) return ConstProto.Result.OP_CURR_ERROR_VALUE;
+        if (ctx.getLastHand() == null)
+            return ConstProto.Result.OP_CURR_ERROR_VALUE;
 
         TableUser user = table.getUsers().get(userId);
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder && user != null) {
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null && user != null) {
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌/过 → 客户端展示 出牌/过");
             replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 过");
-            ((DdzReplayRecorder) replay).recordPass(user.getSeated());
+            replay.recordPass(user.getSeated());
         }
 
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build());
@@ -133,7 +139,8 @@ public final class DdzPlayService {
         } else {
             table.getOp().moveToNextOp();
         }
-        if (replay != null) replay.writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
+        if (replay != null)
+            replay.writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
         table.getBanner().setRobBroadcastDone(false);
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
         return ConstProto.Result.SUCCESS_VALUE;
@@ -145,22 +152,28 @@ public final class DdzPlayService {
     private static int applyPlay(DdzTable table, TableUser user, GameProto.OpInfo opInfo) {
         DdzTableContext ctx = table.getDdz();
         List<Integer> ids = CardOps.collectIds(opInfo);
-        if (ids.isEmpty()) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        if (ids.isEmpty())
+            return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
 
         List<Card> selected = CardOps.pullFromHand(user, ids);
-        if (selected == null) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        if (selected == null)
+            return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
 
         Optional<DdzHand> parsed = DdzRules.analyze(selected);
-        if (!parsed.isPresent()) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        if (!parsed.isPresent())
+            return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
 
         DdzHand hand = parsed.get();
         if (ctx.getLastHand() == null) {
-            if (!user.removeCardsByProtoIds(ids)) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+            if (!user.removeCardsByProtoIds(ids))
+                return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
             afterSuccessfulPlay(table, user, hand);
             return ConstProto.Result.SUCCESS_VALUE;
         }
-        if (!DdzRules.beats(hand, ctx.getLastHand())) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
-        if (!user.removeCardsByProtoIds(ids)) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        if (!DdzRules.beats(hand, ctx.getLastHand()))
+            return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
+        if (!user.removeCardsByProtoIds(ids))
+            return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
         afterSuccessfulPlay(table, user, hand);
         return ConstProto.Result.SUCCESS_VALUE;
     }
@@ -181,17 +194,18 @@ public final class DdzPlayService {
         }
         ctx.recordPlayedCards(hand.getCards());
 
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
             List<Integer> ids = new ArrayList<>();
-            for (Card c : hand.getCards()) ids.add(c.getId());
+            for (Card c : hand.getCards())
+                ids.add(c.getId());
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 "
                     + (ctx.getLastHand() == null ? "出牌" : "出牌/过") + " → 客户端展示");
             replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
             replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
                     + " 强度 " + hand.getStrengthKey() + " 长度 " + hand.getCards().size()
                     + (hand.isRocket() ? " 王炸" : (hand.isBomb() ? " 炸弹" : "")));
-            ((DdzReplayRecorder) replay).recordPlay(user.getSeated(), ids);
+            replay.recordPlay(user.getSeated(), ids);
         }
 
         broadcastAck(table, user.getUserId(), GameProto.OpInfo.newBuilder()
@@ -201,14 +215,16 @@ public final class DdzPlayService {
         ctx.setLastPlayed(hand.toCardInfo());
         ctx.setConsecutivePasses(0);
         ctx.setLastPlaySeat(user.getSeated());
-        if (replay != null) replay.writeAuditEvent("当前最大方 座" + user.getSeated());
+        if (replay != null)
+            replay.writeAuditEvent("当前最大方 座" + user.getSeated());
 
         if (user.getCards().isEmpty()) {
             DdzSettleService.finishGame(table, user);
             return;
         }
         table.getOp().moveToNextOp();
-        if (replay != null) replay.writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
+        if (replay != null)
+            replay.writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
         table.getBanner().setRobBroadcastDone(false);
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
     }
@@ -216,7 +232,6 @@ public final class DdzPlayService {
     private static String source(TableUser user) {
         return user.isRobot() ? "机器人" : "玩家";
     }
-
 
     /**
      * 广播确认

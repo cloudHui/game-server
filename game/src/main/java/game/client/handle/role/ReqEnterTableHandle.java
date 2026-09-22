@@ -36,7 +36,6 @@ public class ReqEnterTableHandle {
             GameProto.ReqEnterTable request = ctx.getMsg();
             int clientId = ctx.getClientId();
             Sender sender = ctx.getSender();
-            int sequence = ctx.getSequence();
             long tableId = request.getTableId();
 
             logger.info("处理进入桌子请求, userId: {}, tableId: {}", clientId, tableId);
@@ -76,11 +75,11 @@ public class ReqEnterTableHandle {
     /**
      * 进入桌子逻辑处理
      *
-     * @param userId     玩家 ID
-     * @param tableId    桌子 ID
-     * @param gateId     网关连接 ID
-     * @param req        请求数据
-     * @param table      桌子实例
+     * @param userId  玩家 ID
+     * @param tableId 桌子 ID
+     * @param gateId  网关连接 ID
+     * @param req     请求数据
+     * @param table   桌子实例
      * @return 错误码（0 为成功）
      */
     private int processEnterTable(int userId, long tableId, int gateId, GameProto.ReqEnterTable req, Table table) {

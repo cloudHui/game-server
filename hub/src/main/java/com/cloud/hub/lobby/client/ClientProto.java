@@ -1,5 +1,6 @@
 package com.cloud.hub.lobby.client;
 
+import msg.annotation.ProcessType;
 import msg.registor.HandleTypeRegister;
 import net.handler.Handler;
 import net.handler.Handlers;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.trace.TracedHandler;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,8 +24,9 @@ public class ClientProto {
 
     public static void init() {
         try {
-            HandleTypeRegister.initFactory(ClientProto.class, handlers);
-            HandleTypeRegister.initFactory(handlers);
+            handlers.putAll(utils.registry.HandlerRegistry.buildSingle(
+                    Arrays.asList(ClientProto.class.getPackage().getName(), "tools.handle"),
+                    Handler.class, ProcessType.class, Integer.class));
             TracedHandler.wrapAll(handlers);
             logger.info("Lobby ClientProto 初始化完成, 处理器数量: {}", handlers.size());
         } catch (Exception e) {

@@ -27,13 +27,19 @@ public class HandleTypeRegister {
 
     private static final Logger logger = LoggerFactory.getLogger(HandleTypeRegister.class);
 
-    /** 默认扫描的处理器包名 */
+    /**
+     * 默认扫描的处理器包名
+     */
     private static final String DEFAULT_HANDLE_PACKAGE = "tools.handle";
 
-    /** 消息 ID -> Protobuf 消息类的映射 */
+    /**
+     * 消息 ID -> Protobuf 消息类的映射
+     */
     private static final Map<Integer, Class<?>> TRANS_MAP = new ConcurrentHashMap<>();
 
-    /** Protobuf 消息类 -> 消息 ID 的映射 */
+    /**
+     * Protobuf 消息类 -> 消息 ID 的映射
+     */
     private static final Map<Class<?>, Integer> MSG_TRANS_MAP = new ConcurrentHashMap<>();
 
     static {
@@ -46,7 +52,7 @@ public class HandleTypeRegister {
     private static void initLocalMethod() {
         try {
             long start = System.currentTimeMillis();
-            List<Class<? extends Object>> classes = ClassScanner.scan("msg.registor.message", Object.class, ClassType.class);
+            List<Class<?>> classes = ClassScanner.scan("msg.registor.message", Object.class, ClassType.class);
             for (Class<?> clazz : classes) {
                 bindTransMap(clazz);
             }
@@ -72,7 +78,7 @@ public class HandleTypeRegister {
                 Object fieldValue = field.get(null);
                 if (fieldValue instanceof Integer) {
                     int messageId = (Integer) fieldValue;
-                    Class<? extends Message> protoClass = (Class<? extends Message>) (Class<?>) annotation.value();
+                    Class<? extends Message> protoClass = (Class<? extends Message>) annotation.value();
                     TRANS_MAP.put(messageId, protoClass);
                     MSG_TRANS_MAP.put(protoClass, messageId);
                     MsgRouter.getInstance().register(messageId, protoClass, annotation.des());
@@ -98,7 +104,18 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 使用默认包名扫描并初始化基于整数键的处理器
+     * 解析消息字节数据为 Protocol Buffer 消息对象，统一委派由 MsgRouter 的高性能预编译 Parser 解析
+     *
+     * @param messageId 消息 ID
+     * @param bytes     二进制消息数据
+     * @return 解析后的消息对象，失败则返回 null
+     */
+    public static Message parseMessage(int messageId, byte[] bytes) {
+        return MsgRouter.getInstance().parseMessage(messageId, bytes);
+    }
+
+    /**
+     * 使用默认包名扫描并初始化基于整数键的处理器（兼容历史方法）
      *
      * @param handles 处理器存储容器
      * @param <T>     处理器接口类型
@@ -108,43 +125,51 @@ public class HandleTypeRegister {
     }
 
     /**
-     * 根据指定类所在的包名扫描并初始化基于整数键的处理器
+     * 根据指定类所在的包名扫描并初始化基于整数键的处理器（兼容历史方法）
      *
      * @param packageClass 目标包内的代表类
      * @param handles      处理器存储容器
      * @param <T>          处理器接口类型
      */
     public static <T> void initFactory(Class<?> packageClass, Map<Integer, T> handles) {
-        String packageName = packageClass.getPackage().getName();
-        initFactory(packageName, handles);
+        initFactory(packageClass.getPackage().getName(), handles);
     }
 
     /**
-     * 根据包路径扫描带有 @ProcessType 注解的处理器并加入集合
+     * 根据包路径扫描带有 @ProcessType 注解的处理器并加入集合（兼容历史方法）
      *
      * @param packageName 目标包名
      * @param handles     处理器存储容器
      * @param <T>         处理器接口类型
      */
-    private static <T> void initFactory(String packageName, Map<Integer, T> handles) {
-        Map<Integer, T> mapped = HandlerRegistry.buildSingle(packageName, null, ProcessType.class, Integer.class);
-        handles.putAll(mapped);
+    public static <T> void initFactory(String packageName, Map<Integer, T> handles) {
+        handles.putAll(HandlerRegistry.buildSingle(packageName, null, ProcessType.class, Integer.class));
     }
 
     /**
-     * 扫描带有 @ProcessEnum 注解的处理器，绑定 TableState 状态机对应处理逻辑
+     * 扫描带有 @ProcessEnum 注解的处理器，绑定 TableState 状态机对应处理逻辑（兼容历史方法）
      *
      * @param packageClass 目标包内的代表类
      * @param handles      状态处理器集合
      * @param <T>          处理器接口类型
      */
     public static <T> void initFactoryEnum(Class<?> packageClass, Map<TableState, T> handles) {
-        Map<TableState, T> mapped = HandlerRegistry.buildSingle(packageClass.getPackage().getName(), null, ProcessEnum.class, TableState.class);
-        handles.putAll(mapped);
+        initFactoryEnum(packageClass.getPackage().getName(), handles);
     }
 
     /**
-     * 扫描带有 @ProcessClass 注解的处理器，按消息 Class 类型绑定处理映射
+     * 根据包路径扫描带有 @ProcessEnum 注解的处理器并绑定 TableState 映射（兼容历史方法）
+     *
+     * @param packageName 目标根包名（会递归扫描所有子包）
+     * @param handles     状态处理器集合
+     * @param <T>         处理器接口类型
+     */
+    public static <T> void initFactoryEnum(String packageName, Map<TableState, T> handles) {
+        handles.putAll(HandlerRegistry.buildSingle(packageName, null, ProcessEnum.class, TableState.class));
+    }
+
+    /**
+     * 扫描带有 @ProcessClass 注解的处理器，按消息 Class 类型绑定处理映射（兼容历史方法）
      *
      * @param factoryClass 目标包内的代表类
      * @param handles      类映射处理器集合
@@ -152,19 +177,8 @@ public class HandleTypeRegister {
      */
     @SuppressWarnings("unchecked")
     public static <T> void initClassFactory(Class<?> factoryClass, Map<Class<?>, T> handles) {
-        Map<Class<?>, T> mapped = (Map<Class<?>, T>) (Map<?, ?>) HandlerRegistry.buildSingle(
+        Map<Class<?>, T> mapped = HandlerRegistry.buildSingle(
                 factoryClass.getPackage().getName(), null, ProcessClass.class, (Class<Class<?>>) (Class<?>) Class.class);
         handles.putAll(mapped);
-    }
-
-    /**
-     * 解析消息字节数据为 Protocol Buffer 消息对象，统一委派由 MsgRouter 的高性能预编译 Parser 解析
-     *
-     * @param messageId 消息 ID
-     * @param bytes     二进制消息数据
-     * @return 解析后的消息对象，失败则返回 null
-     */
-    public static Message parseMessage(int messageId, byte[] bytes) {
-        return MsgRouter.getInstance().parseMessage(messageId, bytes);
     }
 }

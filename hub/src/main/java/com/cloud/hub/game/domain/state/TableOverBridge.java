@@ -41,7 +41,7 @@ public class TableOverBridge extends AbstractTableHandle {
         if (shouldEndRobotRoom(table)) {
             logger.info("机器人房真人均已离线，结束对局, tableId: {}, round: {}",
                     table.getTableId(), table.getCurrentRound());
-            TableSettleSupport.sendFinalResultAndRemove(table);
+            table.dismissAndSettle();
             return;
         }
         // 15 秒小结算结束：自动开下一局（autoNextRound/机器人房），否则总结算并散桌。
@@ -53,7 +53,7 @@ public class TableOverBridge extends AbstractTableHandle {
                 return;
             }
         }
-        TableSettleSupport.sendFinalResultAndRemove(table);
+        table.dismissAndSettle();
     }
 
     private static boolean shouldEndRobotRoom(Table table) {

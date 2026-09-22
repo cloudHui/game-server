@@ -149,4 +149,66 @@ public class PdkTable extends Table {
         TableUser user = getSeatUser(getOp().getCurrOpSeat());
         return user != null && !PdkRules.canBeat(user.getCards(), pdk.getLastHand());
     }
+
+    // ======================== 状态机多态实现 ========================
+
+    @Override
+    public boolean onCardTiming() {
+        int seat = getOp().getCurrOpSeat();
+        getOp().clearChoiceMap();
+        // 跑得快：管不上只下发不出；首出/能管只下发出牌
+        GameProto.OpInfo choice = currentOpChoice();
+        getOp().addPosOpInfo(seat, choice);
+        GameProto.NotOperation.Builder nb = GameProto.NotOperation.newBuilder()
+                .setWait(TableState.IDLE_CARD.getOverTime())
+                .setOpSeat(seat)
+                .addChoice(choice);
+        sendTableMessage(nb.build(), GMsg.NOT_OP);
+        upNextState();
+        return false;
+    }
+
+    @Override
+    public void onCardOverTime() {
+        int seat = getOp().getCurrOpSeat();
+        TableUser u = getSeatUser(seat);
+        if (u == null) return;
+        if (PdkPlayService.autoPlayAi(this, u.getUserId())) return;
+        if (pdk.getLastHand() == null) {
+            PdkPlayService.autoPlaySmallest(this, u.getUserId());
+            return;
+        }
+        // 有牌必管：能压则不能 PASS，只能再走 AI/出牌；关不上才允许过
+        if (canCurrentPlayerPass()) {
+            PdkPlayService.apply(this, u.getUserId(),
+                    proto.GameProto.OpInfo.newBuilder().setChoice(proto.ConstProto.Operation.PASS).build());
+        }
+    }
+
+    @Override
+    public TableState getInitialStartState() {
+        return TableState.CARD;
+    }
+
+    @Override
+    public void onGameStarted() {
+        // 跑得快首出座位在 dealCards 中根据手牌(如黑桃3)设定，无需重置为 0
+    }
+
+    @Override
+    public String getGameDisplayName() {
+        return "跑得快";
+    }
+
+    /**
+     * 获取强类型的跑得快扑克对局录像记录器。
+     * <p>
+     * 消除外部 {@link PdkPlayService} 等服务类在记录出牌动作时的频繁强转。
+     *
+     * @return 强类型的 {@link PokerReplayRecorder} 实例，若未启用或类型不匹配则返回 null
+     */
+    public PokerReplayRecorder getPokerReplay() {
+        ReplayRecorder r = getReplayRecorder();
+        return (r instanceof PokerReplayRecorder) ? (PokerReplayRecorder) r : null;
+    }
 }

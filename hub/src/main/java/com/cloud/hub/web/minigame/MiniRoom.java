@@ -1,9 +1,18 @@
 package com.cloud.hub.web.minigame;
 
+import com.cloud.hub.web.minigame.chess.ChessEngine;
+import com.cloud.hub.web.minigame.gomoku.GomokuEngine;
 import java.util.UUID;
 
 /**
- * 休闲小游戏房间（五子棋 / 象棋 1v1）
+ * 休闲小游戏房间（1v1 对局）。
+ * <p>
+ * <b>职责边界与使用场景：</b>
+ * <ul>
+ *   <li>管理房间内双方玩家的会话、ID 与昵称映射；</li>
+ *   <li>持有 {@link MiniGameEngine} 引擎实例，将具体棋类的差异性操作委托给引擎多态处理；</li>
+ *   <li>由 {@link com.cloud.hub.web.handler.MiniGameWebSocketHandler} 在匹配成功时创建。</li>
+ * </ul>
  */
 public class MiniRoom {
     public enum GameType {
@@ -19,8 +28,8 @@ public class MiniRoom {
     private final int playerBUserId;
     private final String playerBName;
 
-    private final GomokuBoard gomoku;
-    private final ChessBoard chess;
+    /** 统一引擎实例，封装具体棋类的全部差异化操作 */
+    private final MiniGameEngine engine;
 
     public MiniRoom(GameType gameType,
                     String aSession, int aUserId, String aName,
@@ -32,8 +41,8 @@ public class MiniRoom {
         this.playerBSession = bSession;
         this.playerBUserId = bUserId;
         this.playerBName = bName == null || bName.isEmpty() ? ("玩家" + bUserId) : bName;
-        this.gomoku = gameType == GameType.GOMOKU ? new GomokuBoard() : null;
-        this.chess = gameType == GameType.CHESS ? new ChessBoard() : null;
+        // 根据游戏类型创建对应引擎，新增棋类只需在此追加一行
+        this.engine = gameType == GameType.CHESS ? new ChessEngine() : new GomokuEngine();
     }
 
     public String getRoomId() {
@@ -42,6 +51,15 @@ public class MiniRoom {
 
     public GameType getGameType() {
         return gameType;
+    }
+
+    /**
+     * 获取统一引擎实例。
+     * <p>
+     * Handler 通过此方法多态调用落子、认输、快照等操作，无需关心具体棋类。
+     */
+    public MiniGameEngine getEngine() {
+        return engine;
     }
 
     public String getPlayerASession() {
@@ -68,14 +86,6 @@ public class MiniRoom {
         return playerBName;
     }
 
-    public GomokuBoard getGomoku() {
-        return gomoku;
-    }
-
-    public ChessBoard getChess() {
-        return chess;
-    }
-
     public boolean containsSession(String sessionId) {
         return playerASession.equals(sessionId) || playerBSession.equals(sessionId);
     }
@@ -91,9 +101,12 @@ public class MiniRoom {
     }
 
     /**
-     * 五子棋：A 执黑；象棋：A 执红
+     * 判断指定会话是否为 A 方（先手）。
+     * <p>
+     * 五子棋中 A 执黑先手，象棋中 A 执红先手。
      */
     public boolean isSideA(String sessionId) {
         return playerASession.equals(sessionId);
     }
 }
+

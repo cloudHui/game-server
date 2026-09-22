@@ -1,44 +1,52 @@
 package com.cloud.hub.game.domain.state;
 
 import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.mj.state.MjDeal;
-import msg.registor.HandleTypeRegister;
+import msg.annotation.ProcessEnum;
 import msg.registor.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.registry.HandlerRegistry;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * 桌子状态处理器全局管理器。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ * <li>负责管理扑克/麻将桌子核心生命周期状态机（Waiting、Deal、Rob、Play、Discard、Claim 等）；</li>
+ * <li>依托 {@link HandlerRegistry#buildSingle} 在类加载阶段自动扫描
+ * {@code com.cloud.hub.game.domain}
+ * 包下所有标注 {@link ProcessEnum} 的 {@link AbstractTableHandle} 实现类并构建不可变单例映射；</li>
+ * <li>在 {@code Table.tick()} 周期循环中按当前状态 {@link TableState}
+ * 路由分发给对应的状态处理器执行。</li>
+ * </ul>
+ *
  * @author cloud
  * @version 1.0
- * @date 2026-05-03
- * @className TableStateHandleManager
- * @description 桌子状态处理器管理器
- * @createDate 2025/10/20 16:53
- * @since 1.0
  */
 public class TableStateHandleManager {
 
     private static final Logger logger = LoggerFactory.getLogger(TableStateHandleManager.class);
 
-    private static final Map<TableState, AbstractTableHandle> STATE_TABLE_HANDLE_MAP = new HashMap<>();
+    private static final Map<TableState, AbstractTableHandle> STATE_TABLE_HANDLE_MAP = HandlerRegistry
+            .buildSingle("com.cloud.hub.game.domain", AbstractTableHandle.class, ProcessEnum.class, TableState.class);
     /**
      * 缺 Handle 只告警一次，避免桌循环刷屏。
      */
     private static final Set<String> MISSING_HANDLE_LOGGED = ConcurrentHashMap.newKeySet();
 
     static {
-        HandleTypeRegister.initFactoryEnum(TableStateHandleManager.class, STATE_TABLE_HANDLE_MAP);
-        // 麻将状态处理器位于独立兄弟包，必须作为单独扫描根注册。
-        HandleTypeRegister.initFactoryEnum(MjDeal.class, STATE_TABLE_HANDLE_MAP);
+        // 校验麻将核心状态处理器是否都已注册，缺少任何一个则抛出异常终止初始化。
         validateRequiredHandles();
     }
 
+    /**
+     * 校验麻将核心状态处理器是否都已注册，缺少任何一个则抛出异常终止初始化。
+     */
     private static void validateRequiredHandles() {
         Set<TableState> required = EnumSet.of(
                 TableState.MJ_DEAL,
@@ -51,6 +59,12 @@ public class TableStateHandleManager {
         }
     }
 
+    /**
+     * 校验指定状态是否已注册对应的处理器。
+     *
+     * @param state 状态枚举
+     * @return true 表示已注册，false 表示未注册
+     */
     static boolean hasHandle(TableState state) {
         return STATE_TABLE_HANDLE_MAP.containsKey(state);
     }

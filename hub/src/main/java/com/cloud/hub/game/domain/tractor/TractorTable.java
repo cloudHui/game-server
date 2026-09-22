@@ -187,9 +187,126 @@ public class TractorTable extends Table {
     private int tractorStateDuration() {
         if (getTableState() == TableState.IDLE_ROB) return TractorBidService.DECLARE_SECONDS;
         if (getTableState() == TableState.IDLE_SHOW_CARD) {
-            return IdleShowCard.TRACTOR_BURY_SECONDS;
+            return TRACTOR_BURY_SECONDS;
         }
         return getTableState().getOverTime();
+    }
+
+    // ======================== 状态机多态实现 ========================
+
+    @Override
+    public boolean onRobTiming() {
+        TractorBidService.notifyCurrent(this);
+        upNextState();
+        return false;
+    }
+
+    @Override
+    public boolean onIdleRobHandle() {
+        long now = System.currentTimeMillis();
+        int seat = getOp().getCurrOpSeat();
+        TableUser u = getSeatUser(seat);
+        if (u != null && u.isRobot()
+                && now >= getStateStartTime() + com.cloud.hub.game.domain.table.RobotOperationDelay.randomMillis()) {
+            TractorBidService.autoBid(this, seat);
+            return true;
+        }
+        if (now >= getStateStartTime() + TractorBidService.DECLARE_SECONDS * 1000L) {
+            onRobOverTime();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onRobOverTime() {
+        TractorBidService.onTimeout(this);
+    }
+
+    @Override
+    public boolean onCardTiming() {
+        int seat = getOp().getCurrOpSeat();
+        getOp().clearChoiceMap();
+        GameProto.OpInfo play = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PLAY).build();
+        getOp().addPosOpInfo(seat, play);
+        GameProto.NotOperation.Builder nb = GameProto.NotOperation.newBuilder()
+                .setWait(TableState.IDLE_CARD.getOverTime())
+                .setOpSeat(seat)
+                .addChoice(play);
+        // 拖拉机每轮都要跟牌，无“过牌”
+        sendTableMessage(nb.build(), GMsg.NOT_OP);
+        upNextState();
+        return false;
+    }
+
+    @Override
+    public long getRobotCardDelay() {
+        long delay = super.getRobotCardDelay();
+        if (tractor.getLeadCombo() == null) {
+            return Math.max(delay, 2_000L);
+        }
+        return delay;
+    }
+
+    @Override
+    public void onCardOverTime() {
+        TractorPlayService.autoPlay(this, getOp().getCurrOpSeat());
+    }
+
+    @Override
+    public boolean onStartAniTiming() {
+        return TractorDealService.onTiming(this);
+    }
+
+    public static final int TRACTOR_BURY_SECONDS = 30;
+
+    @Override
+    public boolean onIdleShowCardHandle() {
+        int seat = tractor.getBottomHolderSeat();
+        if (seat < 0) seat = tractor.getBankerSeat();
+        TableUser u = getSeatUser(seat);
+        long now = System.currentTimeMillis();
+        long deadline = getStateStartTime() + TRACTOR_BURY_SECONDS * 1000L;
+
+        if (u != null && u.isRobot()
+                && now >= getStateStartTime() + com.cloud.hub.game.domain.table.RobotOperationDelay.randomMillis()) {
+            finishBuryAndPlay(seat);
+            return true;
+        }
+        if (now >= deadline) {
+            finishBuryAndPlay(seat);
+            return true;
+        }
+        return true;
+    }
+
+    @Override
+    public void onIdleShowCardOverTime() {
+        finishBuryAndPlay(tractor.getBankerSeat());
+    }
+
+    private void finishBuryAndPlay(int seat) {
+        if (tractor.getBuriedCards().isEmpty()) {
+            cardPool.autoBury(this, seat);
+        }
+        getOp().setCurrOpSeat(seat);
+        tractor.setTrickLeader(seat);
+        upNextState(TableState.CARD);
+    }
+
+    @Override
+    public void onGameStarted() {
+        // 首出座位已在 dealCards 中由庄家设定，无需默认重置为 0
+    }
+
+    @Override
+    public boolean shouldRecordInitHands() {
+        return false;
+    }
+
+    @Override
+    public String getGameDisplayName() {
+        return "拖拉机";
     }
 
     public TractorCardPool getCardPool() {
@@ -198,5 +315,17 @@ public class TractorTable extends Table {
 
     public TractorTableContext getTractor() {
         return tractor;
+    }
+
+    /**
+     * 获取强类型的拖拉机扑克对局录像记录器。
+     * <p>
+     * 消除外部出牌、叫分、扣底逻辑中繁复的 {@code if (replay instanceof PokerReplayRecorder)} 强转。
+     *
+     * @return 强类型的 {@link PokerReplayRecorder} 实例，若未启用或类型不匹配则返回 null
+     */
+    public PokerReplayRecorder getPokerReplay() {
+        ReplayRecorder r = getReplayRecorder();
+        return (r instanceof PokerReplayRecorder) ? (PokerReplayRecorder) r : null;
     }
 }

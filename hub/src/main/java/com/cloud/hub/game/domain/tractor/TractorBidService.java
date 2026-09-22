@@ -352,10 +352,10 @@ public final class TractorBidService {
     private static void broadcastAck(TractorTable table, int actorUserId, GameProto.OpInfo op) {
         TractorTableContext ctx = table.getTractor();
         TableUser actor = table.getUsers().get(actorUserId);
-        if (actor != null && table.getReplayRecorder() instanceof PokerReplayRecorder) {
+        PokerReplayRecorder replay = table.getPokerReplay();
+        if (actor != null && replay != null) {
             String action = op.getChoice() == ConstProto.Operation.CALL ? "亮主"
                     : op.getChoice() == ConstProto.Operation.ROB ? "反主" : "过";
-            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
             replay.writeAuditEvent("座" + actor.getSeated() + " 收到选项 亮主/反主/过 → 客户端展示");
             replay.writeAuditEvent("座" + actor.getSeated() + " " + (actor.isRobot() ? "机器人" : "玩家") + "选择 " + action);
             replay.recordDeclare(

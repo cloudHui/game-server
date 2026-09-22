@@ -3,9 +3,6 @@ package com.cloud.hub.game.client.handle.role;
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.ddz.DdzSettleService;
-import com.cloud.hub.game.domain.mj.MjSettleService;
-import com.cloud.hub.game.domain.mj.MjTable;
 import com.google.protobuf.Message;
 import msg.annotation.ProcessType;
 import msg.registor.enums.TableState;
@@ -19,7 +16,14 @@ import proto.ConstProto;
 import proto.GameProto;
 
 /**
- * 处理玩家请求离开桌子
+ * 处理玩家请求离桌消息。
+ * <p>
+ * <b>职责边界：</b>
+ * <ul>
+ *   <li>等待阶段离桌：将玩家移出桌子，若桌空或无真人则异步销毁桌子；</li>
+ *   <li>对局中离桌：直接解散牌局，通过 {@link Table#dismissAndSettle()}
+ *       多态广播总结算并销毁桌子。</li>
+ * </ul>
  */
 @ProcessType(GMsg.REQ_LEAVE)
 public class ReqLeaveTableHandle implements Handler {
@@ -62,18 +66,11 @@ public class ReqLeaveTableHandle implements Handler {
 
         long tableId = table.getTableId();
 
-        // 游戏中离开: 解散牌局, 发送总结算
+        // 游戏中离开: 解散牌局, 广播总结算并销毁桌子
         if (table.gaming()) {
             logger.info("游戏中玩家离开, 解散牌局, userId: {}, tableId: {}", userId, tableId);
-            if (table.isMultiRound()) {
-                if (table.getGameType() == 1) {
-                    MjSettleService.sendGameResult((MjTable) table);
-                } else {
-                    DdzSettleService.sendGameResult(table);
-                }
-            }
             table.removeUser(user);
-            Game.getInstance().getTableManager().removeTableAsync(tableId);
+            table.dismissAndSettle();
             return ConstProto.Result.SUCCESS_VALUE;
         }
 

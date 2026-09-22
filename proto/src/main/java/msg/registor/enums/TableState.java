@@ -4,21 +4,21 @@ package msg.registor.enums;
  * 桌子运行状态
  */
 public enum TableState {
+	IDLE_CARD(8, "等玩家出牌操作开始", 20),
+	CARD(7, "玩家出牌通知", IDLE_CARD),
+	IDLE_SHOW_CARD(6, "等地主明牌", 5, CARD),
+	SHOW_CARD(5, "地主明牌通知", IDLE_SHOW_CARD),
 	IDLE_ROB(4, "等玩家抢地主开始", 8),
 	ROB(3, "玩家抢地主通知", IDLE_ROB),
 	START_ANI(2, "开始动画(或者发牌)", 3, ROB),
 	WAITING(1, "等人开始", START_ANI),
-	IDLE_CARD(8, "等玩家出牌操作开始", 20),
-	CARD(7, "玩家出牌通知", IDLE_CARD),
-	IDLE_SHOW_CARD(6, "等地主明牌", 5),
-	SHOW_CARD(5, "地主明牌通知", IDLE_SHOW_CARD),
 	TABLE_DIS(9, "牌局解散"),
 	TABLE_OVER(10, "牌局结束", 15),
 	ROUND_OVER(11, "等人准备下一局", START_ANI),
-	MJ_PLAY(13, "麻将摸牌"),
-	MJ_DEAL(12, "麻将发牌", 3, MJ_PLAY),
 	MJ_DISCARD(14, "麻将出牌", 15),
-	MJ_CLAIM(15, "麻将claim等待", 15),
+	MJ_PLAY(13, "麻将摸牌", -1, MJ_DISCARD),
+	MJ_DEAL(12, "麻将发牌", 3, MJ_PLAY),
+	MJ_CLAIM(15, "麻将claim等待", 15, MJ_PLAY),
 	;
 
 	private final int id;

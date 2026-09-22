@@ -11,11 +11,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import com.cloud.hub.game.Game;
-import com.cloud.hub.game.client.handle.role.ReqEnterTableHandle;
-import com.cloud.hub.game.client.handle.role.ReqLeaveTableHandle;
-import com.cloud.hub.game.client.handle.role.ReqOpHandle;
-import com.cloud.hub.game.client.handle.role.ReqTableHeartbeatHandle;
-import com.cloud.hub.game.client.handle.role.ReqTableSnapshotHandle;
 import com.cloud.hub.game.runtime.GamePushBus;
 import com.cloud.hub.lobby.manager.User;
 import com.cloud.hub.lobby.manager.UserManager;
@@ -23,9 +18,9 @@ import com.cloud.hub.lobby.manager.table.TableInfo;
 import com.cloud.hub.lobby.manager.table.TableManager;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
+import msg.annotation.ProcessType;
 import msg.registor.message.GMsg;
 import msg.registor.message.LMsg;
 import net.client.Sender;
@@ -34,20 +29,60 @@ import net.message.TCPMessage;
 import proto.ConstProto;
 import proto.LobbyProto;
 import proto.ModelProto;
+import utils.registry.HandlerRegistry;
+
+import java.util.HashMap;
 
 /**
- * Hub 内置网关。保留原消息协议边界，但请求不再经过 Gate TCP 服务。
+ * Hub 内置高性能进程内网关传输实现。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>完全替代历史外部 Gate TCP 网络中转，在 Hub 单体进程内部直接通过虚拟连接完成请求分发与异步响应拦截；</li>
+ *   <li>通过底层工具类 {@link HandlerRegistry#buildSingle} 自动扫描装配标注了 {@link ProcessType} 的消息 {@link Handler} 集合；</li>
+ *   <li>被各 Web Controller、Command 及 WebSocket 处理器作为 {@link GatewayTransport} 首选 Bean 依赖注入并使用。</li>
+ * </ul>
  */
 @Primary
 @Component
 public final class LocalGatewayTransport implements GatewayTransport {
+
+    /**
+     * msgId → Handler 注册表，由 {@code @ProcessType} 扫描自动装配。
+     * 处理类映射表 (基于 @ProcessType 自动发现并注册)。
+     */
+    private static final Map<Integer, Handler> HANDLER_MAP =
+            HandlerRegistry.buildSingle("com.cloud.hub.game.client.handle.role", Handler.class, ProcessType.class, Integer.class);
+
+    /**
+     * 发送后生命周期回调函数接口。
+     */
+    @FunctionalInterface
+    private interface PostSendHook {
+        void apply(int userId, Message msg, CompletableFuture<Message> future);
+    }
+
+    /** 消息类的 getTableId 方法缓存，避免每次请求反射查找 */
+    private static final Map<Class<?>, java.lang.reflect.Method> TABLE_ID_METHODS = new ConcurrentHashMap<>();
+
     private final Map<String, Integer> sessionUsers = new ConcurrentHashMap<>();
     private final Map<Integer, String> userSessions = new ConcurrentHashMap<>();
     private final Map<Integer, Long> activeTables = new ConcurrentHashMap<>();
     private volatile BiConsumer<String, TCPMessage> pushListener;
 
+    /**
+     * 发送后生命周期回调注册表（替代 sendAndWait 里的 msgId 判断）。
+     */
+    private final Map<Integer, PostSendHook> postSendHooks = new HashMap<>();
+
     public LocalGatewayTransport() {
         GamePushBus.install(this::forwardPush);
+        // 生命周期回调：进入桌子时记录 activeTables
+        postSendHooks.put(GMsg.REQ_ENTER_TABLE_MSG, (userId, msg, future) ->
+            activeTables.put(userId, tableId(userId, GMsg.REQ_ENTER_TABLE_MSG, msg)));
+        // 生命周期回调：离开桌子时清除 activeTables
+        postSendHooks.put(GMsg.REQ_LEAVE, (userId, msg, future) ->
+            future.whenComplete((ok, error) -> activeTables.remove(userId)));
     }
 
     @Override
@@ -86,11 +121,9 @@ public final class LocalGatewayTransport implements GatewayTransport {
         long tableId = tableId(userId, msgId, message);
         try {
             handler.handler(sender, userId, message, tableId, 1);
-            if (msgId == GMsg.REQ_ENTER_TABLE_MSG) {
-                activeTables.put(userId, ((proto.GameProto.ReqEnterTable) message).getTableId());
-            }
-            if (msgId == GMsg.REQ_LEAVE)
-                sender.message.whenComplete((ok, error) -> activeTables.remove(userId));
+            // 生命周期回调（进入/离开桂子等），集中在 postSendHooks 中管理
+            PostSendHook hook = postSendHooks.get(msgId);
+            if (hook != null) hook.apply(userId, message, sender.message);
             return sender.message;
         } catch (Exception error) {
             return failed(error.getMessage());
@@ -175,27 +208,30 @@ public final class LocalGatewayTransport implements GatewayTransport {
     }
 
     private long tableId(int userId, int msgId, Message message) {
-        if (msgId == GMsg.REQ_ENTER_TABLE_MSG)
-            return ((proto.GameProto.ReqEnterTable) message).getTableId();
-        if (msgId == GMsg.REQ_TABLE_SNAPSHOT)
-            return ((proto.GameProto.ReqTableSnapshot) message).getTableId();
-        if (msgId == GMsg.REQ_TABLE_HEARTBEAT)
-            return ((proto.GameProto.ReqTableHeartbeat) message).getTableId();
+        if (message != null) {
+            try {
+                java.lang.reflect.Method method = TABLE_ID_METHODS.computeIfAbsent(message.getClass(), clazz -> {
+                    try {
+                        return clazz.getMethod("getTableId");
+                    } catch (NoSuchMethodException e) {
+                        return null;
+                    }
+                });
+                if (method != null) {
+                    Object val = method.invoke(message);
+                    if (val instanceof Number) {
+                        return ((Number) val).longValue();
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
         return activeTables.getOrDefault(userId, 0L);
     }
 
     private static Handler handler(int msgId) {
-        if (msgId == GMsg.REQ_ENTER_TABLE_MSG)
-            return new ReqEnterTableHandle();
-        if (msgId == GMsg.REQ_TABLE_SNAPSHOT)
-            return new ReqTableSnapshotHandle();
-        if (msgId == GMsg.REQ_OP)
-            return new ReqOpHandle();
-        if (msgId == GMsg.REQ_LEAVE)
-            return new ReqLeaveTableHandle();
-        if (msgId == GMsg.REQ_TABLE_HEARTBEAT)
-            return new ReqTableHeartbeatHandle();
-        return null;
+        // 全部由 HANDLER_MAP 达成均一个 Map.get，扫描自动装配，无需手写 if 链
+        return HANDLER_MAP.get(msgId);
     }
 
     private Integer requireUser(String sessionId) {

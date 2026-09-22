@@ -16,7 +16,14 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * 跑得快牌池：48 张（去大小王、去掉一张黑桃2、一张黑桃A），每人 16 张。
+ * 跑得快专属牌池组件。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>强类型持有 {@link PdkTable} 引用，消灭类型转换冗余；</li>
+ *   <li>负责 16 张经典跑得快 48 张牌的特殊过滤（剔除大小王、黑桃 A、黑桃 2）与平均发牌（3人各16张）；</li>
+ *   <li>首局开局自动检测并定位抓到方块 3 的玩家作为先出人。</li>
+ * </ul>
  */
 public class PdkCardPool {
 
@@ -32,9 +39,9 @@ public class PdkCardPool {
     public static final int DIAMOND_3 = 103;
 
     private final List<Card> poolCards = new ArrayList<>();
-    private final Table table;
+    private final PdkTable table;
 
-    public PdkCardPool(Table table) {
+    public PdkCardPool(PdkTable table) {
         this.table = table;
     }
 

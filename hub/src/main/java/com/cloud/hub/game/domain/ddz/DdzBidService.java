@@ -3,7 +3,6 @@ package com.cloud.hub.game.domain.ddz;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.banner.Banner;
 import com.cloud.hub.game.domain.replay.DdzReplayRecorder;
-import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import msg.registor.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
@@ -120,15 +119,15 @@ public final class DdzBidService {
         }
         banner.addCalledScore(score);
 
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 不叫/叫1分/叫2分/叫3分 → 客户端展示");
             replay.writeAuditEvent("座" + user.getSeated() + " " + (user.isRobot() ? "机器人" : "玩家")
                     + "选择 " + (score > 0 ? "叫" + score + "分" : "不叫"));
             if (score > 0) {
-                ((DdzReplayRecorder) replay).recordBid(user.getSeated(), score);
+                replay.recordBid(user.getSeated(), score);
             } else {
-                ((DdzReplayRecorder) replay).recordNotCall(user.getSeated());
+                replay.recordNotCall(user.getSeated());
             }
         }
 
@@ -194,15 +193,15 @@ public final class DdzBidService {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
 
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 抢地主/不抢 → 客户端展示");
             replay.writeAuditEvent("座" + user.getSeated() + " " + (user.isRobot() ? "机器人" : "玩家")
                     + "选择 " + (cv == ConstProto.Operation.ROB_VALUE ? "抢地主" : "不抢"));
             if (cv == ConstProto.Operation.ROB_VALUE) {
-                ((DdzReplayRecorder) replay).recordRob(user.getSeated());
+                replay.recordRob(user.getSeated());
             } else {
-                ((DdzReplayRecorder) replay).recordNotRob(user.getSeated());
+                replay.recordNotRob(user.getSeated());
             }
         }
 
@@ -242,10 +241,10 @@ public final class DdzBidService {
         table.getDdz().setLandlordPlayCount(0);
         table.getCardPool().attachBottomToLandlord(table, landlordSeat);
 
-        ReplayRecorder replay = table.getReplayRecorder();
-        if (replay instanceof DdzReplayRecorder) {
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
             List<Integer> bottomIds = new ArrayList<>(table.getDdz().getRevealedBottomCards());
-            ((DdzReplayRecorder) replay).recordBottomCards(landlordSeat, bottomIds);
+            replay.recordBottomCards(landlordSeat, bottomIds);
         }
 
         table.getOp().reset();

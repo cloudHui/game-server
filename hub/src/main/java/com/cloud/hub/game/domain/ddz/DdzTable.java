@@ -161,6 +161,124 @@ public class DdzTable extends Table {
         return b.build();
     }
 
+    // ======================== 状态机多态实现 ========================
+
+    @Override
+    public boolean onRobTiming() {
+        if (banner.isRobBroadcastDone()) {
+            return false;
+        }
+        int seats = getTableModel().getSeatNum();
+
+        if (!banner.isRobPhase()) {
+            int seat = resolveCallOpSeat(seats);
+            getOp().clearChoiceMap();
+
+            GameProto.OpInfo notCall = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.NOT_CALL).build();
+            if (getTableModel().getGameSubType() == 1) {
+                GameProto.OpInfo call = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.CALL).build();
+                getOp().addPosOpInfo(seat, call);
+                sendTableMessage(GameProto.NotOperation.newBuilder().setWait(TableState.IDLE_ROB.getOverTime()).setOpSeat(seat).addChoice(notCall).addChoice(call).build(), GMsg.NOT_OP);
+                banner.setRobBroadcastDone(true);
+                upNextState();
+                return false;
+            }
+            getOp().addPosOpInfo(seat, notCall);
+            GameProto.NotOperation.Builder notBuilder = GameProto.NotOperation.newBuilder()
+                    .setWait(TableState.IDLE_ROB.getOverTime())
+                    .setOpSeat(seat).addChoice(notCall);
+            for (int score = 1; score <= 3; score++) {
+                if (banner.isScoreAvailable(score)) {
+                    int choice = score == 1 ? ConstProto.Operation.CALL_SCORE_1_VALUE
+                            : score == 2 ? ConstProto.Operation.CALL_SCORE_2_VALUE : ConstProto.Operation.CALL_SCORE_3_VALUE;
+                    GameProto.OpInfo call = GameProto.OpInfo.newBuilder().setChoiceValue(choice).build();
+                    getOp().addPosOpInfo(seat, call);
+                    notBuilder.addChoice(call);
+                }
+            }
+            sendTableMessage(notBuilder.build(), GMsg.NOT_OP);
+        } else {
+            int seat = banner.getCurrentRobSeat();
+            if (seat < 0) {
+                return false;
+            }
+            getOp().clearChoiceMap();
+            getOp().setCurrOpSeat(seat);
+
+            GameProto.OpInfo rob = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.ROB).build();
+            GameProto.OpInfo notRob = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.NOT_ROB).build();
+            getOp().addPosOpInfo(seat, rob);
+            getOp().addPosOpInfo(seat, notRob);
+
+            GameProto.NotOperation not = GameProto.NotOperation.newBuilder()
+                    .setWait(TableState.IDLE_ROB.getOverTime())
+                    .setOpSeat(seat)
+                    .addChoice(rob)
+                    .addChoice(notRob)
+                    .build();
+            sendTableMessage(not, GMsg.NOT_OP);
+        }
+
+        banner.setRobBroadcastDone(true);
+        upNextState();
+        return false;
+    }
+
+    private int resolveCallOpSeat(int seats) {
+        int first = banner.getFirstRandomRobSeat();
+        if (first < 0) {
+            first = java.util.concurrent.ThreadLocalRandom.current().nextInt(seats);
+            banner.setFirstRandomRobSeat(first);
+            getOp().setCurrOpSeat(first);
+            return first;
+        }
+        int seat = getOp().getCurrOpSeat();
+        if (seat < 0) {
+            seat = first;
+            getOp().setCurrOpSeat(seat);
+        }
+        return seat;
+    }
+
+    @Override
+    public void onRobOverTime() {
+        DdzBidService.onBidTimeout(this);
+    }
+
+    @Override
+    public boolean onCardTiming() {
+        int seat = getOp().getCurrOpSeat();
+        getOp().clearChoiceMap();
+
+        java.util.List<GameProto.OpInfo> choices = DdzOperationChoices.forTurn(ddz.getLastHand());
+        GameProto.NotOperation.Builder nb = GameProto.NotOperation.newBuilder()
+                .setWait(TableState.IDLE_CARD.getOverTime())
+                .setOpSeat(seat).addAllChoice(choices);
+        for (GameProto.OpInfo choice : choices) getOp().addPosOpInfo(seat, choice);
+
+        upNextState();
+        // 切到 IDLE_CARD 后再由服务端校验整副余牌；合法且能压过时直接打完。
+        if (DdzPlayService.autoPlayWholeHand(this, seat)) return false;
+        sendTableMessage(nb.build(), GMsg.NOT_OP);
+        return false;
+    }
+
+    @Override
+    public void onCardOverTime() {
+        int seat = getOp().getCurrOpSeat();
+        TableUser u = getSeatUser(seat);
+        if (u == null) return;
+        if (DdzPlayService.autoPlayAi(this, u.getUserId())) {
+            return;
+        }
+        if (ddz.getLastHand() == null) {
+            DdzPlayService.autoPlaySmallest(this, u.getUserId());
+        } else {
+            DdzPlayService.apply(this, u.getUserId(),
+                    proto.GameProto.OpInfo.newBuilder().setChoice(proto.ConstProto.Operation.PASS).build());
+        }
+    }
+
     // ======================== DDZ特有getter ========================
 
     public CardPool getCardPool() {
@@ -171,7 +289,24 @@ public class DdzTable extends Table {
         return banner;
     }
 
+    @Override
+    public String getGameDisplayName() {
+        return "斗地主";
+    }
+
     public DdzTableContext getDdz() {
         return ddz;
+    }
+
+    /**
+     * 获取强类型的斗地主对局录像记录器。
+     * <p>
+     * 消除外部调用点（如 {@link DdzPlayService}、{@link DdzBidService}）频繁写模式匹配强转的冗余。
+     *
+     * @return 强类型的 {@link DdzReplayRecorder} 实例，若未启用或类型不匹配则返回 null
+     */
+    public DdzReplayRecorder getDdzReplay() {
+        ReplayRecorder r = getReplayRecorder();
+        return (r instanceof DdzReplayRecorder) ? (DdzReplayRecorder) r : null;
     }
 }

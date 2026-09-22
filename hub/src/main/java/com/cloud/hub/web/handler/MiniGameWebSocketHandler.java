@@ -16,15 +16,21 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import com.cloud.hub.web.minigame.ChessBoard;
-import com.cloud.hub.web.minigame.GomokuBoard;
+import com.cloud.hub.web.minigame.MiniGameEngine;
 import com.cloud.hub.web.minigame.MiniRoom;
 import com.cloud.hub.web.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * 休闲小游戏 WebSocket：五子棋 / 象棋匹配与对战。
- * 消息: {"action":"...","seq":1,"data":{...}}
+ * 休闲小游戏 WebSocket 处理器：五子棋 / 象棋匹配与对战。
+ * <p>
+ * <b>职责边界与使用场景：</b>
+ * <ul>
+ *   <li>处理客户端的认证、匹配、落子、认输、离开等 WebSocket 消息；</li>
+ *   <li>具体棋类的差异操作（落子参数解析、结果构造、快照格式等）全部委托给
+ *       {@link MiniGameEngine} 多态处理，本类不包含任何基于 {@code gameType} 的条件分支；</li>
+ *   <li>消息格式：{@code {"action":"...", "seq":1, "data":{...}}}。</li>
+ * </ul>
  */
 @Component
 public class MiniGameWebSocketHandler extends TextWebSocketHandler {
@@ -42,8 +48,21 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     private final List<QueueEntry> gomokuQueue = new ArrayList<>();
     private final List<QueueEntry> chessQueue = new ArrayList<>();
 
+    @FunctionalInterface
+    private interface MiniGameActionHandler {
+        void handle(WebSocketSession session, int seq, Map<String, Object> data) throws Exception;
+    }
+
+    private final Map<String, MiniGameActionHandler> actionHandlers = new HashMap<>();
+
     public MiniGameWebSocketHandler(UserService userService) {
         this.userService = userService;
+        actionHandlers.put("auth", this::handleAuth);
+        actionHandlers.put("match", this::handleMatch);
+        actionHandlers.put("cancelMatch", (s, seq, d) -> handleCancelMatch(s, seq));
+        actionHandlers.put("move", this::handleMove);
+        actionHandlers.put("resign", (s, seq, d) -> handleResign(s, seq));
+        actionHandlers.put("leave", (s, seq, d) -> handleLeave(s, seq));
     }
 
     @Override
@@ -77,27 +96,11 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
                 data = new HashMap<>();
             }
 
-            switch (action == null ? "" : action) {
-                case "auth":
-                    handleAuth(session, seq, data);
-                    break;
-                case "match":
-                    handleMatch(session, seq, data);
-                    break;
-                case "cancelMatch":
-                    handleCancelMatch(session, seq);
-                    break;
-                case "move":
-                    handleMove(session, seq, data);
-                    break;
-                case "resign":
-                    handleResign(session, seq);
-                    break;
-                case "leave":
-                    handleLeave(session, seq);
-                    break;
-                default:
-                    sendError(session, seq, "未知操作: " + action);
+            MiniGameActionHandler handler = actionHandlers.get(action == null ? "" : action);
+            if (handler != null) {
+                handler.handle(session, seq, data);
+            } else {
+                sendError(session, seq, "未知操作: " + action);
             }
         } catch (Exception e) {
             logger.error("处理小游戏消息失败", e);
@@ -207,6 +210,12 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
         sendOk(ws, "cancelMatch", seq, "已取消", null);
     }
 
+    /**
+     * 处理落子/走棋请求。
+     * <p>
+     * 参数解析、合法性校验与载荷构造全部委托给 {@link MiniGameEngine#applyMove}，
+     * 本方法仅负责房间查找、结果广播与对局结束判定。
+     */
     private void handleMove(WebSocketSession ws, int seq, Map<String, Object> data) {
         String sid = requireAuth(ws, seq);
         if (sid == null) {
@@ -223,63 +232,28 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        boolean ok;
-        Map<String, Object> movePayload = new HashMap<>();
-        if (room.getGameType() == MiniRoom.GameType.GOMOKU) {
-            Number xNum = (Number) data.get("x");
-            Number yNum = (Number) data.get("y");
-            if (xNum == null || yNum == null) {
-                sendError(ws, seq, "缺少坐标");
-                return;
-            }
-            int color = room.isSideA(sid) ? GomokuBoard.BLACK : GomokuBoard.WHITE;
-            ok = room.getGomoku().place(xNum.intValue(), yNum.intValue(), color);
-            if (!ok) {
-                sendError(ws, seq, "非法落子");
-                return;
-            }
-            movePayload.put("x", xNum.intValue());
-            movePayload.put("y", yNum.intValue());
-            movePayload.put("color", color);
-            movePayload.put("turn", room.getGomoku().getTurn());
-            movePayload.put("finished", room.getGomoku().isFinished());
-            movePayload.put("winner", room.getGomoku().getWinner());
-        } else {
-            Number fr = (Number) data.get("fr");
-            Number fc = (Number) data.get("fc");
-            Number tr = (Number) data.get("tr");
-            Number tc = (Number) data.get("tc");
-            if (fr == null || fc == null || tr == null || tc == null) {
-                sendError(ws, seq, "缺少走法");
-                return;
-            }
-            boolean asRed = room.isSideA(sid);
-            ok = room.getChess().move(fr.intValue(), fc.intValue(), tr.intValue(), tc.intValue(), asRed);
-            if (!ok) {
-                sendError(ws, seq, "非法走法");
-                return;
-            }
-            movePayload.put("fr", fr.intValue());
-            movePayload.put("fc", fc.intValue());
-            movePayload.put("tr", tr.intValue());
-            movePayload.put("tc", tc.intValue());
-            movePayload.put("board", room.getChess().boardString());
-            movePayload.put("redTurn", room.getChess().isRedTurn());
-            movePayload.put("finished", room.getChess().isFinished());
-            movePayload.put("winner", room.getChess().getWinner());
-            movePayload.put("reason", room.getChess().getEndReason());
+        // 委托引擎多态处理落子/走棋，消除 gameType 分支
+        MiniGameEngine engine = room.getEngine();
+        MiniGameEngine.MoveResult result = engine.applyMove(data, room.isSideA(sid));
+        if (!result.isOk()) {
+            sendError(ws, seq, result.getError());
+            return;
         }
 
-        sendOk(ws, "move", seq, "ok", movePayload);
-        broadcast(room, "move", movePayload, sid);
+        sendOk(ws, "move", seq, "ok", result.getPayload());
+        broadcast(room, "move", result.getPayload(), sid);
 
-        if (room.getGameType() == MiniRoom.GameType.GOMOKU && room.getGomoku().isFinished()) {
-            finishRoom(room, gomokuResult(room));
-        } else if (room.getGameType() == MiniRoom.GameType.CHESS && room.getChess().isFinished()) {
-            finishRoom(room, chessResult(room));
+        // 对局结束判定：统一通过引擎多态查询
+        if (engine.isFinished()) {
+            finishRoom(room, engine.gameResult());
         }
     }
 
+    /**
+     * 处理认输请求。
+     * <p>
+     * 委托 {@link MiniGameEngine#resign} 多态处理，消除五子棋/象棋的差异分支。
+     */
     private void handleResign(WebSocketSession ws, int seq) {
         String sid = requireAuth(ws, seq);
         if (sid == null) {
@@ -290,30 +264,14 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
             sendError(ws, seq, "不在对局中");
             return;
         }
-        if (room.getGameType() == MiniRoom.GameType.GOMOKU) {
-            GomokuBoard b = room.getGomoku();
-            if (b.isFinished()) {
-                sendError(ws, seq, "对局已结束");
-                return;
-            }
-            // 认输：对手获胜
-            int winner = room.isSideA(sid) ? GomokuBoard.WHITE : GomokuBoard.BLACK;
-            Map<String, Object> result = new HashMap<>();
-            result.put("winner", winner);
-            result.put("reason", "认输");
-            result.put("finished", true);
-            sendOk(ws, "resign", seq, "ok", null);
-            finishRoom(room, result);
-            return;
-        }
-        ChessBoard c = room.getChess();
-        if (c.isFinished()) {
+        MiniGameEngine engine = room.getEngine();
+        if (engine.isFinished()) {
             sendError(ws, seq, "对局已结束");
             return;
         }
-        c.resign(room.isSideA(sid));
+        Map<String, Object> result = engine.resign(room.isSideA(sid));
         sendOk(ws, "resign", seq, "ok", null);
-        finishRoom(room, chessResult(room));
+        finishRoom(room, result);
     }
 
     private void handleLeave(WebSocketSession ws, int seq) {
@@ -332,27 +290,23 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
         sendOk(ws, "leave", seq, "ok", null);
     }
 
+    /**
+     * 处理玩家断连/离开：未结束则视为认输，已结束则仅清理房间。
+     * <p>
+     * 通过 {@link MiniGameEngine} 多态判断与操作，消除 gameType 分支。
+     */
     private void handleDisconnect(MiniRoom room, String sid) {
         if (!rooms.containsKey(room.getRoomId())) {
             return;
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("reason", "对手离开");
-        result.put("finished", true);
-        if (room.getGameType() == MiniRoom.GameType.GOMOKU) {
-            if (!room.getGomoku().isFinished()) {
-                result.put("winner", room.isSideA(sid) ? GomokuBoard.WHITE : GomokuBoard.BLACK);
-                finishRoom(room, result);
-            } else {
-                cleanupRoom(room);
-            }
+        MiniGameEngine engine = room.getEngine();
+        if (!engine.isFinished()) {
+            // 断连方视为认输，对手获胜
+            Map<String, Object> result = engine.resign(room.isSideA(sid));
+            result.put("reason", "对手离开");
+            finishRoom(room, result);
         } else {
-            if (!room.getChess().isFinished()) {
-                room.getChess().resign(room.isSideA(sid));
-                finishRoom(room, chessResult(room));
-            } else {
-                cleanupRoom(room);
-            }
+            cleanupRoom(room);
         }
     }
 
@@ -367,30 +321,28 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
         sessionRoom.remove(room.getPlayerBSession(), room.getRoomId());
     }
 
+    /**
+     * 匹配成功后通知双方玩家。
+     * <p>
+     * 阵营名称与棋盘快照通过 {@link MiniGameEngine} 多态获取，消除 gameType 分支。
+     */
     private void notifyMatched(MiniRoom room) {
+        MiniGameEngine engine = room.getEngine();
+        Map<String, Object> snap = engine.snapshot();
+
         Map<String, Object> forA = baseMatchInfo(room);
-        forA.put("side", room.getGameType() == MiniRoom.GameType.GOMOKU ? "black" : "red");
+        forA.put("side", engine.sideAName());
         forA.put("youAreA", true);
         forA.put("opponent", room.getPlayerBName());
         forA.put("opponentId", room.getPlayerBUserId());
+        forA.putAll(snap);
 
         Map<String, Object> forB = baseMatchInfo(room);
-        forB.put("side", room.getGameType() == MiniRoom.GameType.GOMOKU ? "white" : "black");
+        forB.put("side", engine.sideBName());
         forB.put("youAreA", false);
         forB.put("opponent", room.getPlayerAName());
         forB.put("opponentId", room.getPlayerAUserId());
-
-        if (room.getGameType() == MiniRoom.GameType.GOMOKU) {
-            forA.put("board", room.getGomoku().snapshot());
-            forA.put("turn", room.getGomoku().getTurn());
-            forB.put("board", room.getGomoku().snapshot());
-            forB.put("turn", room.getGomoku().getTurn());
-        } else {
-            forA.put("board", room.getChess().boardString());
-            forA.put("redTurn", room.getChess().isRedTurn());
-            forB.put("board", room.getChess().boardString());
-            forB.put("redTurn", room.getChess().isRedTurn());
-        }
+        forB.putAll(snap);
 
         sendEvent(sessionToWs.get(room.getPlayerASession()), "matched", forA);
         sendEvent(sessionToWs.get(room.getPlayerBSession()), "matched", forB);
@@ -399,24 +351,7 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     private Map<String, Object> baseMatchInfo(MiniRoom room) {
         Map<String, Object> m = new HashMap<>();
         m.put("roomId", room.getRoomId());
-        m.put("game", room.getGameType() == MiniRoom.GameType.GOMOKU ? "gomoku" : "chess");
-        return m;
-    }
-
-    private Map<String, Object> gomokuResult(MiniRoom room) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("winner", room.getGomoku().getWinner());
-        m.put("finished", true);
-        m.put("reason", room.getGomoku().getWinner() == 0 ? "和棋" : "五子连珠");
-        return m;
-    }
-
-    private Map<String, Object> chessResult(MiniRoom room) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("winner", room.getChess().getWinner());
-        m.put("finished", true);
-        m.put("reason", room.getChess().getEndReason());
-        m.put("board", room.getChess().boardString());
+        m.put("game", room.getEngine().gameName());
         return m;
     }
 
@@ -531,3 +466,4 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 }
+

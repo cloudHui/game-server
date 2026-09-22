@@ -215,15 +215,11 @@ public final class MjClaimDetector {
                 .setWait(TableState.MJ_CLAIM.getOverTime())
                 .setWallLeft(table.getMjTilePool().remaining());
 
-        if (claim.isCanHu()) {
-            notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_HU).build());
+        // 简单操作（胡/杠/碰）由 MjClaimInfo.simpleOps() 统一枚举，新增操作类型无需改此处
+        for (ConstProto.Operation op : claim.simpleOps()) {
+            notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(op).build());
         }
-        if (claim.isCanGang()) {
-            notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_GANG).build());
-        }
-        if (claim.isCanPeng()) {
-            notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_PENG).build());
-        }
+        // 吃牌携带组合数据，单独构建
         if (claim.isCanChi()) {
             for (int[] combo : claim.getChiCombos()) {
                 GameProto.OpInfo.Builder chiBuilder = GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_CHI);
@@ -237,12 +233,13 @@ public final class MjClaimDetector {
         }
         notBuilder.addChoice(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.MJ_PASS).build());
 
-        if (table.getReplayRecorder() instanceof MjReplayRecorder) {
+        MjReplayRecorder replay = table.getMjReplay();
+        if (replay != null) {
             List<String> options = new ArrayList<>();
             for (GameProto.OpInfo choice : notBuilder.getChoiceList()) {
                 options.add(choiceName(choice.getChoice()));
             }
-            ((MjReplayRecorder) table.getReplayRecorder()).recordOptions(claim.getSeat(), options);
+            replay.recordOptions(claim.getSeat(), options);
         }
 
         for (GameProto.OpInfo choice : notBuilder.getChoiceList()) {
@@ -254,13 +251,7 @@ public final class MjClaimDetector {
     }
 
     private static String choiceName(ConstProto.Operation choice) {
-        switch (choice) {
-            case MJ_HU: return "胡";
-            case MJ_GANG: return "杠";
-            case MJ_PENG: return "碰";
-            case MJ_CHI: return "吃";
-            case MJ_PASS: return "过";
-            default: return choice.name();
-        }
+        // 委托共享工具类，不在此重复 switch
+        return MjChoiceUtil.choiceName(choice);
     }
 }

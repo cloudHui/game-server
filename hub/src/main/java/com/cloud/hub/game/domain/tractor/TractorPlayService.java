@@ -192,10 +192,10 @@ public final class TractorPlayService {
 
     private static void afterPlay(TractorTable table, TableUser user, List<Card> selected) {
         TractorTableContext ctx = table.getTractor();
-        if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
+        PokerReplayRecorder replay = table.getPokerReplay();
+        if (replay != null) {
             List<Integer> ids = new ArrayList<>();
             for (Card card : selected) ids.add(card.getId());
-            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌 → 客户端展示 出牌");
             replay.writeAuditEvent("座" + user.getSeated() + " "
                     + (user.isRobot() ? "机器人" : "玩家") + "选择 出牌 " + ids);

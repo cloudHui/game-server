@@ -1,25 +1,32 @@
 package com.cloud.hub.game.domain.state;
 
-import com.cloud.hub.game.Game;
-import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.cards.Card;
-import com.cloud.hub.game.domain.mj.MjDrawService;
-import com.cloud.hub.game.domain.mj.MjTable;
-import com.cloud.hub.game.domain.replay.ReplayRecorder;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cloud.hub.game.Game;
+import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.replay.ReplayRecorder;
+import com.cloud.hub.game.domain.table.Table;
+import com.cloud.hub.game.domain.table.TableUser;
+
+import msg.annotation.ProcessEnum;
+import msg.registor.enums.TableState;
 
 /**
- * 等待阶段：坐满后开局；无真人则解散；全机器人普通桌可删桌不开局。
+ * 桌子等待准备阶段状态处理器。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>监听 {@link TableState#WAITING} 状态，在桌子串行 tick 中检测玩家就坐与准备状态；</li>
+ *   <li>检测坐满且存在真人（或机器人陪练房间）时调用 {@link #startGame(Table)} 触发开局；</li>
+ *   <li>全面依托 {@link Table#dealCards()}、{@link Table#onGameStarted()}、
+ *       {@link Table#getInitialStartState()} 等钩子实现纯多态开局，彻底消灭历史代码中的长 switch 分支。</li>
+ * </ul>
  */
 @ProcessEnum(TableState.WAITING)
 public class Waiting extends AbstractTableHandle {
@@ -46,45 +53,35 @@ public class Waiting extends AbstractTableHandle {
         return false;
     }
 
+    /**
+     * 启动新一局游戏。
+     * <p>
+     * 依次执行：初始化游戏配置、洗牌发牌、启动录像、根据游戏类型跳转初始状态（如斗地主叫分、拖拉机动画等）。
+     *
+     * @param table 游戏桌实例
+     */
     private void startGame(Table table) {
         table.initGameConfig();
-        if (table.getGameType() == 1 && table.getCurrentRound() == 1) {
-            MjTable mjTable = (MjTable) table;
-            mjTable.getMjContext().setDealerSeat(ThreadLocalRandom.current().nextInt(table.getTableModel().getSeatNum()));
-        }
         table.dealCards();
-        if (table.getGameType() == 1) {
-            table.getOp().setCurrOpSeat(((MjTable) table).getMjContext().getDealerSeat());
-        } else if (table.getGameType() == 3 || table.getGameType() == 4) {
-            // 跑得快 / 拖拉机：首出座位由各自 dealCards 设定
-        } else {
-            table.getOp().setCurrOpSeat(0);
-        }
+        table.onGameStarted();
 
         initReplay(table);
-        if (table.getGameType() != 4) {
+        if (table.shouldRecordInitHands()) {
             recordInitHands(table);
         }
 
-        if (table.getGameType() == 1) {
-            if (table.getTableModel().getGameSubType() == 1) {
-                MjDrawService.flipLaiZi((MjTable) table);
-            }
-            table.upNextState(TableState.MJ_DEAL);
-        } else if (table.getGameType() == 3) {
-            // 跑得快：无叫抢，发完直接出牌
-            table.upNextState(TableState.CARD);
-        } else if (table.getGameType() == 4) {
-            // 拖拉机：START_ANI 中逐张发牌，发牌中可抢主，发完再进亮主回合
-            table.upNextState(TableState.START_ANI);
-        } else {
-            table.upNextState();
-        }
+        table.upNextState(table.getInitialStartState());
     }
 
+    /**
+     * 初始化录像
+     * 
+     * @param table
+     */
     private void initReplay(Table table) {
         ReplayRecorder replay = table.createReplayRecorder();
-        if (replay == null) return;
+        if (replay == null)
+            return;
 
         table.setReplayRecorder(replay);
 
@@ -95,44 +92,22 @@ public class Waiting extends AbstractTableHandle {
             nicknames.put(entry.getKey(), entry.getValue().getNick());
         }
 
-        String gameType;
-        if (table.getGameType() == 1) {
-            switch (table.getTableModel().getGameSubType()) {
-                case 1:
-                    gameType = "荆门麻将";
-                    break;
-                case 2:
-                    gameType = "卡五星";
-                    break;
-                default:
-                    gameType = "麻将";
-                    break;
-            }
-        } else if (table.getGameType() == 3) {
-            gameType = "跑得快";
-        } else if (table.getGameType() == 4) {
-            gameType = "拖拉机";
-        } else {
-            gameType = "斗地主";
-        }
-
-        replay.writeHeader(gameType, table.getTableModel().getTotalRounds(),
+        replay.writeHeader(table.getGameDisplayName(), table.getTableModel().getTotalRounds(),
                 table.getTableModel().getSeatNum(), userIds, nicknames);
         replay.writeConfig("底分=" + table.getTableModel().getBaseScore()
                 + ", 最大番=" + table.getTableModel().getMaxFan()
                 + ", autoPlay=" + table.getTableModel().getAutoPlay());
 
-        if (table.getGameType() == 1) {
-            MjTable mjTable = (MjTable) table;
-            replay.writeDealerAndLaiZi(mjTable.getMjContext().getDealerSeat(),
-                    mjTable.getMjContext().getLaiZiTileId(),
-                    mjTable.getMjContext().getLaiZiFlipTile());
-        }
+        table.onInitReplayHeader(replay);
     }
 
+    /**
+     * 记录手牌
+     */
     public static void recordInitHands(Table table) {
         ReplayRecorder replay = table.getReplayRecorder();
-        if (replay == null) return;
+        if (replay == null)
+            return;
 
         Map<Integer, List<Integer>> hands = new HashMap<>();
         for (Map.Entry<Integer, TableUser> entry : table.getSeatUsers().entrySet()) {

@@ -223,7 +223,42 @@ public class MjTable extends Table {
         return ok ? ConstProto.Result.SUCCESS_VALUE : ConstProto.Result.OP_CURR_ERROR_VALUE;
     }
 
-    // ======================== MJ特有getter ========================
+    // ======================== MJ特有getter与多态钩子 ========================
+
+    @Override
+    public TableState getInitialStartState() {
+        return TableState.MJ_DEAL;
+    }
+
+    @Override
+    public void onGameStarted() {
+        if (getCurrentRound() == 1) {
+            mjContext.setDealerSeat(java.util.concurrent.ThreadLocalRandom.current().nextInt(getTableModel().getSeatNum()));
+        }
+        getOp().setCurrOpSeat(mjContext.getDealerSeat());
+        if (getTableModel().getGameSubType() == 1) {
+            MjDrawService.flipLaiZi(this);
+        }
+    }
+
+    @Override
+    public String getGameDisplayName() {
+        switch (getTableModel().getGameSubType()) {
+            case 1:
+                return "荆门麻将";
+            case 2:
+                return "卡五星";
+            default:
+                return "麻将";
+        }
+    }
+
+    @Override
+    public void onInitReplayHeader(ReplayRecorder replay) {
+        replay.writeDealerAndLaiZi(mjContext.getDealerSeat(),
+                mjContext.getLaiZiTileId(),
+                mjContext.getLaiZiFlipTile());
+    }
 
     public MjTilePool getMjTilePool() {
         return mjTilePool;
@@ -231,5 +266,17 @@ public class MjTable extends Table {
 
     public MjTableContext getMjContext() {
         return mjContext;
+    }
+
+    /**
+     * 获取强类型的麻将对局录像记录器。
+     * <p>
+     * 消除外部摸打碰杠等服务类中繁复的 {@code if (replay instanceof MjReplayRecorder)} 强转。
+     *
+     * @return 强类型的 {@link MjReplayRecorder} 实例，若未启用或类型不匹配则返回 null
+     */
+    public MjReplayRecorder getMjReplay() {
+        ReplayRecorder r = getReplayRecorder();
+        return (r instanceof MjReplayRecorder) ? (MjReplayRecorder) r : null;
     }
 }

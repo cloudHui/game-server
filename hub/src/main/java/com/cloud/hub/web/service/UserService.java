@@ -3,6 +3,8 @@ package com.cloud.hub.web.service;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import msg.registor.message.LMsg;
+import net.message.TCPMessage;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -81,8 +83,8 @@ public class UserService {
     }
 
     private UserInfo storeSession(String sessionId, int userId, String username,
-                                  String nickname, String token, List<Long> tables,
-                                  List<TableInfoView> tableInfos) {
+            String nickname, String token, List<Long> tables,
+            List<TableInfoView> tableInfos) {
         List<Long> tableList = tables == null ? Collections.emptyList() : new ArrayList<>(tables);
         List<TableInfoView> infos = tableInfos == null ? Collections.emptyList() : tableInfos;
         if (infos.isEmpty() && !tableList.isEmpty()) {
@@ -138,7 +140,7 @@ public class UserService {
         }
     }
 
-    public void setPushListener(BiConsumer<String, net.message.TCPMessage> listener) {
+    public void setPushListener(BiConsumer<String, TCPMessage> listener) {
         gateClient.setPushListener(listener);
     }
 
@@ -157,11 +159,13 @@ public class UserService {
     /**
      * 发送需要玩家身份的请求。
      *
-     * <p>Gate 的玩家身份绑定在 TCP 连接上，而 Web 会话只保存在 Web 进程内。
+     * <p>
+     * Gate 的玩家身份绑定在 TCP 连接上，而 Web 会话只保存在 Web 进程内。
      * Gate 重启、网络闪断或空闲连接被关闭后，原来的 sessionId 仍然有效，
      * 但新 TCP 连接的 roleId 会回到 0。此时直接发送房间请求会被 Gate 以
      * “不是安全的消息 ID”拒绝。这里在新连接上先用 token 静默登录，再发送
-     * 原始请求，避免用户必须重新刷新登录页面。</p>
+     * 原始请求，避免用户必须重新刷新登录页面。
+     * </p>
      */
     private CompletableFuture<Message> sendAuthenticated(String sessionId, int messageId, Message request) {
         UserInfo user = sessions.get(sessionId);
@@ -237,7 +241,7 @@ public class UserService {
         private int errorCode;
 
         public UserInfo(String sessionId, int userId, String username, String nickname,
-                        String token, List<Long> tables, List<TableInfoView> tableInfos) {
+                String token, List<Long> tables, List<TableInfoView> tableInfos) {
             this.sessionId = sessionId;
             this.userId = userId;
             this.username = username == null ? "" : username;

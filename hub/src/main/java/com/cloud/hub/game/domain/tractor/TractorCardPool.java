@@ -17,7 +17,14 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * 拖拉机牌池：两副牌 108 张，每人 25，底牌 8。
+ * 拖拉机专属牌池组件。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>强类型持有 {@link TractorTable} 引用，消灭历史代码中的父类向下强转；</li>
+ *   <li>负责拖拉机两副牌 108 张的洗牌、逐张发牌（每人 25 张）以及留存 8 张底牌；</li>
+ *   <li>配合庄家拿底牌、扣底牌并同步回放记录器 {@link PokerReplayRecorder}。</li>
+ * </ul>
  */
 public class TractorCardPool {
 
@@ -27,9 +34,9 @@ public class TractorCardPool {
 
     private final List<Card> poolCards = new ArrayList<>();
     private final List<Card> bottomCards = new ArrayList<>();
-    private final Table table;
+    private final TractorTable table;
 
-    public TractorCardPool(Table table) {
+    public TractorCardPool(TractorTable table) {
         this.table = table;
     }
 
@@ -185,8 +192,9 @@ public class TractorCardPool {
         // 首次成功扣底才锁定庄家。之后反主只更换本次摸底者，庄家方不变。
         if (!ctx.isFirstBuryDone()) ctx.setBankerSeat(bankerSeat);
         ctx.setFirstBuryDone(true);
-        if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
-            ((PokerReplayRecorder) table.getReplayRecorder()).recordBury(bankerSeat, buriedIds);
+        PokerReplayRecorder replay = table.getPokerReplay();
+        if (replay != null) {
+            replay.recordBury(bankerSeat, buriedIds);
         }
         sendInitCardNotice(table.getSeatUsers());
         logger.info("拖拉机扣底 table:{} banker:{} bury:{}", table.getTableId(), bankerSeat, buryIds);
@@ -220,12 +228,10 @@ public class TractorCardPool {
     }
 
     public void sendInitCardNotice(Map<Integer, TableUser> seatUsers) {
-        TractorTable tractorTable = table instanceof TractorTable ? (TractorTable) table : null;
-        List<Integer> bottomIds = tractorTable != null
-                ? tractorTable.getTractor().getRevealedBottom() : Collections.emptyList();
-        int holderSeat = tractorTable != null ? tractorTable.getTractor().getBottomHolderSeat() : -1;
-        if (holderSeat < 0 && tractorTable != null) {
-            holderSeat = tractorTable.getTractor().getBankerSeat();
+        List<Integer> bottomIds = table.getTractor().getRevealedBottom();
+        int holderSeat = table.getTractor().getBottomHolderSeat();
+        if (holderSeat < 0) {
+            holderSeat = table.getTractor().getBankerSeat();
         }
         for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
             TableUser sendUser = entry.getValue();

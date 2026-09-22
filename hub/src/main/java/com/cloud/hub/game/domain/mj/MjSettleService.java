@@ -181,35 +181,6 @@ public class MjSettleService {
 		table.sendTableMessage(builder.build(), GMsg.NOT_ROUND_RESULT);
 	}
 
-	/** 发送总结算通知 */
-	public static void sendGameResult(MjTable table) {
-		GameResult gameResult = table.getGameResult();
-		int seatNum = table.getTableModel().getSeatNum();
-
-		GameProto.NotGameResult.Builder builder = GameProto.NotGameResult.newBuilder()
-				.setTotalRounds(gameResult.getTotalRounds())
-				.setCompletedRounds(gameResult.getCompletedRounds());
-
-		for (int i = 0; i < seatNum; i++) {
-			builder.addTotalScores(GameProto.SeatScore.newBuilder()
-					.setSeat(i).setScore(gameResult.getTotalScore(i)).build());
-		}
-
-		for (GameResult.RoundEntry entry : gameResult.getRoundEntries()) {
-			GameProto.RoundSummary.Builder summary = GameProto.RoundSummary.newBuilder()
-					.setRound(entry.getRound())
-					.setWinnerSeat(entry.getWinnerSeat())
-					.setFan(entry.getScore())
-					.setWinType(ByteString.copyFromUtf8(entry.getWinType()));
-			for (int i = 0; i < seatNum; i++) {
-				summary.addSeatScores(GameProto.SeatScore.newBuilder()
-						.setSeat(i).setScore(entry.getScores()[i]).build());
-			}
-			builder.addRounds(summary.build());
-		}
-
-		table.sendTableMessage(builder.build(), GMsg.NOT_GAME_RESULT);
-	}
 
 	// ======================== 副露区同步 ========================
 

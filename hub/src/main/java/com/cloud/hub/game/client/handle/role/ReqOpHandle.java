@@ -4,7 +4,6 @@ import com.cloud.hub.game.Game;
 import com.cloud.hub.game.manager.TableManager;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.state.TableSettleSupport;
 import com.google.protobuf.Message;
 import msg.annotation.ProcessType;
 import msg.registor.enums.TableState;
@@ -119,7 +118,7 @@ public class ReqOpHandle implements Handler {
 
 		if (table.allReady()) {
 			if (table.isLastRound()) {
-				TableSettleSupport.sendFinalResultAndRemove(table);
+				table.dismissAndSettle();
 				logger.info("最后一局完成, 总结算已发送, tableId: {}", table.getTableId());
 			} else {
 				logger.info("所有玩家已准备, 开始下一局, tableId: {}", table.getTableId());

@@ -1,4 +1,4 @@
-package com.cloud.hub.web.minigame;
+package com.cloud.hub.web.minigame.gomoku;
 
 /**
  * 五子棋 15x15，1=黑 2=白，黑先。

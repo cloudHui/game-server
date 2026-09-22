@@ -6,10 +6,12 @@ import com.cloud.hub.game.domain.op.Operate;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import com.cloud.hub.game.domain.state.TableHeartbeatLifecycle;
 import com.cloud.hub.game.domain.state.TableStateHandleManager;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import msg.registor.enums.TableState;
+import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
@@ -548,6 +550,58 @@ public abstract class Table {
         return gameResult;
     }
 
+    /**
+     * 发送对局总结算通知（多局汇总）。
+     * <p>
+     * <b>多态化支持：</b>
+     * 消除各玩法结算类中重复书写的多局总结算构建与广播逻辑。
+     * 所有玩法共用 {@link GameResult} 模型与 {@link GameProto.NotGameResult} 协议格式；
+     * 如个别特殊棋牌未来需要定制总结算广播格式，可直接在子类重写本方法。
+     */
+    public void sendGameResult() {
+        if (gameResult == null) {
+            return;
+        }
+        int seatNum = tableModel.getSeatNum();
+        GameProto.NotGameResult.Builder builder = GameProto.NotGameResult.newBuilder()
+                .setTotalRounds(gameResult.getTotalRounds())
+                .setCompletedRounds(gameResult.getCompletedRounds());
+
+        for (int i = 0; i < seatNum; i++) {
+            builder.addTotalScores(GameProto.SeatScore.newBuilder()
+                    .setSeat(i).setScore(gameResult.getTotalScore(i)).build());
+        }
+
+        for (GameResult.RoundEntry entry : gameResult.getRoundEntries()) {
+            GameProto.RoundSummary.Builder summary = GameProto.RoundSummary.newBuilder()
+                    .setRound(entry.getRound())
+                    .setWinnerSeat(entry.getWinnerSeat())
+                    .setFan(entry.getScore())
+                    .setWinType(ByteString.copyFromUtf8(entry.getWinType() == null ? "" : entry.getWinType()));
+            for (int i = 0; i < seatNum; i++) {
+                summary.addSeatScores(GameProto.SeatScore.newBuilder()
+                        .setSeat(i).setScore(entry.getScores()[i]).build());
+            }
+            builder.addRounds(summary.build());
+        }
+
+        sendTableMessage(builder.build(), GMsg.NOT_GAME_RESULT);
+    }
+
+    /**
+     * 发送多局总结算（若当前为多局房间）并异步销毁移除牌桌。
+     * <p>
+     * <b>职责说明：</b>
+     * 牌局生命周期终结（对局结束、中途离桌解散、心跳超时解散等）时的统一收尾入口，
+     * 直接由桌子聚合根承载，避免外部冗余嵌套与单方法工具类。
+     */
+    public void dismissAndSettle() {
+        if (isMultiRound()) {
+            sendGameResult();
+        }
+        Game.getInstance().getTableManager().removeTableAsync(tableId);
+    }
+
     protected GameProto.AckTableSnapshot.Builder newSnapshotBuilder(TableUser viewer) {
         GameProto.AckTableSnapshot.Builder b = GameProto.AckTableSnapshot.newBuilder()
                 .setTableId(tableId).setGameType(getGameType())
@@ -588,6 +642,140 @@ public abstract class Table {
     }
 
     public abstract ReplayRecorder createReplayRecorder();
+
+    // ======================== 状态机多态钩子（各游戏玩法特化重写） ========================
+
+    /** 抢地主/叫分阶段通知，默认空实现 */
+    public boolean onRobTiming() {
+        return false;
+    }
+
+    /**
+     * 叫分/抢庄阶段每 tick 检查。
+     * <p>
+     * 检查当前操作者是否为机器人且达到延迟时限，若超时则自动触发 {@link #onRobOverTime()}。
+     *
+     * @return true 表示已被机器人逻辑处理，外层状态无需再执行通用超时逻辑
+     */
+    public boolean onIdleRobHandle() {
+        int seat = op.getCurrOpSeat();
+        TableUser u = getSeatUser(seat);
+        if (u != null && u.isRobot()
+                && System.currentTimeMillis() >= stateStartTime + RobotOperationDelay.randomMillis()) {
+            onRobOverTime();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 叫分/抢庄操作超时回调。
+     * <p>
+     * 子类重写以实现具体的超时自动叫分/弃权/不叫逻辑（如斗地主、拖拉机亮主超时）。
+     */
+    public void onRobOverTime() {
+    }
+
+    /**
+     * 出牌阶段定时通知钩子。
+     *
+     * @return true 表示本 tick 已处理，false 走通用流程
+     */
+    public boolean onCardTiming() {
+        return false;
+    }
+
+    /**
+     * 出牌阶段机器人操作延迟毫秒数。
+     *
+     * @return 机器人出牌延迟时间（毫秒）
+     */
+    public long getRobotCardDelay() {
+        return RobotOperationDelay.randomMillis();
+    }
+
+    /**
+     * 开局动画/发牌阶段定时处理钩子。
+     * <p>
+     * 供特殊玩法（如拖拉机动画倒计时与逐张发牌逻辑）定制，避免外层 Handle 中硬编码 {@code table instanceof TractorTable}。
+     *
+     * @return true 表示已被玩法子类接管处理，false 走默认状态流转
+     */
+    public boolean onStartAniTiming() {
+        return false;
+    }
+
+    /**
+     * 亮牌/扣底阶段每 tick 处理钩子。
+     * <p>
+     * 供有扣底玩法的桌子（如拖拉机庄家扣底时限检测）多态定制，避免外层 Handle 散落业务类型判断。
+     *
+     * @return true 表示已拦截处理，false 表示走通用状态流转
+     */
+    public boolean onIdleShowCardHandle() {
+        return false;
+    }
+
+    /**
+     * 亮牌/扣底阶段超时处理钩子。
+     * <p>
+     * 默认直接流转到出牌阶段；子类可重写以实现自动扣底逻辑。
+     */
+    public void onIdleShowCardOverTime() {
+        upNextState(TableState.CARD);
+    }
+
+    /**
+     * 获取洗牌/发牌完毕后的开局初始目标状态。
+     * <p>
+     * 替代 {@code Waiting} 中的 switch-case，不同棋牌子类多态自定初始状态（例如斗地主为 ROB，拖拉机为 START_ANI）。
+     *
+     * @return 下一个目标桌状态
+     */
+    public TableState getInitialStartState() {
+        return TableState.START_ANI;
+    }
+
+    /**
+     * 发牌完毕后特定玩法的开局初始化钩子。
+     * <p>
+     * 负责定庄、翻赖子、设置首出座位等玩法特有逻辑，由各桌子自理。
+     */
+    public void onGameStarted() {
+        op.setCurrOpSeat(0);
+    }
+
+    /**
+     * 是否在开局阶段记录初始手牌到录像文件中。
+     *
+     * @return true 表示记录；拖拉机等逐张发牌玩法返回 false 避免手牌记录不完整
+     */
+    public boolean shouldRecordInitHands() {
+        return true;
+    }
+
+    /**
+     * 获取游戏展示名称（用于对局录像或调试日志）。
+     *
+     * @return 游戏展示名，如 "斗地主"、"跑得快"、"拖拉机"
+     */
+    public String getGameDisplayName() {
+        return "游戏";
+    }
+
+    /**
+     * 录像头初始化时的专有元数据写入钩子。
+     *
+     * @param replay 对局回放记录器
+     */
+    public void onInitReplayHeader(ReplayRecorder replay) {
+    }
+
+    /**
+     * 出牌等待超时自动代出/过牌处理钩子。
+     */
+    public void onCardOverTime() {
+    }
 
     @Override
     public String toString() {

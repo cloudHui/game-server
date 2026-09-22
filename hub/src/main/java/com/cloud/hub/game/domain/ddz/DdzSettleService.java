@@ -65,35 +65,6 @@ public final class DdzSettleService {
 		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());
 	}
 
-	/** 发送DDZ总结算通知(多局汇总) */
-	public static void sendGameResult(Table table) {
-		GameResult gameResult = table.getGameResult();
-		int seatNum = table.getTableModel().getSeatNum();
-
-		GameProto.NotGameResult.Builder builder = GameProto.NotGameResult.newBuilder()
-				.setTotalRounds(gameResult.getTotalRounds())
-				.setCompletedRounds(gameResult.getCompletedRounds());
-
-		for (int i = 0; i < seatNum; i++) {
-			builder.addTotalScores(GameProto.SeatScore.newBuilder()
-					.setSeat(i).setScore(gameResult.getTotalScore(i)).build());
-		}
-
-		for (GameResult.RoundEntry entry : gameResult.getRoundEntries()) {
-			GameProto.RoundSummary.Builder summary = GameProto.RoundSummary.newBuilder()
-					.setRound(entry.getRound())
-					.setWinnerSeat(entry.getWinnerSeat())
-					.setFan(entry.getScore())
-					.setWinType(ByteString.copyFromUtf8(entry.getWinType()));
-			for (int i = 0; i < seatNum; i++) {
-				summary.addSeatScores(GameProto.SeatScore.newBuilder()
-						.setSeat(i).setScore(entry.getScores()[i]).build());
-			}
-			builder.addRounds(summary.build());
-		}
-
-		table.sendTableMessage(builder.build(), GMsg.NOT_GAME_RESULT);
-	}
 
 	// ======================== 内部方法 ========================
 
@@ -112,8 +83,8 @@ public final class DdzSettleService {
 
 	/** 保存回放 */
 	private static void saveReplay(DdzTable table, TableUser winner, int settleFactor, String winType, int[] scores) {
-		ReplayRecorder replay = table.getReplayRecorder();
-		if (replay instanceof DdzReplayRecorder) {
+		DdzReplayRecorder replay = table.getDdzReplay();
+		if (replay != null) {
 			replay.writeAuditEvent("结算 赢家座" + winner.getSeated() + " 类型 " + winType
 					+ " 最终倍数 " + settleFactor + " 各座得分 " + java.util.Arrays.toString(scores));
 			replay.writeSettlement(winner.getSeated(), settleFactor, winType, scores);

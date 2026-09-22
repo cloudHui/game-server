@@ -72,8 +72,8 @@ public final class PdkPlayService {
             return ConstProto.Result.OP_CURR_ERROR_VALUE;
         }
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build());
-        if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
-            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
+        PokerReplayRecorder replay = table.getPokerReplay();
+        if (replay != null) {
             replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 过 → 客户端展示 过");
             replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 过");
             replay.recordPass(user.getSeated());
@@ -108,13 +108,13 @@ public final class PdkPlayService {
         if (!user.removeCardsByProtoIds(ids)) return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
 
         ctx.markPlayed(user.getSeated());
-        if (table.getReplayRecorder() instanceof PokerReplayRecorder) {
-            PokerReplayRecorder replay = (PokerReplayRecorder) table.getReplayRecorder();
-            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌 → 客户端展示 出牌");
-            replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
-            replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
+        PokerReplayRecorder playReplay = table.getPokerReplay();
+        if (playReplay != null) {
+            playReplay.writeAuditEvent("座" + user.getSeated() + " 收到选项 出牌 → 客户端展示 出牌");
+            playReplay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
+            playReplay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
                     + " 强度 " + hand.getStrengthKey() + " 长度 " + hand.getCards().size());
-            replay.recordPlay(user.getSeated(), ids);
+            playReplay.recordPlay(user.getSeated(), ids);
         }
         broadcastAck(table, user.getUserId(), GameProto.OpInfo.newBuilder()
                 .setChoice(ConstProto.Operation.PLAY)

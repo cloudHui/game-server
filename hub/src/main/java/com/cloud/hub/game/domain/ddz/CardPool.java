@@ -1,6 +1,5 @@
 package com.cloud.hub.game.domain.ddz;
 
-import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.card.CardSuit;
 import com.cloud.hub.game.domain.cards.Card;
@@ -16,12 +15,17 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
+ * 斗地主专属牌池组件。
+ * <p>
+ * <b>职责与使用场景：</b>
+ * <ul>
+ *   <li>强类型持有 {@link DdzTable} 引用，消灭历史代码中的父类强转与向下造型；</li>
+ *   <li>负责一局斗地主 54 张牌（含大小王）的洗牌、切牌、发牌（每人 17 张）以及保留 3 张底牌；</li>
+ *   <li>在确定地主后由 {@link DdzBidService} 调用 {@link #sendBottomCards()} 将底牌发放给地主并全桌广播。</li>
+ * </ul>
+ *
  * @author cloud
  * @version 1.0
- * @date 2026-05-03
- * @className CardPool
- * @description 斗地主牌池，负责游戏桌子的牌池管理
- * @since 1.0
  */
 public class CardPool {
 
@@ -29,9 +33,9 @@ public class CardPool {
 
     private final List<Card> poolCards = new ArrayList<>();
     private final List<Card> bottomCards = new ArrayList<>();
-    private final Table table;
+    private final DdzTable table;
 
-    public CardPool(Table table) {
+    public CardPool(DdzTable table) {
         this.table = table;
     }
 
@@ -93,7 +97,7 @@ public class CardPool {
      * 将底牌并入地主手牌并再次通知手牌。
      * 底牌 ID 写入上下文，NotCard 末尾以 roleId=0 附带正面牌值，供桌面顶部展示。
      */
-    public void attachBottomToLandlord(Table table, int landlordSeat) {
+    public void attachBottomToLandlord(DdzTable table, int landlordSeat) {
         TableUser landlord = table.getSeatUser(landlordSeat);
         if (landlord == null) {
             logger.error("attachBottomToLandlord landlord null seat:{} table:{}", landlordSeat, table.getTableId());
@@ -105,17 +109,12 @@ public class CardPool {
             landlord.addCards(c);
         }
         bottomCards.clear();
-        if (table instanceof DdzTable) {
-            ((DdzTable) table).getDdz().setRevealedBottomCards(bottomIds);
-        }
+        table.getDdz().setRevealedBottomCards(bottomIds);
         sendInitCardNotice(table.getSeatUsers());
     }
 
     public void sendInitCardNotice(Map<Integer, TableUser> seatUsers) {
-        List<Integer> bottomIds = Collections.emptyList();
-        if (table instanceof DdzTable) {
-            bottomIds = ((DdzTable) table).getDdz().getRevealedBottomCards();
-        }
+        List<Integer> bottomIds = table.getDdz().getRevealedBottomCards();
         for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
             TableUser sendUser = entry.getValue();
             GameProto.NotCard.Builder builder = GameProto.NotCard.newBuilder();

@@ -58,45 +58,8 @@ public class RoomController {
             Message response = future.get(5, TimeUnit.SECONDS);
 
             if (response instanceof LobbyProto.AckRoomList) {
-                LobbyProto.AckRoomList ackRoomList = (LobbyProto.AckRoomList) response;
-                List<Map<String, Object>> rooms = new ArrayList<>();
-
-                for (ModelProto.Room room : ackRoomList.getRoomListList()) {
-                    Map<String, Object> roomData = new HashMap<>();
-                    roomData.put("roomId", room.getRoomId());
-                    roomData.put("gameType", room.getGameType());
-
-                    List<Map<String, Object>> tables = new ArrayList<>();
-                    for (ModelProto.RoomTableInfo table : room.getTablesList()) {
-                        Map<String, Object> tableData = new HashMap<>();
-                        tableData.put("tableId", table.getTableId());
-                        tableData.put("stat", table.getStat());
-                        tableData.put("playerCount", table.getTableRolesCount());
-
-                        List<Map<String, Object>> players = new ArrayList<>();
-                        for (ModelProto.RoomRole role : table.getTableRolesList()) {
-                            Map<String, Object> playerData = new HashMap<>();
-                            playerData.put("roleId", role.getRoleId());
-                            playerData.put("nickName", role.getNickName().toStringUtf8());
-                            players.add(playerData);
-                        }
-                        tableData.put("players", players);
-                        tableData.put("mine", table.getTableRolesList().stream()
-                                .anyMatch(role -> role.getRoleId() == user.getUserId()));
-                        tables.add(tableData);
-                    }
-                    roomData.put("tables", tables);
-                    for (Map<String, Object> table : tables) {
-                        if (Boolean.TRUE.equals(table.get("mine"))) {
-                            roomData.put("myTableId", table.get("tableId"));
-                            break;
-                        }
-                    }
-                    rooms.add(roomData);
-                }
-
                 AjaxResult result = AjaxResult.success();
-                result.put("rooms", rooms);
+                result.put("rooms", buildRoomListData((LobbyProto.AckRoomList) response, user.getUserId()));
                 return result;
             }
 
@@ -247,5 +210,43 @@ public class RoomController {
         AjaxResult result = new AjaxResult();
         result.putAll(map);
         return result;
+    }
+
+    private static List<Map<String, Object>> buildRoomListData(LobbyProto.AckRoomList ackRoomList, int currentUserId) {
+        List<Map<String, Object>> rooms = new ArrayList<>();
+        for (ModelProto.Room room : ackRoomList.getRoomListList()) {
+            Map<String, Object> roomData = new HashMap<>();
+            roomData.put("roomId", room.getRoomId());
+            roomData.put("gameType", room.getGameType());
+
+            List<Map<String, Object>> tables = new ArrayList<>();
+            for (ModelProto.RoomTableInfo table : room.getTablesList()) {
+                Map<String, Object> tableData = new HashMap<>();
+                tableData.put("tableId", table.getTableId());
+                tableData.put("stat", table.getStat());
+                tableData.put("playerCount", table.getTableRolesCount());
+
+                List<Map<String, Object>> players = new ArrayList<>();
+                for (ModelProto.RoomRole role : table.getTableRolesList()) {
+                    Map<String, Object> playerData = new HashMap<>();
+                    playerData.put("roleId", role.getRoleId());
+                    playerData.put("nickName", role.getNickName().toStringUtf8());
+                    players.add(playerData);
+                }
+                tableData.put("players", players);
+                tableData.put("mine", table.getTableRolesList().stream()
+                        .anyMatch(role -> role.getRoleId() == currentUserId));
+                tables.add(tableData);
+            }
+            roomData.put("tables", tables);
+            for (Map<String, Object> table : tables) {
+                if (Boolean.TRUE.equals(table.get("mine"))) {
+                    roomData.put("myTableId", table.get("tableId"));
+                    break;
+                }
+            }
+            rooms.add(roomData);
+        }
+        return rooms;
     }
 }

@@ -7,8 +7,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.cloud.hub.web.learning.model.DailyUsage;
-import com.cloud.hub.web.learning.service.JsonFileStore;
-import com.cloud.hub.web.learning.service.StatsService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,9 +21,10 @@ public class DailyReportService {
     private final String recipient;
     private final String sender;
 
-    public DailyReportService(ObjectProvider<JavaMailSender> mailSender, StatsService stats, UsageService usage, JsonFileStore store,
-                              @Value("${family-learning.report.recipient:}") String recipient,
-                              @Value("${spring.mail.username:}") String sender) {
+    public DailyReportService(ObjectProvider<JavaMailSender> mailSender, StatsService stats, UsageService usage,
+            JsonFileStore store,
+            @Value("${family-learning.report.recipient:}") String recipient,
+            @Value("${spring.mail.username:}") String sender) {
         this.mailSender = mailSender.getIfAvailable();
         this.stats = stats;
         this.usage = usage;
@@ -45,9 +44,12 @@ public class DailyReportService {
 
     public synchronized Map<String, Object> send(boolean force) throws Exception {
         DailyUsage today = usage.today();
-        if (!force && today.loginCount == 0) return status("skipped", "今日没有用户登录，不发送邮件");
-        if (today.loginCount == 0) return status("skipped", "今日没有用户登录");
-        if (mailSender == null || recipient == null || recipient.trim().isEmpty() || sender == null || sender.trim().isEmpty())
+        if (!force && today.loginCount == 0)
+            return status("skipped", "今日没有用户登录，不发送邮件");
+        if (today.loginCount == 0)
+            return status("skipped", "今日没有用户登录");
+        if (mailSender == null || recipient == null || recipient.trim().isEmpty() || sender == null
+                || sender.trim().isEmpty())
             return status("disabled", "邮件配置尚未完成");
         Map<String, Object> data = stats.admin();
         SimpleMailMessage message = new SimpleMailMessage();
@@ -80,7 +82,8 @@ public class DailyReportService {
         text.append("页面访问排行：").append(data.get("pageViews")).append("\n");
         text.append("功能使用排行：").append(data.get("featureStarts")).append("\n");
         text.append("高频错误：").append(data.get("frequentErrors")).append("\n\n");
-        text.append("前端错误：").append(data.get("frontendErrors")).append("，后端错误：").append(data.get("backendErrors")).append("\n");
+        text.append("前端错误：").append(data.get("frontendErrors")).append("，后端错误：").append(data.get("backendErrors"))
+                .append("\n");
         return text.toString();
     }
 
@@ -93,7 +96,9 @@ public class DailyReportService {
 
     private void log(String message) {
         try {
-            java.nio.file.Files.write(store.root().resolve("reports/mail.log"), (LocalDateTime.now() + " " + message + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            java.nio.file.Files.write(store.root().resolve("reports/mail.log"),
+                    (LocalDateTime.now() + " " + message + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
         } catch (Exception ignored) {
         }
     }

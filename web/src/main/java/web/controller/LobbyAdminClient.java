@@ -26,37 +26,30 @@ public class LobbyAdminClient {
     @Value("${lobby.admin-http:http://127.0.0.1:5701}")
     private String adminBase;
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> listInvites(String token) {
         return get("/invites", token);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> createInvite(String token, Map<String, Object> body) {
         return post("/invites", token, body);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> revokeInvite(String token, Map<String, Object> body) {
         return post("/invites/revoke", token, body);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> reactivateInvite(String token, Map<String, Object> body) {
         return post("/invites/reactivate", token, body);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> listUsers(String token) {
         return get("/users", token);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> enableUser(String token, Map<String, Object> body) {
         return post("/users/enable", token, body);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> listTables(String token) {
         return get("/tables", token);
     }
@@ -65,7 +58,6 @@ public class LobbyAdminClient {
         return post("/robot-matches", token, body);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> createCustomRoom(String token, Map<String, Object> body) {
         return post("/rooms/custom", token, body);
     }
