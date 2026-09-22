@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 /**
  * 游戏桌子基类
@@ -370,6 +371,31 @@ public abstract class Table {
         return Game.getInstance().getThreadPoolManager().submitTable(tableId, task);
     }
 
+    /**
+     * 将带有返回值的计算任务投递到桌串行队列。
+     *
+     * @param <T>      返回值类型
+     * @param supplier 具有返回值的计算逻辑
+     * @return 异步执行凭据
+     */
+    public <T> CompletableFuture<T> execute(Supplier<T> supplier) {
+        return Game.getInstance().getThreadPoolManager().submitTable(tableId, supplier);
+    }
+
+    /**
+     * 将任务投递到桌串行队列，并内置操作名异常切面日志，避免调用方重复手写 .exceptionally。
+     *
+     * @param actionName 业务动作名称（用于排错定位）
+     * @param task       待执行任务
+     * @return 异步执行凭据
+     */
+    public CompletableFuture<Void> execute(String actionName, Runnable task) {
+        return execute(task).exceptionally(error -> {
+            logger.error("桌子处理 [{}] 异常, tableId: {}", actionName, tableId, error);
+            return null;
+        });
+    }
+
     public void start() {
         try {
             if (loopFuture != null && !loopFuture.isCancelled())
@@ -429,12 +455,7 @@ public abstract class Table {
      * 在本桌线程生成大厅需要的只读快照，避免并发读取座位状态。
      */
     public CompletableFuture<ModelProto.RoomTableInfo> getRoomTableInfoAsync() {
-        CompletableFuture<ModelProto.RoomTableInfo> result = new CompletableFuture<>();
-        execute(() -> result.complete(buildRoomTableInfo())).exceptionally(error -> {
-            result.completeExceptionally(error);
-            return null;
-        });
-        return result;
+        return execute(this::buildRoomTableInfo);
     }
 
     private ModelProto.RoomTableInfo buildRoomTableInfo() {

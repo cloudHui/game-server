@@ -2,6 +2,7 @@ package threadtutil.thread;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,18 @@ public class ExecutorPool {
     }
 
     /**
+     * 【主入口 1 泛型版】以 long 类型的 groupId 投递带有返回值的串行计算任务。
+     *
+     * @param <T>      计算结果类型
+     * @param groupId  业务分组 ID（如 tableId、userId）
+     * @param supplier 具有返回值的业务逻辑
+     * @return 异步执行凭据，当业务执行完毕后完成并携带返回值
+     */
+    public <T> CompletableFuture<T> serialExecute(long groupId, Supplier<T> supplier) {
+        return serialExecute(Long.hashCode(groupId), supplier);
+    }
+
+    /**
      * 【主入口 2】以 int 类型的 groupId 投递串行任务。
      *
      * @param groupId  业务分组整型 ID
@@ -91,6 +104,21 @@ public class ExecutorPool {
     public CompletableFuture<Void> serialExecute(int groupId, Runnable runnable) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         TaskNode taskNode = new TaskNode(groupId, runnable, future);
+        dispatchToQueue(calculateSlotIndex(groupId), taskNode);
+        return future;
+    }
+
+    /**
+     * 【主入口 2 泛型版】以 int 类型的 groupId 投递带有返回值的串行计算任务。
+     *
+     * @param <T>      计算结果类型
+     * @param groupId  业务分组整型 ID
+     * @param supplier 具有返回值的业务逻辑
+     * @return 异步执行凭据，当业务执行完毕后完成并携带返回值
+     */
+    public <T> CompletableFuture<T> serialExecute(int groupId, Supplier<T> supplier) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        TaskNode taskNode = new TaskNode(groupId, supplier, future);
         dispatchToQueue(calculateSlotIndex(groupId), taskNode);
         return future;
     }
@@ -129,6 +157,25 @@ public class ExecutorPool {
             try {
                 runnable.run();
                 future.complete(null);
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
+    }
+
+    /**
+     * 【普通异步带返回值入口】直接投递普通异步计算任务并获取 CompletableFuture。
+     *
+     * @param <T>      计算结果类型
+     * @param supplier 任务计算逻辑
+     * @return 异步凭据
+     */
+    public <T> CompletableFuture<T> run(Supplier<T> supplier) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        this.threadPool.execute(() -> {
+            try {
+                future.complete(supplier.get());
             } catch (Throwable throwable) {
                 future.completeExceptionally(throwable);
             }
@@ -372,25 +419,36 @@ public class ExecutorPool {
     }
 
     /**
-     * 内部任务包装节点：将 Runnable 或 Task 与其对应的 CompletableFuture 聚合绑定。
+     * 内部任务包装节点：将 Runnable、Supplier 或 Task 与其对应的 CompletableFuture 聚合绑定。
      */
     private static class TaskNode implements Task {
         private final int groupId;
         private final Runnable runnable;
+        private final Supplier<?> supplier;
         private final CompletableFuture<?> completableFuture;
         private final Object originalTask;
+        private Object result;
 
         public TaskNode(int groupId, Runnable runnable, CompletableFuture<Void> future) {
             this.groupId = groupId;
             this.runnable = runnable;
+            this.supplier = null;
             this.completableFuture = future;
             this.originalTask = runnable;
         }
 
-        @SuppressWarnings("unchecked")
+        public <T> TaskNode(int groupId, Supplier<T> supplier, CompletableFuture<T> future) {
+            this.groupId = groupId;
+            this.runnable = null;
+            this.supplier = supplier;
+            this.completableFuture = future;
+            this.originalTask = supplier;
+        }
+
         public TaskNode(int groupId, Runnable runnable, CompletableFuture<Task> future, Task originalTask) {
             this.groupId = groupId;
             this.runnable = runnable;
+            this.supplier = null;
             this.completableFuture = future;
             this.originalTask = originalTask;
         }
@@ -402,13 +460,19 @@ public class ExecutorPool {
 
         @Override
         public void run() {
-            this.runnable.run();
+            if (this.supplier != null) {
+                this.result = this.supplier.get();
+            } else if (this.runnable != null) {
+                this.runnable.run();
+            }
         }
 
         @SuppressWarnings("unchecked")
         public void completeSuccess() {
             if (completableFuture != null) {
-                if (originalTask instanceof Task) {
+                if (this.supplier != null) {
+                    ((CompletableFuture<Object>) completableFuture).complete(this.result);
+                } else if (originalTask instanceof Task) {
                     ((CompletableFuture<Task>) completableFuture).complete((Task) originalTask);
                 } else {
                     ((CompletableFuture<Void>) completableFuture).complete(null);

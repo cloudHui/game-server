@@ -11,14 +11,15 @@
 - [二、单桌串行（Serial Execution）机制图解](#二单桌串行serial-execution机制图解)
 - [三、工作窃取（Work-Stealing）机制图解](#三工作窃取work-stealing机制图解)
 - [四、慢任务告警与卡死现场抓取](#四慢任务告警与卡死现场抓取)
-- [五、外部统一调用 API 规范](#五外部统一调用-api-规范)
-- [六、避坑准则与常见问题](#六避坑准则与常见问题)
+- [五、外部统一调用 API 规范与矩阵](#五外部统一调用-api-规范与矩阵)
+- [六、新旧接入模式对比（Before & After）](#六新旧接入模式对比before--after)
+- [七、避坑准则与常见问题](#七避坑准则与常见问题)
 
 ---
 
 ## 一、Hub 全局线程分流架构
 
-Hub 进程通过 `GameThreadPoolManager` 统筹四类物理线程池与单线程调度器，实现**网络 IO、桌内对局、玩家会话、全局索引与数据库落盘的彻底物理隔离**，杜绝相互阻塞。
+Hub 进程通过 `GameThreadPoolManager` 统筹**三大核心执行器**，实现**业务内存计算、阻塞数据库落盘与准时心跳脉冲的彻底物理隔离**：
 
 ### 1. 架构拓扑图
 
@@ -26,24 +27,25 @@ Hub 进程通过 `GameThreadPoolManager` 统筹四类物理线程池与单线程
 graph TD
     Client[客户端消息 Netty/WebSocket] --> NettyIO[网络 IO 线程<br/>只解码，不跑任何重业务]
     
-    NettyIO -->|玩家个人请求| PlayerPool["【Game-Player 线程池】<br/>个人属性/大厅会话/签到/商城"]
-    NettyIO -->|桌内对局操作| TablePool["【Game-Table 亲和串行池】<br/>打牌/摸牌/抢地主/出关卡 (按 tableId 串行)"]
-    NettyIO -->|建桌/散桌/匹配| MgrPool["【Game-TableManager 单线程池】<br/>全局房间索引修改/防并发冲突"]
+    NettyIO -->|桌内对局操作 tableId| BusinessPool["【Game-Business 统一业务亲和池】<br/>32 物理线程, 基于哈希槽位无锁串行<br/>- 同桌任务按 tableId 串行<br/>- 个人属性按 userId 串行<br/>- 全局建桌按 groupId=0 串行"]
+    NettyIO -->|玩家个人请求 userId| BusinessPool
+    NettyIO -->|全局建桌/解散| BusinessPool
     
-    Scheduler["【Game-TableScheduler】<br/>单线程定时心跳触发器"] -->|周期心跳 Tick| TablePool
+    Scheduler["【Game-TableScheduler】<br/>单线程准时脉冲源"] -->|周期心跳 Tick| BusinessPool
     
-    TablePool -->|异步持久化| DBPool["【Game-Database 线程池】<br/>战绩入库/SQLite 落盘 (阻塞 IO 专用)"]
+    BusinessPool -->|异步持久化| DBPool["【Game-Database 阻塞落盘池】<br/>战绩入库/SQLite 落盘 (阻塞 IO 专用)"]
 ```
 
-### 2. 线程资源分配与职责
+### 2. 线程资源分配与职责说明
 
-| 线程池名称 | 类型与配置 | 核心职责 | 绝不允许的行为 |
+| 执行器名称 | 类型与配置 | 核心职责与并发保证 | 严禁行为 |
 | :--- | :--- | :--- | :--- |
-| **`Game-Table`** | `ExecutorPool`<br/>32 线程, 10万容量有界队列 | **牌桌领域状态机**：所有桌内出牌、摸牌、状态轮转、离桌结算 | **严禁任何阻塞 IO**（如查数据库、网络 RPC、Thread.sleep） |
-| **`Game-Player`** | `ExecutorPool`<br/>32 线程, 10万容量有界队列 | 玩家个人背包、大厅交互、签到等用户维度并发事务 | 严禁直接修改桌子内部状态 |
-| **`Game-TableManager`** | `ExecutorPool`<br/>**单物理线程**, 10万容量 | 牌桌生命周期管理、全局桌号生成、跨桌匹配、房间列表快照 | 严禁执行复杂耗时的对局逻辑 |
-| **`Game-Database`** | `ExecutorService`<br/>固定线程池（默认 4~8 线程） | 战绩持久化、SQLite 异步写入、历史回放日志落盘 | 严禁与桌内状态同步调用绑定 |
-| **`Game-TableScheduler`**| `ScheduledExecutorService`<br/>**单物理线程** | 固定频率心跳触发器（仅产生 tick 脉冲，立即投回 TablePool） | 严禁在调度线程内直接执行任何业务逻辑 |
+| **`Game-Business`**<br/>(统一业务亲和池) | `ExecutorPool`<br/>32 线程, 10万容量有界队列 | **纯内存状态机与业务逻辑**：整合原 Table、Player 与 TableManager，不同业务主体通过哈希槽位并行无锁调度，同 ID 绝对串行 | **严禁任何阻塞 IO**（如查数据库、网络 HTTP/RPC、Thread.sleep） |
+| **`Game-Database`**<br/>(数据库阻塞池) | `ExecutorService`<br/>固定线程池（默认 4~8 线程） | **阻塞 IO 异步持久化**：SQLite 写入、战绩落盘、回放日志存储，彻底隔离慢 SQL | 严禁与桌内状态同步调用绑定 |
+| **`Game-TableScheduler`**<br/>(定时心跳脉冲源) | `ScheduledExecutorService`<br/>**单物理线程** | **高精度时钟源**：以固定频率发出脉冲（带 tickBusy 防堆积），产生后立即投回 BusinessPool | 严禁在调度线程内直接执行任何业务逻辑 |
+
+> **架构收敛优势**：
+> 相比原先 Table、Player、Manager 分立导致的 64+ 系统物理线程浪费与剧烈的线程上下文切换，收敛为单个 32 线程亲和池后，CPU 利用率更高，槽位利用更均衡，且依靠槽位哈希保证串行无锁。
 
 ---
 
@@ -165,29 +167,95 @@ sequenceDiagram
 
 ---
 
-## 五、外部统一调用 API 规范
+## 五、外部统一调用 API 规范与矩阵
 
-经重构后，外部业务无需再自己声明内部类（如 `TableTask`），直接调用统一极简 API：
+经演化重构后，外部业务无需再声明任何内部类，通过统一的重载方法与高阶辅助器进行调用：
 
-### 1. 业务端点（Controller / Handler）标准调用
+### 1. 核心调度方法速查（API 矩阵）
+
+| 调用场景 | 核心方法 | 返回类型 | 适用职责与特性 |
+| :--- | :--- | :--- | :--- |
+| **牌桌串行任务** | `table.execute(Runnable)` | `CompletableFuture<Void>` | 状态机流转、打牌、摸牌等无返回值写操作 |
+| **牌桌计算/查询** | `table.execute(Supplier<T>)` | `CompletableFuture<T>` | 牌桌只读快照、结算数据获取等有返回值操作 |
+| **带切面排错任务** | `table.execute(String, Runnable)` | `CompletableFuture<Void>` | 自动打印操作名与 tableId 的异常切面，无需手写 `.exceptionally` |
+| **Handler 调度（静默）** | `TableHandlerHelper.dispatch(tableId, name, action)` | `boolean` (恒为 true) | 查桌、判空、桌串行投递、异常隔离四合一，桌不存在时静默忽略 |
+| **Handler 调度（回错）** | `TableHandlerHelper.dispatchOrReplyNull(sender, tableId, name, action)` | `boolean` (恒为 true) | 查桌并调度；若桌不存在则自动向客户端发送 `TABLE_NULL_VALUE` 错误码 |
+| **玩家独立会话串行** | `pool.serialExecute(userId, Runnable/Supplier)` | `CompletableFuture<Void/T>` | 个人属性变动、背包购买，同 userId 绝对串行防并发 |
+| **周期心跳调度** | `pools.scheduleTable(tableId, tick, delay, interval)` | `ScheduledFuture<?>` | 牌桌周期 Tick，自带 `tickBusy` 防上一拍堆积 |
+
+---
+
+### 2. 牌桌与玩家端标准调用示例
+
 ```java
-// 1. 同桌串行投递（传入 tableId 与 Lambda，自动返回 CompletableFuture）
+// 1. 同桌串行投递（写操作）
 table.execute(() -> {
     table.processPlayCard(userId, card);
 });
 
-// 2. 玩家个人会话串行投递（传入 userId 与 Lambda）
+// 2. 同桌串行计算（读操作，直接异步链式流转）
+table.execute(() -> table.buildRoomTableInfo())
+     .thenAccept(info -> sender.sendMessage(info));
+
+// 3. 自带语义化异常切面的桌投递（发生未捕获异常时自动打印 ERROR 日志）
+table.execute("玩家出牌", () -> {
+    table.processPlayCard(userId, card);
+});
+
+// 4. 玩家个人会话串行投递（传入 userId 与 Lambda）
 executorPool.serialExecute(userId, () -> {
     player.updateScore(100);
 });
 
-// 3. 普通非串行异步任务
+// 5. 普通非串行异步任务（直接扔到底层物理线程池）
 executorPool.execute(() -> {
     logger.info("异步统计上报");
 });
 ```
 
-### 2. 周期调度与防堆积标准调用
+---
+
+### 3. Handler 层极简接入范式 (`TableHandlerHelper`)
+
+针对所有接收客户端请求并需要操作牌桌的 Handler，优先使用 `TableHandlerHelper`：
+
+#### 场景 A：只读快照或正常业务处理（查无此桌直接忽略或由上层处理）
+```java
+@ProcessType(GMsg.REQ_TABLE_SNAPSHOT)
+public class ReqTableSnapshotHandle implements Handler {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        GameProto.ReqTableSnapshot req = (GameProto.ReqTableSnapshot) message;
+        return TableHandlerHelper.dispatch(req.getTableId(), "生成牌桌快照", table -> {
+            TableUser viewer = table.getUsers().get(clientId);
+            if (viewer == null) return;
+            sender.sendMessage(clientId, GMsg.ACK_TABLE_SNAPSHOT,
+                    table.getTableId(), table.buildTableSnapshot(viewer), sequence);
+        });
+    }
+}
+```
+
+#### 场景 B：严格桌内操作（若桌子不存在需明确向客户端回送错误码）
+```java
+@ProcessType(GMsg.REQ_OP)
+public class ReqOpHandle implements Handler {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        GameProto.ReqOp request = (GameProto.ReqOp) message;
+        // 若桌子不存在，dispatchOrReplyNull 会自动回发 TABLE_NULL_VALUE 并打日志
+        return TableHandlerHelper.dispatchOrReplyNull(sender, mapId, "玩家操作", table -> {
+            int result = table.processOp(clientId, request.getOp(), sender, mapId, sequence);
+            replyOp(sender, clientId, mapId, sequence, request.getOp(), result);
+        });
+    }
+}
+```
+
+---
+
+### 4. 周期调度与防堆积标准调用
+
 ```java
 // 每 200ms 一拍，心跳任务内部自带 tickBusy 防堆积
 ScheduledFuture<?> loop = pools.scheduleTable(tableId, table::tableLoop, 1000, 200);
@@ -198,7 +266,17 @@ pools.cancelTableSchedule(loop);
 
 ---
 
-## 六、避坑准则与常见问题
+## 六、新旧接入模式对比（Before & After）
+
+| 对比维度 | 改造前写法 | 改造后推荐写法 | 优化收益 |
+| :--- | :--- | :--- | :--- |
+| **异步计算与查询** | 外部声明变量并在 Lambda 内 `.complete(res)`，再手写 `.completeExceptionally` | `return execute(this::buildRoomTableInfo);` | 消除 6 行胶水代码，代码清晰度提升 100% |
+| **Handler 业务接入** | 手动 `tableManager.getTable` + 判空回包 + 手写 `table.execute` + 手写 `.exceptionally` | 单行调用 `TableHandlerHelper.dispatch` 或 `dispatchOrReplyNull` | 消除 70% 重复模板代码，彻底杜绝漏写判空与异常未捕获 |
+| **异常现场排错** | 各处手写 logger，日志格式不一且常缺少桌号或操作名 | `table.execute("操作名", task)` 统一拦截并记录上下文 | 统一格式，便于 ELK / 日志切片精准过滤定位 |
+
+---
+
+## 七、避坑准则与常见问题
 
 1. **同资源必须同 Key**：
    凡是修改同一桌子状态的操作（出牌、入桌、离桌、超时判定），必须传同一个 `tableId`，确保进入同一个串行槽位。

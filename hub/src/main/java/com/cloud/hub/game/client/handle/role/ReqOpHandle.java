@@ -1,9 +1,9 @@
 package com.cloud.hub.game.client.handle.role;
 
 import com.cloud.hub.game.Game;
-import com.cloud.hub.game.manager.TableManager;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
+import com.cloud.hub.game.manager.TableManager;
 import com.google.protobuf.Message;
 import msg.annotation.ProcessType;
 import msg.registor.enums.TableState;
@@ -27,7 +27,7 @@ public class ReqOpHandle implements Handler {
 	@Override
 	public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
 		try {
-			GameProto.ReqOp request = (GameProto.ReqOp)message;
+			GameProto.ReqOp request = (GameProto.ReqOp) message;
 			logger.info("处理玩家操作请求, userId: {}, tableId: {}", clientId, mapId);
 
 			TableManager tableManager = Game.getInstance().getTableManager();
@@ -38,10 +38,10 @@ public class ReqOpHandle implements Handler {
 				return true;
 			}
 
-            table.execute(() -> {
-					int result = processUserOp(clientId, request, table, sender, mapId, sequence);
-					replyOp(sender, clientId, mapId, sequence, request.getOp(), result);
-					logger.info("玩家操作请求处理完成, userId: {}, tableId: {}, result: {}", clientId, mapId, result);
+			table.execute(() -> {
+				int result = processUserOp(clientId, request, table, sender, mapId, sequence);
+				replyOp(sender, clientId, mapId, sequence, request.getOp(), result);
+				logger.info("玩家操作请求处理完成, userId: {}, tableId: {}, result: {}", clientId, mapId, result);
 			}).exceptionally(error -> {
 				logger.error("桌子线程处理玩家操作失败, tableId: {}", mapId, error);
 				return null;
@@ -74,7 +74,11 @@ public class ReqOpHandle implements Handler {
 		sender.sendMessage(clientId, GMsg.ACK_OP, mapId, ack, sequence);
 	}
 
-	private int processUserOp(int userId, GameProto.ReqOp request, Table table, Sender sender, long mapId, int sequence) {
+	/**
+	 * 处理玩家操作请求
+	 */
+	private int processUserOp(int userId, GameProto.ReqOp request, Table table, Sender sender, long mapId,
+			int sequence) {
 		try {
 			GameProto.OpInfo op = request.getOp();
 			TableState ts = table.getTableState();
@@ -88,14 +92,16 @@ public class ReqOpHandle implements Handler {
 				return ConstProto.Result.TABLE_NOT_START_VALUE;
 			}
 
-			int result = table.processOp(userId, op, sender, mapId, sequence);
-			return result;
+			return table.processOp(userId, op, sender, mapId, sequence);
 		} catch (Exception e) {
 			logger.error("处理玩家操作请求失败, userId: {}", userId, e);
 			return ConstProto.Result.SERVER_ERROR_VALUE;
 		}
 	}
 
+	/**
+	 * 处理准备下一局
+	 */
 	private int processPrepare(Table table, int userId, GameProto.OpInfo op) {
 		if (op.getChoice() != ConstProto.Operation.PREPARE) {
 			return ConstProto.Result.OP_CURR_ERROR_VALUE;
