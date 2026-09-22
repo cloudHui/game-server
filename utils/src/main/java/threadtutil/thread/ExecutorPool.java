@@ -258,7 +258,7 @@ public class ExecutorPool {
         TaskList list = this.taskLists[slotIndex];
 
         // 步骤 4.1：如果该槽位正被其他线程处理中，本线程绝不强行插入，仅做超时检查
-        if (list.isBusy() && !list.isSelf(threadId)) {
+        if (list.isBusy() && list.notSelf(threadId)) {
             checkAndLogTimeout(slotIndex);
             return;
         }
@@ -348,7 +348,7 @@ public class ExecutorPool {
             if (candidateList.isNotEmpty() && !candidateList.isBusy()) {
                 // 顺手帮忙把该槽位的任务清空（drainSlot 内部会再次 CAS 抢占令牌进行双重校验保护）
                 drainSlot(slotIdx, threadId);
-            } else if (candidateList.isBusy() && !candidateList.isSelf(threadId)) {
+            } else if (candidateList.isBusy() && candidateList.notSelf(threadId)) {
                 // 准则二：如果目标队列正被别人占用，顺便检查一下对方有没有超时卡死
                 checkAndLogTimeout(slotIdx);
             }
@@ -475,7 +475,7 @@ public class ExecutorPool {
                 } else if (originalTask instanceof Task) {
                     ((CompletableFuture<Task>) completableFuture).complete((Task) originalTask);
                 } else {
-                    ((CompletableFuture<Void>) completableFuture).complete(null);
+                    completableFuture.complete(null);
                 }
             }
         }

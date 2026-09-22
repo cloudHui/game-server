@@ -65,8 +65,8 @@ public class TaskList {
      * @param processorId 待检查的线程 ID
      * @return true 表示该队列由该线程持有
      */
-    public boolean isSelf(long processorId) {
-        return getProcessorId() == processorId;
+    public boolean notSelf(long processorId) {
+        return getProcessorId() != processorId;
     }
 
     /**
