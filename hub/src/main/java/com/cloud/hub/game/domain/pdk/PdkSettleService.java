@@ -7,7 +7,7 @@ import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import com.google.protobuf.ByteString;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

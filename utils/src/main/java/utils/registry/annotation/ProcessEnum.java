@@ -1,8 +1,8 @@
-package msg.annotation;
+package utils.registry.annotation;
 
-import msg.registor.enums.TableState;
 import utils.registry.KeyBy;
 import utils.registry.KeyResolver;
+import utils.registry.enums.TableState;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

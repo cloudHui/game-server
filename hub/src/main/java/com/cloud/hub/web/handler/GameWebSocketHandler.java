@@ -3,10 +3,10 @@ package com.cloud.hub.web.handler;
 import com.cloud.hub.web.command.WsCommandHandler;
 import com.cloud.hub.web.command.WsContext;
 import com.google.protobuf.Message;
-import msg.registor.HandleTypeRegister;
 import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.registry.HandlerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -116,7 +116,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         if (ws == null || !ws.isOpen()) return;
         try {
             int msgId = tcpMessage.getMessageId();
-            Message proto = HandleTypeRegister.parseMessage(msgId,
+            Message proto = HandlerRegistry.parseMessage(msgId,
                     tcpMessage.getMessage() == null ? new byte[0] : tcpMessage.getMessage());
             String pushAction = GameWsPushFormatter.pushAction(msgId);
             if (pushAction == null) return;

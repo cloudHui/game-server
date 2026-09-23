@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 斗地主一桌内的运行时状态（与 {@link msg.registor.enums.TableState} 区分）。
+ * 斗地主一桌内的运行时状态（与 {@link utils.registry.enums.TableState} 区分）。
  *
  * @author cloud
  * @version 1.0
  * @date 2026-05-03
  * @className DdzTableContext
- * @description 斗地主一桌内的运行时状态（与 {@link msg.registor.enums.TableState} 区分）。
+ * @description 斗地主一桌内的运行时状态（与 {@link utils.registry.enums.TableState} 区分）。
  * @createDate 2026-05-03
  * @since 1.0
  */

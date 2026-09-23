@@ -9,8 +9,8 @@ import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.google.protobuf.Message;
 
-import msg.annotation.ProcessType;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import net.handler.Handler;

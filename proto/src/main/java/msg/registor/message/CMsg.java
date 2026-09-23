@@ -1,7 +1,7 @@
 package msg.registor.message;
 
-import msg.annotation.ClassField;
-import msg.annotation.ClassType;
+import utils.registry.annotation.ClassField;
+import utils.registry.annotation.ClassType;
 import proto.GateProto;
 import proto.ServerProto;
 

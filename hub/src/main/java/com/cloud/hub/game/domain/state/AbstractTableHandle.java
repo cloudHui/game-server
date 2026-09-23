@@ -1,7 +1,7 @@
 package com.cloud.hub.game.domain.state;
 
 import com.cloud.hub.game.domain.table.Table;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 
 /**
  * @author cloud

@@ -1,8 +1,8 @@
 package com.cloud.hub.game.domain.state;
 
 import com.cloud.hub.game.domain.table.Table;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 广播叫分或抢地主选项，并进入 {@link TableState#IDLE_ROB}。

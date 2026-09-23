@@ -2,8 +2,8 @@ package gate.connect.handle.time;
 
 import gate.Gate;
 import gate.connect.ConnectProcessor;
-import msg.annotation.ProcessClass;
-import msg.registor.enums.ServerType;
+import utils.registry.annotation.ProcessClass;
+import utils.registry.enums.ServerType;
 import net.client.Sender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

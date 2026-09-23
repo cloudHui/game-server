@@ -4,7 +4,7 @@ import gate.client.ClientProto;
 import gate.client.GateTcpClient;
 import gate.client.handle.back.BackHandleManager;
 import gate.connect.ConnectProcessor;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.connect.TCPConnect;
 import net.service.ServerService;

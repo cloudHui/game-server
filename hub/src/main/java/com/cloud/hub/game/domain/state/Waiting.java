@@ -14,8 +14,8 @@ import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 桌子等待准备阶段状态处理器。

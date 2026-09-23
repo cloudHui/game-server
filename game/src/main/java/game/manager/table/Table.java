@@ -7,7 +7,7 @@ import game.manager.table.replay.ReplayRecorder;
 import game.manager.table.state.TableStateHandleManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;

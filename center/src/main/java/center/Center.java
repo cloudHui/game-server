@@ -2,7 +2,7 @@ package center;
 
 import center.client.CenterClient;
 import center.client.ClientProto;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.service.ServerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

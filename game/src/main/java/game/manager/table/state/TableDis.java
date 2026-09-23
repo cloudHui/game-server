@@ -2,8 +2,8 @@ package game.manager.table.state;
 
 import game.Game;
 import game.manager.table.Table;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * @author admin

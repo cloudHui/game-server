@@ -1,8 +1,8 @@
 package game.manager.table.state;
 
 import game.manager.table.Table;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 牌局结束阶段：等待玩家准备下一局。

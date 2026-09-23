@@ -11,9 +11,9 @@ import javax.annotation.PostConstruct;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-import msg.registor.HandleTypeRegister;
 import msg.registor.message.GMsg;
 import net.message.TCPMessage;
+import utils.registry.HandlerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -334,7 +334,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
         try {
             int msgId = tcpMessage.getMessageId();
-            Message proto = HandleTypeRegister.parseMessage(msgId,
+            Message proto = HandlerRegistry.parseMessage(msgId,
                     tcpMessage.getMessage() == null ? new byte[0] : tcpMessage.getMessage());
             String action = GameWsPushFormatter.pushAction(msgId);
             if (action == null) {

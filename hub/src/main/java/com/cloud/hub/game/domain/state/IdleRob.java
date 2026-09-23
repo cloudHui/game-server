@@ -1,8 +1,8 @@
 package com.cloud.hub.game.domain.state;
 
 import com.cloud.hub.game.domain.table.Table;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 等待叫地主；超时视为「不叫」。

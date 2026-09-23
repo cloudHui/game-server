@@ -2,7 +2,7 @@ package com.cloud.hub.lobby.connect.game;
 
 import com.google.protobuf.Message;
 import com.cloud.hub.lobby.manager.table.TableManager;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.handler.Handler;

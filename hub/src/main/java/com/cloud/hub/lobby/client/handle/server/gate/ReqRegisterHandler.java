@@ -2,8 +2,8 @@ package com.cloud.hub.lobby.client.handle.server.gate;
 
 import com.cloud.hub.lobby.Lobby;
 import com.cloud.hub.lobby.client.LobbyClient;
-import msg.annotation.ProcessType;
-import msg.registor.enums.ServerType;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import proto.ModelProto;

@@ -2,7 +2,7 @@ package lobby.client;
 
 import io.netty.channel.ChannelHandler;
 import lobby.Lobby;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
 import net.message.TCPMaker;
 import org.slf4j.Logger;

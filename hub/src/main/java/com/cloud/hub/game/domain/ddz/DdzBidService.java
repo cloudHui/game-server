@@ -3,7 +3,7 @@ package com.cloud.hub.game.domain.ddz;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.banner.Banner;
 import com.cloud.hub.game.domain.replay.DdzReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

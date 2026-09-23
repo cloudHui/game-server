@@ -9,7 +9,7 @@ import com.cloud.hub.game.domain.replay.PokerReplayRecorder;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import com.cloud.hub.game.domain.state.IdleShowCard;
 import model.tablemodel.TableModel;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import proto.ConstProto;

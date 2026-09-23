@@ -3,7 +3,7 @@ package tools;
 import com.google.protobuf.ByteString;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.event.EventHandle;
 import net.connect.ServerInfo;

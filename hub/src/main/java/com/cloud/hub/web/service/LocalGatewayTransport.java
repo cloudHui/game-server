@@ -20,7 +20,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.GMsg;
 import msg.registor.message.LMsg;
 import net.client.Sender;

@@ -8,7 +8,7 @@ import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;
 import game.db.ScoreRepository;
 import model.tablemodel.TableModel;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import proto.ConstProto;
 import proto.GameProto;

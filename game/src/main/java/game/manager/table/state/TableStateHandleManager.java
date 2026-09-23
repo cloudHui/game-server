@@ -2,10 +2,10 @@ package game.manager.table.state;
 
 import game.manager.table.Table;
 import game.manager.table.mj.state.MjDeal;
-import msg.registor.HandleTypeRegister;
-import msg.registor.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.registry.HandlerRegistry;
+import utils.registry.enums.TableState;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -33,9 +33,9 @@ public class TableStateHandleManager {
     private static final Set<String> MISSING_HANDLE_LOGGED = ConcurrentHashMap.newKeySet();
 
     static {
-        HandleTypeRegister.initFactoryEnum(TableStateHandleManager.class, STATE_TABLE_HANDLE_MAP);
+        HandlerRegistry.bindEnum(TableStateHandleManager.class, STATE_TABLE_HANDLE_MAP);
         // 麻将状态处理器位于独立兄弟包，必须作为单独扫描根注册。
-        HandleTypeRegister.initFactoryEnum(MjDeal.class, STATE_TABLE_HANDLE_MAP);
+        HandlerRegistry.bindEnum(MjDeal.class, STATE_TABLE_HANDLE_MAP);
         validateRequiredHandles();
     }
 

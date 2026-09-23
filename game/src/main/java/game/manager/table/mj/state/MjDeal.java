@@ -1,8 +1,8 @@
 package game.manager.table.mj.state;
 
 import game.manager.table.state.AbstractTableHandle;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 麻将发牌展示阶段：发牌已在 Waiting 完成，本状态仅等待 overTime 后进入摸牌。

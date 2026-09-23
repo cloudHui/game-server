@@ -2,8 +2,8 @@ package lobby.connect.game;
 
 import com.google.protobuf.Message;
 import lobby.manager.table.TableManager;
-import msg.annotation.ProcessClass;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessClass;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.handler.Handler;

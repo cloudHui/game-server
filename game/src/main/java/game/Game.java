@@ -6,12 +6,12 @@ import game.db.DatabaseExecutorManager;
 import game.db.ScoreRepository;
 import game.manager.TableManager;
 import game.manager.thread.GameThreadPoolManager;
-import msg.registor.HandleTypeRegister;
-import msg.registor.enums.ServerType;
 import net.service.ServerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ModelProto;
+import utils.registry.HandlerRegistry;
+import utils.registry.enums.ServerType;
 import threadtutil.thread.ExecutorPool;
 import threadtutil.thread.Task;
 import threadtutil.timer.Runner;
@@ -270,7 +270,7 @@ public class Game {
                 throw new IllegalArgumentException("中心服务器地址格式错误: " + center);
             }
 
-            serverManager.registerSever(centerAddress, HandleTypeRegister::parseMessage,
+            serverManager.registerSever(centerAddress, HandlerRegistry::parseMessage,
                     ServerType.Center, serverId, serverInfo.getIpConfig().toStringUtf8(), ServerType.Game);
 
             logger.info("已向中心服务器注册, 地址: {}:{}", centerAddress[0], centerAddress[1]);

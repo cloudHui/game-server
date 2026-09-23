@@ -1,8 +1,8 @@
 package gate.client.handle;
 
 import com.google.protobuf.Message;
-import msg.annotation.ProcessType;
-import msg.registor.enums.ServerType;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.handler.Handler;

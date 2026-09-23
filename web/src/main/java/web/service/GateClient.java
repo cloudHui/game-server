@@ -16,7 +16,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 
 import javax.annotation.PreDestroy;
 
-import msg.registor.HandleTypeRegister;
 import msg.registor.message.CMsg;
 import msg.registor.message.GMsg;
 import net.connect.TCPConnect;
@@ -25,6 +24,7 @@ import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
+import utils.registry.HandlerRegistry;
 
 /**
  * Gate TCP客户端
@@ -37,7 +37,7 @@ public class GateClient {
     private final int gatePort;
     private final NioEventLoopGroup eventLoopGroup;
     private final ExecutorService connectExecutor = Executors.newCachedThreadPool();
-    private final Parser parser = HandleTypeRegister::parseMessage;
+    private final Parser parser = HandlerRegistry::parseMessage;
 
     /**
      * sessionId -> TCPConnect

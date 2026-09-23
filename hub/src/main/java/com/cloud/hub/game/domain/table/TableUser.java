@@ -3,7 +3,7 @@ package com.cloud.hub.game.domain.table;
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.cards.Card;
 import com.google.protobuf.Message;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
 import net.message.TCPMessage;
 import com.cloud.hub.game.runtime.GamePushBus;

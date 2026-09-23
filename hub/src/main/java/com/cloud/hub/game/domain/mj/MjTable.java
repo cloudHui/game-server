@@ -8,7 +8,7 @@ import com.cloud.hub.game.domain.mj.card.MjTilePool;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import model.tablemodel.TableModel;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import org.slf4j.Logger;

@@ -1,7 +1,7 @@
 package tools.handle;
 
 import com.google.protobuf.Message;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.message.Parser;

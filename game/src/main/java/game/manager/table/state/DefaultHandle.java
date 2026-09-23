@@ -3,8 +3,8 @@ package game.manager.table.state;
 import game.manager.table.Table;
 import game.manager.table.tractor.TractorDealService;
 import game.manager.table.tractor.TractorTable;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 默认阶段：斗地主等依赖超时切入下一状态；拖拉机发牌见 {@link TractorDealService}。

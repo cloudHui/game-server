@@ -12,7 +12,7 @@ import com.cloud.hub.lobby.manager.table.TableInfo;
 import com.cloud.hub.lobby.manager.table.TableManager;
 import com.google.protobuf.Message;
 
-import msg.annotation.ProcessClass;
+import utils.registry.annotation.ProcessClass;
 import net.client.Sender;
 import net.message.TCPMessage;
 import proto.ConstProto;

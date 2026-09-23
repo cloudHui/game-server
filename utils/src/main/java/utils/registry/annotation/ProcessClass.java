@@ -1,4 +1,4 @@
-package msg.annotation;
+package utils.registry.annotation;
 
 import utils.registry.KeyBy;
 import utils.registry.KeyResolver;

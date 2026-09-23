@@ -5,8 +5,8 @@ import com.cloud.hub.game.domain.mj.MjDrawService;
 import com.cloud.hub.game.domain.mj.MjSettleService;
 import com.cloud.hub.game.domain.mj.MjTable;
 import com.cloud.hub.game.domain.state.AbstractTableHandle;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -8,7 +8,7 @@ import com.cloud.hub.lobby.db.UserEntity;
 import com.cloud.hub.lobby.db.UserRepository;
 import com.cloud.hub.lobby.manager.User;
 import com.cloud.hub.lobby.manager.UserManager;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.LMsg;
 import net.client.Sender;
 import net.handler.Handler;

@@ -2,7 +2,7 @@ package com.cloud.hub.game.domain.tractor;
 
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.state.Waiting;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 
 /**

@@ -8,7 +8,7 @@ import game.manager.table.mj.card.MjTilePool;
 import game.manager.table.replay.MjReplayRecorder;
 import game.manager.table.replay.ReplayRecorder;
 import model.tablemodel.TableModel;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import org.slf4j.Logger;

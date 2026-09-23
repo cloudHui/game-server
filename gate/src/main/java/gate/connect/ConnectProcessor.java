@@ -2,7 +2,6 @@ package gate.connect;
 
 import gate.client.GateTcpClient;
 import io.netty.channel.ChannelHandler;
-import msg.registor.HandleTypeRegister;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
@@ -14,6 +13,7 @@ import net.message.Transfer;
 import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.registry.HandlerRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,12 +24,12 @@ public class ConnectProcessor {
     private final static Map<Integer, Handler> HANDLER_MAP = new HashMap<>();
     private final static MsgRouter FORWARD_ROUTER = new MsgRouter();
 
-    public final static Parser PARSER = HandleTypeRegister::parseMessage;
+    public final static Parser PARSER = HandlerRegistry::parseMessage;
     public final static Handlers HANDLERS = HANDLER_MAP::get;
     public final static Transfer TRANSFER = ConnectProcessor::handleServerTrans;
 
     public static void init() {
-        HandleTypeRegister.initFactory(ConnectProcessor.class, HANDLER_MAP);
+        HandlerRegistry.bind(ConnectProcessor.class, HANDLER_MAP);
         FORWARD_ROUTER.register(new GateForwardController());
         logger.info("ConnectProcessor 初始化完成, 转发路由数: {}", FORWARD_ROUTER.getRouteCount());
     }

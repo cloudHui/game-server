@@ -6,7 +6,7 @@ import game.manager.table.cards.CardOps;
 import game.manager.table.ddz.DdzHand;
 import game.manager.table.pdk.ai.PdkSimpleAi;
 import game.manager.table.replay.PokerReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

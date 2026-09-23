@@ -5,8 +5,8 @@ import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzPlayService;
 import game.manager.table.ddz.DdzTable;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

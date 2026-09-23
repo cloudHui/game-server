@@ -1,7 +1,7 @@
-package msg.registor.enums;
+package utils.registry.enums;
 
 /**
- * 桌子运行状态
+ * 桌子运行状态机枚举
  */
 public enum TableState {
 	IDLE_CARD(8, "等玩家出牌操作开始", 20),

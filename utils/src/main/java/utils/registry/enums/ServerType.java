@@ -1,8 +1,11 @@
-package msg.registor.enums;
+package utils.registry.enums;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 服务端服务类型枚举
+ */
 public enum ServerType {
 	Gate(1, "网关"),
 	Game(2, "游戏"),

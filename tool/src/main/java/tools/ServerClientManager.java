@@ -1,6 +1,6 @@
 package tools;
 
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
 import utils.other.RandomUtils;
 

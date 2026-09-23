@@ -2,7 +2,7 @@ package game.client;
 
 import game.Game;
 import io.netty.channel.ChannelHandler;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
 import net.message.TCPMaker;
 import org.slf4j.Logger;

@@ -5,7 +5,7 @@ import lobby.manager.User;
 import lobby.manager.UserManager;
 import lobby.manager.table.TableInfo;
 import lobby.manager.table.TableManager;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.handler.Handler;

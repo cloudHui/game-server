@@ -4,8 +4,8 @@ import game.manager.table.RobotOperationDelay;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.tractor.TractorTable;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 等地主明牌 / 拖拉机庄家扣底（拿底后 30 秒内放回 8 张，然后出牌）。

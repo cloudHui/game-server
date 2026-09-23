@@ -9,7 +9,7 @@ import com.cloud.hub.lobby.manager.User;
 import com.cloud.hub.lobby.manager.UserManager;
 import com.cloud.hub.lobby.manager.table.TableInfo;
 import com.cloud.hub.lobby.manager.table.TableManager;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.LMsg;
 import net.client.Sender;
 import net.handler.Handler;

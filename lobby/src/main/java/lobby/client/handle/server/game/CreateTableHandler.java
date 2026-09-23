@@ -8,7 +8,7 @@ import lobby.manager.User;
 import lobby.manager.UserManager;
 import lobby.manager.table.TableInfo;
 import lobby.manager.table.TableManager;
-import msg.annotation.ProcessClass;
+import utils.registry.annotation.ProcessClass;
 import net.client.Sender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

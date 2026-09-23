@@ -6,7 +6,7 @@ import game.manager.table.TableUser;
 import game.manager.table.ddz.DdzSettleService;
 import game.manager.table.mj.MjSettleService;
 import game.manager.table.mj.MjTable;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.message.TCPMessage;
 import net.msg.Msg;

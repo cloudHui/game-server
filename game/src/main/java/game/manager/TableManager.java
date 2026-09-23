@@ -11,7 +11,7 @@ import game.manager.thread.GameThreadPoolManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.GMsg;
 import msg.registor.message.SMsg;
 import net.client.handler.ClientHandler;
@@ -116,7 +116,7 @@ public class TableManager {
      */
     private void notifyPlayersTableDestroyed(Table table) {
         GameProto.NotTableState notification = table.buildStateNotification(
-                msg.registor.enums.TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
+                utils.registry.enums.TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
         for (TableUser user : table.getSeatUsers().values()) {
             try {
                 user.sendRoleMessage(notification, GMsg.NOT_TABLE_STATE, table.getTableId());

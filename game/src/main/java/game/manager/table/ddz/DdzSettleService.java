@@ -16,7 +16,7 @@ import game.manager.table.cards.Card;
 import game.manager.table.replay.DdzReplayRecorder;
 import game.manager.table.replay.ReplayRecorder;
 import game.db.ScoreRepository;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import proto.GameProto;
 

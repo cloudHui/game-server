@@ -3,7 +3,7 @@ package com.cloud.hub.game.client.handle.server;
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.manager.TableManager;
 import com.google.protobuf.Message;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.handler.Handler;

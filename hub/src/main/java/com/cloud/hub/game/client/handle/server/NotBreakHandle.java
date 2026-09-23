@@ -4,7 +4,7 @@ import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.google.protobuf.Message;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.handler.Handler;

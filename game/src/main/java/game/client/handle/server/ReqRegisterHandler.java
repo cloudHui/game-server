@@ -2,7 +2,7 @@ package game.client.handle.server;
 
 import game.Game;
 import game.client.GameClient;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.msg.Msg;

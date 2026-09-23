@@ -9,7 +9,7 @@ import lobby.client.ClientProto;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
 import model.tablemodel.RobotRoomTemplates;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.SMsg;
 import net.connect.handle.ConnectHandler;
 import proto.ModelProto;

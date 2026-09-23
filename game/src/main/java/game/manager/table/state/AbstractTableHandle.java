@@ -1,7 +1,7 @@
 package game.manager.table.state;
 
 import game.manager.table.Table;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 
 /**
  * @author cloud

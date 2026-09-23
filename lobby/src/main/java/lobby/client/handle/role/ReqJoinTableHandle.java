@@ -9,7 +9,7 @@ import lobby.manager.table.TableInfo;
 import lobby.manager.table.TableManager;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.LMsg;
 import msg.registor.message.SMsg;
 import net.client.Sender;

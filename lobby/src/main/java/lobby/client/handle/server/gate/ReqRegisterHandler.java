@@ -2,7 +2,7 @@ package lobby.client.handle.server.gate;
 
 import lobby.Lobby;
 import lobby.client.LobbyClient;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.msg.Msg;

@@ -4,8 +4,6 @@ import com.google.protobuf.ByteString;
 import gate.Gate;
 import gate.client.handle.back.BackHandleManager;
 import io.netty.channel.ChannelHandler;
-import msg.registor.HandleTypeRegister;
-import msg.registor.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.handler.ClientHandler;
 import net.client.handler.WsClientHandler;
@@ -21,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.ServerProto;
 import tools.ServerManager;
+import utils.registry.HandlerRegistry;
+import utils.registry.enums.ServerType;
 import utils.trace.TracedHandler;
 
 import java.util.HashMap;
@@ -35,7 +35,7 @@ public class ClientProto {
 
     // 消息转发接口
     public static final Transfer TRANSFER = ClientProto::transferMessage;
-    public static final Parser PARSER = HandleTypeRegister::parseMessage;
+    public static final Parser PARSER = HandlerRegistry::parseMessage;
     private static final Map<Integer, Handler> HANDLER_MAP = new HashMap<>();
     public static final Handlers HANDLERS = HANDLER_MAP::get;
 
@@ -48,9 +48,9 @@ public class ClientProto {
     public static void init() {
         try {
             // 绑定专用服务器消息处理
-            HandleTypeRegister.initFactory(ClientProto.class, HANDLER_MAP);
+            HandlerRegistry.bind(ClientProto.class, HANDLER_MAP);
             // 绑定通用服务器消息处理
-            HandleTypeRegister.initFactory(HANDLER_MAP);
+            HandlerRegistry.bind(HANDLER_MAP);
             TracedHandler.wrapAll(HANDLER_MAP);
             logger.info("ClientProto初始化完成,注册处理器数量: {}", HANDLER_MAP.size());
         } catch (Exception e) {

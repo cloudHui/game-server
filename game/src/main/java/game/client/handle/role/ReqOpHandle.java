@@ -5,7 +5,7 @@ import game.manager.TableManager;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.state.TableSettleSupport;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import net.message.TCPMessage;

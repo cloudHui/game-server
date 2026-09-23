@@ -3,7 +3,7 @@ package com.cloud.hub.game.domain.mj;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;

@@ -3,7 +3,7 @@ package com.cloud.hub.lobby.client.handle.server.gate;
 import com.google.protobuf.Message;
 import com.cloud.hub.lobby.manager.User;
 import com.cloud.hub.lobby.manager.UserManager;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.handler.Handler;

@@ -59,7 +59,7 @@ public class MjGangService {
             // 杠发生在 MJ_DISCARD 内，状态虽然重新进入 MJ_DISCARD，但不是一次
             // 不同枚举值的切换。必须重置提示标记，否则补摸后不会再次发送出牌按钮。
             ctx.setDiscardPromptSent(false);
-            table.upNextState(msg.registor.enums.TableState.MJ_DISCARD);
+            table.upNextState(utils.registry.enums.TableState.MJ_DISCARD);
         } else {
             MjSettleService.finishGame(table, "暗杠后牌墙已空");
         }
@@ -132,7 +132,7 @@ public class MjGangService {
             ctx.setGangShangKaiHua(false);
             // 同暗杠：补杠前的出牌提示已经发送过，补摸后要开启一个新的出牌窗口。
             ctx.setDiscardPromptSent(false);
-            table.upNextState(msg.registor.enums.TableState.MJ_DISCARD);
+            table.upNextState(utils.registry.enums.TableState.MJ_DISCARD);
         } else {
             MjSettleService.finishGame(table, "补杠后牌墙已空");
         }

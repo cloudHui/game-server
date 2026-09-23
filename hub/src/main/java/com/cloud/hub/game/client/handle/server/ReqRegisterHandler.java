@@ -2,8 +2,8 @@ package com.cloud.hub.game.client.handle.server;
 
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.client.GameClient;
-import msg.annotation.ProcessType;
-import msg.registor.enums.ServerType;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import proto.ModelProto;

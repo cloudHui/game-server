@@ -2,8 +2,8 @@ package com.cloud.hub.game.domain.state;
 
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 等待出牌超时自动出牌或PASS处理。

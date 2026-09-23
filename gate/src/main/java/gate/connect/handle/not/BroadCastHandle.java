@@ -2,7 +2,7 @@ package gate.connect.handle.not;
 
 import com.google.protobuf.Message;
 import gate.client.GateTcpClient;
-import msg.annotation.ProcessType;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;

@@ -9,7 +9,7 @@ import lobby.db.SqliteDatabase;
 import lobby.db.UserEntity;
 import lobby.db.UserRepository;
 import lobby.manager.table.TableManager;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.connect.TCPConnect;
 import net.service.ServerService;

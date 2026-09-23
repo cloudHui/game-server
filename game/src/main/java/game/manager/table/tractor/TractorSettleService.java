@@ -14,7 +14,7 @@ import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
 import game.db.ScoreRepository;
 import game.manager.table.replay.ReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import proto.GameProto;
 

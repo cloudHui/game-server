@@ -2,8 +2,8 @@ package lobby.connect.center.time;
 
 import lobby.Lobby;
 import lobby.connect.ConnectProcessor;
-import msg.annotation.ProcessClass;
-import msg.registor.enums.ServerType;
+import utils.registry.annotation.ProcessClass;
+import utils.registry.enums.ServerType;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.connect.TCPConnect;

@@ -5,7 +5,7 @@ import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.cards.CardOps;
 import com.cloud.hub.game.domain.replay.PokerReplayRecorder;
 import com.cloud.hub.game.domain.state.IdleShowCard;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

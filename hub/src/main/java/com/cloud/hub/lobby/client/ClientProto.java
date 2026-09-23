@@ -1,7 +1,7 @@
 package com.cloud.hub.lobby.client;
 
-import msg.annotation.ProcessType;
-import msg.registor.HandleTypeRegister;
+import utils.registry.HandlerRegistry;
+import utils.registry.annotation.ProcessType;
 import net.handler.Handler;
 import net.handler.Handlers;
 import net.message.Parser;
@@ -20,7 +20,7 @@ public class ClientProto {
     public static final Transfer TRANSFER = (client, message) -> false;
     private static final Map<Integer, Handler> handlers = new HashMap<>();
     public static final Handlers HANDLERS = handlers::get;
-    public static final Parser PARSER = HandleTypeRegister::parseMessage;
+    public static final Parser PARSER = HandlerRegistry::parseMessage;
 
     public static void init() {
         try {

@@ -1,8 +1,8 @@
 package gate.client.handle.back;
 
 import gate.client.GateTcpClient;
-import msg.registor.HandleTypeRegister;
 import net.message.TCPMessage;
+import utils.registry.HandlerRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +18,7 @@ public class BackHandleManager {
     private static final Map<Integer, BackHandle> BACK_HANDLE_MAP = new HashMap<>();
 
     public static void init() {
-        HandleTypeRegister.initFactory(BackHandleManager.class, BACK_HANDLE_MAP);
+        HandlerRegistry.bind(BackHandleManager.class, BACK_HANDLE_MAP);
     }
 
     /**

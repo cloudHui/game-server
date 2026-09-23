@@ -3,7 +3,7 @@ package game.manager.table.mj;
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

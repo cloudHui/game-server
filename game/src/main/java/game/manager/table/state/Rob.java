@@ -2,8 +2,8 @@ package game.manager.table.state;
 
 import game.manager.table.Table;
 import game.manager.table.ddz.DdzTable;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import proto.ConstProto;
 import proto.GameProto;

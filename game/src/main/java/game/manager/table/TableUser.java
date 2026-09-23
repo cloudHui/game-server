@@ -3,7 +3,7 @@ package game.manager.table;
 import com.google.protobuf.Message;
 import game.Game;
 import game.manager.table.cards.Card;
-import msg.registor.enums.ServerType;
+import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
 import net.message.TCPMessage;
 import org.slf4j.Logger;

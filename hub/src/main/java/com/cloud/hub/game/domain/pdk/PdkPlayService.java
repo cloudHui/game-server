@@ -6,7 +6,7 @@ import com.cloud.hub.game.domain.cards.CardOps;
 import com.cloud.hub.game.domain.ddz.DdzHand;
 import com.cloud.hub.game.domain.pdk.ai.PdkSimpleAi;
 import com.cloud.hub.game.domain.replay.PokerReplayRecorder;
-import msg.registor.enums.TableState;
+import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

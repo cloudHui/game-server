@@ -5,8 +5,8 @@ import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.mj.MjDrawService;
 import game.manager.table.replay.ReplayRecorder;
-import msg.annotation.ProcessEnum;
-import msg.registor.enums.TableState;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

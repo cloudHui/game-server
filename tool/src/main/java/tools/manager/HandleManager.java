@@ -1,8 +1,6 @@
 package tools.manager;
 
 import com.google.protobuf.Message;
-import msg.registor.HandleTypeRegister;
-import msg.registor.enums.ServerType;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
 import net.message.Parser;
@@ -10,6 +8,8 @@ import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.ServerClientManager;
+import utils.registry.HandlerRegistry;
+import utils.registry.enums.ServerType;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,7 @@ public class HandleManager {
      */
     public static void init(Class<?> aClass) {
         try {
-            HandleTypeRegister.initClassFactory(aClass, handleMap);
+            HandlerRegistry.bindClass(aClass, handleMap);
         } catch (Exception e) {
             LOGGER.error("HandleManager初始化失败,类:{},错误:{}", aClass.getSimpleName(), e.getMessage(), e);
             throw e;
