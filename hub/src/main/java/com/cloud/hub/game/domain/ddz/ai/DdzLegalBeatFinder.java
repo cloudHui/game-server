@@ -51,8 +51,8 @@ public final class DdzLegalBeatFinder {
         STRATEGIES.put(ConstProto.CardType.SINGLE, (h, rm, last, out, seen) -> trySingles(h, last, out, seen));
         STRATEGIES.put(ConstProto.CardType.DOUBLE, (h, rm, last, out, seen) -> tryPairs(rm, last, out, seen));
         STRATEGIES.put(ConstProto.CardType.TRIPLE, (h, rm, last, out, seen) -> tryTriples(rm, last, out, seen));
-        STRATEGIES.put(ConstProto.CardType.STRAIGHT, (h, rm, last, out, seen) -> tryStraights(h, last, out, seen));
-        STRATEGIES.put(ConstProto.CardType.STRAIGHT_DOUBLE, (h, rm, last, out, seen) -> tryStraightDoubles(h, last, out, seen));
+        STRATEGIES.put(ConstProto.CardType.STRAIGHT, (h, rm, last, out, seen) -> tryStraights(rm, last, out, seen));
+        STRATEGIES.put(ConstProto.CardType.STRAIGHT_DOUBLE, (h, rm, last, out, seen) -> tryStraightDoubles(rm, last, out, seen));
         STRATEGIES.put(ConstProto.CardType.TRIPLE_ONE, (h, rm, last, out, seen) -> tryTripleOne(rm, h, last, out, seen));
         STRATEGIES.put(ConstProto.CardType.TRIPLE_DOUBLE, (h, rm, last, out, seen) -> tryTripleDouble(rm, h, last, out, seen));
         STRATEGIES.put(ConstProto.CardType.PLANE_ONE, (h, rm, last, out, seen) -> tryPlaneOne(rm, h, last, out, seen));
@@ -136,7 +136,7 @@ public final class DdzLegalBeatFinder {
     }
 
     /**
-     * 检索能压过上家的单张牌。
+     * 检索能压过上家的单张牌（带前置点数剪枝）。
      *
      * @param hand 手牌列表
      * @param last 上家牌
@@ -144,13 +144,18 @@ public final class DdzLegalBeatFinder {
      * @param seen 去重集合
      */
     private static void trySingles(List<Card> hand, DdzHand last, List<DdzHand> out, Set<Long> seen) {
+        int lastKey = last.getStrengthKey();
         for (Card c : hand) {
+            // 剪枝：单牌点数不大于上家直接跳过，避免无效进入 analyze 与 beats 校验
+            if (DdzRules.normalizePoint(c.getCardVal()) <= lastKey) {
+                continue;
+            }
             addIfBeats(Collections.singletonList(c), last, out, seen);
         }
     }
 
     /**
-     * 检索能压过上家的对子。
+     * 检索能压过上家的对子（带前置点数剪枝）。
      *
      * @param rankMap 点数桶
      * @param last    上家牌
@@ -158,7 +163,13 @@ public final class DdzLegalBeatFinder {
      * @param seen    去重集合
      */
     private static void tryPairs(Map<Integer, List<Card>> rankMap, DdzHand last, List<DdzHand> out, Set<Long> seen) {
-        for (List<Card> lst : rankMap.values()) {
+        int lastKey = last.getStrengthKey();
+        for (Map.Entry<Integer, List<Card>> e : rankMap.entrySet()) {
+            // 剪枝：点数不大于上家直接跳过
+            if (DdzRules.normalizePoint(e.getKey()) <= lastKey) {
+                continue;
+            }
+            List<Card> lst = e.getValue();
             if (lst.size() < 2) {
                 continue;
             }
@@ -171,7 +182,7 @@ public final class DdzLegalBeatFinder {
     }
 
     /**
-     * 检索能压过上家的三张（三不带）。
+     * 检索能压过上家的三张（三不带，带前置点数剪枝）。
      *
      * @param rankMap 点数桶
      * @param last    上家牌
@@ -179,7 +190,13 @@ public final class DdzLegalBeatFinder {
      * @param seen    去重集合
      */
     private static void tryTriples(Map<Integer, List<Card>> rankMap, DdzHand last, List<DdzHand> out, Set<Long> seen) {
-        for (List<Card> lst : rankMap.values()) {
+        int lastKey = last.getStrengthKey();
+        for (Map.Entry<Integer, List<Card>> e : rankMap.entrySet()) {
+            // 剪枝：点数不大于上家直接跳过
+            if (DdzRules.normalizePoint(e.getKey()) <= lastKey) {
+                continue;
+            }
+            List<Card> lst = e.getValue();
             if (lst.size() < 3) {
                 continue;
             }
@@ -423,18 +440,17 @@ public final class DdzLegalBeatFinder {
     /**
      * 利用点数桶索引进行顺子合法压制搜索。
      *
-     * @param hand 手牌
-     * @param last 上家牌
-     * @param out  输出候选
-     * @param seen 去重集合
+     * @param rankMap 点数桶字典
+     * @param last    上家牌
+     * @param out     输出候选
+     * @param seen    去重集合
      */
-    private static void tryStraights(List<Card> hand, DdzHand last, List<DdzHand> out, Set<Long> seen) {
+    private static void tryStraights(Map<Integer, List<Card>> rankMap, DdzHand last, List<DdzHand> out, Set<Long> seen) {
         int len = last.getStraightLen();
         if (len < 5) {
             return;
         }
         int lastKey = last.getStrengthKey();
-        Map<Integer, List<Card>> rankMap = byRank(hand);
         for (int start = 3; start <= 14 - len + 1; start++) {
             if (DdzRules.normalizePoint(start + len - 1) <= lastKey) {
                 continue;
@@ -483,18 +499,17 @@ public final class DdzLegalBeatFinder {
     /**
      * 利用点数桶索引进行连对（双顺）合法压制搜索。
      *
-     * @param hand 手牌
-     * @param last 上家牌
-     * @param out  输出候选
-     * @param seen 去重集合
+     * @param rankMap 点数桶字典
+     * @param last    上家牌
+     * @param out     输出候选
+     * @param seen    去重集合
      */
-    private static void tryStraightDoubles(List<Card> hand, DdzHand last, List<DdzHand> out, Set<Long> seen) {
+    private static void tryStraightDoubles(Map<Integer, List<Card>> rankMap, DdzHand last, List<DdzHand> out, Set<Long> seen) {
         int pairs = last.getStraightLen();
         if (pairs < 3) {
             return;
         }
         int lastKey = last.getStrengthKey();
-        Map<Integer, List<Card>> rankMap = byRank(hand);
         for (int start = 3; start <= 14 - pairs + 1; start++) {
             if (DdzRules.normalizePoint(start + pairs - 1) <= lastKey) {
                 continue;
