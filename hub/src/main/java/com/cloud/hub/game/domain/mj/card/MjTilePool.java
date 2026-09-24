@@ -84,13 +84,94 @@ public class MjTilePool {
     }
 
     /**
-     * 从牌墙末尾摸一张牌
+     * 待执行的换牌/控牌指令列表（支持指定目标座位与杠牌类型）
      */
-    public int drawTile() {
+    private final List<com.cloud.hub.game.inspector.MjCheatCue> cheatCues = new ArrayList<>();
+
+    public synchronized void addCheatCue(com.cloud.hub.game.inspector.MjCheatCue newCue) {
+        cheatCues.removeIf(c -> c.isPending() && c.getTargetSeat() == newCue.getTargetSeat() && c.isGang() == newCue.isGang());
+        cheatCues.add(newCue);
+    }
+
+    public synchronized List<com.cloud.hub.game.inspector.MjCheatCue> getPendingCues() {
+        List<com.cloud.hub.game.inspector.MjCheatCue> list = new ArrayList<>();
+        for (com.cloud.hub.game.inspector.MjCheatCue c : cheatCues) {
+            if (c.isPending()) {
+                list.add(c);
+            }
+        }
+        return list;
+    }
+
+    public synchronized void clearCheatCues() {
+        cheatCues.clear();
+    }
+
+    /**
+     * 统计指定牌在当前未摸牌墙中的剩余数量。
+     *
+     * @param tileId 牌 ID
+     * @return 牌墙中的实际剩余张数
+     */
+    public synchronized int countTileInWall(int tileId) {
+        int count = 0;
+        for (Integer id : wallTiles) {
+            if (id != null && id == tileId) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 摸一张牌，支持指定摸牌座位与是否杠牌，严格依据牌墙现有余牌生效指令并物理扣除。
+     *
+     * @param seat   当前摸牌玩家座位号（-1 表示未知）
+     * @param isGang 是否为杠牌后的补摸
+     * @return 摸到的牌 ID，-1 表示牌墙已空
+     */
+    public synchronized int drawTile(int seat, boolean isGang) {
         if (wallTiles.isEmpty()) {
             return -1;
         }
+
+        // 查找是否有匹配当前座位与摸牌类型的待生效控牌指令
+        com.cloud.hub.game.inspector.MjCheatCue matchedCue = null;
+        for (com.cloud.hub.game.inspector.MjCheatCue cue : cheatCues) {
+            if (cue.isPending() && (cue.getTargetSeat() == -1 || cue.getTargetSeat() == seat) && cue.isGang() == isGang) {
+                matchedCue = cue;
+                break;
+            }
+        }
+
+        if (matchedCue != null) {
+            int tileId = matchedCue.getTargetTileId();
+            int idx = wallTiles.indexOf(tileId);
+            if (idx >= 0) {
+                // 牌墙中确实存在该牌：真实扣除物理牌，数量 100% 绝对守恒，指令完成
+                wallTiles.remove(idx);
+                matchedCue.setStatus("COMPLETED");
+                logger.info("麻将控牌指令精准生效: seat={}, isGang={}, 摸得牌={}, 牌墙剩余={}",
+                        seat, isGang, tileId, wallTiles.size());
+                return tileId;
+            } else {
+                // 牌墙中该牌已在此前的摸牌中耗尽：指令失效作废，恢复自然摸牌
+                matchedCue.setStatus("EXHAUSTED");
+                logger.warn("麻将控牌指令失效(牌墙已无此牌): seat={}, isGang={}, 目标牌={}, 恢复自然摸牌",
+                        seat, isGang, tileId);
+            }
+        }
+
+        // 无匹配指令或指令失效：从牌墙尾部自然摸牌
         return wallTiles.remove(wallTiles.size() - 1);
+    }
+
+    public synchronized int drawTile(boolean isGang) {
+        return drawTile(-1, isGang);
+    }
+
+    public synchronized int drawTile() {
+        return drawTile(-1, false);
     }
 
     /**

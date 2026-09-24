@@ -154,9 +154,9 @@ public class AdminController {
      * @return 桌子列表
      */
     @GetMapping("/tables")
-    public AjaxResult tables() {
+    public AjaxResult tables(@RequestParam(value = "tableId", required = false) Long tableId) {
         LoginUser user = SecurityUtils.getRequiredUser();
-        Map<String, Object> result = lobbyAdminClient.listTables(user.getToken());
+        Map<String, Object> result = lobbyAdminClient.listTables(user.getToken(), tableId);
         return toAjax(result);
     }
 
@@ -170,6 +170,25 @@ public class AdminController {
     public AjaxResult tableDetail(@PathVariable("tableId") long tableId) {
         LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> result = lobbyAdminClient.getTableDetail(user.getToken(), tableId);
+        return toAjax(result);
+    }
+
+    /**
+     * 对指定麻将桌执行换牌调试命令（动态替换剩余摸牌或杠牌）。
+     *
+     * @param tableId 桌号
+     * @param body    包含 command 命令字符串的请求体
+     * @return 执行反馈结果
+     */
+    @PostMapping("/tables/{tableId}/mj-cheat")
+    @Log(title = "牌桌换牌调试", businessType = BusinessType.UPDATE)
+    public AjaxResult mjCheat(@PathVariable("tableId") long tableId, @RequestBody Map<String, Object> body) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        String command = body.get("command") != null ? String.valueOf(body.get("command")) : "";
+        if (command.isEmpty() && body.containsKey("action")) {
+            command = body.get("action") + " " + body.get("tile");
+        }
+        Map<String, Object> result = lobbyAdminClient.executeMjCheat(user.getToken(), tableId, command);
         return toAjax(result);
     }
 

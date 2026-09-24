@@ -3,7 +3,8 @@ package com.cloud.hub.web.controller;
 import com.cloud.hub.web.account.AccountDatabase;
 import com.cloud.hub.web.account.AccountService;
 import com.cloud.hub.web.account.AccountUser;
-import com.cloud.hub.game.manager.TableInspectorService;
+import com.cloud.hub.game.inspector.TableInspectorService;
+import com.cloud.hub.game.inspector.MjTileCheatService;
 import com.cloud.hub.lobby.manager.UserManager;
 import com.cloud.hub.lobby.manager.table.TableManager;
 import model.tablemodel.TableModel;
@@ -40,11 +41,15 @@ public class LobbyAdminClient {
     private final AccountDatabase database;
     private final AccountService accounts;
     private final TableInspectorService tableInspectorService;
+    private final MjTileCheatService mjTileCheatService;
 
-    public LobbyAdminClient(AccountDatabase database, AccountService accounts, TableInspectorService tableInspectorService) {
+    public LobbyAdminClient(AccountDatabase database, AccountService accounts,
+                            TableInspectorService tableInspectorService,
+                            MjTileCheatService mjTileCheatService) {
         this.database = database;
         this.accounts = accounts;
         this.tableInspectorService = tableInspectorService;
+        this.mjTileCheatService = mjTileCheatService;
     }
 
     public Map<String, Object> listInvites(String token) {
@@ -185,14 +190,29 @@ public class LobbyAdminClient {
     }
 
     public Map<String, Object> listTables(String token) {
+        return listTables(token, null);
+    }
+
+    public Map<String, Object> listTables(String token, Long tableId) {
         if (!admin(token)) {
             return error(401, "需要 admin 登录");
         }
-        List<Map<String, Object>> tables = tableInspectorService.listAllTablesOverview();
+        List<Map<String, Object>> tables = tableInspectorService.listAllTablesOverview(tableId);
         Map<String, Object> result = ok("tables", tables);
         // 兼容前端旧 rooms 字段与在线人数统计
         result.put("rooms", tables);
         result.put("onlineUsers", UserManager.getInstance().getUserCount());
+        return result;
+    }
+
+    public Map<String, Object> executeMjCheat(String token, long tableId, String command) {
+        if (!admin(token)) {
+            return error(401, "需要 admin 登录");
+        }
+        String msg = mjTileCheatService.executeCommand(tableId, command);
+        boolean success = !msg.startsWith("错误");
+        Map<String, Object> result = success ? ok("message", msg) : error(400, msg);
+        result.put("cheatStatus", mjTileCheatService.getCheatStatus(tableId));
         return result;
     }
 

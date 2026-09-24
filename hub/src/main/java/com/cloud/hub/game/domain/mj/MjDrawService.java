@@ -47,7 +47,7 @@ public class MjDrawService {
         if (tilePool.remaining() == 1) ctx.setHaiDi(true);
 
         int beforeCount = user.getCards().size();
-        int tileId = tilePool.drawTile();
+        int tileId = tilePool.drawTile(seat, ctx.isGangShangKaiHua());
         user.addCards(new Card(tileId));
         ctx.setDrawnTile(tileId);
         ctx.setTileDrawn(true);

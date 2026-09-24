@@ -219,52 +219,79 @@
     </div>
 
     <div id="panel-tables" class="panel">
-        <div class="card">
-            <div class="card-heading">
-                <div>
-                    <h2>全机器人规则测试</h2>
-                    <div class="meta robot-test-intro">机器人自动坐满并按所选规则完成指定局数，结束后自动解散，回放保留在“战绩/回放”。</div>
+        <!-- 列表分页面：60 秒自动刷新，支持桌号检索 -->
+        <div id="inspectorListView">
+            <div class="card">
+                <div class="card-heading">
+                    <div>
+                        <h2>实时对局监控</h2>
+                        <div class="meta" id="tablesMeta">列表每 60 秒自动刷新</div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="tableSearchInput" class="tool-input" style="width:160px;padding:4px 8px;font-size:13px;" placeholder="按桌号检索..." onkeydown="if(event.keyCode===13)TableInspector.loadList(true)">
+                        <button class="btn btn-sm" onclick="TableInspector.loadList(true)">检索</button>
+                        <button class="btn btn-ghost btn-sm" onclick="TableInspector.resetSearch()">重置</button>
+                        <button class="btn btn-ghost btn-sm" onclick="TableInspector.loadList(true)">刷新</button>
+                    </div>
                 </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr><th>桌号</th><th>玩法</th><th>状态码/描述</th><th>局数</th><th>在桌玩家</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="tableBody"><tr><td colspan="6">加载中...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="msg" id="tablesMsg"></div>
             </div>
-            <div class="robot-rule-grid">
-                <div><label for="robotMatchRoom">玩法</label><select id="robotMatchRoom" onchange="changeRobotRules()"></select></div>
-                <div><label for="robotMatchRounds">测试局数</label><select id="robotMatchRounds"><option value="1">1 局</option><option value="3" selected>3 局</option><option value="5">5 局</option><option value="10">10 局</option></select></div>
-                <div><label for="robotBaseScore">底分</label><input id="robotBaseScore" type="number" min="1" max="100" value="1"></div>
-                <div><label for="robotMaxFan">最大番数</label><input id="robotMaxFan" type="number" min="1" max="128" value="16"></div>
+
+            <div class="card" style="margin-top:16px;">
+                <div class="card-heading">
+                    <div>
+                        <h2>全机器人规则测试</h2>
+                        <div class="meta robot-test-intro">机器人自动坐满并按所选规则完成指定局数，结束后自动解散，回放保留在“战绩/回放”。</div>
+                    </div>
+                </div>
+                <div class="robot-rule-grid">
+                    <div><label for="robotMatchRoom">玩法</label><select id="robotMatchRoom" onchange="changeRobotRules()"></select></div>
+                    <div><label for="robotMatchRounds">测试局数</label><select id="robotMatchRounds"><option value="1">1 局</option><option value="3" selected>3 局</option><option value="5">5 局</option><option value="10">10 局</option></select></div>
+                    <div><label for="robotBaseScore">底分</label><input id="robotBaseScore" type="number" min="1" max="100" value="1"></div>
+                    <div><label for="robotMaxFan">最大番数</label><input id="robotMaxFan" type="number" min="1" max="128" value="16"></div>
+                </div>
+                <div id="robotMahjongRules" class="robot-rule-options">
+                    <span class="robot-rule-title">麻将规则</span>
+                    <label><input id="robotAllowChi" type="checkbox" checked>允许吃</label>
+                    <label><input id="robotAllowDianPao" type="checkbox" checked>允许点炮</label>
+                    <label><input id="robotAllowGang" type="checkbox" checked>允许杠</label>
+                    <label><input id="robotAllowSevenPairs" type="checkbox" checked>允许七对</label>
+                    <label><input id="robotAllowMultiHu" type="checkbox">一炮多响</label>
+                </div>
+                <div class="robot-test-actions">
+                    <button class="btn" id="robotMatchStart" onclick="startRobotMatch()">开始机器人测试</button>
+                    <span class="meta">测试在后台运行，无需停留此页。</span>
+                </div>
+                <div class="msg" id="robotMatchMsg"></div>
             </div>
-            <div id="robotMahjongRules" class="robot-rule-options">
-                <span class="robot-rule-title">麻将规则</span>
-                <label><input id="robotAllowChi" type="checkbox" checked>允许吃</label>
-                <label><input id="robotAllowDianPao" type="checkbox" checked>允许点炮</label>
-                <label><input id="robotAllowGang" type="checkbox" checked>允许杠</label>
-                <label><input id="robotAllowSevenPairs" type="checkbox" checked>允许七对</label>
-                <label><input id="robotAllowMultiHu" type="checkbox">一炮多响</label>
-            </div>
-            <div class="robot-test-actions">
-                <button class="btn" id="robotMatchStart" onclick="startRobotMatch()">开始机器人测试</button>
-                <span class="meta">测试在后台运行，无需停留此页。</span>
-            </div>
-            <div class="msg" id="robotMatchMsg"></div>
-        </div>
-        <div class="card">
-            <div class="card-heading"><div><h2>实时对局</h2><div class="meta" id="tablesMeta"></div></div><button class="btn btn-ghost" onclick="loadTables()">刷新</button></div>
-            <div class="table-scroll"><table><thead><tr><th>桌号</th><th>玩法</th><th>状态码/描述</th><th>局数</th><th>在桌玩家</th><th>操作</th></tr></thead>
-                <tbody id="tableBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div>
-            <div class="msg" id="tablesMsg"></div>
         </div>
 
-        <div class="card" id="tableInspectorCard" style="display:none;margin-top:16px;">
-            <div class="card-heading">
-                <div>
-                    <h2 id="inspectorTitle" style="margin:0;">牌桌透视详情</h2>
-                    <div class="meta" id="inspectorMeta" style="margin-top:4px;"></div>
+        <!-- 详情分页面：1 秒高频自动刷新，含手牌理牌透视与麻将换牌调试控制台 -->
+        <div id="inspectorDetailView" style="display:none;">
+            <div class="card">
+                <div class="card-heading" style="flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <button class="btn btn-sm" onclick="TableInspector.backToList()">← 返回牌桌列表</button>
+                        <h2 id="inspectorDetailTitle" style="margin:0;">牌局实时透视</h2>
+                        <span style="font-size:12px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-weight:bold;display:inline-flex;align-items:center;gap:4px;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;"></span> 实时刷新中 (1s/次)
+                        </span>
+                    </div>
+                    <div>
+                        <button class="btn btn-ghost btn-sm" onclick="TableInspector.refreshCurrent()">手动刷新本桌</button>
+                    </div>
                 </div>
-                <div>
-                    <button class="btn btn-ghost" onclick="refreshCurrentInspector()">刷新本桌</button>
-                    <button class="btn btn-ghost" onclick="closeInspector()">关闭透视</button>
-                </div>
+                <div class="meta" id="inspectorDetailMeta" style="margin-top:6px;padding-top:6px;border-top:1px dashed #ebeef5;"></div>
+                <div id="inspectorDetailContent" style="margin-top:12px;"></div>
             </div>
-            <div id="inspectorContent" style="margin-top:14px;"></div>
         </div>
     </div>
 
@@ -381,6 +408,7 @@
 <script src="./js/users.js"></script>
 <script src="./js/arena.js"></script>
 <script src="./js/records.js"></script>
+<script src="./js/table-inspector.js"></script>
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
 <script src="./js/arpu.js"></script>

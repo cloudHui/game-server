@@ -4,7 +4,6 @@ import game.manager.table.GameResult;
 import game.manager.table.Table;
 import game.manager.table.TableUser;
 import game.manager.table.banner.Banner;
-import game.manager.table.cards.Card;
 import game.manager.table.replay.DdzReplayRecorder;
 import game.manager.table.replay.ReplayRecorder;
 import model.tablemodel.TableModel;
@@ -103,7 +102,8 @@ public class DdzTable extends Table {
     @Override
     public void syncGameState(TableUser user) {
         int seat = user.getSeated();
-        if (seat < 0) return;
+        if (seat < 0)
+            return;
 
         // 1. 同步手牌(自己的牌有值, 别人的牌值为0)
         cardPool.sendInitCardNotice(getSeatUsers());
@@ -153,7 +153,8 @@ public class DdzTable extends Table {
                 b.addChoices(GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.CALL));
             }
         }
-        if (ddz.getLastPlayed() != null) b.setLastCards(ddz.getLastPlayed());
+        if (ddz.getLastPlayed() != null)
+            b.setLastCards(ddz.getLastPlayed());
         int seat = ddz.getLastPlaySeat();
         for (int i = 0; i < ddz.getConsecutivePasses(); i++) {
             seat = nextSeat(seat);
