@@ -20,17 +20,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 兼容旧路径（/api/login, /api/validate, /api/logout，参照 RuoYi 响应格式对齐）
+ * 用户身份与会话基础接口控制器（兼容历史路径 /api/login, /api/validate, /api/logout）。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api")
 public class UserController {
+
     private final UserService userService;
 
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
+    /**
+     * 兼容登录接口。
+     *
+     * @param request 登录入参
+     * @return 登录结果
+     */
     @PostMapping("/login")
     public ResponseEntity<AjaxResult> login(@RequestBody LoginDto request) {
         String username = request.getUsername();
@@ -49,16 +58,18 @@ public class UserController {
         return ResponseEntity.ok(toSuccess(userInfo));
     }
 
+    /**
+     * 会话 Token 校验接口。
+     *
+     * @param tokenParam    URL 参数中的 token
+     * @param authorization 请求头中的 Authorization
+     * @return 会话用户信息
+     */
     @GetMapping("/validate")
     public ResponseEntity<AjaxResult> validate(
             @RequestParam(value = "token", required = false) String tokenParam,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
-        String token = null;
-        if (tokenParam != null && !tokenParam.trim().isEmpty()) {
-            token = tokenParam.trim();
-        } else if (authorization != null && authorization.startsWith("Bearer ")) {
-            token = authorization.substring(7).trim();
-        }
+        String token = resolveToken(tokenParam, authorization);
         if (token == null || token.isEmpty()) {
             return ResponseEntity.status(401).body(AjaxResult.error(401, "缺少token"));
         }
@@ -69,6 +80,22 @@ public class UserController {
         return ResponseEntity.ok(AjaxResult.error(401, "Token无效或已过期"));
     }
 
+    private String resolveToken(String tokenParam, String authorization) {
+        if (tokenParam != null && !tokenParam.trim().isEmpty()) {
+            return tokenParam.trim();
+        }
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return authorization.substring(7).trim();
+        }
+        return null;
+    }
+
+    /**
+     * 用户登出接口。
+     *
+     * @param request 包含可选 sessionId 的字典
+     * @return 成功状态
+     */
     @PostMapping("/logout")
     public ResponseEntity<AjaxResult> logout(@RequestBody(required = false) Map<String, String> request) {
         String sessionId = request != null ? request.get("sessionId") : null;

@@ -1,48 +1,51 @@
 package com.cloud.hub.lobby;
 
-import com.cloud.hub.lobby.admin.LobbyAdminHttp;
 import com.cloud.hub.lobby.db.InviteRepository;
 import com.cloud.hub.lobby.db.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import proto.ModelProto;
 import threadtutil.thread.ExecutorPool;
 import threadtutil.timer.Runner;
 import threadtutil.timer.Timer;
-import tools.ServerClientManager;
-import tools.ServerManager;
-import utils.metrics.MetricsHttpServer;
 
 import java.util.UUID;
 
 /**
- * Lobby 服务器（原 hall + room 合并）
+ * Lobby 大厅服务核心上下文与统一管理单例。
+ * <p>
+ * 聚合大厅异步任务线程池 {@link ExecutorPool}、内置定时器 {@link Timer}、
+ * 账号仓储 {@link UserRepository} 以及邀请码仓储 {@link InviteRepository}。
+ * </p>
+ *
+ * @author cloud
  */
 public class Lobby {
+
     private static final Logger logger = LoggerFactory.getLogger(Lobby.class);
     private static final Lobby instance = new Lobby();
 
+    /** 核心业务异步线程池 */
     private final ExecutorPool executorPool;
+    /** 大厅高精度时间轮/定时器 */
     private final Timer timer;
-    public final ServerClientManager serverClientManager = new ServerClientManager();
 
+    /** 当前大厅服务节点唯一 ID */
     private int serverId;
-    private String center;
-    private String innerIp;
-    private int port;
-    private boolean openRegister;
-    private ModelProto.ServerInfo serverInfo;
-    private ServerManager serverManager;
-    private MetricsHttpServer metricsHttpServer;
+    /** 用户账号仓储 */
     private UserRepository userRepository;
+    /** 注册邀请码仓储 */
     private InviteRepository inviteRepository;
-    private LobbyAdminHttp adminHttp;
 
     private Lobby() {
         executorPool = new ExecutorPool("Lobby");
         timer = new Timer().setRunners(executorPool);
     }
 
+    /**
+     * 获取大厅单例实例。
+     *
+     * @return Lobby 实例
+     */
     public static Lobby getInstance() {
         return instance;
     }
@@ -55,59 +58,53 @@ public class Lobby {
         this.serverId = serverId;
     }
 
-    public void setCenter(String center) {
-        this.center = center;
-    }
-
-    public String getInnerIp() {
-        return innerIp;
-    }
-
-    public void setInnerIp(String innerIp) {
-        this.innerIp = innerIp;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public boolean isOpenRegister() {
-        return openRegister;
-    }
-
-    public ServerManager getServerManager() {
-        return serverManager;
-    }
-
-    public ServerClientManager getServerClientManager() {
-        return serverClientManager;
-    }
-
-    public ModelProto.ServerInfo getServerInfo() {
-        return serverInfo;
-    }
-
     public UserRepository getUserRepository() {
         return userRepository;
+    }
+
+    public void setUserRepository(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     public InviteRepository getInviteRepository() {
         return inviteRepository;
     }
 
+    public void setInviteRepository(InviteRepository inviteRepository) {
+        this.inviteRepository = inviteRepository;
+    }
+
+    /**
+     * 投递异步任务至大厅业务线程池。
+     *
+     * @param task 待执行任务闭包
+     */
     public void execute(Runnable task) {
         executorPool.execute(task);
     }
 
+    /**
+     * 注册大厅定时轮询任务。
+     *
+     * @param delay 首次执行延迟毫秒
+     * @param interval 循环间隔毫秒
+     * @param count 执行次数
+     * @param runner 执行器
+     * @param param 附带参数
+     * @param <T> 参数泛型
+     */
     public <T> void registerTimer(long delay, long interval, int count, Runner<T> runner, T param) {
         timer.register(delay, interval, count, runner, param);
     }
 
+    /**
+     * 生成系统全局唯一的会话 Token。
+     *
+     * @return 32 位 UUID 令牌字符串
+     */
     public static String newToken() {
         return UUID.randomUUID().toString().replace("-", "");
     }
 }
+
+

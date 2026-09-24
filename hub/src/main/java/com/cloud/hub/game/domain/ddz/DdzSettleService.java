@@ -1,5 +1,6 @@
 package com.cloud.hub.game.domain.ddz;
 
+import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.db.ScoreRepository;
 import com.cloud.hub.game.domain.table.GameResult;
 import com.cloud.hub.game.domain.table.Table;
@@ -55,11 +56,20 @@ public final class DdzSettleService {
 		table.getGameResult().addRound(table.getCurrentRound(), winner.getSeated(), settleFactor, scores, winType);
 		ScoreRepository.getInstance().saveRound(table);
 
+		HubMetrics metrics = HubMetrics.getInstance();
+		if (metrics != null) {
+			metrics.recordRoundSettled("ddz");
+		}
+
+		logger.info("[DDZ-Settle] TableId: {}, Round: {}, WinnerSeat: {} (UserId: {}), LandlordSeat: {}, Team: {}, WinType: {}, SettleFactor: {}, Scores: {}",
+				table.getTableId(), table.getCurrentRound(), winner.getSeated(), winner.getUserId(), landlordSeat,
+				landlordWin ? "LANDLORD" : "FARMERS", winType, settleFactor, java.util.Arrays.toString(scores));
+
 		saveReplay(table, winner, settleFactor, winType, scores);
 		sendResultMessage(table, winner, rPlayers(table), landlordUserId, winTeam, ctx, spring, antiSpring, settleFactor, seatNum, scores, winType);
 
-		// 地主胜连庄优先叫；农民胜则地主下家优先叫牌。
-		int nextCall = landlordWin ? landlordSeat : (landlordSeat + 1) % seatNum;
+		// 连局时：由上一局最先打完手牌的获胜玩家获得下一局优先叫地主/叫分资格
+		int nextCall = winner.getSeated();
 		table.setNextFirstCallSeat(nextCall);
 
 		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());

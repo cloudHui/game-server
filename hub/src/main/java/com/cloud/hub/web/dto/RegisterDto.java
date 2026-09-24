@@ -3,17 +3,24 @@ package com.cloud.hub.web.dto;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 注册请求体（对齐 RuoYi 接口入参规范）
+ * 账号注册请求传输对象。
+ *
+ * @author cloud
  */
 public class RegisterDto {
+
+    /** 注册用户名 */
     @NotBlank(message = "用户名不能为空")
     private String username;
 
+    /** 注册初始密码 */
     @NotBlank(message = "密码不能为空")
     private String password;
 
+    /** 可选的用户昵称 */
     private String nickname;
 
+    /** 注册邀请码（未开放公开注册时必填） */
     @NotBlank(message = "邀请码不能为空")
     private String invite;
 

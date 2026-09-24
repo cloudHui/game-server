@@ -3,17 +3,24 @@ package com.cloud.hub.web.dto;
 import javax.validation.constraints.Min;
 
 /**
- * 创建邀请码请求体（对齐 RuoYi 接口入参规范）
+ * 邀请码生成创建请求传输对象。
+ *
+ * @author cloud
  */
 public class InviteCreateDto {
+
+    /** 备注说明信息 */
     private String note;
 
+    /** 最大允许使用次数 */
     @Min(value = 1, message = "最大使用次数不能小于 1")
     private Integer maxUses = 1;
 
+    /** 有效天数 */
     @Min(value = 1, message = "有效天数不能小于 1")
     private Integer expiresDays = 7;
 
+    /** 会话标识 */
     private String sessionId;
 
     public String getNote() {

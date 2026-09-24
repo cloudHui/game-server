@@ -21,18 +21,29 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 /**
- * 管理员 ARPU 查询接口（参照 RuoYi 规范重构）
+ * 管理员 ARPU（用户平均消费）查询控制器。
+ * <p>
+ * 支持根据手机号异步请求上游接口，并自动计算近 3 个月与近 6 个月的平均消费均值。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/admin/arpu")
 @RequiresAdmin
 public class ArpuAdminController {
+
     private final ArpuLookupService lookup;
 
     public ArpuAdminController(ArpuLookupService lookup) {
         this.lookup = lookup;
     }
 
+    /**
+     * 根据手机号异步查询并核算历史 ARPU 数据。
+     *
+     * @param body 查询请求体（含手机号）
+     * @return 包含近 3 个月、6 个月均值的异步结果
+     */
     @PostMapping("/check")
     @Log(title = "ARPU查询", businessType = BusinessType.QUERY)
     public CompletableFuture<AjaxResult> check(@RequestBody @Valid ArpuCheckDto body) {
@@ -54,6 +65,7 @@ public class ArpuAdminController {
         Object monthly = data.get("arpu");
         List<?> values = monthly instanceof List ? (List<?>) monthly : Collections.emptyList();
         ArpuAverageCalculator.Result averages = ArpuAverageCalculator.calculate(values);
+
         AjaxResult result = AjaxResult.success();
         result.put("phoneNo", phoneNo);
         result.put("requestUrl", lookup.requestUrl(phoneNo));

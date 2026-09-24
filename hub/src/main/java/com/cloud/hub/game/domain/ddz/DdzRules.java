@@ -24,10 +24,10 @@ public final class DdzRules {
     }
 
     /**
-     * 分析牌型
+     * 识别一组扑克牌并解析为合法的斗地主牌型。
      *
-     * @param cards 牌
-     * @return 牌型
+     * @param cards 待分析的手牌列表
+     * @return 若能构成合法牌型则返回对应的 {@link DdzHand}，否则返回 {@link Optional#empty()}
      */
     public static Optional<DdzHand> analyze(List<Card> cards) {
         if (cards == null || cards.isEmpty()) {
@@ -40,129 +40,99 @@ public final class DdzRules {
         Map<Integer, Long> cnt = sorted.stream()
                 .collect(Collectors.groupingBy(Card::getCardVal, TreeMap::new, Collectors.counting()));
 
-        // 王炸
-        if (n == 2) {
-            Card a = sorted.get(0);
-            Card b = sorted.get(1);
-            boolean rocket = a.isSmallJoker() && b.isBigJoker() || a.isBigJoker() && b.isSmallJoker();
-            if (rocket) {
-                return Optional.of(new DdzHand(ConstProto.CardType.BOOM_MAX, sorted, true, false, 10000, 0));
+        // 1. 王炸
+        if (n == 2 && isRocket(sorted.get(0), sorted.get(1))) {
+            return Optional.of(new DdzHand(ConstProto.CardType.BOOM_MAX, sorted, true, false, 10000, 0));
+        }
+
+        // 2. 炸弹与单张/对子/三张
+        Optional<DdzHand> bomb = tryBomb(sorted, cnt);
+        if (bomb.isPresent()) return bomb;
+
+        Optional<DdzHand> singleGroup = trySingleOrPairs(sorted, cnt, n);
+        if (singleGroup.isPresent()) return singleGroup;
+
+        // 3. 顺子与连对
+        Optional<DdzHand> straight = tryStraight(sorted, cnt);
+        if (straight.isPresent()) return straight;
+
+        Optional<DdzHand> straightPair = tryStraightPairs(sorted, cnt);
+        if (straightPair.isPresent()) return straightPair;
+
+        // 4. 飞机与三带
+        return tryPlanesAndTriples(sorted, cnt);
+    }
+
+    /** 检查两张牌是否构成双王王炸火箭 */
+    private static boolean isRocket(Card a, Card b) {
+        return (a.isSmallJoker() && b.isBigJoker()) || (a.isBigJoker() && b.isSmallJoker());
+    }
+
+    /** 尝试单张、对子、三张单牌型识别 */
+    private static Optional<DdzHand> trySingleOrPairs(List<Card> sorted, Map<Integer, Long> cnt, int n) {
+        if (cnt.size() == 1) {
+            int v = sorted.get(0).getCardVal();
+            if (n == 1) {
+                return Optional.of(new DdzHand(ConstProto.CardType.SINGLE, sorted, false, false, singleStrength(v), 0));
+            }
+            if (n == 2) {
+                return Optional.of(new DdzHand(ConstProto.CardType.DOUBLE, sorted, false, false, pairStrength(v), 0));
+            }
+            if (n == 3) {
+                return Optional.of(new DdzHand(ConstProto.CardType.TRIPLE, sorted, false, false, tripleStrength(v), 0));
             }
         }
+        return Optional.empty();
+    }
 
-        // 炸弹
-        Optional<DdzHand> bomb = tryBomb(sorted, cnt);
-        if (bomb.isPresent()) {
-            return bomb;
-        }
-
-        // 单张
-        if (cnt.size() == 1 && n == 1) {
-            int v = sorted.get(0).getCardVal();
-            return Optional.of(new DdzHand(ConstProto.CardType.SINGLE, sorted, false, false, singleStrength(v), 0));
-        }
-        // 对子
-        if (cnt.size() == 1 && n == 2) {
-            int v = sorted.get(0).getCardVal();
-            return Optional.of(new DdzHand(ConstProto.CardType.DOUBLE, sorted, false, false, pairStrength(v), 0));
-        }
-        // 三张
-        if (cnt.size() == 1 && n == 3) {
-            int v = sorted.get(0).getCardVal();
-            return Optional.of(new DdzHand(ConstProto.CardType.TRIPLE, sorted, false, false, tripleStrength(v), 0));
-        }
-
-        // 顺子
-        Optional<DdzHand> straight = tryStraight(sorted, cnt);
-        if (straight.isPresent()) {
-            return straight;
-        }
-
-        // 连对
-        Optional<DdzHand> straightPair = tryStraightPairs(sorted, cnt);
-        if (straightPair.isPresent()) {
-            return straightPair;
-        }
-
-        // 飞机带对
+    /** 尝试飞机带对、飞机带单、三带一与三带二复合牌型 */
+    private static Optional<DdzHand> tryPlanesAndTriples(List<Card> sorted, Map<Integer, Long> cnt) {
         Optional<DdzHand> planeDouble = tryPlaneDouble(cnt, sorted);
-        if (planeDouble.isPresent()) {
-            return planeDouble;
-        }
+        if (planeDouble.isPresent()) return planeDouble;
 
-        // 飞机带单
         Optional<DdzHand> planeOne = tryPlaneOne(cnt, sorted);
-        if (planeOne.isPresent()) {
-            return planeOne;
-        }
+        if (planeOne.isPresent()) return planeOne;
 
-        // 三带一
         Optional<DdzHand> t1 = tryTripleSingle(cnt, sorted);
-        if (t1.isPresent()) {
-            return t1;
-        }
+        if (t1.isPresent()) return t1;
 
-        // 三带二
         return tryTriplePair(cnt, sorted);
     }
 
     /**
-     * 比大小
+     * 判断当前出牌是否大于上一手桌面牌（压制规则）。
      *
-     * @param incoming 当前牌
-     * @param last     上一手牌
-     * @return 是否大于
+     * @param incoming 当前待出的牌型
+     * @param last     上一手桌面存留牌型
+     * @return 若能成功大过上一手牌则返回 true
      */
     public static boolean beats(DdzHand incoming, DdzHand last) {
-        if (incoming == null) {// 当前牌为空
+        if (incoming == null) return false;
+        if (incoming.isRocket()) return true;
+        if (last == null || last.getCards().isEmpty()) return true;
+        if (last.isRocket()) return false;
+
+        // 炸弹对抗普通牌与其他炸弹
+        if (incoming.isBomb()) {
+            return !last.isBomb() || incoming.getStrengthKey() > last.getStrengthKey();
+        }
+        if (last.isBomb() || incoming.getType() != last.getType()) {
             return false;
         }
-        if (incoming.isRocket()) {// 当前牌为火箭
-            return true;
-        }
-        if (last == null || last.getCards().isEmpty()) {// 上一手牌为空
-            return true;
-        }
-        if (last.isRocket()) {// 上一手牌为火箭
-            return false;
-        }
-        if (incoming.isBomb()) {// 当前牌为炸弹
-            if (!last.isBomb()) {
-                return true;
-            }
-            return incoming.getStrengthKey() > last.getStrengthKey();
-        }
-        if (last.isBomb()) {// 上一手牌为炸弹
-            return false;
-        }
-        if (incoming.getType() != last.getType()) {// 当前牌类型与上一手牌类型不同
-            return false;
-        }
-        // 当前牌类型为顺子且长度与上一手牌长度不同
-        if (incoming.getType() == ConstProto.CardType.STRAIGHT && incoming.getStraightLen() != last.getStraightLen()) {
-            return false;
-        }
-        // 当前牌类型为连对且长度与上一手牌长度不同
-        if (incoming.getType() == ConstProto.CardType.STRAIGHT_DOUBLE
-                && incoming.getStraightLen() != last.getStraightLen()) {
-            return false;
-        }
-        // 当前牌类型为飞机带单且长度与上一手牌长度不同
-        if (incoming.getType() == ConstProto.CardType.PLANE_ONE && last.getType() == ConstProto.CardType.PLANE_ONE) {
+
+        return beatsSameType(incoming, last);
+    }
+
+    /** 同牌型之间的长度与数值比较 */
+    private static boolean beatsSameType(DdzHand incoming, DdzHand last) {
+        ConstProto.CardType type = incoming.getType();
+        // 顺子、连对或飞机必须要求长度与组数完全一致
+        if (type == ConstProto.CardType.STRAIGHT || type == ConstProto.CardType.STRAIGHT_DOUBLE
+                || type == ConstProto.CardType.PLANE_ONE || type == ConstProto.CardType.PLANE_DOUBLE) {
             if (incoming.getStraightLen() != last.getStraightLen()) {
                 return false;
             }
-            return incoming.getStrengthKey() > last.getStrengthKey();
         }
-        // 当前牌类型为飞机带对且长度与上一手牌长度不同
-        if (incoming.getType() == ConstProto.CardType.PLANE_DOUBLE
-                && last.getType() == ConstProto.CardType.PLANE_DOUBLE) {
-            if (incoming.getStraightLen() != last.getStraightLen()) {
-                return false;
-            }
-            return incoming.getStrengthKey() > last.getStrengthKey();
-        }
-        // 当前牌类型与上一手牌类型相同且长度相同
         return incoming.getStrengthKey() > last.getStrengthKey();
     }
 

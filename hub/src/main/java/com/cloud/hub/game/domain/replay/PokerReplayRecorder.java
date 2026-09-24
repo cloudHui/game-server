@@ -4,6 +4,10 @@ import java.util.List;
 
 /**
  * 跑得快、拖拉机共用的扑克回放记录器。
+ * <p>
+ * 负责记录扑克出牌、过牌、亮主/声明、扣底及对局结算审计事件。
+ *
+ * @author cloud
  */
 public class PokerReplayRecorder extends BaseReplayRecorder {
 

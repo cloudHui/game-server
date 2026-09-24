@@ -13,23 +13,37 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 竞技场配方合成接口（消除局部私有鉴权与异常，标准化改造）
+ * 竞技场装备与道具配方合成控制器。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/arena/library")
 @RequiresLogin
 public class ArenaCraftController {
+
     private final ArenaCraftService service;
 
     public ArenaCraftController(ArenaCraftService service) {
         this.service = service;
     }
 
+    /**
+     * 查询玩家已解锁的合成配方及材料库存视图。
+     *
+     * @return 配方和库存列表
+     */
     @GetMapping
     public ResponseEntity<?> view() throws Exception {
         return ResponseEntity.ok(service.view(SecurityUtils.getUserId()));
     }
 
+    /**
+     * 执行指定配方物品合成操作。
+     *
+     * @param b 包含配方 ID 的参数
+     * @return 合成结果
+     */
     @PostMapping("/craft")
     public ResponseEntity<?> craft(@RequestBody Map<String, String> b) throws Exception {
         return ResponseEntity.ok(service.craft(SecurityUtils.getUserId(), b.get("recipeId")));

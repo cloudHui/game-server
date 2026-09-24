@@ -24,10 +24,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
 /**
- * 用户会话管理：经 Gate 访问 Lobby 登录/注册/房间
+ * Web 会话管理与大厅交互服务。
+ * <p>
+ * 维护内存中活跃会话映射（支持单点登录踢下线）、免密 Token 验证、
+ * 以及向底层网关发起房间列表与加入桌子等受保护请求。
+ *
+ * @author cloud
  */
 @Service
 public class UserService {
+
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final GatewayTransport gateClient;
@@ -83,34 +89,31 @@ public class UserService {
     }
 
     private UserInfo storeSession(String sessionId, int userId, String username,
-            String nickname, String token, List<Long> tables,
-            List<TableInfoView> tableInfos) {
+                                  String nickname, String token, List<Long> tables,
+                                  List<TableInfoView> tableInfos) {
         List<Long> tableList = tables == null ? Collections.emptyList() : new ArrayList<>(tables);
         List<TableInfoView> infos = tableInfos == null ? Collections.emptyList() : tableInfos;
-        if (infos.isEmpty() && !tableList.isEmpty()) {
-            infos = new ArrayList<>();
-            for (Long id : tableList) {
-                infos.add(new TableInfoView(id, 0, 0));
-            }
-        }
         UserInfo userInfo = new UserInfo(sessionId, userId, username, nickname, token, tableList, infos);
         sessionLock.lock();
         try {
-            String oldSession = userSessions.put(userId, sessionId);
-            if (oldSession != null && !oldSession.equals(sessionId)) {
-                sessions.remove(oldSession);
-                gateClient.removeConnection(oldSession);
-                logger.info("踢掉同用户旧会话, userId: {}, oldSession: {}", userId, oldSession);
-            }
+            kickOldSession(userId, sessionId);
             sessions.put(sessionId, userInfo);
             tokenSessions.put(token, userInfo);
             gateClient.bind(sessionId, userId, username, nickname);
         } finally {
             sessionLock.unlock();
         }
-        logger.info("会话建立, userId: {}, username: {}, tables: {}, sessionId: {}",
-                userId, username, tableList.size(), sessionId);
+        logger.info("会话建立, userId: {}, username: {}, sessionId: {}", userId, username, sessionId);
         return userInfo;
+    }
+
+    private void kickOldSession(int userId, String sessionId) {
+        String oldSession = userSessions.put(userId, sessionId);
+        if (oldSession != null && !oldSession.equals(sessionId)) {
+            sessions.remove(oldSession);
+            gateClient.removeConnection(oldSession);
+            logger.info("踢掉同用户旧会话, userId: {}, oldSession: {}", userId, oldSession);
+        }
     }
 
     public UserInfo getSession(String sessionId) {
@@ -156,17 +159,6 @@ public class UserService {
         return sendAuthenticated(sessionId, LMsg.REQ_JOIN_ROOM_TABLE_MSG, request);
     }
 
-    /**
-     * 发送需要玩家身份的请求。
-     *
-     * <p>
-     * Gate 的玩家身份绑定在 TCP 连接上，而 Web 会话只保存在 Web 进程内。
-     * Gate 重启、网络闪断或空闲连接被关闭后，原来的 sessionId 仍然有效，
-     * 但新 TCP 连接的 roleId 会回到 0。此时直接发送房间请求会被 Gate 以
-     * “不是安全的消息 ID”拒绝。这里在新连接上先用 token 静默登录，再发送
-     * 原始请求，避免用户必须重新刷新登录页面。
-     * </p>
-     */
     private CompletableFuture<Message> sendAuthenticated(String sessionId, int messageId, Message request) {
         UserInfo user = sessions.get(sessionId);
         if (user == null) {
@@ -175,7 +167,10 @@ public class UserService {
         if (gateClient.isAuthenticated(sessionId)) {
             return gateClient.sendAndWait(sessionId, messageId, request, 5);
         }
+        return reloginAndSend(sessionId, user, messageId, request);
+    }
 
+    private CompletableFuture<Message> reloginAndSend(String sessionId, UserInfo user, int messageId, Message request) {
         LobbyProto.ReqLogin relogin = LobbyProto.ReqLogin.newBuilder()
                 .setUsername(ByteString.EMPTY)
                 .setPassword(ByteString.EMPTY)
@@ -241,7 +236,7 @@ public class UserService {
         private int errorCode;
 
         public UserInfo(String sessionId, int userId, String username, String nickname,
-                String token, List<Long> tables, List<TableInfoView> tableInfos) {
+                        String token, List<Long> tables, List<TableInfoView> tableInfos) {
             this.sessionId = sessionId;
             this.userId = userId;
             this.username = username == null ? "" : username;

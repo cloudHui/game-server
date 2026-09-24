@@ -25,26 +25,55 @@ public final class PdkSettleService {
 
 	private PdkSettleService() {}
 
+	/**
+	 * 执行跑得快单局结算逻辑。
+	 *
+	 * @param table  当前跑得快牌桌
+	 * @param winner 本局赢家（首个出完手牌者）
+	 */
 	static void finishGame(PdkTable table, TableUser winner) {
 		PdkTableContext ctx = table.getPdk();
 		int seatNum = table.getTableModel().getSeatNum();
-		int[] scores = new int[seatNum];
 		int winSeat = winner.getSeated();
+
+		int[] scores = new int[seatNum];
+		int totalGain = calcPdkScores(table, ctx, winSeat, seatNum, scores);
+
+		table.getGameResult().addRound(table.getCurrentRound(), winSeat, totalGain, scores, "normal");
+		ScoreRepository.getInstance().saveRound(table);
+		ctx.setFirstSeat(winSeat);
+
+		com.cloud.hub.framework.metrics.HubMetrics metrics = com.cloud.hub.framework.metrics.HubMetrics.getInstance();
+		if (metrics != null) {
+			metrics.recordRoundSettled("pdk");
+		}
+
+		recordPdkReplay(table, winSeat, totalGain, scores);
+		broadcastPdkResult(table, winner, winSeat, seatNum, totalGain, scores);
+
+		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());
+		logger.info("跑得快结算完成, tableId: {}, winnerSeat: {}, scores: {}",
+				table.getTableId(), winSeat, java.util.Arrays.toString(scores));
+	}
+
+	/** 计算剩余牌计分与全关翻倍 */
+	private static int calcPdkScores(PdkTable table, PdkTableContext ctx, int winSeat, int seatNum, int[] scores) {
 		int totalGain = 0;
 		for (int s = 0; s < seatNum; s++) {
 			if (s == winSeat) continue;
 			TableUser u = table.getSeatUser(s);
 			int left = u == null ? 0 : u.getCards().size();
 			int lose = left;
-			if (!ctx.hasPlayed(s) && left > 0) lose *= 2;
+			if (!ctx.hasPlayed(s) && left > 0) lose *= 2; // 被关门翻倍
 			scores[s] = -lose;
 			totalGain += lose;
 		}
 		scores[winSeat] = totalGain;
+		return totalGain;
+	}
 
-		table.getGameResult().addRound(table.getCurrentRound(), winSeat, totalGain, scores, "normal");
-		ScoreRepository.getInstance().saveRound(table);
-		ctx.setFirstSeat(winSeat);
+	/** 记录回放审计 */
+	private static void recordPdkReplay(PdkTable table, int winSeat, int totalGain, int[] scores) {
 		ReplayRecorder replay = table.getReplayRecorder();
 		if (replay != null) {
 			replay.writeAuditEvent("结算 赢家座" + winSeat + " 剩余牌计分/关门翻倍，各座得分 "
@@ -52,28 +81,22 @@ public final class PdkSettleService {
 			replay.writeSettlement(winSeat, totalGain, "normal", scores);
 			replay.save();
 		}
+	}
 
-		List<GameProto.RPlayer> rPlayers = new ArrayList<>();
-		for (TableUser u : table.getSeatUsers().values()) {
-			GameProto.RPlayer.Builder rp = GameProto.RPlayer.newBuilder().setRoleId(u.getUserId());
-			// 小结算余牌按手牌点数序展示，避免乱序
-			List<Card> remain = new ArrayList<>(u.getCards());
-			remain.sort(java.util.Collections.reverseOrder());
-			for (Card c : remain) {
-				rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
-			}
-			rPlayers.add(rp.build());
-		}
+	/** 广播单局与多局结算协议包 */
+	private static void broadcastPdkResult(PdkTable table, TableUser winner, int winSeat, int seatNum, int totalGain, int[] scores) {
 		GameProto.NotResult.Builder result = GameProto.NotResult.newBuilder()
 				.setWinner(winner.getUserId())
-				.setLandlordId(0)
-				.setWinTeam(0)
-				.setBaseScore(1)
-				.setRobMultiplier(1)
-				.setSpring(false)
-				.setAntiSpring(false)
-				.setSettleFactor(totalGain);
-		for (GameProto.RPlayer rp : rPlayers) result.addRPlayers(rp);
+				.setLandlordId(0).setWinTeam(0).setBaseScore(1).setRobMultiplier(1)
+				.setSpring(false).setAntiSpring(false).setSettleFactor(totalGain);
+
+		for (TableUser u : table.getSeatUsers().values()) {
+			GameProto.RPlayer.Builder rp = GameProto.RPlayer.newBuilder().setRoleId(u.getUserId());
+			List<Card> remain = new ArrayList<>(u.getCards());
+			remain.sort(java.util.Collections.reverseOrder());
+			for (Card c : remain) rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
+			result.addRPlayers(rp.build());
+		}
 		table.sendTableMessage(result.build(), GMsg.NOT_RESULT);
 
 		if (table.isMultiRound()) {
@@ -89,10 +112,6 @@ public final class PdkSettleService {
 			}
 			table.sendTableMessage(roundResult.build(), GMsg.NOT_ROUND_RESULT);
 		}
-
-		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());
-		logger.info("跑得快结算 table:{} winnerSeat:{} scores:{}",
-				table.getTableId(), winSeat, java.util.Arrays.toString(scores));
 	}
 
 

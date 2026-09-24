@@ -1,19 +1,29 @@
 package com.cloud.hub.web.learning.service;
 
+import com.cloud.hub.web.learning.model.DailyUsage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import com.cloud.hub.web.learning.model.DailyUsage;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * 每日家长/管理员成长小课堂日报邮件生成与定时发送服务。
+ *
+ * @author cloud
+ */
 @Service
 public class DailyReportService {
+
     private final JavaMailSender mailSender;
     private final StatsService stats;
     private final UsageService usage;
@@ -21,10 +31,12 @@ public class DailyReportService {
     private final String recipient;
     private final String sender;
 
-    public DailyReportService(ObjectProvider<JavaMailSender> mailSender, StatsService stats, UsageService usage,
-            JsonFileStore store,
-            @Value("${family-learning.report.recipient:}") String recipient,
-            @Value("${spring.mail.username:}") String sender) {
+    public DailyReportService(ObjectProvider<JavaMailSender> mailSender,
+                              StatsService stats,
+                              UsageService usage,
+                              JsonFileStore store,
+                              @Value("${family-learning.report.recipient:}") String recipient,
+                              @Value("${spring.mail.username:}") String sender) {
         this.mailSender = mailSender.getIfAvailable();
         this.stats = stats;
         this.usage = usage;
@@ -33,6 +45,9 @@ public class DailyReportService {
         this.sender = sender;
     }
 
+    /**
+     * Cron 表达式触发的自动定时巡检与日报推送。
+     */
     @Scheduled(cron = "${family-learning.report.cron}", zone = "${family-learning.report.zone}")
     public void scheduled() {
         try {
@@ -42,15 +57,26 @@ public class DailyReportService {
         }
     }
 
+    /**
+     * 手动触发或条件发送今日统计日报。
+     *
+     * @param force 是否强制发送（忽略无登录判断）
+     * @return 发送状态
+     * @throws Exception 发送异常
+     */
     public synchronized Map<String, Object> send(boolean force) throws Exception {
         DailyUsage today = usage.today();
-        if (!force && today.loginCount == 0)
+        if (!force && today.loginCount == 0) {
             return status("skipped", "今日没有用户登录，不发送邮件");
-        if (today.loginCount == 0)
+        }
+        if (today.loginCount == 0) {
             return status("skipped", "今日没有用户登录");
-        if (mailSender == null || recipient == null || recipient.trim().isEmpty() || sender == null
-                || sender.trim().isEmpty())
+        }
+        if (mailSender == null || recipient == null || recipient.trim().isEmpty()
+                || sender == null || sender.trim().isEmpty()) {
             return status("disabled", "邮件配置尚未完成");
+        }
+
         Map<String, Object> data = stats.admin();
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(sender);
@@ -58,10 +84,17 @@ public class DailyReportService {
         message.setSubject("[成长小课堂日报] " + LocalDate.now());
         message.setText(render(data));
         mailSender.send(message);
+
         log("发送成功: " + recipient);
         return status("sent", "日报已发送到 " + recipient);
     }
 
+    /**
+     * 预览今日日报生成的邮件纯文本内容。
+     *
+     * @return 邮件正文
+     * @throws Exception 统计生成异常
+     */
     public String preview() throws Exception {
         return render(stats.admin());
     }
@@ -88,7 +121,7 @@ public class DailyReportService {
     }
 
     private Map<String, Object> status(String status, String message) {
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", status);
         result.put("message", message);
         return result;
@@ -96,9 +129,9 @@ public class DailyReportService {
 
     private void log(String message) {
         try {
-            java.nio.file.Files.write(store.root().resolve("reports/mail.log"),
-                    (LocalDateTime.now() + " " + message + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            Files.write(store.root().resolve("reports/mail.log"),
+                    (LocalDateTime.now() + " " + message + "\n").getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception ignored) {
         }
     }

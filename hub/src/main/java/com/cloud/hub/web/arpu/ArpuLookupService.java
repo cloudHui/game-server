@@ -1,8 +1,8 @@
 package com.cloud.hub.web.arpu;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -18,13 +18,28 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 
-/** 管理后台 ARPU 查询代理：服务端请求外部接口，规避浏览器跨域限制。 */
+/**
+ * 管理后台 ARPU 查询代理服务。
+ * <p>
+ * 由服务端发起对外部 ARPU 接口的 HTTP 查询，规避浏览器端的跨域安全限制，
+ * 并支持通过专用线程池进行异步无阻塞查询。
+ *
+ * @author cloud
+ */
 @Service
 public class ArpuLookupService {
+
     private final ObjectMapper mapper;
     private final String checkUrl;
     private final Executor executor;
 
+    /**
+     * 构造 ARPU 查询代理服务。
+     *
+     * @param mapper   Jackson 序列化工具
+     * @param checkUrl 外部查询接口 URL
+     * @param executor ARPU 专用异步线程池
+     */
     public ArpuLookupService(ObjectMapper mapper,
                              @Value("${arpu.check-url:https://arpu.151365.cc/check}") String checkUrl,
                              @Qualifier("arpuExecutor") Executor executor) {
@@ -33,7 +48,12 @@ public class ArpuLookupService {
         this.executor = executor;
     }
 
-    /** 把阻塞式上游查询移到专用线程池，Controller 仍以异步响应返回。 */
+    /**
+     * 异步查询指定手机号的 ARPU 详情。
+     *
+     * @param phoneNo 手机号
+     * @return 异步 CompletableFuture 字典
+     */
     public CompletableFuture<Map<String, Object>> checkAsync(String phoneNo) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -44,7 +64,13 @@ public class ArpuLookupService {
         }, executor);
     }
 
-    /** 只把手机号拼到 phone_no 参数，原始 JSON 交给后台展示。 */
+    /**
+     * 同步查询指定手机号的 ARPU 详情。
+     *
+     * @param phoneNo 手机号
+     * @return 接口返回的原始 JSON 转换的字典
+     * @throws IOException 网络或解析异常
+     */
     @SuppressWarnings("unchecked")
     public Map<String, Object> check(String phoneNo) throws IOException {
         HttpURLConnection connection = open(phoneNo);
@@ -63,6 +89,12 @@ public class ArpuLookupService {
         }
     }
 
+    /**
+     * 组装带参的请求 URL。
+     *
+     * @param phoneNo 手机号
+     * @return 完整 URL
+     */
     public String requestUrl(String phoneNo) {
         try {
             return checkUrl + "?phone_no=" + URLEncoder.encode(phoneNo, "UTF-8");
@@ -71,6 +103,9 @@ public class ArpuLookupService {
         }
     }
 
+    /**
+     * 打开 HTTP 物理连接。
+     */
     private HttpURLConnection open(String phoneNo) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(requestUrl(phoneNo)).openConnection();
         connection.setRequestMethod("GET");
@@ -81,6 +116,9 @@ public class ArpuLookupService {
         return connection;
     }
 
+    /**
+     * 读取 HTTP 响应文本内容。
+     */
     private String readBody(HttpURLConnection connection, int status) throws IOException {
         InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
         if (stream == null) {
@@ -96,4 +134,3 @@ public class ArpuLookupService {
         return body.toString();
     }
 }
-

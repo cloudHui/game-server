@@ -1,15 +1,11 @@
 package com.cloud.hub.game.domain.card;
 
 /**
+ * 扑克牌常量定义类。
+ * <p>
+ * 统一管理扑克牌特殊点数（K、A、2、大小王）与空牌占位标识。
+ *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className CardConst
- * @description 扑克牌常量，负责游戏桌子的扑克牌常量管理
- * @createDate 2026-05-03
- * @className CardConst
- * @description 扑克牌常量，负责游戏桌子的扑克牌常量管理
- * @since 1.0
  */
 public class CardConst {
 

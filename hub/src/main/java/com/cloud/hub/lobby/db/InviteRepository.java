@@ -10,16 +10,39 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * 邀请码仓储
+ * 注册邀请码数据访问仓储。
+ * <p>
+ * 封装针对 SQLite {@code invite} 表的增删改查底层 SQL 操作，
+ * 支持管理员生成、列表查询、废弃、二次激活以及带 CAS 保护的高并发原子消费。
+ * </p>
+ *
+ * @author cloud
  */
 public class InviteRepository {
+
     private static final Logger logger = LoggerFactory.getLogger(InviteRepository.class);
+
+    /** SQLite 数据库连接驱动单例 */
     private final SqliteDatabase database;
 
+    /**
+     * 构造邀请码仓储。
+     *
+     * @param database SQLite 数据库访问实例
+     */
     public InviteRepository(SqliteDatabase database) {
         this.database = database;
     }
 
+    /**
+     * 生成并持久化一条新的注册邀请码记录。
+     *
+     * @param note 备注用途说明
+     * @param createdBy 创建者账号名
+     * @param expiresAt 到期时间戳（可为 null）
+     * @param maxUses 最大允许使用次数
+     * @return 创建成功返回邀请码实体，失败返回 null
+     */
     public InviteEntity create(String note, String createdBy, Long expiresAt, int maxUses) {
         InviteEntity entity = new InviteEntity();
         entity.setToken(UUID.randomUUID().toString().replace("-", ""));
@@ -61,6 +84,11 @@ public class InviteRepository {
         }
     }
 
+    /**
+     * 按 ID 倒序查询所有邀请码列表。
+     *
+     * @return 邀请码实体列表
+     */
     public List<InviteEntity> listAll() {
         List<InviteEntity> list = new ArrayList<>();
         String sql = "SELECT * FROM invite ORDER BY id DESC";
@@ -76,6 +104,12 @@ public class InviteRepository {
         return list;
     }
 
+    /**
+     * 禁用作废指定的邀请码。
+     *
+     * @param token 邀请码密文
+     * @return true 表示成功作废
+     */
     public boolean revoke(String token) {
         String sql = "UPDATE invite SET enabled = 0 WHERE token = ?";
         try (Connection conn = database.getConnection();
@@ -89,7 +123,15 @@ public class InviteRepository {
     }
 
     /**
-     * 重新激活邀请码。保留历史使用次数，并从当前时间起追加有效期和可用次数。
+     * 重新激活邀请码。
+     * <p>
+     * 保留历史使用次数，并从当前时间起追加有效期和可用次数。
+     * </p>
+     *
+     * @param token 邀请码密文
+     * @param expiresAt 新的截止时间戳
+     * @param additionalUses 额外追加的可用次数
+     * @return true 表示重新激活成功
      */
     public boolean reactivate(String token, Long expiresAt, int additionalUses) {
         if (token == null || token.isEmpty()) {
@@ -117,6 +159,12 @@ public class InviteRepository {
         }
     }
 
+    /**
+     * 检验并查看指定邀请码当前是否有效。
+     *
+     * @param token 待校验邀请码密文
+     * @return 若有效返回实体包装，否则返回 empty
+     */
     public Optional<InviteEntity> peekValid(String token) {
         if (token == null || token.isEmpty()) {
             return Optional.empty();
@@ -140,8 +188,9 @@ public class InviteRepository {
     }
 
     /**
-     * 消费邀请码（原子递增 used_count）
+     * 消费邀请码（在单条 SQL 中原子递增 used_count，防止高并发超卖）。
      *
+     * @param token 邀请码密文
      * @return true 消费成功
      */
     public boolean consume(String token) {
@@ -170,6 +219,11 @@ public class InviteRepository {
         }
     }
 
+    /**
+     * 统计系统邀请码总数。
+     *
+     * @return 记录总数
+     */
     public long countInvites() {
         String sql = "SELECT COUNT(1) FROM invite";
         try (Connection conn = database.getConnection();
@@ -184,6 +238,9 @@ public class InviteRepository {
         return 0;
     }
 
+    /**
+     * 将 JDBC ResultSet 结果集行映射为 InviteEntity 实例。
+     */
     private InviteEntity map(ResultSet rs) throws SQLException {
         InviteEntity entity = new InviteEntity();
         entity.setId(rs.getLong("id"));
@@ -201,6 +258,9 @@ public class InviteRepository {
         return entity;
     }
 
+    /**
+     * 对邀请码日志打印进行前缀脱敏。
+     */
     private static String mask(String token) {
         if (token == null) {
             return "null";
@@ -208,3 +268,4 @@ public class InviteRepository {
         return token.length() <= 8 ? token : token.substring(0, 8) + "...";
     }
 }
+

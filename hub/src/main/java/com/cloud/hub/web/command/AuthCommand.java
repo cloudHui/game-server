@@ -9,7 +9,11 @@ import org.springframework.web.socket.WebSocketSession;
 import java.util.Map;
 
 /**
- * auth 命令：验证业务 sessionId 并建立 WS 会话映射。
+ * 客户端连接鉴权命令处理器（auth）。
+ * <p>
+ * 验证客户端传入的业务会话 Token 并完成物理连接与用户的双向绑定。
+ *
+ * @author cloud
  */
 @Component
 public class AuthCommand implements WsCommandHandler {
@@ -18,6 +22,11 @@ public class AuthCommand implements WsCommandHandler {
 
     private final UserService userService;
 
+    /**
+     * 构造连接鉴权处理器。
+     *
+     * @param userService 用户服务
+     */
     public AuthCommand(UserService userService) {
         this.userService = userService;
     }

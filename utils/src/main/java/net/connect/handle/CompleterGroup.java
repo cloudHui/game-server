@@ -38,7 +38,7 @@ public class CompleterGroup implements Runnable, Comparable<CompleterGroup> {
     }
 
     public int getSequence() {
-        return SEQUENCE_GENERATOR.updateAndGet(seq -> seq >= Integer.MAX_VALUE ? 1 : seq + 1);
+        return SEQUENCE_GENERATOR.updateAndGet(seq -> seq == Integer.MAX_VALUE ? 1 : seq + 1);
     }
 
     public void addCompleter(Integer sequence, Completer completer) {

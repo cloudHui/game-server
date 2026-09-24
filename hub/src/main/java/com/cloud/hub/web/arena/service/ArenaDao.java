@@ -1,16 +1,34 @@
 package com.cloud.hub.web.arena.service;
 
 import com.cloud.hub.game.arena.ArenaRules;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 剑气除魔底层数据持久层 (DAO)。
  * <p>
  * 负责 SQLite 架构建表与自动平滑升级、玩家状态全量快照查询及常用数据库原子更新操作。
+ *
+ * @author cloud
  */
 public class ArenaDao {
+
+    private static final String[] PLAYER_FIELDS = {
+            "liquid", "coins", "fate", "stones", "pity", "dungeon_cleared", "dungeon_attempts",
+            "formation_level", "grotto_level", "grind_level", "grind_exp", "last_grind_time",
+            "beast_level", "beast_shards", "beast_tower_cleared", "beast_tower_attempts",
+            "pills_tier1", "pills_tier2", "pills_tier3", "pills_tier4", "dungeon_settled"
+    };
 
     /**
      * 初始化表结构并平滑升级已有数据库列。
@@ -54,29 +72,7 @@ public class ArenaDao {
                     "dungeon_settled INTEGER NOT NULL DEFAULT 0," +
                     "task_beast INTEGER NOT NULL DEFAULT 0)");
 
-            String[] newCols = {
-                    "grind_level INTEGER NOT NULL DEFAULT 1",
-                    "grind_exp INTEGER NOT NULL DEFAULT 0",
-                    "last_grind_time INTEGER NOT NULL DEFAULT 0",
-                    "beast_level INTEGER NOT NULL DEFAULT 1",
-                    "beast_shards INTEGER NOT NULL DEFAULT 0",
-                    "beast_tower_cleared INTEGER NOT NULL DEFAULT 0",
-                    "beast_tower_attempts INTEGER NOT NULL DEFAULT 3",
-                    "equipped_skill TEXT NOT NULL DEFAULT 'pierce'",
-                    "pills_tier1 INTEGER NOT NULL DEFAULT 0",
-                    "pills_tier2 INTEGER NOT NULL DEFAULT 0",
-                    "pills_tier3 INTEGER NOT NULL DEFAULT 0",
-                    "pills_tier4 INTEGER NOT NULL DEFAULT 0",
-                    "dungeon_settled INTEGER NOT NULL DEFAULT 0",
-                    "task_beast INTEGER NOT NULL DEFAULT 0"
-            };
-            for (String colDef : newCols) {
-                try {
-                    s.execute("ALTER TABLE arena_player ADD COLUMN " + colDef);
-                } catch (SQLException ignored) {
-                    // 已存在则跳过
-                }
-            }
+            upgradeColumns(s);
 
             s.execute("CREATE TABLE IF NOT EXISTS arena_hero(" +
                     "user_id INTEGER NOT NULL," +
@@ -94,6 +90,32 @@ public class ArenaDao {
                     "quality TEXT NOT NULL," +
                     "duplicate INTEGER NOT NULL," +
                     "created_at INTEGER NOT NULL)");
+        }
+    }
+
+    private void upgradeColumns(Statement s) {
+        String[] newCols = {
+                "grind_level INTEGER NOT NULL DEFAULT 1",
+                "grind_exp INTEGER NOT NULL DEFAULT 0",
+                "last_grind_time INTEGER NOT NULL DEFAULT 0",
+                "beast_level INTEGER NOT NULL DEFAULT 1",
+                "beast_shards INTEGER NOT NULL DEFAULT 0",
+                "beast_tower_cleared INTEGER NOT NULL DEFAULT 0",
+                "beast_tower_attempts INTEGER NOT NULL DEFAULT 3",
+                "equipped_skill TEXT NOT NULL DEFAULT 'pierce'",
+                "pills_tier1 INTEGER NOT NULL DEFAULT 0",
+                "pills_tier2 INTEGER NOT NULL DEFAULT 0",
+                "pills_tier3 INTEGER NOT NULL DEFAULT 0",
+                "pills_tier4 INTEGER NOT NULL DEFAULT 0",
+                "dungeon_settled INTEGER NOT NULL DEFAULT 0",
+                "task_beast INTEGER NOT NULL DEFAULT 0"
+        };
+        for (String colDef : newCols) {
+            try {
+                s.execute("ALTER TABLE arena_player ADD COLUMN " + colDef);
+            } catch (SQLException ignored) {
+                // 已存在跳过
+            }
         }
     }
 
@@ -127,10 +149,10 @@ public class ArenaDao {
      */
     public void refresh(Connection c, long uid) throws SQLException {
         String today = LocalDate.now().toString();
-        try (PreparedStatement p = c.prepareStatement(
-                "UPDATE arena_player SET task_day=?, dungeon_attempts=5, beast_tower_attempts=3, " +
+        String sql = "UPDATE arena_player SET task_day=?, dungeon_attempts=5, beast_tower_attempts=3, " +
                 "task_login=1, task_dungeon=0, task_rank=0, task_recruit=0, task_arena=0, task_beast=0, " +
-                "dungeon_settled=0, claimed='' WHERE user_id=? AND task_day<>?")) {
+                "dungeon_settled=0, claimed='' WHERE user_id=? AND task_day<>?";
+        try (PreparedStatement p = c.prepareStatement(sql)) {
             p.setString(1, today);
             p.setLong(2, uid);
             p.setString(3, today);
@@ -147,7 +169,8 @@ public class ArenaDao {
      * @param amount 扣减数量
      */
     public void spend(Connection c, long uid, String col, long amount) throws SQLException {
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_player SET " + col + "=" + col + "-? WHERE user_id=? AND " + col + ">=?")) {
+        String sql = "UPDATE arena_player SET " + col + "=" + col + "-? WHERE user_id=? AND " + col + ">=?";
+        try (PreparedStatement p = c.prepareStatement(sql)) {
             p.setLong(1, amount);
             p.setLong(2, uid);
             p.setLong(3, amount);
@@ -213,7 +236,8 @@ public class ArenaDao {
      * 写入抽卡日志流水。
      */
     public void logDraw(Connection c, long uid, String heroId, String quality, boolean dup) throws SQLException {
-        try (PreparedStatement p = c.prepareStatement("INSERT INTO arena_draw_log(user_id,hero_id,quality,duplicate,created_at) VALUES(?,?,?,?,?)")) {
+        String sql = "INSERT INTO arena_draw_log(user_id,hero_id,quality,duplicate,created_at) VALUES(?,?,?,?,?)";
+        try (PreparedStatement p = c.prepareStatement(sql)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             p.setString(3, quality);
@@ -235,42 +259,50 @@ public class ArenaDao {
         try (PreparedStatement p = c.prepareStatement("SELECT * FROM arena_player WHERE user_id=?")) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
-                if (!r.next()) return out;
-                for (String k : new String[]{
-                        "liquid", "coins", "fate", "stones", "pity", "dungeon_cleared", "dungeon_attempts",
-                        "formation_level", "grotto_level", "grind_level", "grind_exp", "last_grind_time",
-                        "beast_level", "beast_shards", "beast_tower_cleared", "beast_tower_attempts",
-                        "pills_tier1", "pills_tier2", "pills_tier3", "pills_tier4", "dungeon_settled"}) {
-                    out.put(toCamel(k), r.getLong(k));
+                if (r.next()) {
+                    readPlayerProperties(r, out);
+                    readTasks(r, out);
                 }
-                out.put("equippedSkill", r.getString("equipped_skill"));
-
-                int bLv = r.getInt("beast_level");
-                out.put("beastFormationAmp", ArenaRules.beastFormationMultiplier(bLv));
-                out.put("beastShardCost", ArenaRules.beastShardCost(bLv));
-
-                int gLv = r.getInt("grind_level");
-                out.put("grindExpNeeded", ArenaRules.grindExpForLevel(gLv));
-
-                int dCleared = r.getInt("dungeon_cleared");
-                out.put("grindRates", ArenaRules.grindRates(dCleared));
-                out.put("dungeonSettlement", ArenaRules.dungeonDailyReward(dCleared));
-
-                int pTotal = r.getInt("pills_tier1") + r.getInt("pills_tier2") + r.getInt("pills_tier3") + r.getInt("pills_tier4");
-                out.put("pillsTotal", pTotal);
-
-                String claimed = r.getString("claimed");
-                Map<String, Object> tasks = new LinkedHashMap<>();
-                for (String id : new String[]{"login", "dungeon", "rank", "recruit", "arena", "beast"}) {
-                    Map<String, Object> t = new LinkedHashMap<>();
-                    t.put("progress", r.getInt("task_" + id));
-                    t.put("claimed", Arrays.asList(claimed.split(",")).contains(id));
-                    tasks.put(id, t);
-                }
-                out.put("tasks", tasks);
             }
         }
+        out.put("heroes", readHeroes(c, uid));
+        return out;
+    }
 
+    private void readPlayerProperties(ResultSet r, Map<String, Object> out) throws SQLException {
+        for (String k : PLAYER_FIELDS) {
+            out.put(toCamel(k), r.getLong(k));
+        }
+        out.put("equippedSkill", r.getString("equipped_skill"));
+
+        int bLv = r.getInt("beast_level");
+        out.put("beastFormationAmp", ArenaRules.beastFormationMultiplier(bLv));
+        out.put("beastShardCost", ArenaRules.beastShardCost(bLv));
+
+        int gLv = r.getInt("grind_level");
+        out.put("grindExpNeeded", ArenaRules.grindExpForLevel(gLv));
+
+        int dCleared = r.getInt("dungeon_cleared");
+        out.put("grindRates", ArenaRules.grindRates(dCleared));
+        out.put("dungeonSettlement", ArenaRules.dungeonDailyReward(dCleared));
+
+        int pTotal = r.getInt("pills_tier1") + r.getInt("pills_tier2") + r.getInt("pills_tier3") + r.getInt("pills_tier4");
+        out.put("pillsTotal", pTotal);
+    }
+
+    private void readTasks(ResultSet r, Map<String, Object> out) throws SQLException {
+        String claimed = r.getString("claimed");
+        Map<String, Object> tasks = new LinkedHashMap<>();
+        for (String id : new String[]{"login", "dungeon", "rank", "recruit", "arena", "beast"}) {
+            Map<String, Object> t = new LinkedHashMap<>();
+            t.put("progress", r.getInt("task_" + id));
+            t.put("claimed", Arrays.asList(claimed.split(",")).contains(id));
+            tasks.put(id, t);
+        }
+        out.put("tasks", tasks);
+    }
+
+    private List<Map<String, Object>> readHeroes(Connection c, long uid) throws SQLException {
         List<Map<String, Object>> heroes = new ArrayList<>();
         try (PreparedStatement p = c.prepareStatement("SELECT * FROM arena_hero WHERE user_id=? ORDER BY hero_id")) {
             p.setLong(1, uid);
@@ -286,16 +318,16 @@ public class ArenaDao {
                 }
             }
         }
-        out.put("heroes", heroes);
-        return out;
+        return heroes;
     }
 
     private static String toCamel(String s) {
         StringBuilder b = new StringBuilder();
         boolean up = false;
         for (char ch : s.toCharArray()) {
-            if (ch == '_') up = true;
-            else {
+            if (ch == '_') {
+                up = true;
+            } else {
                 b.append(up ? Character.toUpperCase(ch) : ch);
                 up = false;
             }

@@ -1,6 +1,7 @@
 package com.cloud.hub.web.arena.service;
 
 import com.cloud.hub.game.arena.ArenaRules;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,8 +12,11 @@ import java.util.Random;
  * 仙侣培养与招募领域服务。
  * <p>
  * 负责仙修境界突破、功法参悟升级、本命碎片升星（1~5星）以及消耗仙缘抽卡招募。
+ *
+ * @author cloud
  */
 public class ArenaHeroService {
+
     private static final String[] HERO_POOL = {
             "qinglan", "xuanshuang", "chixiao", "taixu", "yaohuang", "leizun", "jianhuang"
     };
@@ -29,19 +33,24 @@ public class ArenaHeroService {
      * @param c      数据库连接
      * @param uid    玩家唯一标识
      * @param heroId 仙修标识
+     * @throws SQLException 数据库异常
      */
     public void rankUp(Connection c, long uid, String heroId) throws SQLException {
         int rank;
-        try (PreparedStatement p = c.prepareStatement("SELECT rank FROM arena_hero WHERE user_id=? AND hero_id=?")) {
+        String query = "SELECT rank FROM arena_hero WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             try (ResultSet r = p.executeQuery()) {
-                if (!r.next()) throw new IllegalArgumentException("尚未拥有该仙侣");
+                if (!r.next()) {
+                    throw new IllegalArgumentException("尚未拥有该仙侣");
+                }
                 rank = r.getInt(1);
             }
         }
         dao.spend(c, uid, "liquid", ArenaRules.rankCost(rank));
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_hero SET rank=rank+1 WHERE user_id=? AND hero_id=?")) {
+        String update = "UPDATE arena_hero SET rank=rank+1 WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             p.executeUpdate();
@@ -55,19 +64,24 @@ public class ArenaHeroService {
      * @param c      数据库连接
      * @param uid    玩家唯一标识
      * @param heroId 仙修标识
+     * @throws SQLException 数据库异常
      */
     public void skillUp(Connection c, long uid, String heroId) throws SQLException {
         int skillLevel;
-        try (PreparedStatement p = c.prepareStatement("SELECT skill_level FROM arena_hero WHERE user_id=? AND hero_id=?")) {
+        String query = "SELECT skill_level FROM arena_hero WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             try (ResultSet r = p.executeQuery()) {
-                if (!r.next()) throw new IllegalArgumentException("尚未拥有该仙侣");
+                if (!r.next()) {
+                    throw new IllegalArgumentException("尚未拥有该仙侣");
+                }
                 skillLevel = r.getInt(1);
             }
         }
         dao.spend(c, uid, "coins", ArenaRules.skillCost(skillLevel));
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_hero SET skill_level=skill_level+1 WHERE user_id=? AND hero_id=?")) {
+        String update = "UPDATE arena_hero SET skill_level=skill_level+1 WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             p.executeUpdate();
@@ -81,14 +95,19 @@ public class ArenaHeroService {
      * @param c      数据库连接
      * @param uid    玩家唯一标识
      * @param heroId 仙修标识
+     * @throws SQLException 数据库异常
      */
     public void starUp(Connection c, long uid, String heroId) throws SQLException {
-        int stars, shards;
-        try (PreparedStatement p = c.prepareStatement("SELECT stars, shards FROM arena_hero WHERE user_id=? AND hero_id=?")) {
+        int stars;
+        int shards;
+        String query = "SELECT stars, shards FROM arena_hero WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             p.setString(2, heroId);
             try (ResultSet r = p.executeQuery()) {
-                if (!r.next()) throw new IllegalArgumentException("尚未拥有该仙侣");
+                if (!r.next()) {
+                    throw new IllegalArgumentException("尚未拥有该仙侣");
+                }
                 stars = r.getInt(1);
                 shards = r.getInt(2);
             }
@@ -100,7 +119,8 @@ public class ArenaHeroService {
         if (shards < need) {
             throw new IllegalArgumentException("本命碎片不足，还需 " + (need - shards) + " 碎片");
         }
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_hero SET stars=stars+1, shards=shards-? WHERE user_id=? AND hero_id=?")) {
+        String update = "UPDATE arena_hero SET stars=stars+1, shards=shards-? WHERE user_id=? AND hero_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setInt(1, need);
             p.setLong(2, uid);
             p.setString(3, heroId);
@@ -115,6 +135,7 @@ public class ArenaHeroService {
      * @param uid   玩家唯一标识
      * @param count 抽取次数 (1 或 10)
      * @param seed  随机种子
+     * @throws SQLException 数据库异常
      */
     public void draw(Connection c, long uid, int count, long seed) throws SQLException {
         if (count != 1 && count != 10) {
@@ -122,15 +143,7 @@ public class ArenaHeroService {
         }
         dao.spend(c, uid, "fate", count);
 
-        int pity;
-        try (PreparedStatement p = c.prepareStatement("SELECT pity FROM arena_player WHERE user_id=?")) {
-            p.setLong(1, uid);
-            try (ResultSet r = p.executeQuery()) {
-                r.next();
-                pity = r.getInt(1);
-            }
-        }
-
+        int pity = queryPity(c, uid);
         Random rng = new Random(seed);
         for (int i = 0; i < count; i++) {
             pity++;
@@ -141,22 +154,41 @@ public class ArenaHeroService {
             if ("金".equals(quality)) {
                 pity = 0;
             }
-
-            String heroId = HERO_POOL[rng.nextInt(HERO_POOL.length)];
-            boolean dup = dao.hasHero(c, uid, heroId);
-            if (dup) {
-                dao.addHeroShards(c, uid, heroId, ArenaRules.shards(quality));
-            } else {
-                dao.addHero(c, uid, heroId);
-            }
-            dao.logDraw(c, uid, heroId, quality, dup);
+            doDrawOne(c, uid, quality, rng);
         }
 
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_player SET pity=? WHERE user_id=?")) {
+        updatePity(c, uid, pity);
+        dao.progress(c, uid, "task_recruit", count);
+    }
+
+    private int queryPity(Connection c, long uid) throws SQLException {
+        String query = "SELECT pity FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
+            p.setLong(1, uid);
+            try (ResultSet r = p.executeQuery()) {
+                r.next();
+                return r.getInt(1);
+            }
+        }
+    }
+
+    private void doDrawOne(Connection c, long uid, String quality, Random rng) throws SQLException {
+        String heroId = HERO_POOL[rng.nextInt(HERO_POOL.length)];
+        boolean dup = dao.hasHero(c, uid, heroId);
+        if (dup) {
+            dao.addHeroShards(c, uid, heroId, ArenaRules.shards(quality));
+        } else {
+            dao.addHero(c, uid, heroId);
+        }
+        dao.logDraw(c, uid, heroId, quality, dup);
+    }
+
+    private void updatePity(Connection c, long uid, int pity) throws SQLException {
+        String update = "UPDATE arena_player SET pity=? WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setInt(1, pity);
             p.setLong(2, uid);
             p.executeUpdate();
         }
-        dao.progress(c, uid, "task_recruit", count);
     }
 }

@@ -103,59 +103,64 @@ public class MjDiscard extends AbstractTableHandle {
         MjPlayService.afterDiscard(mjTable);
     }
 
+    /**
+     * 向当前出牌玩家下发出牌及可用的暗杠/补杠提示。
+     */
     private void sendDiscardPrompt(MjTable table) {
         int seat = table.getOp().getCurrOpSeat();
         TableUser user = table.getSeatUser(seat);
         if (user == null) return;
 
         table.getOp().clearChoiceMap();
-
         GameProto.NotOperation.Builder notBuilder = GameProto.NotOperation.newBuilder()
                 .setWait(TableState.MJ_DISCARD.getOverTime())
                 .setOpSeat(seat);
 
         // 出牌选项(总是可以出牌)
         GameProto.OpInfo discard = GameProto.OpInfo.newBuilder()
-                .setChoice(ConstProto.Operation.DISCARD)
-                .build();
+                .setChoice(ConstProto.Operation.DISCARD).build();
         table.getOp().addPosOpInfo(seat, discard);
         notBuilder.addChoice(discard);
 
-        // 检查暗杠(需配置允许)
+        // 填充暗杠与补杠选项
+        populateGangChoices(table, user, seat, notBuilder);
+
+        // 广播提示
+        table.sendTableMessage(notBuilder.build(), GMsg.NOT_OP);
+    }
+
+    /** 检查手牌与亮牌并向当前座位注入可用的暗杠/补杠操作 */
+    private void populateGangChoices(MjTable table, TableUser user, int seat, GameProto.NotOperation.Builder notBuilder) {
         MjWinChecker winChecker = MjPlayService.createWinChecker(table);
         boolean allowAnGang = table.getTableModel().getAllowGangAn() != 0;
         List<Integer> anGangTiles = allowAnGang ? winChecker.getAnGangTiles(user.getCards()) : Collections.emptyList();
         for (int gangTileId : anGangTiles) {
-            GameProto.OpInfo anGang = GameProto.OpInfo.newBuilder()
-                    .setChoice(ConstProto.Operation.MJ_GANG)
-                    .addOpCards(GameProto.CardInfo.newBuilder()
-                            .addCards(GameProto.Card.newBuilder().setValue(gangTileId).build())
-                            .build())
-                    .build();
+            GameProto.OpInfo anGang = buildGangOp(gangTileId);
             table.getOp().addPosOpInfo(seat, anGang);
             notBuilder.addChoice(anGang);
         }
 
-        // 检查补杠(需配置允许)
         boolean allowBuGang = table.getTableModel().getAllowGangBu() != 0;
         MjTableContext ctx = table.getMjContext();
         for (MjExposedSet set : ctx.getExposedSets(seat)) {
             if (set.getType() == MjExposedSet.Type.PENG) {
                 int pengTileId = set.getTileIds().get(0);
-                if (winChecker.canBuGang(user.getCards(), ctx.getExposedSets(seat), pengTileId)) {
-                    GameProto.OpInfo buGang = GameProto.OpInfo.newBuilder()
-                            .setChoice(ConstProto.Operation.MJ_GANG)
-                            .addOpCards(GameProto.CardInfo.newBuilder()
-                                    .addCards(GameProto.Card.newBuilder().setValue(pengTileId).build())
-                                    .build())
-                            .build();
+                if (allowBuGang && winChecker.canBuGang(user.getCards(), ctx.getExposedSets(seat), pengTileId)) {
+                    GameProto.OpInfo buGang = buildGangOp(pengTileId);
                     table.getOp().addPosOpInfo(seat, buGang);
                     notBuilder.addChoice(buGang);
                 }
             }
         }
+    }
 
-        // 当前操作座位对全桌可见：网页端用它更新箭头/头像，只有该座位显示按钮。
-        table.sendTableMessage(notBuilder.build(), GMsg.NOT_OP);
+    /** 构建杠牌操作 OpInfo */
+    private static GameProto.OpInfo buildGangOp(int tileId) {
+        return GameProto.OpInfo.newBuilder()
+                .setChoice(ConstProto.Operation.MJ_GANG)
+                .addOpCards(GameProto.CardInfo.newBuilder()
+                        .addCards(GameProto.Card.newBuilder().setValue(tileId).build())
+                        .build())
+                .build();
     }
 }

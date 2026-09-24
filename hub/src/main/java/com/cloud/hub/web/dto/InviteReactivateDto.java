@@ -4,18 +4,25 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 重新激活邀请码请求体（对齐 RuoYi 接口入参规范）
+ * 邀请码重新激活延期请求传输对象。
+ *
+ * @author cloud
  */
 public class InviteReactivateDto {
+
+    /** 目标邀请码 Token */
     @NotBlank(message = "邀请码不能为空")
     private String token;
 
+    /** 延长有效天数 */
     @Min(value = 1, message = "有效天数不能小于 1")
     private Integer expiresDays = 7;
 
+    /** 追加最大使用次数 */
     @Min(value = 1, message = "追加使用次数不能小于 1")
     private Integer additionalUses = 1;
 
+    /** 会话标识 */
     private String sessionId;
 
     public String getToken() {

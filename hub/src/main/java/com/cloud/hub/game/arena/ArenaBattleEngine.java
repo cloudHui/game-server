@@ -95,27 +95,24 @@ public final class ArenaBattleEngine {
     /**
      * 执行单个修士的出手行动。
      */
+    /**
+     * 执行单个修士的出手行动。
+     *
+     * @param actor    行动方
+     * @param target   承受方
+     * @param round    当前回合
+     * @param skill    玩家神通
+     * @param isPlayer 是否为玩家
+     * @param rng      随机数源
+     * @param events   事件流
+     * @param seq      事件序列号
+     */
     private static void execAction(Fighter actor, Fighter target, int round, String skill, boolean isPlayer,
                                    Random rng, List<Map<String, Object>> events, int[] seq) {
-        // 眩晕检查
-        if (actor.stunned) {
-            actor.stunned = false;
-            addEvent(events, seq, "ACTION_SKIPPED", round, actor.hero.id, target.hero.id, 0, "眩晕无法行动");
-            return;
-        }
+        if (checkStunned(actor, target, round, events, seq)) return;
 
-        boolean silenced = actor.silencedRounds > 0;
-        if (silenced) {
-            actor.silencedRounds--;
-        }
-
-        // 技能施放判定（被沉默则只能普攻）
-        boolean active = actor.energy >= 100 && !silenced;
-        int mult = active ? actor.hero.multiplier : 100;
-        String skillText = active ? actor.hero.skill : (silenced ? "普攻 (神通被沉默)" : "普通攻击");
-        if (active) actor.energy = 0;
-
-        addEvent(events, seq, "ATTACK", round, actor.hero.id, target.hero.id, 0, skillText);
+        boolean silenced = checkSilenced(actor);
+        int mult = resolveSkillMult(actor, silenced, round, target, events, seq);
 
         // 闪避判定 (5% 概率)
         if (rng.nextInt(100) < 5) {
@@ -123,13 +120,54 @@ public final class ArenaBattleEngine {
             return;
         }
 
-        // 伤害计算
+        long finalDamage = processDamage(actor, target, mult, skill, isPlayer, round, rng, events, seq);
+        applyLifestealAndStatus(actor, target, finalDamage, skill, isPlayer, mult > 100, round, rng, events, seq);
+
+        // 怒气积累与阵亡判定
+        actor.energy = Math.min(100, actor.energy + 25);
+        target.energy = Math.min(100, target.energy + 15);
+        if (target.hp == 0) {
+            addEvent(events, seq, "DEATH", round, target.hero.id, null, 0, "道体破碎");
+        }
+    }
+
+    /** 检查修士是否处于眩晕状态，若眩晕则消耗并跳过回合 */
+    private static boolean checkStunned(Fighter actor, Fighter target, int round,
+                                        List<Map<String, Object>> events, int[] seq) {
+        if (!actor.stunned) return false;
+        actor.stunned = false;
+        addEvent(events, seq, "ACTION_SKIPPED", round, actor.hero.id, target.hero.id, 0, "眩晕无法行动");
+        return true;
+    }
+
+    /** 检查修士沉默状态并扣减剩余轮次 */
+    private static boolean checkSilenced(Fighter actor) {
+        boolean silenced = actor.silencedRounds > 0;
+        if (silenced) {
+            actor.silencedRounds--;
+        }
+        return silenced;
+    }
+
+    /** 解析行动方施放普攻或怒气大招，并记录攻击事件 */
+    private static int resolveSkillMult(Fighter actor, boolean silenced, int round, Fighter target,
+                                        List<Map<String, Object>> events, int[] seq) {
+        boolean active = actor.energy >= 100 && !silenced;
+        int mult = active ? actor.hero.multiplier : 100;
+        String skillText = active ? actor.hero.skill : (silenced ? "普攻 (神通被沉默)" : "普通攻击");
+        if (active) actor.energy = 0;
+        addEvent(events, seq, "ATTACK", round, actor.hero.id, target.hero.id, 0, skillText);
+        return mult;
+    }
+
+    /** 计算伤害并完成护盾扣减与血量削减 */
+    private static long processDamage(Fighter actor, Fighter target, int mult, String skill, boolean isPlayer,
+                                      int round, Random rng, List<Map<String, Object>> events, int[] seq) {
         boolean isPierce = isPlayer && "pierce".equals(skill);
         boolean isDefense = (!isPlayer) && "defense".equals(skill);
         boolean isCrit = rng.nextInt(100) < 20;
 
         long finalDamage = calcDamage(actor, target, mult, isPierce, isDefense, isCrit);
-
         if (isCrit) {
             addEvent(events, seq, "CRITICAL", round, actor.hero.id, target.hero.id, 0, "暴击");
         }
@@ -149,36 +187,32 @@ public final class ArenaBattleEngine {
 
         target.hp = Math.max(0, target.hp - finalDamage);
         addEvent(events, seq, "DAMAGE", round, actor.hero.id, target.hero.id, finalDamage, "剩余气血 " + target.hp);
+        return finalDamage;
+    }
 
-        // 玩家神通特性触发
+    /** 触发神通效果、吸血与控制 */
+    private static void applyLifestealAndStatus(Fighter actor, Fighter target, long finalDamage, String skill,
+                                                boolean isPlayer, boolean isUlt, int round, Random rng,
+                                                List<Map<String, Object>> events, int[] seq) {
+        // 沉默判定
         if (isPlayer && "silence".equals(skill) && rng.nextInt(100) < 35 && target.silencedRounds <= 0) {
             target.silencedRounds = 2;
             addEvent(events, seq, "STATUS_APPLY", round, actor.hero.id, target.hero.id, 0, "太虚封魔咒 · 封印沉默 2回合");
         }
-
-        // 吸血与回复判定
+        // 吸血判定
         if (isPlayer && "heal".equals(skill) && finalDamage > 0) {
             long lifesteal = finalDamage * 40 / 100;
             actor.hp = Math.min(actor.hero.hp, actor.hp + lifesteal);
             addEvent(events, seq, "HEAL", round, actor.hero.id, actor.hero.id, lifesteal, "青帝长生引 · 吸血");
-        } else if (active && actor.hero.lifesteal > 0 && finalDamage > 0) {
+        } else if (isUlt && actor.hero.lifesteal > 0 && finalDamage > 0) {
             long heal = finalDamage * actor.hero.lifesteal / 100;
             actor.hp = Math.min(actor.hero.hp, actor.hp + heal);
             addEvent(events, seq, "HEAL", round, actor.hero.id, actor.hero.id, heal, "吸血");
         }
-
-        // 眩晕触发判定
-        if (active && target.hp > 0 && rng.nextInt(100) < actor.hero.stun) {
+        // 眩晕判定
+        if (isUlt && target.hp > 0 && rng.nextInt(100) < actor.hero.stun) {
             target.stunned = true;
             addEvent(events, seq, "STATUS_APPLY", round, actor.hero.id, target.hero.id, 0, "眩晕");
-        }
-
-        // 能量积累
-        actor.energy = Math.min(100, actor.energy + 25);
-        target.energy = Math.min(100, target.energy + 15);
-
-        if (target.hp == 0) {
-            addEvent(events, seq, "DEATH", round, target.hero.id, null, 0, "道体破碎");
         }
     }
 

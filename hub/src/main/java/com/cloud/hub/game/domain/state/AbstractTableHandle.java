@@ -4,13 +4,11 @@ import com.cloud.hub.game.domain.table.Table;
 import utils.registry.enums.TableState;
 
 /**
+ * 牌桌状态处理器抽象基类。
+ * <p>
+ * 封装超时倒计时检测（overTime）、超时自动推进（next 状态）及定时检测回调（onTiming）。
+ *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className AbstractTableHandle
- * @description 桌子状态处理器抽象类
- * @createDate 2025/10/20 16:53
- * @since 1.0
  */
 public abstract class AbstractTableHandle {
 

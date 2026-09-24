@@ -3,647 +3,615 @@ package utils.other;
 import java.sql.Timestamp;
 import java.util.*;
 
-
+/**
+ * 策划配表与键值映射解析工具类
+ * <p>提供 Map 字段的安全提取以及字符串与基础数组、集合之间的双向解析转换。</p>
+ *
+ * @author cloud
+ */
 public class TableUtils {
-    private static TableUtils instance = new TableUtils();
+
+    /** 单例对象 */
+    private static final TableUtils INSTANCE = new TableUtils();
 
     private TableUtils() {
     }
 
+    /**
+     * 获取单例实例
+     *
+     * @return TableUtils 实例
+     */
     public static TableUtils getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
-    public String getString(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (String) (map.get(key));
+    /**
+     * 从 Map 中安全提取字符串值
+     *
+     * @param map 数据字典
+     * @param key 字段键名
+     * @return 字符串值，若不存在或为空则返回 null
+     */
+    public String getString(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return val != null ? String.valueOf(val) : null;
+    }
+
+    /**
+     * 从 HashMap 中获取字符串值（重载兼容）
+     */
+    public String getString(HashMap<String, Object> map, String key) {
+        return getString((Map<String, Object>) map, key);
+    }
+
+    /**
+     * 从 Map 中安全提取浮点数值
+     *
+     * @param map 数据字典
+     * @param key 字段键名
+     * @return 浮点数值，不存在则默认返回 -1.0f
+     */
+    public float getFloat(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return -1.0f;
+        }
+        Object val = map.get(key);
+        if (val instanceof Number) {
+            return ((Number) val).floatValue();
+        }
+        if (val != null) {
+            try {
+                return Float.parseFloat(String.valueOf(val));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return -1.0f;
     }
 
     public float getFloat(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (float) (map.get(key));
+        return getFloat((Map<String, Object>) map, key);
+    }
+
+    /**
+     * 从 Map 中安全提取整型数值
+     *
+     * @param map 数据字典
+     * @param key 字段键名
+     * @return 整数值，不存在则默认返回 -1
+     */
+    public int getInt(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return -1;
+        }
+        Object val = map.get(key);
+        if (val instanceof Number) {
+            return ((Number) val).intValue();
+        }
+        if (val != null) {
+            try {
+                return Integer.parseInt(String.valueOf(val));
+            } catch (NumberFormatException ignored) {
+            }
         }
         return -1;
     }
 
     public int getInt(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (int) (map.get(key));
+        return getInt((Map<String, Object>) map, key);
+    }
+
+    /**
+     * 从 Map 中安全提取长整型数值
+     *
+     * @param map 数据字典
+     * @param key 字段键名
+     * @return 长整型值，不存在则默认返回 -1L
+     */
+    public long getLong(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return -1L;
         }
-        return -1;
+        Object val = map.get(key);
+        if (val instanceof Number) {
+            return ((Number) val).longValue();
+        }
+        if (val != null) {
+            try {
+                return Long.parseLong(String.valueOf(val));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return -1L;
     }
 
     public long getLong(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (long) (map.get(key));
+        return getLong((Map<String, Object>) map, key);
+    }
+
+    /**
+     * 从 Map 中安全提取布尔值
+     *
+     * @param map 数据字典
+     * @param key 字段键名
+     * @return 布尔值，不存在则默认返回 false
+     */
+    public Boolean getBoolean(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return false;
         }
-        return -1;
+        Object val = map.get(key);
+        if (val instanceof Boolean) {
+            return (Boolean) val;
+        }
+        return val != null && Boolean.parseBoolean(String.valueOf(val));
     }
 
     public Boolean getBoolean(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (Boolean) (map.get(key));
-        }
-        return false;
+        return getBoolean((Map<String, Object>) map, key);
     }
 
-    //public Vector2 getVector2(HashMap<String, Object> map, String key) {
-    //	if (map.containsKey(key)) {
-    //		return (Vector2) (map.get(key));
-    //	}
-    //	logger.error("no found table key: " + key);
-    //	return null;
-    //}
-    //
-    //public Vector3 getVector3(HashMap<String, Object> map, String key) {
-    //	if (map.containsKey(key)) {
-    //		return (Vector3) (map.get(key));
-    //	}
-    //	logger.error("no found table key: " + key);
-    //	return null;
-    //}
+    /**
+     * 从 Map 中提取 Timestamp 时间戳
+     */
+    public Timestamp getTimestamp(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
+        }
+        Object val = map.get(key);
+        return (val instanceof Timestamp) ? (Timestamp) val : null;
+    }
 
     public Timestamp getTimestamp(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (Timestamp) (map.get(key));
+        return getTimestamp((Map<String, Object>) map, key);
+    }
+
+    public String[] getStringArray(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof String[]) ? (String[]) val : null;
     }
 
     public String[] getStringArray(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (String[]) (map.get(key));
+        return getStringArray((Map<String, Object>) map, key);
+    }
+
+    public int[] getIntArray(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof int[]) ? (int[]) val : null;
     }
 
     public int[] getIntArray(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (int[]) (map.get(key));
+        return getIntArray((Map<String, Object>) map, key);
+    }
+
+    public long[] getLongArray(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof long[]) ? (long[]) val : null;
     }
 
     public long[] getLongArray(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (long[]) (map.get(key));
+        return getLongArray((Map<String, Object>) map, key);
+    }
+
+    public float[] getFloatArray(Map<String, Object> map, String key) {
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof float[]) ? (float[]) val : null;
     }
 
     public float[] getFloatArray(HashMap<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (float[]) (map.get(key));
-        }
-        return null;
+        return getFloatArray((Map<String, Object>) map, key);
     }
 
-    //public Vector2[] getVector2Array(HashMap<String, Object> map, String key) {
-    //	if (map.containsKey(key)) {
-    //		return (Vector2[]) (map.get(key));
-    //	}
-    //	logger.error("no found table key: " + key);
-    //	return null;
-    //}
-    //
-    //public Vector3[] getVector3Array(HashMap<String, Object> map, String key) {
-    //	if (map.containsKey(key)) {
-    //		return (Vector3[]) (map.get(key));
-    //	}
-    //	logger.error("no found table key: " + key);
-    //	return null;
-    //}
-
     public int[][] getIntArrayArray(Map<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (int[][]) (map.get(key));
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof int[][]) ? (int[][]) val : null;
     }
 
     public float[][] getFloatArrayArray(Map<String, Object> map, String key) {
-        if (map.containsKey(key)) {
-            return (float[][]) (map.get(key));
+        if (map == null || !map.containsKey(key)) {
+            return null;
         }
-        return null;
+        Object val = map.get(key);
+        return (val instanceof float[][]) ? (float[][]) val : null;
     }
 
-    //public static Vector2 Vector2Parse(String value) {
-    //	Vector2 vector2 = new Vector2();
-    //	float[] array = FloatArrayParse(value);
-    //	vector2.x = array[0];
-    //	vector2.y = array[1];
-    //	return vector2;
-    //}
-    //
-    //public static Vector3 Vector3Parse(String value) {
-    //	Vector3 vector3 = new Vector3();
-    //	float[] array = FloatArrayParse(value);
-    //	vector3.x = array[0];
-    //	vector3.y = array[1];
-    //	vector3.z = array[2];
-    //	return vector3;
-    //}
+    // ----------------------- 静态解析与序列化方法 -----------------------
 
+    /**
+     * 将字符串列表转换为逗号分隔字符串
+     *
+     * @param arrayStr 字符串列表
+     * @return 逗号拼接结果
+     */
     public static String StringArrayToString(List<String> arrayStr) {
-        StringBuilder value = new StringBuilder();
-        for (int i = 0; i < arrayStr.size(); i++) {
-            if (i == 0) {
-                value = new StringBuilder(arrayStr.get(i));
-            } else {
-                value.append(",").append(arrayStr.get(i));
-            }
+        if (arrayStr == null || arrayStr.isEmpty()) {
+            return "";
         }
-        return value.toString();
+        return String.join(",", arrayStr);
     }
 
+    /**
+     * 解析形如 "[a,b,c]" 或 "(a,b)" 的字符串为字符串数组
+     *
+     * @param value 原始文本
+     * @return 解析后的字符串数组
+     */
     public static String[] StringArrayParse(String value) {
-        value = value.trim();
-        value = value.replace("(", "");
-        value = value.replace(")", "");
-        value = value.replace("[", "");
-        value = value.replace("]", "");
-        if (value.isEmpty()) {
+        if (value == null) {
             return new String[0];
         }
-        return value.split(",");
+        String clean = value.trim()
+                .replace("(", "")
+                .replace(")", "")
+                .replace("[", "")
+                .replace("]", "");
+        if (clean.isEmpty()) {
+            return new String[0];
+        }
+        return clean.split(",");
     }
 
+    /**
+     * 解析时间戳字符串并按时区转换
+     *
+     * @param value 时间戳文本
+     * @return Timestamp 对象
+     */
     public static Timestamp TimeStampParse(String value) {
         Timestamp timestamp = Timestamp.valueOf(value);
-        if (TimeUtil.logicTimeZone.equals("GMT+8")) {
-            TimeZone curTimeZone = TimeZone.getDefault();
-            int offset = curTimeZone.getOffset(System.currentTimeMillis());
-            long realTime = timestamp.getTime() - (8 * TimeUtil.HOUR - offset);
-            if (realTime < 0) {
-                realTime = 0;
-            }
-            return new Timestamp(realTime);
+        TimeZone curTimeZone = TimeZone.getDefault();
+        int offset = curTimeZone.getOffset(System.currentTimeMillis());
+        long realTime;
+        if ("GMT+8".equals(TimeUtil.logicTimeZone)) {
+            realTime = timestamp.getTime() - (8 * TimeUtil.HOUR - offset);
         } else {
-            TimeZone curTimeZone = TimeZone.getDefault();
-            int offset = curTimeZone.getOffset(System.currentTimeMillis());
-            long realTime = timestamp.getTime() - (-offset);
-            if (realTime < 0) {
-                realTime = 0;
-            }
-            return new Timestamp(realTime);
+            realTime = timestamp.getTime() + offset;
         }
+        return new Timestamp(Math.max(0, realTime));
     }
 
+    /**
+     * 解析逗号分隔的整数数组
+     */
     public static int[] IntArrayParse(String value) {
         String[] intStrArray = StringArrayParse(value);
         int[] intArray = new int[intStrArray.length];
         for (int i = 0; i < intStrArray.length; i++) {
-            intArray[i] = Integer.parseInt(intStrArray[i]);
+            intArray[i] = Integer.parseInt(intStrArray[i].trim());
         }
         return intArray;
     }
 
+    /**
+     * 将整型数组转为 "[1,2,3]" 格式
+     */
     public static String IntArrayToString(int[] intArray) {
-        if (intArray.length > 0) {
-            StringBuilder stringBuffer = new StringBuilder();
-            stringBuffer.append("[");
-            for (int i = 0; i < intArray.length; i++) {
-                if (i != 0)
-                    stringBuffer.append(",");
-                stringBuffer.append(intArray[i]);
-            }
-            stringBuffer.append("]");
-            return stringBuffer.toString();
+        if (intArray == null || intArray.length == 0) {
+            return "";
         }
-        return "";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < intArray.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(intArray[i]);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
+    /**
+     * 解析整型列表
+     */
     public static List<Integer> IntegerListParse(String str) {
         List<Integer> list = new ArrayList<>();
-        if (str.isEmpty()) {
+        if (str == null || str.trim().isEmpty()) {
             return list;
         }
-        String[] strArray = StringArrayParse(str);
-        for (String s : strArray) list.add(Integer.parseInt(s));
+        for (String s : StringArrayParse(str)) {
+            list.add(Integer.parseInt(s.trim()));
+        }
         return list;
     }
 
+    /**
+     * 将整型列表转为 "[1,2,3]" 格式
+     */
     public static String IntegerListToString(List<Integer> list) {
-        if (list.isEmpty())
+        if (list == null || list.isEmpty()) {
             return "";
-        StringBuilder stringBuffer = new StringBuilder();
-        stringBuffer.append("[");
+        }
+        StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < list.size(); i++) {
-            if (i != 0)
-                stringBuffer.append(",");
-            stringBuffer.append(list.get(i));
+            if (i > 0) sb.append(",");
+            sb.append(list.get(i));
         }
-        stringBuffer.append("]");
-        return stringBuffer.toString();
+        sb.append("]");
+        return sb.toString();
     }
 
-    //public static List<Vector2> Vector2ListParse(String str) {
-    //	String[] strArray = ReFormatString(str);
-    //	List<Vector2> list = new ArrayList<>();
-    //	for (int i = 0; i < strArray.length; i++) {
-    //		if (StrUtil.isEmpty(strArray[i])) {
-    //			continue;
-    //		}
-    //		list.add(Vector2Parse(strArray[i]));
-    //	}
-    //	return list;
-    //}
-    //
-    //public static List<Vector3> Vector3ListParse(String str) {
-    //	String[] strArray = ReFormatString(str);
-    //	List<Vector3> list = new ArrayList<>();
-    //	for (int i = 0; i < strArray.length; i++) {
-    //		if (StrUtil.isEmpty(strArray[i])) {
-    //			continue;
-    //		}
-    //		list.add(Vector3Parse(strArray[i]));
-    //	}
-    //	return list;
-    //}
-    //
-    //public static String Vector2ListToString(List<Vector2> list) {
-    //	if (list.isEmpty())
-    //		return "";
-    //	StringBuffer stringBuffer = new StringBuffer();
-    //	stringBuffer.append("[");
-    //	for (Vector2 vector2 : list) {
-    //		if (stringBuffer.charAt(stringBuffer.length() - 1) == ')') {
-    //			stringBuffer.append(",");
-    //		}
-    //		stringBuffer.append("(").append(vector2.x).append(",").append(vector2.y).append(")");
-    //	}
-    //	stringBuffer.append("]");
-    //	return stringBuffer.toString();
-    //}
-    //
-    //public static String Vector3ListToString(List<Vector3> list) {
-    //	if (list.isEmpty())
-    //		return "";
-    //	StringBuffer stringBuffer = new StringBuffer();
-    //	stringBuffer.append("[");
-    //	for (Vector3 vector3 : list) {
-    //		if (stringBuffer.charAt(stringBuffer.length() - 1) == ')') {
-    //			stringBuffer.append(",");
-    //		}
-    //		stringBuffer.append("(").append(vector3.x).append(",").append(vector3.y).append(",").append(vector3.z).append(")");
-    //	}
-    //	stringBuffer.append("]");
-    //	return stringBuffer.toString();
-    //}
-
+    /**
+     * 解析长整型数组
+     */
     public static long[] LongArrayParse(String value) {
-        String[] longStrArray = StringArrayParse(value);
-        long[] longArray = new long[longStrArray.length];
-        for (int i = 0; i < longStrArray.length; i++) {
-            longArray[i] = Long.parseLong(longStrArray[i]);
-        }
-        return longArray;
-    }
-
-    public static String LongArrayToString(long[] longArray) {
-        if (longArray.length > 0) {
-            StringBuilder stringBuffer = new StringBuilder();
-            stringBuffer.append("[");
-            for (int i = 0; i < longArray.length; i++) {
-                if (i != 0)
-                    stringBuffer.append(",");
-                stringBuffer.append(longArray[i]);
-            }
-            stringBuffer.append("]");
-            return stringBuffer.toString();
-        }
-        return "";
-    }
-
-    public static float[] FloatArrayParse(String value) {
-        String[] floatStrArray = StringArrayParse(value);
-        float[] floatArray = new float[floatStrArray.length];
-        for (int i = 0; i < floatStrArray.length; i++) {
-            floatArray[i] = Float.parseFloat(floatStrArray[i]);
-        }
-        return floatArray;
-    }
-
-    //public static Vector2[] Vector2ArrayParse(String value) {
-    //	String[] vector2StrArray = ReFormatString(value);
-    //	Vector2[] vector2Array = new Vector2[vector2StrArray.length];
-    //	for (int i = 0; i < vector2StrArray.length; i++) {
-    //		vector2Array[i] = Vector2Parse(vector2StrArray[i]);
-    //	}
-    //	return vector2Array;
-    //}
-    //
-    //public static Vector3[] Vector3ArrayParse(String value) {
-    //	String[] vector3StrArray = ReFormatString(value);
-    //	Vector3[] vector3Array = new Vector3[vector3StrArray.length];
-    //	for (int i = 0; i < vector3StrArray.length; i++) {
-    //		vector3Array[i] = Vector3Parse(vector3StrArray[i]);
-    //	}
-    //	return vector3Array;
-    //}
-
-    public static Timestamp[] TimestampArrayParse(String value) {
-        String[] timestampStrArray = ReFormatString(value);
-        Timestamp[] timestampArray = new Timestamp[timestampStrArray.length];
-        for (int i = 0; i < timestampArray.length; i++) {
-            timestampArray[i] = TimeStampParse(timestampStrArray[i]);
-        }
-        return timestampArray;
-    }
-
-    public static int[][] IntArrayArrayParse(String value) {
-        String[] intArrayStrArray = ReFormatString(value);
-        int[][] intArrayArray = new int[intArrayStrArray.length][];
-        for (int i = 0; i < intArrayStrArray.length; i++) {
-            intArrayArray[i] = IntArrayParse(intArrayStrArray[i]);
-        }
-        return intArrayArray;
-    }
-
-    public static long[][] LongArrayArrayParse(String value) {
-        String[] intArrayStrArray = ReFormatString(value);
-        long[][] intArrayArray = new long[intArrayStrArray.length][];
-        for (int i = 0; i < intArrayStrArray.length; i++) {
-            intArrayArray[i] = LongArrayParse(intArrayStrArray[i]);
-        }
-        return intArrayArray;
-    }
-
-    public static float[][] FloatArrayArrayParse(String value) {
-        String[] floatArrayStrArray = ReFormatString(value);
-        float[][] floatArrayArray = new float[floatArrayStrArray.length][];
-        for (int i = 0; i < floatArrayStrArray.length; i++) {
-            floatArrayArray[i] = FloatArrayParse(floatArrayStrArray[i]);
-        }
-        return floatArrayArray;
-    }
-
-    public static String[][] StringArrayArrayParse(String value) {
-        String[] strArray = ReFormatString(value);
-        String[][] arrayArray = new String[strArray.length][];
+        String[] strArray = StringArrayParse(value);
+        long[] result = new long[strArray.length];
         for (int i = 0; i < strArray.length; i++) {
-            arrayArray[i] = StringArrayParse(strArray[i]);
+            result[i] = Long.parseLong(strArray[i].trim());
         }
-        return arrayArray;
+        return result;
     }
 
-    //public static String vector3ToString(List<Vector3> vector3List) {
-    //	if (vector3List.size() > 0) {
-    //		StringBuilder stringBuffer = new StringBuilder();
-    //		stringBuffer.append("[");
-    //		for (Vector3 vector3 : vector3List) {
-    //			if (stringBuffer.charAt(stringBuffer.length() - 1) == ')') {
-    //				stringBuffer.append(",");
-    //			}
-    //			stringBuffer.append("(").append(vector3.x).append(",").append(vector3.y).append(",").append(vector3.z).append(")");
-    //		}
-    //		stringBuffer.append("]");
-    //		return stringBuffer.toString();
-    //	}
-    //	return null;
-    //}
+    /**
+     * 将长整型数组转为 "[1,2,3]" 格式
+     */
+    public static String LongArrayToString(long[] longArray) {
+        if (longArray == null || longArray.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < longArray.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(longArray[i]);
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 
+    /**
+     * 解析浮点型数组
+     */
+    public static float[] FloatArrayParse(String value) {
+        String[] strArray = StringArrayParse(value);
+        float[] result = new float[strArray.length];
+        for (int i = 0; i < strArray.length; i++) {
+            result[i] = Float.parseFloat(strArray[i].trim());
+        }
+        return result;
+    }
+
+    /**
+     * 解析时间戳数组
+     */
+    public static Timestamp[] TimestampArrayParse(String value) {
+        String[] strArray = reFormatString(value);
+        Timestamp[] array = new Timestamp[strArray.length];
+        for (int i = 0; i < strArray.length; i++) {
+            array[i] = TimeStampParse(strArray[i]);
+        }
+        return array;
+    }
+
+    /**
+     * 解析二维整型数组
+     */
+    public static int[][] IntArrayArrayParse(String value) {
+        String[] strArray = reFormatString(value);
+        int[][] result = new int[strArray.length][];
+        for (int i = 0; i < strArray.length; i++) {
+            result[i] = IntArrayParse(strArray[i]);
+        }
+        return result;
+    }
+
+    /**
+     * 解析二维长整型数组
+     */
+    public static long[][] LongArrayArrayParse(String value) {
+        String[] strArray = reFormatString(value);
+        long[][] result = new long[strArray.length][];
+        for (int i = 0; i < strArray.length; i++) {
+            result[i] = LongArrayParse(strArray[i]);
+        }
+        return result;
+    }
+
+    /**
+     * 解析二维浮点数组
+     */
+    public static float[][] FloatArrayArrayParse(String value) {
+        String[] strArray = reFormatString(value);
+        float[][] result = new float[strArray.length][];
+        for (int i = 0; i < strArray.length; i++) {
+            result[i] = FloatArrayParse(strArray[i]);
+        }
+        return result;
+    }
+
+    /**
+     * 解析二维字符串数组
+     */
+    public static String[][] StringArrayArrayParse(String value) {
+        String[] strArray = reFormatString(value);
+        String[][] result = new String[strArray.length][];
+        for (int i = 0; i < strArray.length; i++) {
+            result[i] = StringArrayParse(strArray[i]);
+        }
+        return result;
+    }
+
+    /**
+     * 长整型列表转逗号分隔字符串
+     */
     public static String listToString(List<Long> list) {
-        if (list.size() > 0) {
-            StringBuilder stringBuffer = new StringBuilder();
-            for (Object id : list) {
-                stringBuffer.append(id).append(",");
-            }
-            return stringBuffer.deleteCharAt(stringBuffer.length() - 1).toString();
+        if (list == null || list.isEmpty()) {
+            return null;
         }
-        return null;
+        StringJoiner joiner = new StringJoiner(",");
+        for (Long id : list) {
+            joiner.add(String.valueOf(id));
+        }
+        return joiner.toString();
     }
 
-    private static String[] ReFormatString(String value) {
-        if (value.contains("(")) {
-            value = value.trim();
-            value = value.replace("[", "");
-            value = value.replace("]", "");
-            value = value.replace("),", ")|");
-            value = value.replace("(", "");
-            value = value.replace(")", "");
-            if (value.isEmpty()) {
-                return new String[0];
-            }
-            return value.split("\\|");
+    /**
+     * 二维复合格式规整（支持括号分组或多维中括号）
+     */
+    private static String[] reFormatString(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return new String[0];
+        }
+        String clean = value.trim();
+        if (clean.contains("(")) {
+            clean = clean.replace("[", "").replace("]", "")
+                    .replace("),", ")|")
+                    .replace("(", "").replace(")", "");
         } else {
-            value = value.trim();
-            value = value.replace("[[", "");
-            value = value.replace("]]", "");
-            value = value.replace("],", "]|");
-            value = value.replace("[", "");
-            value = value.replace("]", "");
-            if (value.isEmpty()) {
-                return new String[0];
-            }
-            return value.split("\\|");
+            clean = clean.replace("[[", "").replace("]]", "")
+                    .replace("],", "]|")
+                    .replace("[", "").replace("]", "");
         }
+        if (clean.isEmpty()) {
+            return new String[0];
+        }
+        return clean.split("\\|");
     }
 
+    /**
+     * 解析长整型列表
+     */
     public static List<Long> LongListParse(String str) {
         List<Long> list = new ArrayList<>();
-        if (str.isEmpty()) {
+        if (str == null || str.trim().isEmpty()) {
             return list;
         }
-        String[] strArray = StringArrayParse(str);
-        for (String s : strArray) list.add(Long.parseLong(s));
+        for (String s : StringArrayParse(str)) {
+            list.add(Long.parseLong(s.trim()));
+        }
         return list;
     }
 
+    /**
+     * 将长整型列表转为 "[1,2,3]" 格式
+     */
     public static String LongListToString(List<Long> list) {
-        if (list.isEmpty())
+        if (list == null || list.isEmpty()) {
             return "";
-        StringBuilder stringBuffer = new StringBuilder();
-        stringBuffer.append("[");
-        for (int i = 0; i < list.size(); i++) {
-            if (i != 0)
-                stringBuffer.append(",");
-            stringBuffer.append(list.get(i));
         }
-        stringBuffer.append("]");
-        return stringBuffer.toString();
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(list.get(i));
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
+    /**
+     * 过滤列表中为空的字符串项
+     */
     public static List<String> filterEmptyString(List<String> inList) {
+        if (inList == null) {
+            return Collections.emptyList();
+        }
         List<String> list = new ArrayList<>();
-        for (String element : inList) {
-            if (element.isEmpty()) {
-                continue;
+        for (String s : inList) {
+            if (s != null && !s.isEmpty()) {
+                list.add(s);
             }
-            list.add(element);
         }
         return list;
     }
 
     public static List<String> filterEmptyString(String[] inArray) {
-        return filterEmptyString(Arrays.asList(inArray));
+        return inArray != null ? filterEmptyString(Arrays.asList(inArray)) : Collections.emptyList();
     }
 
     public static ArrayList<Integer> arrayToList(int[] value) {
-        ArrayList<Integer> arrayToList = new ArrayList<>();
-        for (int j : value) {
-            arrayToList.add(j);
+        if (value == null) {
+            return new ArrayList<>();
         }
-        return arrayToList;
+        ArrayList<Integer> list = new ArrayList<>(value.length);
+        for (int j : value) {
+            list.add(j);
+        }
+        return list;
     }
 
     public static int[] listToArray(List<Integer> value) {
-        int[] listToArray = new int[value.size()];
+        if (value == null || value.isEmpty()) {
+            return new int[0];
+        }
+        int[] arr = new int[value.size()];
         for (int i = 0; i < value.size(); i++) {
-            listToArray[i] = value.get(i);
+            arr[i] = value.get(i);
         }
-        return listToArray;
+        return arr;
     }
 
+    /**
+     * 解析点分隔版本号为整型列表（如 "1.0.3" -> [1, 0, 3]）
+     */
     public static List<Integer> IntListVersionParse(String value) {
-        List<Integer> intList = new ArrayList<>();
-        if (value == null || value.equals("[]") || value.equals(""))
-            return intList;
-        String[] intStrArray = value.split("\\.");
-        for (String s : intStrArray) {
-            intList.add(Integer.valueOf(s));
+        List<Integer> list = new ArrayList<>();
+        if (value == null || value.trim().isEmpty() || "[]".equals(value)) {
+            return list;
         }
-        return intList;
+        for (String s : value.split("\\.")) {
+            list.add(Integer.valueOf(s.trim()));
+        }
+        return list;
     }
 
+    /**
+     * 解析字符串为整型列表
+     */
     public static List<Integer> IntListParse(String value) {
-        List<Integer> intList = new ArrayList<>();
-        if (value == null || value.equals("[]") || value.equals(""))
-            return intList;
-        String[] intStrArray = StringArrayParse(value);
-        for (String s : intStrArray) {
-            intList.add(Integer.parseInt(s));
+        List<Integer> list = new ArrayList<>();
+        if (value == null || value.trim().isEmpty() || "[]".equals(value)) {
+            return list;
         }
-        return intList;
+        for (String s : StringArrayParse(value)) {
+            list.add(Integer.parseInt(s.trim()));
+        }
+        return list;
     }
 
-    ////[(101.0,10.0,0.0)],
-    //// [(303.0,30.0,0.0),(404.0,40.0,0.0),(505.0,50.0,0.0)],
-    //// [(404.0,40.0,0.0),(505.0,50.0,0.0),(606.0,60.0,0.0)]
-    //public static List<String> stringToStringVectorsList(String value) {
-    //	List<String> list = new ArrayList<>();
-    //	if (value == null || value.isEmpty()) {
-    //		return list;
-    //	}
-    //	value = value.trim();
-    //	String[] arrays = value.split(CommonConst.RIGHT_BRACKETS);
-    //	for (String temp : arrays) {
-    //		if (CommonConst.ARRAY_SEPARATOR.equals(String.valueOf(temp.charAt(0)))) {
-    //			temp = temp.substring(1);
-    //		}
-    //		list.add(temp + CommonConst.RIGHT_BRACKETS);
-    //	}
-    //	return list;
-    //}
-
-    ////二维数组转string
-    //public static String twoDimensionalIntArrayToString(int[][] intArray) {
-    //	if (intArray.length > 0) {
-    //		StringBuilder builder = new StringBuilder().append(CommonConst.LEFT_BRACKETS);
-    //		for (int abscissa = 0, abscissaLength = intArray.length; abscissa < abscissaLength; abscissa++) {
-    //			int[] array = intArray[abscissa];
-    //			builder.append(CommonConst.LEFT_PARENTHESES);
-    //			for (int ordinate = 0, ordinateLength = array.length; ordinate < ordinateLength; ordinate++) {
-    //				if (ordinate != 0) {
-    //					builder.append(CommonConst.ARRAY_SEPARATOR);
-    //				}
-    //				builder.append(array[ordinate]);
-    //			}
-    //			builder.append(CommonConst.RIGHT_PARENTHESES);
-    //			if (abscissa != abscissaLength - 1) {
-    //				builder.append(CommonConst.ARRAY_SEPARATOR);
-    //			}
-    //		}
-    //		builder.append(CommonConst.RIGHT_BRACKETS);
-    //		return builder.toString();
-    //	}
-    //	return "";
-    //}
-
-    /// /二维数组转string
-    //public static String twoDimensionalLongArrayToString(long[][] intArray) {
-    //	if (intArray.length > 0) {
-    //		StringBuilder builder = new StringBuilder().append(CommonConst.LEFT_BRACKETS);
-    //		for (int abscissa = 0, abscissaLength = intArray.length; abscissa < abscissaLength; abscissa++) {
-    //			long[] array = intArray[abscissa];
-    //			builder.append(CommonConst.LEFT_PARENTHESES);
-    //			for (int ordinate = 0, ordinateLength = array.length; ordinate < ordinateLength; ordinate++) {
-    //				if (ordinate != 0) {
-    //					builder.append(CommonConst.ARRAY_SEPARATOR);
-    //				}
-    //				builder.append(array[ordinate]);
-    //			}
-    //			builder.append(CommonConst.RIGHT_PARENTHESES);
-    //			if (abscissa != abscissaLength - 1) {
-    //				builder.append(CommonConst.ARRAY_SEPARATOR);
-    //			}
-    //		}
-    //		builder.append(CommonConst.RIGHT_BRACKETS);
-    //		return builder.toString();
-    //	}
-    //	return "";
-    //}
+    /**
+     * 解析二维长整型列表
+     */
     public static List<long[]> listLongArrayArrayParse(String value) {
-        String[] intArrayStrArray = ReFormatString(value);
-        List<long[]> list = new ArrayList<>(intArrayStrArray.length);
-        for (String s : intArrayStrArray) {
+        String[] strArray = reFormatString(value);
+        List<long[]> list = new ArrayList<>(strArray.length);
+        for (String s : strArray) {
             list.add(LongArrayParse(s));
         }
         return list;
     }
 
-    //public static String listToTwoLongArray(List<long[]> list) {
-    //	if (!list.isEmpty()) {
-    //		StringBuilder builder = new StringBuilder().append(CommonConst.LEFT_BRACKETS);
-    //		for (int abscissa = 0, abscissaLength = list.size(); abscissa < abscissaLength; abscissa++) {
-    //			long[] array = list.get(abscissa);
-    //			builder.append(CommonConst.LEFT_PARENTHESES);
-    //			for (int ordinate = 0, ordinateLength = array.length; ordinate < ordinateLength; ordinate++) {
-    //				if (ordinate != 0) {
-    //					builder.append(CommonConst.ARRAY_SEPARATOR);
-    //				}
-    //				builder.append(array[ordinate]);
-    //			}
-    //			builder.append(CommonConst.RIGHT_PARENTHESES);
-    //			if (abscissa != abscissaLength - 1) {
-    //				builder.append(CommonConst.ARRAY_SEPARATOR);
-    //			}
-    //		}
-    //		builder.append(CommonConst.RIGHT_BRACKETS);
-    //		return builder.toString();
-    //	}
-    //	return "";
-    //}
-
-    //public static Map<Float, Float> stringToMapParse(String str) {
-    //	String[] strArray = ReFormatString(str);
-    //	Map<Float, Float> map = new HashMap<>();
-    //	for (int i = 0; i < strArray.length; i++) {
-    //		if (StrUtil.isEmpty(strArray[i])) {
-    //			continue;
-    //		}
-    //		float[] array = FloatArrayParse(strArray[i]);
-    //		map.put(array[0], array[1]);
-    //	}
-    //	return map;
-    //}
-
+    /**
+     * 浮点映射转字符串 "[ (1.0, 2.0), (3.0, 4.0) ]"
+     */
     public static String mapToString(Map<Float, Float> map) {
         if (map == null || map.isEmpty()) {
             return "";
         }
-        StringBuilder stringBuffer = new StringBuilder();
-        stringBuffer.append("[");
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
         for (Map.Entry<Float, Float> entry : map.entrySet()) {
-            if (stringBuffer.charAt(stringBuffer.length() - 1) == ')') {
-                stringBuffer.append(",");
+            if (!first) {
+                sb.append(",");
             }
-            stringBuffer.append("(").append(entry.getKey()).append(",").append(entry.getValue()).append(")");
+            sb.append("(").append(entry.getKey()).append(",").append(entry.getValue()).append(")");
+            first = false;
         }
-        stringBuffer.append("]");
-        return stringBuffer.toString();
+        sb.append("]");
+        return sb.toString();
     }
 }

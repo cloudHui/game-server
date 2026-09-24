@@ -4,6 +4,7 @@ import com.google.protobuf.Message;
 import game.Game;
 import game.manager.table.op.Operate;
 import game.manager.table.replay.ReplayRecorder;
+import game.manager.table.state.TableHeartbeatLifecycle;
 import game.manager.table.state.TableStateHandleManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
@@ -13,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
 import proto.ModelProto;
-import utils.metrics.MetricsCollector;
 import utils.trace.TraceContext;
 
 import java.util.Map;
@@ -53,8 +53,8 @@ public abstract class Table {
     private static final long LOOP_INTERVAL = 500;
     private static final long IDLE_LOOP_INTERVAL = 2000;
     private static final AtomicInteger ROBOT_ID_SEQ = new AtomicInteger(-100000);
-    private final java.util.concurrent.atomic.AtomicLong snapshotVersion =
-            new java.util.concurrent.atomic.AtomicLong(1);
+    private final java.util.concurrent.atomic.AtomicLong snapshotVersion = new java.util.concurrent.atomic.AtomicLong(
+            1);
     private ScheduledFuture<?> loopFuture;
     private long currentLoopInterval = IDLE_LOOP_INTERVAL;
     /**
@@ -184,14 +184,16 @@ public abstract class Table {
 
     public boolean hasHumanPlayer() {
         for (TableUser u : users.values()) {
-            if (!u.isRobot()) return true;
+            if (!u.isRobot())
+                return true;
         }
         return false;
     }
 
     public boolean hasOnlineHumanPlayer() {
         for (TableUser u : users.values()) {
-            if (!u.isRobot() && u.isOnline()) return true;
+            if (!u.isRobot() && u.isOnline())
+                return true;
         }
         return false;
     }
@@ -200,7 +202,8 @@ public abstract class Table {
     public boolean hasExpiredWebPlayersOnly(long now, long timeoutMillis) {
         boolean expired = false;
         for (TableUser user : users.values()) {
-            if (user.isRobot()) continue;
+            if (user.isRobot())
+                continue;
             if (user.isWebHeartbeatExpired(now, timeoutMillis)) {
                 expired = true;
             } else if (!user.isWebHeartbeatManaged() || user.isOnline()) {
@@ -212,15 +215,18 @@ public abstract class Table {
 
     /** 原子标记桌子进入结束流程，避免相邻 tick 重复发送总结算。 */
     public boolean beginClosing() {
-        if (closing) return false;
+        if (closing)
+            return false;
         closing = true;
         return true;
     }
 
     public boolean isAllRobot() {
-        if (users.isEmpty()) return false;
+        if (users.isEmpty())
+            return false;
         for (TableUser u : users.values()) {
-            if (!u.isRobot()) return false;
+            if (!u.isRobot())
+                return false;
         }
         return true;
     }
@@ -323,7 +329,8 @@ public abstract class Table {
     }
 
     public void upNextStateWithTime(TableState next, long now) {
-        if (next == null) next = tableState.getNext();
+        if (next == null)
+            next = tableState.getNext();
         if (next == null) {
             logger.error("table:{} stat:{} update to nextState:null error", tableId, tableState);
             return;
@@ -336,7 +343,8 @@ public abstract class Table {
     }
 
     private void adjustLoopInterval(TableState state) {
-        if (state == TableState.TABLE_DIS) return;
+        if (state == TableState.TABLE_DIS)
+            return;
         if (state == TableState.WAITING || state == TableState.ROUND_OVER || state == TableState.TABLE_OVER) {
             setLoopInterval(IDLE_LOOP_INTERVAL);
         } else {
@@ -345,7 +353,8 @@ public abstract class Table {
     }
 
     public void addErrorTime() {
-        if (++errorTimes >= MAX_ERROR) upNextState(TableState.TABLE_OVER);
+        if (++errorTimes >= MAX_ERROR)
+            upNextState(TableState.TABLE_OVER);
     }
 
     // ======================== 定时器 ========================
@@ -359,7 +368,8 @@ public abstract class Table {
 
     public void start() {
         try {
-            if (loopFuture != null && !loopFuture.isCancelled()) return;
+            if (loopFuture != null && !loopFuture.isCancelled())
+                return;
             loopFuture = Game.getInstance().getThreadPoolManager().scheduleTable(
                     tableId, this::tableLoop, 1000, IDLE_LOOP_INTERVAL);
             currentLoopInterval = IDLE_LOOP_INTERVAL;
@@ -385,7 +395,8 @@ public abstract class Table {
     }
 
     public void setLoopInterval(long intervalMs) {
-        if (currentLoopInterval == intervalMs) return;
+        if (currentLoopInterval == intervalMs)
+            return;
         try {
             if (loopFuture != null) {
                 Game.getInstance().getThreadPoolManager().cancelTableSchedule(loopFuture);
@@ -401,8 +412,8 @@ public abstract class Table {
     public void tableLoop() {
         try {
             TraceContext.setTableId(tableId);
-            MetricsCollector.getInstance().incrementCounter("game.table_loops");
-            if (game.manager.table.state.TableHeartbeatLifecycle.closeExpiredRobotRoom(this)) return;
+            if (TableHeartbeatLifecycle.closeExpiredRobotRoom(this))
+                return;
             TableStateHandleManager.handle(this);
         } catch (Exception e) {
             logger.error("桌子循环执行异常, tableId: {}", tableId, e);
@@ -426,7 +437,8 @@ public abstract class Table {
                 .setTableId(tableId).setRoomId(getRoomId()).setOwnerId(getOwnerId())
                 .setCreatorId(getOwnerId()).setGameType(getGameType());
         for (TableUser user : seatUsers.values()) {
-            if (user == null) continue;
+            if (user == null)
+                continue;
             builder.addTableRoles(ModelProto.RoomRole.newBuilder().setRoleId(user.getUserId())
                     .setNickName(com.google.protobuf.ByteString.copyFromUtf8(user.getNick())).build());
         }
@@ -446,22 +458,28 @@ public abstract class Table {
 
     public int addUser(TableUser user) {
         try {
-            if (user == null) return ConstProto.Result.ROLE_NULL_VALUE;
+            if (user == null)
+                return ConstProto.Result.ROLE_NULL_VALUE;
             int prevSeat = user.getSeated();
             if (prevSeat >= 0 && seatUsers.get(prevSeat) == user) {
                 users.put(user.getUserId(), user);
                 return ConstProto.Result.SUCCESS_VALUE;
             }
-            if (prevSeat >= 0) user.setSeated(-1);
-            if (sitFull()) return ConstProto.Result.TABLE_FULL_VALUE;
-            if (isEmpty()) start();
+            if (prevSeat >= 0)
+                user.setSeated(-1);
+            if (sitFull())
+                return ConstProto.Result.TABLE_FULL_VALUE;
+            if (isEmpty())
+                start();
             int seat = occupySeat(user);
-            if (seat == -1) return ConstProto.Result.TABLE_FULL_VALUE;
+            if (seat == -1)
+                return ConstProto.Result.TABLE_FULL_VALUE;
             users.put(user.getUserId(), user);
             logger.info("玩家加入桌子, userId: {}, tableId: {} seat:{}", user.getUserId(), tableId, seat);
             // 机器人模板的体验是进入即开局：第一个真人入座后立即补齐其余席位。
             // 递归补位时跳过机器人自身，避免重复触发。
-            if (!user.isRobot() && isRobotRoom()) fillRobotSeats();
+            if (!user.isRobot() && isRobotRoom())
+                fillRobotSeats();
             return ConstProto.Result.SUCCESS_VALUE;
         } catch (Exception e) {
             logger.error("添加玩家到桌子失败, userId: {}, tableId: {}", user.getUserId(), tableId, e);
@@ -482,10 +500,12 @@ public abstract class Table {
 
     public void removeUser(TableUser user) {
         try {
-            if (user == null) return;
+            if (user == null)
+                return;
             users.remove(user.getUserId());
             int seat = user.getSeated();
-            if (seat >= 0) seatUsers.remove(seat);
+            if (seat >= 0)
+                seatUsers.remove(seat);
             user.removeTable(tableId);
             user.setSeated(-1);
             logger.info("玩家离开桌子, userId: {}, tableId: {}", user.getUserId(), tableId);
@@ -531,7 +551,8 @@ public abstract class Table {
         readySet.clear();
         currentRound++;
         op.reset();
-        for (TableUser user : seatUsers.values()) user.getCards().clear();
+        for (TableUser user : seatUsers.values())
+            user.getCards().clear();
         resetGameContext(); // 子类实现: 重置MJ/DDZ上下文
         tableState = TableState.WAITING;
         stateStartTime = System.currentTimeMillis();
@@ -553,7 +574,8 @@ public abstract class Table {
                 .setState(tableState.getId()).setStateStart(stateStartTime)
                 .setStateDuration(tableState.getOverTime()).setOpSeat(op.getCurrOpSeat());
         java.util.Set<GameProto.OpInfo> choices = op.getSeatOps(viewer.getSeated());
-        if (choices != null) b.addAllChoices(choices);
+        if (choices != null)
+            b.addAllChoices(choices);
         for (TableUser u : seatUsers.values()) {
             GameProto.SnapshotPlayer.Builder p = GameProto.SnapshotPlayer.newBuilder()
                     .setRoleId(u.getUserId()).setSeat(u.getSeated())
@@ -562,7 +584,8 @@ public abstract class Table {
                     .setOnline(u.isOnline()).setCardCount(u.getCards().size())
                     .setTotalScore(gameResult.getTotalScore(u.getSeated()));
             if (u == viewer) {
-                for (game.manager.table.cards.Card card : u.getCards()) p.addCards(card.getId());
+                for (game.manager.table.cards.Card card : u.getCards())
+                    p.addCards(card.getId());
             }
             b.addPlayers(p);
         }

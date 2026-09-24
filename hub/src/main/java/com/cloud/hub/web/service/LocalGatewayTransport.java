@@ -36,60 +36,44 @@ import java.util.HashMap;
 /**
  * Hub 内置高性能进程内网关传输实现。
  * <p>
- * <b>职责与使用场景：</b>
- * <ul>
- *   <li>完全替代历史外部 Gate TCP 网络中转，在 Hub 单体进程内部直接通过虚拟连接完成请求分发与异步响应拦截；</li>
- *   <li>通过底层工具类 {@link HandlerRegistry#buildSingle} 自动扫描装配标注了 {@link ProcessType} 的消息 {@link Handler} 集合；</li>
- *   <li>被各 Web Controller、Command 及 WebSocket 处理器作为 {@link GatewayTransport} 首选 Bean 依赖注入并使用。</li>
- * </ul>
+ * 完全替代历史外部 Gate TCP 网络中转，在单体进程内部直接通过本地虚拟连接完成请求分发与响应拦截。
+ *
+ * @author cloud
  */
 @Primary
 @Component
 public final class LocalGatewayTransport implements GatewayTransport {
 
-    /**
-     * msgId → Handler 注册表，由 {@code @ProcessType} 扫描自动装配。
-     * 处理类映射表 (基于 @ProcessType 自动发现并注册)。
-     */
     private static final Map<Integer, Handler> HANDLER_MAP =
             HandlerRegistry.buildSingle("com.cloud.hub.game.client.handle.role", Handler.class, ProcessType.class, Integer.class);
 
-    /**
-     * 发送后生命周期回调函数接口。
-     */
     @FunctionalInterface
     private interface PostSendHook {
         void apply(int userId, Message msg, CompletableFuture<Message> future);
     }
 
-    /** 消息类的 getTableId 方法缓存，避免每次请求反射查找 */
     private static final Map<Class<?>, java.lang.reflect.Method> TABLE_ID_METHODS = new ConcurrentHashMap<>();
 
     private final Map<String, Integer> sessionUsers = new ConcurrentHashMap<>();
     private final Map<Integer, String> userSessions = new ConcurrentHashMap<>();
     private final Map<Integer, Long> activeTables = new ConcurrentHashMap<>();
     private volatile BiConsumer<String, TCPMessage> pushListener;
-
-    /**
-     * 发送后生命周期回调注册表（替代 sendAndWait 里的 msgId 判断）。
-     */
     private final Map<Integer, PostSendHook> postSendHooks = new HashMap<>();
 
     public LocalGatewayTransport() {
         GamePushBus.install(this::forwardPush);
-        // 生命周期回调：进入桌子时记录 activeTables
         postSendHooks.put(GMsg.REQ_ENTER_TABLE_MSG, (userId, msg, future) ->
-            activeTables.put(userId, tableId(userId, GMsg.REQ_ENTER_TABLE_MSG, msg)));
-        // 生命周期回调：离开桌子时清除 activeTables
+                activeTables.put(userId, tableId(userId, GMsg.REQ_ENTER_TABLE_MSG, msg)));
         postSendHooks.put(GMsg.REQ_LEAVE, (userId, msg, future) ->
-            future.whenComplete((ok, error) -> activeTables.remove(userId)));
+                future.whenComplete((ok, error) -> activeTables.remove(userId)));
     }
 
     @Override
     public void bind(String sessionId, int userId, String username, String nickname) {
         String old = userSessions.put(userId, sessionId);
-        if (old != null && !old.equals(sessionId))
+        if (old != null && !old.equals(sessionId)) {
             sessionUsers.remove(old);
+        }
         sessionUsers.put(sessionId, userId);
         UserManager.getInstance().putOrUpdate(new User(userId, username, nickname, 0));
     }
@@ -106,24 +90,31 @@ public final class LocalGatewayTransport implements GatewayTransport {
     @Override
     public CompletableFuture<Message> sendAndWait(String sessionId, int msgId, Message message, int timeoutSeconds) {
         Integer userId = requireUser(sessionId);
-        if (userId == null)
+        if (userId == null) {
             return failed("会话不存在");
+        }
         if (msgId == LMsg.REQ_ROOM_LIST_MSG) {
             return CompletableFuture.completedFuture(TableManager.getInstance().getAllRoomTable());
         }
         if (msgId == LMsg.REQ_JOIN_ROOM_TABLE_MSG) {
             return join(userId, (LobbyProto.ReqJoinRoomTable) message).thenApply(value -> value);
         }
-        LocalSender sender = new LocalSender();
+        return dispatchToHandler(userId, msgId, message);
+    }
+
+    private CompletableFuture<Message> dispatchToHandler(int userId, int msgId, Message message) {
         Handler handler = handler(msgId);
-        if (handler == null)
+        if (handler == null) {
             return failed("服务不支持消息: " + msgId);
+        }
+        LocalSender sender = new LocalSender();
         long tableId = tableId(userId, msgId, message);
         try {
             handler.handler(sender, userId, message, tableId, 1);
-            // 生命周期回调（进入/离开桂子等），集中在 postSendHooks 中管理
             PostSendHook hook = postSendHooks.get(msgId);
-            if (hook != null) hook.apply(userId, message, sender.message);
+            if (hook != null) {
+                hook.apply(userId, message, sender.message);
+            }
             return sender.message;
         } catch (Exception error) {
             return failed(error.getMessage());
@@ -132,13 +123,15 @@ public final class LocalGatewayTransport implements GatewayTransport {
 
     @Override
     public CompletableFuture<TCPMessage> sendAndWaitTcp(String sessionId, int msgId, Message message,
-            int timeoutSeconds) {
+                                                        int timeoutSeconds) {
         Integer userId = requireUser(sessionId);
-        if (userId == null)
+        if (userId == null) {
             return failedTcp("会话不存在");
+        }
         Handler handler = handler(msgId);
-        if (handler == null)
+        if (handler == null) {
             return failedTcp("服务不支持消息: " + msgId);
+        }
         LocalSender sender = new LocalSender();
         try {
             handler.handler(sender, userId, message, tableId(userId, msgId, message), 1);
@@ -152,8 +145,9 @@ public final class LocalGatewayTransport implements GatewayTransport {
     public void send(String sessionId, int msgId, Message message) {
         Integer userId = requireUser(sessionId);
         Handler handler = handler(msgId);
-        if (userId == null || handler == null)
+        if (userId == null || handler == null) {
             return;
+        }
         handler.handler(new LocalSender(), userId, message, tableId(userId, msgId, message), 0);
     }
 
@@ -175,14 +169,20 @@ public final class LocalGatewayTransport implements GatewayTransport {
         TableManager lobby = TableManager.getInstance();
         User user = UserManager.getInstance().getUser(userId);
         TableModel model = lobby.getTableModel(request.getRoomId());
-        if (user == null || model == null)
+        if (user == null || model == null) {
             return failedJoin("用户或房间不存在");
+        }
         TableInfo available = lobby.getCanJoinTable(request.getRoomId());
         if (available != null && Game.getInstance().getTableManager().getTable(available.getTableId()) != null) {
             available.joinRole(user);
             activeTables.put(userId, available.getTableId());
             return CompletableFuture.completedFuture(joinAck(available.getTableId()));
         }
+        return createAndJoinTable(userId, request, lobby, user, model);
+    }
+
+    private CompletableFuture<LobbyProto.AckJoinRoomTable> createAndJoinTable(int userId, LobbyProto.ReqJoinRoomTable request,
+                                                                             TableManager lobby, User user, TableModel model) {
         ModelProto.RoomRole.Builder role = ModelProto.RoomRole.newBuilder().setRoleId(userId)
                 .setNickName(ByteString.copyFromUtf8(user.getNick() == null ? user.getUsername() : user.getNick()));
         String json = TableModelJson.toJson(model);
@@ -230,7 +230,6 @@ public final class LocalGatewayTransport implements GatewayTransport {
     }
 
     private static Handler handler(int msgId) {
-        // 全部由 HANDLER_MAP 达成均一个 Map.get，扫描自动装配，无需手写 if 链
         return HANDLER_MAP.get(msgId);
     }
 
@@ -241,8 +240,9 @@ public final class LocalGatewayTransport implements GatewayTransport {
     private void forwardPush(int userId, TCPMessage message) {
         String sessionId = userSessions.get(userId);
         BiConsumer<String, TCPMessage> listener = pushListener;
-        if (sessionId != null && listener != null)
+        if (sessionId != null && listener != null) {
             listener.accept(sessionId, message);
+        }
     }
 
     @PreDestroy
@@ -290,8 +290,9 @@ public final class LocalGatewayTransport implements GatewayTransport {
         }
 
         private void complete(int msgId, int clientId, long mapId, Message body, int sequence) {
-            if (sequence == 0)
+            if (sequence == 0) {
                 return;
+            }
             TCPMessage packet = TCPMessage.newInstance(ConstProto.Result.SUCCESS_VALUE, msgId, clientId,
                     body.toByteArray(), mapId, sequence);
             message.complete(body);

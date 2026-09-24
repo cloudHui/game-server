@@ -58,6 +58,15 @@ public class PdkCardPool {
         Collections.shuffle(poolCards);
     }
 
+    /**
+     * 获取牌池剩余牌只读列表。
+     *
+     * @return 剩余牌列表
+     */
+    public List<Card> getPoolCards() {
+        return Collections.unmodifiableList(new ArrayList<>(poolCards));
+    }
+
     public void dealInitCard() {
         initCards();
         Map<Integer, TableUser> seatUsers = table.getSeatUsers();

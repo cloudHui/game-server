@@ -77,3 +77,19 @@ photo-library:
   max-files-per-request: ${PHOTO_MAX_FILES_PER_REQUEST:20}
   max-pixels: ${PHOTO_MAX_PIXELS:100000000}
   default-zone: ${PHOTO_DEFAULT_ZONE:Asia/Shanghai}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name:hub}
+

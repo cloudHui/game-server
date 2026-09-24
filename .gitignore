@@ -13,3 +13,4 @@ scripts/web-path.txt
 **/.codex/
 */build
 */bin
+.vscode/settings.json

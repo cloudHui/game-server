@@ -24,8 +24,6 @@ import tools.ServerClientManager;
 import tools.ServerManager;
 import tools.manager.HandleManager;
 import utils.config.ConfigurationManager;
-import utils.metrics.MetricsCollector;
-import utils.metrics.MetricsHttpServer;
 import utils.other.IpUtil;
 import utils.other.MD5Utils;
 
@@ -53,7 +51,6 @@ public class Lobby {
     private boolean openRegister;
     private ModelProto.ServerInfo serverInfo;
     private ServerManager serverManager;
-    private MetricsHttpServer metricsHttpServer;
     private UserRepository userRepository;
     private InviteRepository inviteRepository;
     private LobbyAdminHttp adminHttp;
@@ -144,7 +141,6 @@ public class Lobby {
         startNetworkService();
         registerToCenter();
         initializeRoomManager();
-        startMetricsServer();
         startAdminHttp();
         logger.info("Lobby 启动完成! 服务器ID: {}, 地址: {}:{}, openRegister: {}",
                 serverId, innerIp, port, openRegister);
@@ -250,15 +246,6 @@ public class Lobby {
     private void initializeRoomManager() {
         TableManager.getInstance().init();
         logger.info("房间管理器初始化完成");
-    }
-
-    private void startMetricsServer() {
-        int metricsPort = ConfigurationManager.getInstance().getInt("metrics.port", 0);
-        if (metricsPort > 0) {
-            MetricsCollector.getInstance().setServiceName("lobby");
-            metricsHttpServer = new MetricsHttpServer();
-            metricsHttpServer.start(metricsPort);
-        }
     }
 
     public static String newToken() {

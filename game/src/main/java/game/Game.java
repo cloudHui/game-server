@@ -21,8 +21,6 @@ import tools.ServerClientManager;
 import tools.ServerManager;
 import game.config.GameRuntimeConfig;
 import utils.config.ConfigurationManager;
-import utils.metrics.MetricsCollector;
-import utils.metrics.MetricsHttpServer;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -50,7 +48,6 @@ public class Game {
     private ServerManager serverManager;
     private TableManager tableManager;
     private DatabaseExecutorManager databaseExecutorManager;
-    private MetricsHttpServer metricsHttpServer;
     private GameThreadPoolManager threadPoolManager;
 
     private Game() {
@@ -109,8 +106,10 @@ public class Game {
      * 统一释放桌子、定时器和数据库线程池，避免服务重启遗留非守护线程。
      */
     public void shutdown() {
-        if (tableManager != null) tableManager.shutdown();
-        if (threadPoolManager != null) threadPoolManager.shutdown();
+        if (tableManager != null)
+            tableManager.shutdown();
+        if (threadPoolManager != null)
+            threadPoolManager.shutdown();
     }
 
     public ModelProto.ServerInfo getServerInfo() {
@@ -136,12 +135,12 @@ public class Game {
     /**
      * 注册串行定时器并返回ID（用于后续替换间隔）
      */
-    public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner, T param) {
+    public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner,
+            T param) {
         int id = timer.registerSerialWithId(groupId, delay, interval, count, runner, param);
         logger.debug("注册串行定时器, id: {}, groupId: {}, delay: {}, interval: {}", id, groupId, delay, interval);
         return id;
     }
-
 
     /**
      * 注销定时器
@@ -192,9 +191,6 @@ public class Game {
 
             // 5. 初始化游戏管理器
             initializeGameManagers();
-
-            // 6. 启动指标服务
-            startMetricsServer();
 
             logger.info("游戏服务器启动完成! 服务器ID: {}, 地址: {}",
                     serverId, serverInfo.getIpConfig().toStringUtf8());
@@ -294,15 +290,4 @@ public class Game {
         logger.info("游戏管理器初始化完成");
     }
 
-    /**
-     * 启动指标HTTP端点
-     */
-    private void startMetricsServer() {
-        int metricsPort = ConfigurationManager.getInstance().getInt("metrics.port", 0);
-        if (metricsPort > 0) {
-            MetricsCollector.getInstance().setServiceName("game");
-            metricsHttpServer = new MetricsHttpServer();
-            metricsHttpServer.start(metricsPort);
-        }
-    }
 }

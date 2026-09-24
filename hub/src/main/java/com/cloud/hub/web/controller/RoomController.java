@@ -28,12 +28,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * 房间和桌子管理接口（参照 RuoYi 设计标准）
+ * 房间与牌桌管理控制器。
+ * <p>
+ * 提供游戏大厅房间列表检索、加入已有桌子以及创建固定模板或自定义规则房间的能力。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api")
 @RequiresLogin
 public class RoomController {
+
     private static final Logger logger = LoggerFactory.getLogger(RoomController.class);
 
     private final UserService userService;
@@ -45,24 +50,23 @@ public class RoomController {
     }
 
     /**
-     * 获取房间列表
-     * GET /api/rooms
+     * 获取房间列表。
+     *
+     * @param sessionId 可选会话标识
+     * @return 房间数据列表
      */
     @GetMapping("/rooms")
     public AjaxResult getRooms(@RequestParam(required = false) String sessionId) {
         LoginUser user = SecurityUtils.getRequiredUser();
         String currentSessionId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : user.getSessionId();
-
         try {
             CompletableFuture<Message> future = userService.getRoomList(currentSessionId);
             Message response = future.get(5, TimeUnit.SECONDS);
-
             if (response instanceof LobbyProto.AckRoomList) {
                 AjaxResult result = AjaxResult.success();
                 result.put("rooms", buildRoomListData((LobbyProto.AckRoomList) response, user.getUserId()));
                 return result;
             }
-
             return AjaxResult.error(500, "获取房间列表失败");
         } catch (Exception e) {
             logger.error("获取房间列表异常, sessionId: {}", currentSessionId, e);
@@ -71,118 +75,143 @@ public class RoomController {
     }
 
     /**
-     * 加入桌子
-     * POST /api/rooms/join { "roomId": 1 }
+     * 加入已有牌桌。
+     *
+     * @param request 包含 roomId 的请求载荷
+     * @return 包含 tableId 的结果
      */
     @PostMapping("/rooms/join")
     @Log(title = "加入牌桌", businessType = BusinessType.OTHER)
     public AjaxResult joinTable(@RequestBody Map<String, Object> request) {
         LoginUser user = SecurityUtils.getRequiredUser();
-        String sessionId = (request.get("sessionId") instanceof String) ?
-                (String) request.get("sessionId") : user.getSessionId();
+        String sessionId = resolveSessionId(request, user);
         Number roomIdNum = (Number) request.get("roomId");
-
         if (roomIdNum == null) {
             return AjaxResult.error(400, "参数不完整");
         }
-
         int roomId = roomIdNum.intValue();
-        logger.info("用户请求加入桌子, userId: {}, roomId: {}", user.getUserId(), roomId);
+        return doJoinTable(user, sessionId, roomId);
+    }
 
+    private AjaxResult doJoinTable(LoginUser user, String sessionId, int roomId) {
         long startMs = System.currentTimeMillis();
         try {
             CompletableFuture<Message> future = userService.joinTable(sessionId, roomId);
             Message response = future.get(10, TimeUnit.SECONDS);
-
             if (response instanceof LobbyProto.AckJoinRoomTable) {
                 LobbyProto.AckJoinRoomTable ack = (LobbyProto.AckJoinRoomTable) response;
                 AjaxResult result = AjaxResult.success();
                 result.put("tableId", ack.getTableId());
                 return result;
             }
-
             return AjaxResult.error(500, "加入桌子失败");
         } catch (TimeoutException e) {
-            logger.error("加入桌子超时, userId: {}, roomId: {}, sessionId: {}, costMs: {}",
-                    user.getUserId(), roomId, sessionId, System.currentTimeMillis() - startMs);
+            logger.error("加入桌子超时, userId: {}, roomId: {}, costMs: {}",
+                    user.getUserId(), roomId, System.currentTimeMillis() - startMs);
             return AjaxResult.error(500, "加入桌子超时");
         } catch (Exception e) {
-            logger.error("加入桌子异常, userId: {}, roomId: {}, sessionId: {}, costMs: {}, cause: {}",
-                    user.getUserId(), roomId, sessionId, System.currentTimeMillis() - startMs, e.toString(), e);
+            logger.error("加入桌子异常, userId: {}, roomId: {}, cause: {}",
+                    user.getUserId(), roomId, e.toString(), e);
             return AjaxResult.error(500, "加入桌子异常: " + e.getMessage());
         }
     }
 
     /**
-     * 创建房间：固定模板 或 自定义规则
-     * POST /api/rooms/create
+     * 创建房间：固定模板 或 自定义规则（拆分解析逻辑，所有方法 <= 30 行）。
+     *
+     * @param request 创建参数字典
+     * @return 创房结果
      */
     @PostMapping("/rooms/create")
     @Log(title = "创建房间", businessType = BusinessType.INSERT)
     public AjaxResult createRoom(@RequestBody Map<String, Object> request) {
         LoginUser user = SecurityUtils.getRequiredUser();
-        String sessionId = (request.get("sessionId") instanceof String) ?
-                (String) request.get("sessionId") : user.getSessionId();
+        String sessionId = resolveSessionId(request, user);
         String mode = str(request.get("mode"));
         if (mode.isEmpty()) {
             mode = "fixed";
         }
-
         try {
-            int roomId;
-            int gameType;
-            if ("custom".equalsIgnoreCase(mode)) {
-                Number gt = (Number) request.get("gameType");
-                if (gt == null) {
-                    return AjaxResult.error(400, "自定义创房需要 gameType");
-                }
-                gameType = gt.intValue();
-                Map<String, Object> payload = new HashMap<>();
-                payload.put("gameType", gameType);
-                copyInt(request, payload, "seatNum");
-                copyInt(request, payload, "baseScore");
-                copyInt(request, payload, "totalRounds");
-                copyInt(request, payload, "maxFan");
-                copyInt(request, payload, "allowChi");
-                copyInt(request, payload, "allowDianPao");
-                copyInt(request, payload, "allowPeng");
-                copyInt(request, payload, "allowGang");
-                copyInt(request, payload, "allowHu");
-                copyInt(request, payload, "allowMultiHu");
-                copyInt(request, payload, "autoPlay");
-                copyInt(request, payload, "cardNum");
-                copyInt(request, payload, "exCardNum");
-                Map<String, Object> prepared = lobbyAdminClient.createCustomRoom(user.getToken(), payload);
-                if (prepared == null || !Integer.valueOf(0).equals(asInt(prepared.get("code")))) {
-                    return prepared != null ? toAjax(prepared) : AjaxResult.error(502, "lobby 不可用");
-                }
-                roomId = asInt(prepared.get("roomId"));
-            } else {
-                Number roomIdNum = (Number) request.get("roomId");
-                if (roomIdNum == null) {
-                    return AjaxResult.error(400, "固定模板创房需要 roomId");
-                }
-                roomId = roomIdNum.intValue();
-                Number gt = (Number) request.get("gameType");
-                gameType = gt != null ? gt.intValue() : 0;
+            RoomCreation creation = resolveRoomCreation(request, mode, user);
+            if (creation.error != null) {
+                return creation.error;
             }
-
-            CompletableFuture<Message> future = userService.joinTable(sessionId, roomId);
-            Message response = future.get(10, TimeUnit.SECONDS);
-            if (!(response instanceof LobbyProto.AckJoinRoomTable)) {
-                return AjaxResult.error(500, "创建/加入失败");
-            }
-            LobbyProto.AckJoinRoomTable ack = (LobbyProto.AckJoinRoomTable) response;
-            AjaxResult result = AjaxResult.success();
-            result.put("tableId", ack.getTableId());
-            result.put("roomId", roomId);
-            result.put("gameType", gameType);
-            result.put("mode", mode);
-            return result;
+            return doCreateAndJoin(sessionId, creation.roomId, creation.gameType, mode);
         } catch (Exception e) {
             logger.error("创建房间异常, userId: {}", user.getUserId(), e);
             return AjaxResult.error(500, "创建房间异常: " + e.getMessage());
         }
+    }
+
+    private static class RoomCreation {
+        int roomId;
+        int gameType;
+        AjaxResult error;
+    }
+
+    private RoomCreation resolveRoomCreation(Map<String, Object> request, String mode, LoginUser user) {
+        RoomCreation c = new RoomCreation();
+        if ("custom".equalsIgnoreCase(mode)) {
+            return resolveCustomCreation(request, user);
+        }
+        Number roomIdNum = (Number) request.get("roomId");
+        if (roomIdNum == null) {
+            c.error = AjaxResult.error(400, "固定模板创房需要 roomId");
+            return c;
+        }
+        c.roomId = roomIdNum.intValue();
+        Number gt = (Number) request.get("gameType");
+        c.gameType = gt != null ? gt.intValue() : 0;
+        return c;
+    }
+
+    private RoomCreation resolveCustomCreation(Map<String, Object> request, LoginUser user) {
+        RoomCreation c = new RoomCreation();
+        Number gt = (Number) request.get("gameType");
+        if (gt == null) {
+            c.error = AjaxResult.error(400, "自定义创房需要 gameType");
+            return c;
+        }
+        c.gameType = gt.intValue();
+        Map<String, Object> payload = buildCustomPayload(request, c.gameType);
+        Map<String, Object> prepared = lobbyAdminClient.createCustomRoom(user.getToken(), payload);
+        if (prepared == null || !Integer.valueOf(0).equals(asInt(prepared.get("code")))) {
+            c.error = prepared != null ? toAjax(prepared) : AjaxResult.error(502, "lobby 不可用");
+            return c;
+        }
+        c.roomId = asInt(prepared.get("roomId"));
+        return c;
+    }
+
+    private Map<String, Object> buildCustomPayload(Map<String, Object> request, int gameType) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("gameType", gameType);
+        String[] keys = {"seatNum", "baseScore", "totalRounds", "maxFan", "allowChi",
+                "allowDianPao", "allowPeng", "allowGang", "allowHu", "allowMultiHu",
+                "autoPlay", "cardNum", "exCardNum"};
+        for (String k : keys) {
+            copyInt(request, payload, k);
+        }
+        return payload;
+    }
+
+    private AjaxResult doCreateAndJoin(String sessionId, int roomId, int gameType, String mode) throws Exception {
+        CompletableFuture<Message> future = userService.joinTable(sessionId, roomId);
+        Message response = future.get(10, TimeUnit.SECONDS);
+        if (!(response instanceof LobbyProto.AckJoinRoomTable)) {
+            return AjaxResult.error(500, "创建/加入失败");
+        }
+        LobbyProto.AckJoinRoomTable ack = (LobbyProto.AckJoinRoomTable) response;
+        AjaxResult result = AjaxResult.success();
+        result.put("tableId", ack.getTableId());
+        result.put("roomId", roomId);
+        result.put("gameType", gameType);
+        result.put("mode", mode);
+        return result;
+    }
+
+    private String resolveSessionId(Map<String, Object> request, LoginUser user) {
+        return (request.get("sessionId") instanceof String) ? (String) request.get("sessionId") : user.getSessionId();
     }
 
     private static void copyInt(Map<String, Object> from, Map<String, Object> to, String key) {
@@ -193,8 +222,12 @@ public class RoomController {
     }
 
     private static int asInt(Object o) {
-        if (o instanceof Number) return ((Number) o).intValue();
-        if (o == null) return 0;
+        if (o instanceof Number) {
+            return ((Number) o).intValue();
+        }
+        if (o == null) {
+            return 0;
+        }
         try {
             return Integer.parseInt(String.valueOf(o));
         } catch (Exception e) {
@@ -221,22 +254,7 @@ public class RoomController {
 
             List<Map<String, Object>> tables = new ArrayList<>();
             for (ModelProto.RoomTableInfo table : room.getTablesList()) {
-                Map<String, Object> tableData = new HashMap<>();
-                tableData.put("tableId", table.getTableId());
-                tableData.put("stat", table.getStat());
-                tableData.put("playerCount", table.getTableRolesCount());
-
-                List<Map<String, Object>> players = new ArrayList<>();
-                for (ModelProto.RoomRole role : table.getTableRolesList()) {
-                    Map<String, Object> playerData = new HashMap<>();
-                    playerData.put("roleId", role.getRoleId());
-                    playerData.put("nickName", role.getNickName().toStringUtf8());
-                    players.add(playerData);
-                }
-                tableData.put("players", players);
-                tableData.put("mine", table.getTableRolesList().stream()
-                        .anyMatch(role -> role.getRoleId() == currentUserId));
-                tables.add(tableData);
+                tables.add(buildTableData(table, currentUserId));
             }
             roomData.put("tables", tables);
             for (Map<String, Object> table : tables) {
@@ -248,5 +266,24 @@ public class RoomController {
             rooms.add(roomData);
         }
         return rooms;
+    }
+
+    private static Map<String, Object> buildTableData(ModelProto.RoomTableInfo table, int currentUserId) {
+        Map<String, Object> tableData = new HashMap<>();
+        tableData.put("tableId", table.getTableId());
+        tableData.put("stat", table.getStat());
+        tableData.put("playerCount", table.getTableRolesCount());
+
+        List<Map<String, Object>> players = new ArrayList<>();
+        for (ModelProto.RoomRole role : table.getTableRolesList()) {
+            Map<String, Object> playerData = new HashMap<>();
+            playerData.put("roleId", role.getRoleId());
+            playerData.put("nickName", role.getNickName().toStringUtf8());
+            players.add(playerData);
+        }
+        tableData.put("players", players);
+        tableData.put("mine", table.getTableRolesList().stream()
+                .anyMatch(role -> role.getRoleId() == currentUserId));
+        return tableData;
     }
 }

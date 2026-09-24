@@ -14,10 +14,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 将 Gate 推送的 Protobuf 转为前端 WebSocket JSON，独立于连接管理，便于复用与单测。
+ * 将网关推送的 Protobuf 数据结构序列化为前端可直接识别的 WebSocket JSON 结构。
+ * <p>
+ * 基于 {@link PushMapping} 方法注解在类加载时自动反射扫描注册，解耦连接管理与协议转换。
  *
- * <p>基于方法注解 {@link PushMapping} 自动绑定，新增推送消息类型时
- * 只需在对应格式化方法上标注 {@code @PushMapping}，无需修改任何注册列表。
+ * @author cloud
  */
 public final class GameWsPushFormatter {
 
@@ -26,15 +27,13 @@ public final class GameWsPushFormatter {
     private GameWsPushFormatter() {
     }
 
-    // ==================== 注册表 ====================
-
-    /** 推送消息格式化函数接口。 */
+    /** 推送消息格式化函数接口 */
     @FunctionalInterface
     private interface PushFormatter {
         Object format(Message proto);
     }
 
-    /** 单条注册项：msgId 对应的 WebSocket action 名与格式化逻辑。 */
+    /** 单条注册项 */
     private static final class PushEntry {
         final String action;
         final PushFormatter formatter;
@@ -45,16 +44,16 @@ public final class GameWsPushFormatter {
         }
     }
 
-    /**
-     * msgId → PushEntry 注册表。
-     * 由静态块根据 @PushMapping 方法注解自动发现并组装。
-     */
+    /** msgId 到推送处理实体的映射表 */
     private static final Map<Integer, PushEntry> PUSH_REGISTRY = new HashMap<>();
 
     static {
         initPushMappings();
     }
 
+    /**
+     * 反射扫描所有带有 @PushMapping 的格式化方法并注册。
+     */
     private static void initPushMappings() {
         for (Method method : GameWsPushFormatter.class.getDeclaredMethods()) {
             PushMapping mapping = method.getAnnotation(PushMapping.class);
@@ -62,37 +61,43 @@ public final class GameWsPushFormatter {
                 continue;
             }
             method.setAccessible(true);
-            Class<?> paramType = method.getParameterTypes().length > 0 ? method.getParameterTypes()[0] : null;
-            PushFormatter formatter = proto -> {
-                if (paramType != null && !paramType.isInstance(proto)) {
-                    logger.warn("推送消息类型不匹配: method={}, expected={}, actual={}",
-                            method.getName(), paramType.getSimpleName(), proto != null ? proto.getClass().getSimpleName() : "null");
-                    return Collections.emptyMap();
-                }
-                try {
-                    return method.invoke(null, proto);
-                } catch (Exception e) {
-                    logger.error("执行推送格式化失败: {}", method.getName(), e);
-                    return Collections.emptyMap();
-                }
-            };
-            if (mapping.values().length > 0) {
-                for (int msgId : mapping.values()) {
-                    PUSH_REGISTRY.put(msgId, new PushEntry(mapping.action(), formatter));
-                }
-            } else if (mapping.value() != 0) {
-                PUSH_REGISTRY.put(mapping.value(), new PushEntry(mapping.action(), formatter));
-            }
+            registerMapping(method, mapping);
         }
         logger.info("GameWsPushFormatter 自动绑定完成，注册项数量: {}", PUSH_REGISTRY.size());
     }
 
-    // ==================== 对外接口 ====================
+    /**
+     * 注册单个方法的映射关系。
+     */
+    private static void registerMapping(Method method, PushMapping mapping) {
+        Class<?> paramType = method.getParameterTypes().length > 0 ? method.getParameterTypes()[0] : null;
+        PushFormatter formatter = proto -> {
+            if (paramType != null && !paramType.isInstance(proto)) {
+                logger.warn("推送消息类型不匹配: method={}, expected={}, actual={}",
+                        method.getName(), paramType.getSimpleName(), proto != null ? proto.getClass().getSimpleName() : "null");
+                return Collections.emptyMap();
+            }
+            try {
+                return method.invoke(null, proto);
+            } catch (Exception e) {
+                logger.error("执行推送格式化失败: {}", method.getName(), e);
+                return Collections.emptyMap();
+            }
+        };
+        if (mapping.values().length > 0) {
+            for (int msgId : mapping.values()) {
+                PUSH_REGISTRY.put(msgId, new PushEntry(mapping.action(), formatter));
+            }
+        } else if (mapping.value() != 0) {
+            PUSH_REGISTRY.put(mapping.value(), new PushEntry(mapping.action(), formatter));
+        }
+    }
 
     /**
-     * 根据 msgId 返回对应的 WebSocket action 名。
+     * 获取指定消息 ID 对应的 action 动作名。
      *
-     * @return action 字符串；未注册的 msgId 返回 null
+     * @param msgId 协议消息 ID
+     * @return 对应的 action 名，未注册返回 null
      */
     public static String pushAction(int msgId) {
         PushEntry entry = PUSH_REGISTRY.get(msgId);
@@ -100,19 +105,20 @@ public final class GameWsPushFormatter {
     }
 
     /**
-     * 将 Gate 推送的 Protobuf 转为前端可识别的 JSON 对象。
+     * 将网关 Protobuf 消息转为前端 JSON 字典对象。
      *
-     * @return 格式化结果；未注册或 proto 为 null 时返回空 Map
+     * @param msgId 消息 ID
+     * @param proto Protobuf 对象
+     * @return 转换后的字典对象
      */
     public static Object formatPush(int msgId, Message proto) {
         PushEntry entry = PUSH_REGISTRY.get(msgId);
-        if (entry == null || proto == null) return new HashMap<>();
+        if (entry == null || proto == null) {
+            return new HashMap<>();
+        }
         return entry.formatter.format(proto);
     }
 
-    // ==================== 内部格式化方法 ====================
-
-    /** AckEnterTable 格式化，运用于注册表中的 seatUpdate。 */
     @PushMapping(value = GMsg.ACK_ENTER_TABLE_MSG, action = "seatUpdate")
     private static Map<String, Object> formatEnterTable(GameProto.AckEnterTable ack) {
         Map<String, Object> m = new HashMap<>();
@@ -123,7 +129,6 @@ public final class GameWsPushFormatter {
         return m;
     }
 
-    /** NotTableState 格式化，运用于 NOT_STATE 和 NOT_TABLE_STATE 两个 msgId。 */
     @PushMapping(values = {GMsg.NOT_STATE, GMsg.NOT_TABLE_STATE}, action = "notState")
     private static Map<String, Object> formatNotTableState(GameProto.NotTableState state) {
         Map<String, Object> m = new HashMap<>();
@@ -133,6 +138,9 @@ public final class GameWsPushFormatter {
         return m;
     }
 
+    /**
+     * 格式化玩家列表展示数据。
+     */
     public static List<Map<String, Object>> formatPlayers(List<GameProto.Player> players, int currentRoleId) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (GameProto.Player player : players) {
@@ -154,6 +162,9 @@ public final class GameWsPushFormatter {
         return result;
     }
 
+    /**
+     * 格式化桌况基础信息。
+     */
     public static Map<String, Object> formatTableInfo(GameProto.TableInfo tableInfo) {
         Map<String, Object> result = new HashMap<>();
         result.put("roomId", tableInfo.getRoomId());
@@ -164,6 +175,9 @@ public final class GameWsPushFormatter {
         return result;
     }
 
+    /**
+     * 格式化牌桌完整快照（拆分子方法，单方法行数 <= 30）。
+     */
     public static Map<String, Object> formatSnapshot(GameProto.AckTableSnapshot n) {
         Map<String, Object> m = new HashMap<>();
         m.put("tableId", n.getTableId());
@@ -175,8 +189,16 @@ public final class GameWsPushFormatter {
         m.put("stateDuration", n.getStateDuration());
         m.put("opSeat", n.getOpSeat());
         m.put("choices", formatOpChoices(n.getChoicesList()));
+        m.put("players", formatSnapshotPlayers(n.getPlayersList()));
+        m.put("discards", formatSnapshotDiscards(n.getDiscardsList()));
+        m.put("exposed", formatSnapshotExposed(n.getExposedList()));
+        fillSnapshotDetails(m, n);
+        return m;
+    }
+
+    private static List<Map<String, Object>> formatSnapshotPlayers(List<GameProto.SnapshotPlayer> list) {
         List<Map<String, Object>> players = new ArrayList<>();
-        for (GameProto.SnapshotPlayer p : n.getPlayersList()) {
+        for (GameProto.SnapshotPlayer p : list) {
             Map<String, Object> x = new HashMap<>();
             x.put("roleId", p.getRoleId());
             x.put("position", p.getSeat());
@@ -187,25 +209,34 @@ public final class GameWsPushFormatter {
             x.put("cards", new ArrayList<>(p.getCardsList()));
             players.add(x);
         }
-        m.put("players", players);
+        return players;
+    }
+
+    private static List<Map<String, Object>> formatSnapshotDiscards(List<GameProto.SnapshotDiscard> list) {
         List<Map<String, Object>> discards = new ArrayList<>();
-        for (GameProto.SnapshotDiscard d : n.getDiscardsList()) {
+        for (GameProto.SnapshotDiscard d : list) {
             Map<String, Object> x = new HashMap<>();
             x.put("seat", d.getSeat());
             x.put("tileId", d.getTileId());
             x.put("sequence", d.getSequence());
             discards.add(x);
         }
-        m.put("discards", discards);
+        return discards;
+    }
+
+    private static List<Map<String, Object>> formatSnapshotExposed(List<GameProto.SnapshotExposed> list) {
         List<Map<String, Object>> exposed = new ArrayList<>();
-        for (GameProto.SnapshotExposed e : n.getExposedList()) {
+        for (GameProto.SnapshotExposed e : list) {
             Map<String, Object> x = new HashMap<>();
             x.put("seat", e.getSeat());
             x.put("type", e.getType().toStringUtf8());
             x.put("tileIds", new ArrayList<>(e.getTileIdsList()));
             exposed.add(x);
         }
-        m.put("exposed", exposed);
+        return exposed;
+    }
+
+    private static void fillSnapshotDetails(Map<String, Object> m, GameProto.AckTableSnapshot n) {
         m.put("drawnTile", n.getDrawnTile());
         m.put("pendingDiscardTile", n.getPendingDiscardTile());
         m.put("pendingDiscardSeat", n.getPendingDiscardSeat());
@@ -215,7 +246,9 @@ public final class GameWsPushFormatter {
         m.put("dealerSeat", n.getDealerSeat());
         m.put("bottomCards", new ArrayList<>(n.getBottomCardsList()));
         List<Integer> lastCards = new ArrayList<>();
-        for (GameProto.Card c : n.getLastCards().getCardsList()) lastCards.add(c.getValue());
+        for (GameProto.Card c : n.getLastCards().getCardsList()) {
+            lastCards.add(c.getValue());
+        }
         m.put("lastCards", lastCards);
         m.put("lastPlaySeat", n.getLastPlaySeat());
         m.put("passSeats", new ArrayList<>(n.getPassSeatsList()));
@@ -224,7 +257,6 @@ public final class GameWsPushFormatter {
         m.put("robMultiplier", n.getRobMultiplier());
         m.put("bombMultiplier", n.getBombMultiplier());
         m.put("currentMultiplier", n.getCurrentMultiplier());
-        return m;
     }
 
     @PushMapping(value = GMsg.ACK_OP, action = "ackOp")
@@ -347,40 +379,45 @@ public final class GameWsPushFormatter {
         m.put("fan", n.getFan());
         m.put("winType", n.getWinType().toStringUtf8());
         m.put("winTile", n.getWinTile());
+        m.put("seatScores", formatSeatScores(n.getSeatScoresList()));
+        m.put("totalScores", formatSeatScores(n.getTotalScoresList()));
+        m.put("hands", formatHands(n.getHandsList()));
+        m.put("seatExposed", formatSeatExposed(n.getSeatExposedList()));
+        return m;
+    }
+
+    private static List<Map<String, Object>> formatSeatScores(List<GameProto.SeatScore> list) {
         List<Map<String, Object>> scores = new ArrayList<>();
-        for (GameProto.SeatScore s : n.getSeatScoresList()) {
+        for (GameProto.SeatScore s : list) {
             Map<String, Object> sc = new HashMap<>();
             sc.put("seat", s.getSeat());
             sc.put("score", s.getScore());
             scores.add(sc);
         }
-        m.put("seatScores", scores);
-        List<Map<String, Object>> totals = new ArrayList<>();
-        for (GameProto.SeatScore s : n.getTotalScoresList()) {
-            Map<String, Object> sc = new HashMap<>();
-            sc.put("seat", s.getSeat());
-            sc.put("score", s.getScore());
-            totals.add(sc);
-        }
-        m.put("totalScores", totals);
+        return scores;
+    }
+
+    private static List<Map<String, Object>> formatHands(List<GameProto.HandInfo> list) {
         List<Map<String, Object>> hands = new ArrayList<>();
-        for (GameProto.HandInfo h : n.getHandsList()) {
+        for (GameProto.HandInfo h : list) {
             Map<String, Object> hi = new HashMap<>();
             hi.put("seat", h.getSeat());
             hi.put("handTiles", h.getHandTilesList());
             hi.put("exposed", formatExposedList(h.getExposedList()));
             hands.add(hi);
         }
-        m.put("hands", hands);
+        return hands;
+    }
+
+    private static List<Map<String, Object>> formatSeatExposed(List<GameProto.SeatExposed> list) {
         List<Map<String, Object>> seatExposed = new ArrayList<>();
-        for (GameProto.SeatExposed se : n.getSeatExposedList()) {
+        for (GameProto.SeatExposed se : list) {
             Map<String, Object> row = new HashMap<>();
             row.put("seat", se.getSeat());
             row.put("exposed", formatExposedList(se.getExposedList()));
             seatExposed.add(row);
         }
-        m.put("seatExposed", seatExposed);
-        return m;
+        return seatExposed;
     }
 
     private static List<Map<String, Object>> formatExposedList(List<GameProto.ExposedInfo> list) {
@@ -399,14 +436,7 @@ public final class GameWsPushFormatter {
         Map<String, Object> m = new HashMap<>();
         m.put("totalRounds", n.getTotalRounds());
         m.put("completedRounds", n.getCompletedRounds());
-        List<Map<String, Object>> totals = new ArrayList<>();
-        for (GameProto.SeatScore s : n.getTotalScoresList()) {
-            Map<String, Object> sc = new HashMap<>();
-            sc.put("seat", s.getSeat());
-            sc.put("score", s.getScore());
-            totals.add(sc);
-        }
-        m.put("totalScores", totals);
+        m.put("totalScores", formatSeatScores(n.getTotalScoresList()));
         List<Map<String, Object>> rounds = new ArrayList<>();
         for (GameProto.RoundSummary r : n.getRoundsList()) {
             Map<String, Object> rs = new HashMap<>();

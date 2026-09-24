@@ -9,13 +9,24 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 扑克类出牌：从 OpInfo 取牌、校验手牌、组装 CardInfo。
+ * 扑克类出牌操作通用辅助工具。
+ * <p>
+ * 负责从 Protobuf 的 OpInfo 中提取扑克牌 ID 列表、
+ * 将牌列表序列化为 CardInfo，以及校验并从玩家手牌中提取出牌子集。
+ *
+ * @author cloud
  */
 public final class CardOps {
 
     private CardOps() {
     }
 
+    /**
+     * 从操作信息 OpInfo 中提取所有包含的卡牌 ID 列表。
+     *
+     * @param opInfo 操作信息协议对象
+     * @return 提取出的牌 ID 集合
+     */
     public static List<Integer> collectIds(GameProto.OpInfo opInfo) {
         List<Integer> ids = new ArrayList<>();
         if (opInfo == null) return ids;

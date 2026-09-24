@@ -14,12 +14,24 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * 将每局结算按玩家写入大厅共享的 SQLite 数据库。
+ * 对局结算积分历史持久化仓储。
+ * <p>
+ * <b>不可变快照隔离设计：</b>
+ * 在对局桌业务线程内迅速深拷贝结算不可变快照 {@link RoundSnapshot}，
+ * 随后投递到专用 {@link DatabaseExecutorManager} 异步线程池进行批量 JDBC Batch 写入，
+ * 完全杜绝数据库锁对游戏主循环的任何卡顿影响。
+ * </p>
+ *
+ * @author cloud
  */
 public class ScoreRepository {
+
     private static final Logger logger = LoggerFactory.getLogger(ScoreRepository.class);
     private static volatile ScoreRepository instance;
+
+    /** SQLite JDBC 连接字符串 */
     private final String jdbcUrl;
+    /** 异步落库线程池管理器 */
     private final DatabaseExecutorManager databaseExecutorManager;
 
     public ScoreRepository(String dbPath) {
@@ -35,7 +47,9 @@ public class ScoreRepository {
         }
         File file = new File(dbPath);
         File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) parent.mkdirs();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
         jdbcUrl = "jdbc:sqlite:" + file.getAbsolutePath();
         initSchema();
     }
@@ -43,6 +57,7 @@ public class ScoreRepository {
     public static void initialize(String dbPath) {
         instance = new ScoreRepository(dbPath);
     }
+
 
     public static void initialize(String dbPath, DatabaseExecutorManager databaseExecutorManager) {
         instance = new ScoreRepository(dbPath, databaseExecutorManager);
@@ -59,6 +74,11 @@ public class ScoreRepository {
         return value;
     }
 
+    /**
+     * 异步持久化指定牌桌的本小局结算战绩。
+     *
+     * @param table 当前对局桌
+     */
     public void saveRound(Table table) {
         RoundSnapshot snapshot = createSnapshot(table);
         if (snapshot == null) return;
@@ -69,7 +89,7 @@ public class ScoreRepository {
     }
 
     /**
-     * 在桌子线程复制结算数据，数据库线程只接触不可变快照。
+     * 在桌子主逻辑线程复制结算数据快照，落库线程只接触不可变数据对象。
      */
     private RoundSnapshot createSnapshot(Table table) {
         if (table.getGameResult().getRoundEntries().isEmpty()) return null;
@@ -85,6 +105,9 @@ public class ScoreRepository {
                 entry.getWinnerSeat(), entry.getScore(), entry.getWinType(), System.currentTimeMillis(), rows);
     }
 
+    /**
+     * 批量执行 JDBC Batch 写入战绩行。
+     */
     private void writeRound(RoundSnapshot snapshot) {
         String sql = "INSERT OR REPLACE INTO score_record(table_id, room_id, game_type, round, user_id, seat, score, total_score, winner_seat, score_value, win_type, created_at)"
                 + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -112,6 +135,7 @@ public class ScoreRepository {
             logger.error("保存战绩失败, tableId={}, round={}", snapshot.tableId, snapshot.round, e);
         }
     }
+
 
     private static final class RoundSnapshot {
         private final long tableId;

@@ -12,16 +12,23 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-
 /**
- * Java类操作工具类
+ * 类反射与包扫描工具类
+ * <p>支持扫描文件目录与 Jar 包下的 Class 文件，支持子类查找与包路径过滤。</p>
+ *
+ * @author cloud
  */
 public class ClazzUtil {
 
+    private ClazzUtil() {
+    }
+
     /**
-     * 获取某个类的实现类
+     * 获取指定类的所有子类或实现类（带排除过滤）
      *
-     * @param except 需要排除的包名 offline 可以用，分割 "offline,handle"
+     * @param cls    目标接口或父类
+     * @param except 排除的包名，支持逗号分隔
+     * @return 满足条件的子类列表
      */
     public static List<Class<?>> getAllAssignedClass(Class<?> cls, String except) throws Exception {
         List<Class<?>> classes = new ArrayList<>();
@@ -34,9 +41,14 @@ public class ClazzUtil {
     }
 
     /**
-     * 获取某个类的同包下的所有其他类
-     *
-     * @param except 需要排除的包名 offline 可以用，分割 "offline,handle"
+     * 获取指定类的所有子类或实现类（不过滤）
+     */
+    public static List<Class<?>> getAllAssignedClass(Class<?> cls) throws Exception {
+        return getAllAssignedClass(cls, "");
+    }
+
+    /**
+     * 获取指定类同包下的所有其它类（带排除过滤）
      */
     public static List<Class<?>> getAllClassExceptPackageClass(Class<?> packageClass, String except) throws Exception {
         List<Class<?>> classes = new ArrayList<>();
@@ -49,112 +61,138 @@ public class ClazzUtil {
     }
 
     /**
-     * 读取指定类所在包下所有类
+     * 获取指定类同包下的所有其它类（不过滤）
+     */
+    public static List<Class<?>> getAllClassExceptPackageClass(Class<?> packageClass) throws Exception {
+        return getAllClassExceptPackageClass(packageClass, "");
+    }
+
+    /**
+     * 读取指定类所在包下的所有类
      */
     public static List<Class<?>> getClasses(Class<?> packageClass, String except) throws Exception {
         return getClasses(packageClass.getPackage().getName(), packageClass, except);
     }
 
     /**
-     * 读取某个包下所有类
+     * 读取指定类所在包下的所有类（不过滤）
+     */
+    public static List<Class<?>> getClasses(Class<?> packageClass) throws Exception {
+        return getClasses(packageClass, "");
+    }
+
+    /**
+     * 读取指定包路径下的所有类
      */
     public static List<Class<?>> getClasses(String pk) throws Exception {
         return getClasses(pk, null, "");
     }
 
     /**
-     * 读取某个包下所有类
+     * 读取指定包路径下的所有类（指定 ClassLoader 锚点类）
+     */
+    public static List<Class<?>> getClasses(String pk, Class<?> cls) throws Exception {
+        return getClasses(pk, cls, "");
+    }
+
+    /**
+     * 核心扫描入口：根据包名与过滤条件加载所有 Class
      */
     public static List<Class<?>> getClasses(String pk, Class<?> cls, String except) throws Exception {
         String path = pk.replace('.', '/');
-        URL url;
-        if (cls != null) {
-            url = cls.getClassLoader().getResource(path);
-        } else {
-            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-            url = classloader.getResource(path);
-        }
+        ClassLoader classloader = (cls != null) ? cls.getClassLoader() : Thread.currentThread().getContextClassLoader();
+        URL url = classloader.getResource(path);
         if (url == null) {
-            throw new Exception("url get error！" + path);
+            throw new Exception("URL get error: " + path);
         }
         String protocol = url.getProtocol();
-        if ("file".equals(protocol)) { // 适用于class文件
+        if ("file".equals(protocol)) {
             return getClasses(new File(url.getFile()), pk, except);
-        } else if ("jar".equals(protocol)) { // 适用于jar包
+        } else if ("jar".equals(protocol)) {
             JarFile jarFile = ((JarURLConnection) url.openConnection()).getJarFile();
             return getClassesFromJarFile(jarFile, except, pk);
-        } else {
-            throw new Exception("未识别的文件协议！" + protocol);
         }
+        throw new Exception("未识别的文件协议: " + protocol);
     }
 
+    /**
+     * 从 Jar 文件中扫描所有符合包含与排除规则的 Class
+     */
     public static List<Class<?>> getClassesFromJarFile(JarFile jarFile, String except, String include) throws Exception {
         List<Class<?>> classes = new ArrayList<>();
-        Enumeration entries = jarFile.entries();
+        Enumeration<JarEntry> entries = jarFile.entries();
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
         while (entries.hasMoreElements()) {
-            JarEntry entry = (JarEntry) entries.nextElement();
+            JarEntry entry = entries.nextElement();
             String name = entry.getName();
             if (name.endsWith(".class")) {
-                name = name.substring(0, name.length() - 6).replaceAll("/", ".");
-                if (!name.contains(include)) {
+                name = name.substring(0, name.length() - 6).replace('/', '.');
+                if (include != null && !include.isEmpty() && !name.contains(include)) {
                     continue;
                 }
                 if (needExceptPackage(except, name)) {
                     continue;
                 }
-                classes.add(Class.forName(name, false, Thread.currentThread().getContextClassLoader()));
+                classes.add(Class.forName(name, false, cl));
             }
         }
         return classes;
     }
 
-    //根据路径获取
-    public static List<Class<?>> getClasses(File dir, String pk, String except) throws ClassNotFoundException {
-        List<Class<?>> classes = new ArrayList<>();
-        if (!dir.exists()) {
-            return classes;
-        }
-
-        for (File f : dir.listFiles()) {
-            if (f.isDirectory() && !needExceptFile(except, f.getName())) {
-                classes.addAll(getClasses(f, pk + "." + f.getName(), except));
-            }
-            String name = f.getName();
-            //排除
-            if (name.endsWith(".class") && !name.contains("$")) {
-                String className = pk + "." + name.substring(0, name.length() - 6);
-                classes.add(Class.forName(className, false, Thread.currentThread().getContextClassLoader()));
-            }
-        }
-        return classes;
+    public static List<Class<?>> getClassesFromJarFile(JarFile jarFile, String include) throws Exception {
+        return getClassesFromJarFile(jarFile, "", include);
     }
 
     /**
-     * 排除文件名带except
-     *
-     * @param except 需要排出的包名 逗号分开的
+     * 从本地目录递归扫描 Class 文件
      */
+    public static List<Class<?>> getClasses(File dir, String pk, String except) throws ClassNotFoundException {
+        List<Class<?>> classes = new ArrayList<>();
+        if (dir == null || !dir.exists()) {
+            return classes;
+        }
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return classes;
+        }
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        for (File f : files) {
+            if (f.isDirectory() && !needExceptFile(except, f.getName())) {
+                classes.addAll(getClasses(f, pk + "." + f.getName(), except));
+            } else if (f.getName().endsWith(".class") && !f.getName().contains("$")) {
+                String className = pk + "." + f.getName().substring(0, f.getName().length() - 6);
+                classes.add(Class.forName(className, false, cl));
+            }
+        }
+        return classes;
+    }
+
+    public static List<Class<?>> getClasses(File dir, String pk) throws ClassNotFoundException {
+        return getClasses(dir, pk, "");
+    }
+
     private static boolean needExceptFile(String except, String name) {
-        String[] split = except.split(",");
-        for (String value : split) {
-            if (name.equals(value)) {
+        if (except == null || except.isEmpty()) {
+            return false;
+        }
+        for (String value : except.split(",")) {
+            if (name.equalsIgnoreCase(value.trim())) {
                 return true;
             }
         }
         return false;
     }
 
-    /**
-     * 排除包名带 except的
-     *
-     * @param except 需要排出的包名 逗号分开的
-     */
     private static boolean needExceptPackage(String except, String name) {
+        if (except == null || except.isEmpty()) {
+            return false;
+        }
         String[] splitExcept = except.split(",");
-        for (String value : splitExcept) {
-            String[] nameSplit = name.split("\\.");
-            for (String names : nameSplit) {
-                if (value.equals(names)) {
+        String[] nameSplit = name.split("\\.");
+        for (String exp : splitExcept) {
+            String trimmed = exp.trim();
+            for (String sub : nameSplit) {
+                if (trimmed.equals(sub)) {
                     return true;
                 }
             }
@@ -162,23 +200,25 @@ public class ClazzUtil {
         return false;
     }
 
-    //动态获取，根据反射，比如获取xx.xx.xx.xx.Action 这个所有的实现类。 xx.xx.xx.xx 表示包名  Action为接口名或者类名
+    /**
+     * 反射扫描当前 ClassLoader 中已加载的目标接口或类实现
+     */
+    @SuppressWarnings("unchecked")
     public static List<Class<?>> getAllActionSubClass(String classPackageAndName) throws Exception {
-        Field field;
-        Vector v;
-        Class<?> cls;
-        List<Class<?>> allSubclass = new ArrayList<>();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Class<?> classOfClassLoader = classLoader.getClass();
-        cls = Class.forName(classPackageAndName, false, Thread.currentThread().getContextClassLoader());
-        while (classOfClassLoader != ClassLoader.class) {
-            classOfClassLoader = classOfClassLoader.getSuperclass();
+        Class<?> cls = Class.forName(classPackageAndName, false, classLoader);
+        Class<?> current = classLoader.getClass();
+        while (current != ClassLoader.class && current != null) {
+            current = current.getSuperclass();
         }
-        field = classOfClassLoader.getDeclaredField("classes");
+        if (current == null) {
+            return Collections.emptyList();
+        }
+        Field field = current.getDeclaredField("classes");
         field.setAccessible(true);
-        v = (Vector) field.get(classLoader);
-        for (Object o : v) {
-            Class<?> c = (Class<?>) o;
+        Vector<Class<?>> vector = (Vector<Class<?>>) field.get(classLoader);
+        List<Class<?>> allSubclass = new ArrayList<>();
+        for (Class<?> c : vector) {
             if (cls.isAssignableFrom(c) && !cls.equals(c)) {
                 allSubclass.add(c);
             }
@@ -187,143 +227,32 @@ public class ClazzUtil {
     }
 
     /**
-     * 从jar包中获取指定文件名的txt文件，返回文件名和内容
-     *
-     * @param jarFile  jar文件对象
-     * @param fileName 指定的文件名（如果为null或空字符串则返回所有txt文件）
-     * @return Map，key为文件名，value为文件内容
-     * @throws Exception 读取文件时可能抛出的异常
+     * 从 Jar 包中读取指定名称的文本文件内容
      */
     public static Map<String, String> getTxtFilesWithContentFromJarFile(JarFile jarFile, String fileName) throws Exception {
-        Map<String, String> txtFilesWithContent = new HashMap<>();
-        Enumeration entries = jarFile.entries();
-        while (entries.hasMoreElements()) {
-            JarEntry entry = (JarEntry) entries.nextElement();
-            String name = entry.getName();
-            if (name.endsWith(".txt")) {
-                // 如果指定了文件名，则只处理匹配的文件
-                if (fileName != null && !fileName.isEmpty()) {
-                    // 支持完整路径匹配或仅文件名匹配
-                    if (!name.equals(fileName) && !name.endsWith("/" + fileName)) {
-                        continue;
-                    }
-                }
-                // 读取文件内容
-                InputStream inputStream = jarFile.getInputStream(entry);
-                StringBuilder content = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream,
-                        StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        content.append(line).append("\n");
-                    }
-                }
-                // 移除最后一个换行符
-                if (content.length() > 0 && content.charAt(content.length() - 1) == '\n') {
-                    content.setLength(content.length() - 1);
-                }
-                txtFilesWithContent.put(name, content.toString());
-            }
-        }
-        return txtFilesWithContent;
-    }
-
-    /**
-     * 获取某个类的实现类
-     */
-    public static List<Class<?>> getAllAssignedClass(Class<?> cls) throws Exception {
-        List<Class<?>> classes = new ArrayList<>();
-        for (Class<?> c : getClasses(cls)) {
-            if (cls.isAssignableFrom(c) && !cls.equals(c)) {
-                classes.add(c);
-            }
-        }
-        return classes;
-    }
-
-    /**
-     * 获取某个类的同包下的所有其他类
-     */
-    public static List<Class<?>> getAllClassExceptPackageClass(Class<?> packageClass) throws Exception {
-        List<Class<?>> classes = new ArrayList<>();
-        for (Class<?> c : getClasses(packageClass)) {
-            if (!packageClass.equals(c)) {
-                classes.add(c);
-            }
-        }
-        return classes;
-    }
-
-    /**
-     * 读取指定类所在包下所有类
-     */
-    public static List<Class<?>> getClasses(Class<?> packageClass) throws Exception {
-        return getClasses(packageClass.getPackage().getName(), packageClass);
-    }
-
-    /**
-     * 读取某个包下所有类
-     */
-    public static List<Class<?>> getClasses(String pk, Class<?> cls) throws Exception {
-        String path = pk.replace('.', '/');
-        URL url;
-        if (cls != null) {
-            url = cls.getClassLoader().getResource(path);
-        } else {
-            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-            url = classloader.getResource(path);
-        }
-        if (url == null) {
-            throw new Exception("url get error！" + path);
-        }
-        String protocol = url.getProtocol();
-        if ("file".equals(protocol)) { // 适用于class文件
-            return getClasses(new File(url.getFile()), pk);
-        } else if ("jar".equals(protocol)) { // 适用于jar包
-            JarFile jarFile = ((JarURLConnection) url.openConnection()).getJarFile();
-            return getClassesFromJarFile(jarFile, pk);
-        } else {
-            throw new Exception("未识别的文件协议！" + protocol);
-        }
-    }
-
-    public static List<Class<?>> getClassesFromJarFile(JarFile jarFile, String include) throws Exception {
-        List<Class<?>> classes = new ArrayList<>();
+        Map<String, String> result = new HashMap<>();
         Enumeration<JarEntry> entries = jarFile.entries();
         while (entries.hasMoreElements()) {
-            JarEntry entry = (JarEntry) entries.nextElement();
+            JarEntry entry = entries.nextElement();
             String name = entry.getName();
-            if (name.endsWith(".class")) {
-                name = name.substring(0, name.length() - 6).replaceAll("/", ".");
-                if (!name.contains(include)) {
+            if (name.endsWith(".txt")) {
+                if (fileName != null && !fileName.isEmpty() && !name.equals(fileName) && !name.endsWith("/" + fileName)) {
                     continue;
                 }
-                classes.add(Class.forName(name, false, Thread.currentThread().getContextClassLoader()));
+                try (InputStream inputStream = jarFile.getInputStream(entry);
+                     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line).append('\n');
+                    }
+                    if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
+                        sb.setLength(sb.length() - 1);
+                    }
+                    result.put(name, sb.toString());
+                }
             }
         }
-        return classes;
+        return result;
     }
-
-    //根据路径获取
-    public static List<Class<?>> getClasses(File dir, String pk) throws ClassNotFoundException {
-        List<Class<?>> classes = new ArrayList<>();
-        if (!dir.exists()) {
-            return classes;
-        }
-
-        for (File f : dir.listFiles()) {
-            if (f.isDirectory()) {
-                classes.addAll(getClasses(f, pk + "." + f.getName()));
-            }
-            String name = f.getName();
-            //排除
-            if (name.endsWith(".class") && !name.contains("$")) {
-                String className = pk + "." + name.substring(0, name.length() - 6);
-                classes.add(Class.forName(className, false, Thread.currentThread().getContextClassLoader()));
-            }
-        }
-        return classes;
-    }
-
-
 }

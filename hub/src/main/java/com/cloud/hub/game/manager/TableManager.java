@@ -1,5 +1,6 @@
 package com.cloud.hub.game.manager;
 
+import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
@@ -11,17 +12,12 @@ import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import utils.registry.enums.ServerType;
 import msg.registor.message.GMsg;
-import msg.registor.message.SMsg;
-import net.client.handler.ClientHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.GameProto;
 import proto.ModelProto;
-import proto.ServerProto;
 import tool.config.TableConfigManager;
-import utils.metrics.MetricsCollector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,21 +27,31 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 桌子管理器
- * 负责游戏桌子的创建、管理和生命周期控制
+ * 游戏对局桌运行与生命周期管理器。
+ * <p>
+ * 负责麻将 (MjTable)、斗地主 (DdzTable)、跑得快 (PdkTable)、拖拉机 (TractorTable) 的具体实例创建，
+ * 并与 {@link GameThreadPoolManager} 联动完成同桌串行投递调度与定时心跳注册。
+ * </p>
+ *
+ * @author cloud
  */
 public class TableManager {
+
     private static final Logger logger = LoggerFactory.getLogger(TableManager.class);
 
+    /** 桌子唯一 ID 到对局桌运行实例映射表 */
     private final Map<Long, Table> tableMap;
-    /**
-     * 桌号：时间戳毫秒 + 序号，避免短时间撞号
-     */
+    /** 桌号发号器：时间戳毫秒 + 序号，避免并发碰撞 */
     private final AtomicLong tableIdSeq = new AtomicLong(System.currentTimeMillis());
 
+    /** 房间配置模板管理器 */
     private final TableConfigManager configManager;
+    /** 全局统一线程池管理器 */
     private final GameThreadPoolManager threadPoolManager;
 
+    /**
+     * 构造桌子管理器，初始化配置加载与动态文件监听。
+     */
     public TableManager() {
         threadPoolManager = Game.getInstance().getThreadPoolManager();
         tableMap = new ConcurrentHashMap<>();
@@ -58,6 +64,7 @@ public class TableManager {
         configManager.startWatch();
         logger.info("桌子管理器初始化完成");
     }
+
 
     /**
      * 添加桌子
@@ -76,8 +83,10 @@ public class TableManager {
         } else {
             tableMap.put(tableId, table);
             threadPoolManager.registerTable(tableId);
-            MetricsCollector.getInstance().setGauge("game.active_tables", tableMap.size());
-            MetricsCollector.getInstance().incrementCounter("game.tables_created");
+            HubMetrics metrics = HubMetrics.getInstance();
+            if (metrics != null) {
+                metrics.recordTableCreated();
+            }
             logger.debug("添加新桌子, tableId: {}", tableId);
         }
     }
@@ -94,6 +103,15 @@ public class TableManager {
     }
 
     /**
+     * 获取当前所有活跃中的牌桌实例列表（只读浅拷贝）。
+     *
+     * @return 活跃桌子列表
+     */
+    public List<Table> getAllTables() {
+        return new ArrayList<>(tableMap.values());
+    }
+
+    /**
      * 删除桌子
      */
     private void removeTable(long tableId) {
@@ -102,8 +120,10 @@ public class TableManager {
             notifyPlayersTableDestroyed(removedTable);
             removedTable.stop();
             threadPoolManager.removeTable(tableId);
-            MetricsCollector.getInstance().setGauge("game.active_tables", tableMap.size());
-            MetricsCollector.getInstance().incrementCounter("game.tables_destroyed");
+            HubMetrics metrics = HubMetrics.getInstance();
+            if (metrics != null) {
+                metrics.recordTableDestroyed();
+            }
             logger.info("删除桌子, tableId: {}", tableId);
             notifyRoomTableDestroyed(tableId);
         } else {
@@ -176,56 +196,30 @@ public class TableManager {
     }
 
     /**
-     * Lobby 连入 game 后注册在 ServerClientManager，不能用 ServerManager（那是 game 主动外连）
-     */
-    private ClientHandler lobbyClient() {
-        return Game.getInstance().getServerClientManager().getServerClient(ServerType.Lobby);
-    }
-
-    /**
-     * 通知Lobby桌子已销毁
+     * 通知大厅桌子已销毁（进程内直接调用）。
      */
     private void notifyRoomTableDestroyed(long tableId) {
         try {
-            ClientHandler lobbyServer = lobbyClient();
-            if (lobbyServer == null) {
-                com.cloud.hub.lobby.manager.table.TableManager.getInstance().removeTable(tableId);
-                logger.debug("内置Lobby已移除桌子, tableId: {}", tableId);
-                return;
-            }
-
-            ServerProto.NotTableDestroyed not = ServerProto.NotTableDestroyed.newBuilder()
-                    .setTableId(tableId)
-                    .build();
-            lobbyServer.sendMessage(SMsg.NOT_TABLE_DESTROYED_MSG, not);
-            logger.info("已通知Lobby桌子销毁, tableId: {}", tableId);
+            com.cloud.hub.lobby.manager.table.TableManager.getInstance().removeTable(tableId);
+            logger.debug("内置Lobby已移除桌子, tableId: {}", tableId);
         } catch (Exception e) {
             logger.error("通知Lobby桌子销毁失败, tableId: {}", tableId, e);
         }
     }
 
     /**
-     * 通知Lobby玩家离桌（桌子仍保留）
+     * 通知大厅玩家离桌（进程内直接调用）。
      */
     public void notifyRoomPlayerLeft(long tableId, int roleId) {
         try {
-            ClientHandler lobbyServer = lobbyClient();
-            if (lobbyServer == null) {
-                com.cloud.hub.lobby.manager.table.TableInfo info =
-                        com.cloud.hub.lobby.manager.table.TableManager.getInstance().getTableById(tableId);
-                com.cloud.hub.lobby.manager.User user =
-                        com.cloud.hub.lobby.manager.UserManager.getInstance().getUser(roleId);
-                if (info != null && user != null) info.removeUser(user);
-                logger.debug("内置Lobby已同步玩家离桌, tableId: {}, roleId: {}", tableId, roleId);
-                return;
+            com.cloud.hub.lobby.manager.table.TableInfo info =
+                    com.cloud.hub.lobby.manager.table.TableManager.getInstance().getTableById(tableId);
+            com.cloud.hub.lobby.manager.User user =
+                    com.cloud.hub.lobby.manager.UserManager.getInstance().getUser(roleId);
+            if (info != null && user != null) {
+                info.removeUser(user);
             }
-
-            ServerProto.NotTablePlayerLeft not = ServerProto.NotTablePlayerLeft.newBuilder()
-                    .setTableId(tableId)
-                    .setRoleId(roleId)
-                    .build();
-            lobbyServer.sendMessage(SMsg.NOT_TABLE_PLAYER_LEFT_MSG, not);
-            logger.info("已通知Lobby玩家离桌, tableId: {}, roleId: {}", tableId, roleId);
+            logger.debug("内置Lobby已同步玩家离桌, tableId: {}, roleId: {}", tableId, roleId);
         } catch (Exception e) {
             logger.error("通知Lobby玩家离桌失败, tableId: {}, roleId: {}", tableId, roleId, e);
         }

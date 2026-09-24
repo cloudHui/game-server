@@ -3,8 +3,11 @@ package com.cloud.hub.game.domain.replay;
 import java.util.List;
 
 /**
- * 斗地主回放记录器
- * 记录叫分、抢地主、出牌、过牌等操作
+ * 斗地主对局回放记录器。
+ * <p>
+ * 负责记录斗地主叫分、抢地主、底牌归属、出牌、过牌及结算倍数流水。
+ *
+ * @author cloud
  */
 public class DdzReplayRecorder extends BaseReplayRecorder {
 

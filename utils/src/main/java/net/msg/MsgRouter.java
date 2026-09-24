@@ -24,12 +24,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 统一消息路由引擎
- * <p>
- * 整合注解扫描、Proto解析器推导与预缓存、高性能单次寻址、链路追踪与自动回包。
- * 同时实现 Handlers 与 Parser 接口，天然兼容 Netty 传输层。
+ * 统一网络消息路由引擎
+ * <p>提供注解扫描、Proto 解析器推导缓存、高性能单次寻址、链路追踪与自动回包能力。</p>
+ *
+ * @author cloud
  */
 public class MsgRouter implements Handlers, net.message.Parser {
+
     private static final Logger logger = LoggerFactory.getLogger(MsgRouter.class);
     private static final byte[] EMPTY_BYTES = new byte[0];
 
@@ -40,7 +41,7 @@ public class MsgRouter implements Handlers, net.message.Parser {
     }
 
     /**
-     * 路由项
+     * 路由实体项
      */
     public static class RouteEntry {
         public final int msgId;
@@ -61,25 +62,18 @@ public class MsgRouter implements Handlers, net.message.Parser {
         }
     }
 
-    /**
-     * 路由调用器函数接口
-     */
     @FunctionalInterface
     public interface RouteInvoker {
         boolean invoke(Sender sender, int clientId, Message msg, long mapId, int sequence, TCPMessage tcpMsg) throws Exception;
     }
 
-    // 主路由表（读多写少，启动期注册，原生 int 无装箱）
     private final IntObjectMap<RouteEntry> routes = new IntObjectHashMap<>();
-    // Proto 类型到消息 ID 反查映射表
     private final ConcurrentHashMap<Class<?>, Integer> protoToMsgIdMap = new ConcurrentHashMap<>();
 
-    // ==================== 注册 API ====================
+    // ==================== 扫描与注册 API ====================
 
     /**
-     * 扫描指定包下的所有 Controller / Handler 并注册
-     *
-     * @param packageNames 扫描包路径
+     * 扫描指定包名并注册带 @Msg 的控制器与消息处理器
      */
     public synchronized void scan(String... packageNames) {
         if (packageNames == null) return;
@@ -93,7 +87,6 @@ public class MsgRouter implements Handlers, net.message.Parser {
                     if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())) {
                         continue;
                     }
-                    // 检查类上是否有 @Msg，或者类中是否有方法带 @Msg
                     if (hasMsgAnnotation(clazz)) {
                         Object instance = clazz.getConstructor().newInstance();
                         register(instance);
@@ -103,7 +96,7 @@ public class MsgRouter implements Handlers, net.message.Parser {
                 logger.error("MsgRouter 扫描包 [{}] 失败", pkg, e);
             }
         }
-        logger.info("MsgRouter 扫描完成, 新增路由: {} 条, 当前总路由: {} 条, 耗时: {}ms",
+        logger.info("MsgRouter 扫描完成, 新增路由: {} 条, 总路由: {} 条, 耗时: {}ms",
                 (routes.size() - beforeSize), routes.size(), (System.currentTimeMillis() - start));
     }
 
@@ -119,29 +112,20 @@ public class MsgRouter implements Handlers, net.message.Parser {
         return false;
     }
 
-    /**
-     * 注册控制器或处理器实例
-     */
     public synchronized MsgRouter register(Object controller) {
         if (controller == null) return this;
         Class<?> clazz = controller.getClass();
 
-        // 1. 处理类级别 @Msg
         if (controller instanceof Handler && clazz.isAnnotationPresent(Msg.class)) {
             Msg classMsg = clazz.getAnnotation(Msg.class);
-            int msgId = getMsgId(classMsg);
-            registerHandler(msgId, classMsg.ack(), classMsg.desc(), (Handler) controller);
+            registerHandler(getMsgId(classMsg), classMsg.ack(), classMsg.desc(), (Handler) controller);
         }
 
-        // 2. 处理方法级别 @Msg
         for (Method method : clazz.getDeclaredMethods()) {
             Msg msgAnno = method.getAnnotation(Msg.class);
-            if (msgAnno == null) {
-                continue;
-            }
+            if (msgAnno == null) continue;
             method.setAccessible(true);
 
-            // 处理批量透传 forward
             int[] forwardIds = msgAnno.forward();
             if (forwardIds != null && forwardIds.length > 0) {
                 for (int fId : forwardIds) {
@@ -149,10 +133,9 @@ public class MsgRouter implements Handlers, net.message.Parser {
                 }
                 continue;
             }
-
             int msgId = getMsgId(msgAnno);
             if (msgId == 0) {
-                logger.warn("类 {} 方法 {} 的 @Msg 未指定有效的消息 ID", clazz.getSimpleName(), method.getName());
+                logger.warn("类 {} 方法 {} 的 @Msg 未指定有效消息 ID", clazz.getSimpleName(), method.getName());
                 continue;
             }
             bindMethodRoute(msgId, msgAnno.ack(), msgAnno.desc(), controller, method);
@@ -160,98 +143,85 @@ public class MsgRouter implements Handlers, net.message.Parser {
         return this;
     }
 
-    /**
-     * 纯协议类型注册（无本地处理器，用于服务端推送或外部通知的解析）
-     */
     public synchronized MsgRouter register(int msgId, Class<? extends Message> protoClass, String desc) {
         Parser<? extends Message> parser = protoClass != null ? findParser(protoClass) : null;
-        RouteEntry entry = new RouteEntry(msgId, 0, desc, protoClass, parser, null);
-        routes.put(msgId, entry);
+        routes.put(msgId, new RouteEntry(msgId, 0, desc, protoClass, parser, null));
         if (protoClass != null) {
             protoToMsgIdMap.put(protoClass, msgId);
         }
         return this;
     }
 
-    /**
-     * 注册传统 Handler 实例
-     */
     public synchronized void registerHandler(int msgId, int ackMsgId, String desc, Handler handler) {
-        RouteEntry entry = new RouteEntry(msgId, ackMsgId, desc, null, null,
-                (sender, clientId, msg, mapId, sequence, tcpMsg) -> handler.handler(sender, clientId, msg, mapId, sequence));
-        routes.put(msgId, entry);
+        routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, null, null,
+                (sender, clientId, msg, mapId, sequence, tcpMsg) -> handler.handler(sender, clientId, msg, mapId, sequence)));
+    }
+
+    private void bindMethodRoute(int msgId, int ackMsgId, String desc, Object target, Method method) {
+        Class<?>[] paramTypes = method.getParameterTypes();
+        if (paramTypes.length >= 1 && MsgContext.class.isAssignableFrom(paramTypes[0])) {
+            bindMsgContextRoute(msgId, ackMsgId, desc, target, method, paramTypes);
+            return;
+        }
+        if (paramTypes.length == 2 && TCPMessage.class.isAssignableFrom(paramTypes[1])) {
+            bindTcpMessageRoute(msgId, ackMsgId, desc, target, method);
+            return;
+        }
+        if (paramTypes.length == 5 && Sender.class.isAssignableFrom(paramTypes[0])) {
+            bindLegacyRoute(msgId, ackMsgId, desc, target, method);
+            return;
+        }
+        logger.error("方法 {}.{} 参数签名不支持 @Msg 路由注册", target.getClass().getSimpleName(), method.getName());
     }
 
     @SuppressWarnings("unchecked")
-    private void bindMethodRoute(int msgId, int ackMsgId, String desc, Object target, Method method) {
-        Class<?>[] paramTypes = method.getParameterTypes();
-        Class<? extends Message> protoClass = null;
-        Parser<? extends Message> parser = null;
+    private void bindMsgContextRoute(int msgId, int ackMsgId, String desc, Object target, Method method, Class<?>[] paramTypes) {
+        boolean twoParams = paramTypes.length == 2 && Message.class.isAssignableFrom(paramTypes[1]);
+        Class<? extends Message> protoClass = twoParams ? (Class<? extends Message>) paramTypes[1] : extractGenericProtoClass(method);
+        Parser<? extends Message> parser = protoClass != null ? findParser(protoClass) : null;
+        boolean hasReturn = Message.class.isAssignableFrom(method.getReturnType());
 
-        // 模式 A: 方法入参为 MsgContext<T> 或 (MsgContext<T>, Message)
-        if (paramTypes.length >= 1 && MsgContext.class.isAssignableFrom(paramTypes[0])) {
-            final boolean twoParams = paramTypes.length == 2 && Message.class.isAssignableFrom(paramTypes[1]);
-            if (twoParams) {
-                protoClass = (Class<? extends Message>) paramTypes[1];
-                parser = findParser(protoClass);
-            } else if (paramTypes.length == 1) {
-                Type genericType = method.getGenericParameterTypes()[0];
-                if (genericType instanceof ParameterizedType) {
-                    Type[] args = ((ParameterizedType) genericType).getActualTypeArguments();
-                    if (args.length > 0 && args[0] instanceof Class) {
-                        Class<?> actual = (Class<?>) args[0];
-                        if (Message.class.isAssignableFrom(actual)) {
-                            protoClass = (Class<? extends Message>) actual;
-                            parser = findParser(protoClass);
-                        }
-                    }
-                }
+        RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
+            MsgContext context = new MsgContext(sender, clientId, mapId, sequence, msgId, ackMsgId, msg);
+            Object result = twoParams ? method.invoke(target, context, msg) : method.invoke(target, context);
+            if (hasReturn && result instanceof Message && ackMsgId != 0) {
+                sender.sendMessage(clientId, ackMsgId, mapId, (Message) result, sequence);
             }
+            return true;
+        };
 
-            final int finalAck = ackMsgId;
-            final boolean hasReturn = Message.class.isAssignableFrom(method.getReturnType());
+        routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, protoClass, parser, invoker));
+        if (protoClass != null) {
+            protoToMsgIdMap.put(protoClass, msgId);
+        }
+    }
 
-            RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
-                MsgContext context = new MsgContext(sender, clientId, mapId, sequence, msgId, finalAck, msg);
-                Object result = twoParams ? method.invoke(target, context, msg) : method.invoke(target, context);
-                if (hasReturn && result instanceof Message && finalAck != 0) {
-                    sender.sendMessage(clientId, finalAck, mapId, (Message) result, sequence);
-                }
-                return true;
-            };
-
-            RouteEntry entry = new RouteEntry(msgId, ackMsgId, desc, protoClass, parser, invoker);
-            routes.put(msgId, entry);
-            if (protoClass != null) {
-                protoToMsgIdMap.put(protoClass, msgId);
+    @SuppressWarnings("unchecked")
+    private Class<? extends Message> extractGenericProtoClass(Method method) {
+        Type genericType = method.getGenericParameterTypes()[0];
+        if (genericType instanceof ParameterizedType) {
+            Type[] args = ((ParameterizedType) genericType).getActualTypeArguments();
+            if (args.length > 0 && args[0] instanceof Class && Message.class.isAssignableFrom((Class<?>) args[0])) {
+                return (Class<? extends Message>) args[0];
             }
-            logger.debug("已注册消息路由: 0x{} -> {}.{} (Proto: {})",
-                    Integer.toHexString(msgId), target.getClass().getSimpleName(), method.getName(),
-                    protoClass != null ? protoClass.getSimpleName() : "None");
-            return;
         }
+        return null;
+    }
 
-        // 模式 B: 方法入参为 (Sender, TCPMessage) 或类似网关透传入参
-        if (paramTypes.length == 2 && TCPMessage.class.isAssignableFrom(paramTypes[1])) {
-            RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
-                method.invoke(target, sender, tcpMsg);
-                return true;
-            };
-            routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, null, null, invoker));
-            return;
-        }
+    private void bindTcpMessageRoute(int msgId, int ackMsgId, String desc, Object target, Method method) {
+        RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
+            method.invoke(target, sender, tcpMsg);
+            return true;
+        };
+        routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, null, null, invoker));
+    }
 
-        // 模式 C: 传统 5 参数模式 handler(sender, clientId, msg, mapId, sequence)
-        if (paramTypes.length == 5 && Sender.class.isAssignableFrom(paramTypes[0])) {
-            RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
-                Object res = method.invoke(target, sender, clientId, msg, mapId, sequence);
-                return res instanceof Boolean ? (Boolean) res : true;
-            };
-            routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, null, null, invoker));
-            return;
-        }
-
-        logger.error("方法 {}.{} 参数签名不支持 @Msg 路由注册", target.getClass().getSimpleName(), method.getName());
+    private void bindLegacyRoute(int msgId, int ackMsgId, String desc, Object target, Method method) {
+        RouteInvoker invoker = (sender, clientId, msg, mapId, sequence, tcpMsg) -> {
+            Object res = method.invoke(target, sender, clientId, msg, mapId, sequence);
+            return !(res instanceof Boolean) || (Boolean) res;
+        };
+        routes.put(msgId, new RouteEntry(msgId, ackMsgId, desc, null, null, invoker));
     }
 
     private int getMsgId(Msg anno) {
@@ -270,48 +240,38 @@ public class MsgRouter implements Handlers, net.message.Parser {
             MessageLite defaultInstance = Internal.getDefaultInstance(liteClass);
             return (Parser<? extends Message>) defaultInstance.getParserForType();
         } catch (Exception e) {
-            logger.warn("未能获取 Protobuf 解析器: {}", protoClass.getName(), e);
+            logger.warn("获取 Protobuf 解析器失败: {}", protoClass.getName(), e);
             return null;
         }
     }
 
-    // ==================== 运行期核心分发 ====================
+    // ==================== 运行期消息分发 ====================
 
     /**
-     * 核心统一分发入口
-     *
-     * @param sender 客户端发送端
-     * @param tcpMsg 网络数据包
-     * @return 是否保持连接
+     * 核心统一消息分发
      */
     public boolean dispatch(Sender sender, TCPMessage tcpMsg) {
-        if (tcpMsg == null) {
-            return true;
-        }
+        if (tcpMsg == null) return true;
         int msgId = tcpMsg.getMessageId();
-        if (msgId == 0) {
-            return true; // 忽略心跳或空包
-        }
+        if (msgId == 0) return true;
 
         RouteEntry route = routes.get(msgId);
         if (route == null || route.invoker == null) {
             logger.warn("未注册的消息处理器: 0x{}, seq: {}", Integer.toHexString(msgId), tcpMsg.getSequence());
             return true;
         }
+        return executeRoute(sender, tcpMsg, route, msgId);
+    }
 
+    private boolean executeRoute(Sender sender, TCPMessage tcpMsg, RouteEntry route, int msgId) {
         String traceId = TraceContext.beginTrace();
         long start = System.currentTimeMillis();
         try {
             Message msg = null;
             if (route.parser != null) {
                 byte[] bytes = tcpMsg.getMessage();
-                if (bytes != null && bytes.length > 0) {
-                    msg = route.parser.parseFrom(bytes);
-                } else {
-                    msg = route.parser.parseFrom(EMPTY_BYTES);
-                }
+                msg = (bytes != null && bytes.length > 0) ? route.parser.parseFrom(bytes) : route.parser.parseFrom(EMPTY_BYTES);
             }
-
             return route.invoker.invoke(sender, tcpMsg.getClientId(), msg, tcpMsg.getMapId(), tcpMsg.getSequence(), tcpMsg);
         } catch (Exception e) {
             logger.error("消息处理异常, msgId: 0x{}, clientId: {}, traceId: {}",
@@ -320,21 +280,16 @@ public class MsgRouter implements Handlers, net.message.Parser {
         } finally {
             long cost = System.currentTimeMillis() - start;
             if (cost > 500) {
-                logger.warn("消息处理慢, msgId: 0x{}, clientId: {}, cost: {}ms, traceId: {}",
-                        Integer.toHexString(msgId), tcpMsg.getClientId(), cost, traceId);
+                logger.warn("消息处理慢, msgId: 0x{}, cost: {}ms, traceId: {}", Integer.toHexString(msgId), cost, traceId);
             }
             TraceContext.endTrace();
         }
     }
 
-    // ==================== 接口兼容实现 (Handlers & Parser) ====================
-
     @Override
     public Handler getHandler(int msgId) {
         RouteEntry route = routes.get(msgId);
-        if (route == null || route.invoker == null) {
-            return null;
-        }
+        if (route == null || route.invoker == null) return null;
         return (sender, clientId, msg, mapId, sequence) -> {
             try {
                 return route.invoker.invoke(sender, clientId, msg, mapId, sequence, null);
@@ -352,14 +307,9 @@ public class MsgRouter implements Handlers, net.message.Parser {
 
     public Message parseMessage(int msgId, byte[] bytes) {
         RouteEntry route = routes.get(msgId);
-        if (route == null || route.parser == null) {
-            return null;
-        }
+        if (route == null || route.parser == null) return null;
         try {
-            if (bytes == null || bytes.length == 0) {
-                return route.parser.parseFrom(EMPTY_BYTES);
-            }
-            return route.parser.parseFrom(bytes);
+            return (bytes == null || bytes.length == 0) ? route.parser.parseFrom(EMPTY_BYTES) : route.parser.parseFrom(bytes);
         } catch (Exception e) {
             logger.error("反序列化消息失败, msgId: 0x{}", Integer.toHexString(msgId), e);
             return null;

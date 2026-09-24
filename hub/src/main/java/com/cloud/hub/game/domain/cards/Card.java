@@ -5,8 +5,12 @@ import com.cloud.hub.game.domain.card.CardConst;
 import com.cloud.hub.game.domain.card.CardSuit;
 
 /**
- * 扑克牌/麻将牌基础模型
- * 通过id编码花色和点数，支持比较、哈希、大小判断
+ * 扑克牌/麻将牌通用基础数据模型。
+ * <p>
+ * 通过 id 编码花色（百位数）和点数（模100），实现 Comparable 接口，
+ * 默认按点数降序排列，支持哈希与快速等值比较。
+ *
+ * @author cloud
  */
 public class Card implements Comparable<Card> {
 

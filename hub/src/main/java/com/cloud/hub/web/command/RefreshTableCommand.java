@@ -10,13 +10,22 @@ import msg.registor.message.GMsg;
 import java.util.Map;
 
 /**
- * refreshTable 命令：查询当前牌桌快照并推送给客户端。
+ * 刷新牌桌快照命令处理器（refreshTable）。
+ * <p>
+ * 向底层网关查询当前桌子的最新完整状态快照并推送给客户端同步。
+ *
+ * @author cloud
  */
 @Component
 public class RefreshTableCommand implements WsCommandHandler {
 
     private final GatewayTransport gateClient;
 
+    /**
+     * 构造刷新牌桌命令处理器。
+     *
+     * @param gateClient 网关传输服务
+     */
     public RefreshTableCommand(GatewayTransport gateClient) {
         this.gateClient = gateClient;
     }

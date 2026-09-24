@@ -40,6 +40,7 @@ public class ArenaRepository {
         this.pills = new ArenaPillService(dao);
         this.heroes = new ArenaHeroService(dao);
         this.tasks = new ArenaTaskService(dao);
+        initActionHandlers();
     }
 
     /**
@@ -72,6 +73,33 @@ public class ArenaRepository {
         }
     }
 
+    @FunctionalInterface
+    private interface ArenaActionHandler {
+        void execute(Connection c, long uid, String id, int count, long now) throws SQLException;
+    }
+
+    /** 动作指令分发策略字典 */
+    private final Map<String, ArenaActionHandler> actionHandlers = new java.util.HashMap<>();
+
+    private void initActionHandlers() {
+        actionHandlers.put("rank", (c, uid, id, count, now) -> heroes.rankUp(c, uid, id));
+        actionHandlers.put("skill", (c, uid, id, count, now) -> heroes.skillUp(c, uid, id));
+        actionHandlers.put("star", (c, uid, id, count, now) -> heroes.starUp(c, uid, id));
+        actionHandlers.put("draw", (c, uid, id, count, now) -> heroes.draw(c, uid, count, now));
+        actionHandlers.put("dungeon", (c, uid, id, count, now) -> tower.climb(c, uid, count));
+        actionHandlers.put("dungeon_settle", (c, uid, id, count, now) -> tower.settle(c, uid));
+        actionHandlers.put("grind_claim", (c, uid, id, count, now) -> tower.grind(c, uid, now));
+        actionHandlers.put("beast_upgrade", (c, uid, id, count, now) -> beasts.upgrade(c, uid));
+        actionHandlers.put("beast_tower", (c, uid, id, count, now) -> beasts.challengeTower(c, uid, count));
+        actionHandlers.put("consume_pill", (c, uid, id, count, now) -> pills.consume(c, uid, count));
+        actionHandlers.put("buy_pill", (c, uid, id, count, now) -> pills.buy(c, uid));
+        actionHandlers.put("claim", (c, uid, id, count, now) -> tasks.claim(c, uid, id));
+        actionHandlers.put("grotto", (c, uid, id, count, now) -> tasks.grotto(c, uid, now));
+        actionHandlers.put("formation", (c, uid, id, count, now) -> tasks.upgradeFormation(c, uid));
+        actionHandlers.put("equip_skill", (c, uid, id, count, now) -> tasks.equipSkill(c, uid, id));
+        actionHandlers.put("arena", (c, uid, id, count, now) -> dao.progress(c, uid, "task_arena", 1));
+    }
+
     /**
      * 统一处理玩家修行操作行为并持久化。
      *
@@ -89,30 +117,11 @@ public class ArenaRepository {
             dao.ensure(c, uid);
             dao.refresh(c, uid);
 
-            switch (action) {
-                case "rank":           heroes.rankUp(c, uid, id); break;
-                case "skill":          heroes.skillUp(c, uid, id); break;
-                case "star":           heroes.starUp(c, uid, id); break;
-                case "draw":           heroes.draw(c, uid, count, now); break;
-
-                case "dungeon":        tower.climb(c, uid, count); break;
-                case "dungeon_settle": tower.settle(c, uid); break;
-                case "grind_claim":    tower.grind(c, uid, now); break;
-
-                case "beast_upgrade":  beasts.upgrade(c, uid); break;
-                case "beast_tower":    beasts.challengeTower(c, uid, count); break;
-
-                case "consume_pill":   pills.consume(c, uid, count); break;
-                case "buy_pill":       pills.buy(c, uid); break;
-
-                case "claim":          tasks.claim(c, uid, id); break;
-                case "grotto":         tasks.grotto(c, uid, now); break;
-                case "formation":      tasks.upgradeFormation(c, uid); break;
-                case "equip_skill":    tasks.equipSkill(c, uid, id); break;
-
-                case "arena":          dao.progress(c, uid, "task_arena", 1); break;
-                default: throw new IllegalArgumentException("未知操作: " + action);
+            ArenaActionHandler handler = actionHandlers.get(action);
+            if (handler == null) {
+                throw new IllegalArgumentException("未知操作: " + action);
             }
+            handler.execute(c, uid, id, count, now);
 
             Map<String, Object> out = dao.read(c, uid);
             c.commit();

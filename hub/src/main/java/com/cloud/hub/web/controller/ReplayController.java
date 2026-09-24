@@ -12,18 +12,30 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 普通玩家回放接口，只返回本人参与的回放（参照 RuoYi 规范重构）
+ * 普通玩家战局回放查看控制器。
+ * <p>
+ * 遵循数据隐私安全，仅允许并返回当前登录玩家本人参与的对局回放及回放码解析。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/replays")
 @RequiresLogin
 public class ReplayController {
+
     private final ReplayService replayService;
 
     public ReplayController(ReplayService replayService) {
         this.replayService = replayService;
     }
 
+    /**
+     * 分页查询当前玩家参与的全部对局回放。
+     *
+     * @param page 分页页码
+     * @param size 每页大小
+     * @return 个人回放分页列表
+     */
     @GetMapping
     public AjaxResult list(@RequestParam(defaultValue = "1") int page,
                            @RequestParam(defaultValue = "20") int size) {
@@ -35,6 +47,12 @@ public class ReplayController {
         return ajax;
     }
 
+    /**
+     * 根据回放提取码查询单局回放详情（受用户鉴权约束）。
+     *
+     * @param code 回放提取码 (如 2026-09-24/game_12345.json)
+     * @return 回放记录详情或错误提示
+     */
     @GetMapping("/code")
     public AjaxResult byCode(@RequestParam String code) {
         int userId = SecurityUtils.getUserId();

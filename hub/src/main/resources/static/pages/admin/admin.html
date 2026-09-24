@@ -33,9 +33,10 @@
     <div class="tabs">
         <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
         <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
+        <button class="tab" data-tab="metrics" onclick="switchTab('metrics')">系统监控</button>
         <button class="tab" data-tab="arena" onclick="switchTab('arena')">剑气除魔</button>
         <button class="tab" data-tab="arpu" onclick="switchTab('arpu')">ARPU 查询</button>
-        <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
+        <button class="tab" data-tab="tables" onclick="switchTab('tables')">实时桌况/测试</button>
         <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
         <button class="tab" data-tab="photos" onclick="switchTab('photos')">图片管理</button>
     </div>
@@ -116,6 +117,16 @@
                 </table>
             </div>
             <div class="msg" id="usersMsg"></div>
+        </div>
+    </div>
+
+    <div id="panel-metrics" class="panel">
+        <div class="card">
+            <div class="card-heading">
+                <h2 style="margin:0;">系统运行监控与性能指标</h2>
+                <button class="btn btn-ghost" onclick="loadMetrics()">刷新指标</button>
+            </div>
+            <div id="metricsContainer" style="margin-top:16px;"></div>
         </div>
     </div>
 
@@ -237,9 +248,23 @@
         </div>
         <div class="card">
             <div class="card-heading"><div><h2>实时对局</h2><div class="meta" id="tablesMeta"></div></div><button class="btn btn-ghost" onclick="loadTables()">刷新</button></div>
-            <div class="table-scroll"><table><thead><tr><th>桌号</th><th>玩法</th><th>状态</th><th>人数</th><th>房主</th><th>操作</th></tr></thead>
+            <div class="table-scroll"><table><thead><tr><th>桌号</th><th>玩法</th><th>状态码/描述</th><th>局数</th><th>在桌玩家</th><th>操作</th></tr></thead>
                 <tbody id="tableBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div>
             <div class="msg" id="tablesMsg"></div>
+        </div>
+
+        <div class="card" id="tableInspectorCard" style="display:none;margin-top:16px;">
+            <div class="card-heading">
+                <div>
+                    <h2 id="inspectorTitle" style="margin:0;">牌桌透视详情</h2>
+                    <div class="meta" id="inspectorMeta" style="margin-top:4px;"></div>
+                </div>
+                <div>
+                    <button class="btn btn-ghost" onclick="refreshCurrentInspector()">刷新本桌</button>
+                    <button class="btn btn-ghost" onclick="closeInspector()">关闭透视</button>
+                </div>
+            </div>
+            <div id="inspectorContent" style="margin-top:14px;"></div>
         </div>
     </div>
 
@@ -359,5 +384,6 @@
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
 <script src="./js/arpu.js"></script>
+<script src="./js/metrics.js"></script>
 </body>
 </html>

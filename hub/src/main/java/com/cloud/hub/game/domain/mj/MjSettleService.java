@@ -1,5 +1,6 @@
 package com.cloud.hub.game.domain.mj;
 
+import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.db.ScoreRepository;
 import com.cloud.hub.game.domain.table.GameResult;
 import com.cloud.hub.game.domain.table.TableUser;
@@ -54,6 +55,11 @@ public class MjSettleService {
 		table.getGameResult().addRound(table.getCurrentRound(), -1, 0, scores, "liuJu");
 		ScoreRepository.getInstance().saveRound(table);
 		sendRoundResult(table, -1, 0, scores, "liuJu");
+		if (HubMetrics.getInstance() != null) {
+			HubMetrics.getInstance().recordRoundSettled("mj");
+		}
+		logger.info("[MJ-Settle] 流局结算完成, TableId: {}, Round: {}, Reason: {}, Scores: {}",
+				table.getTableId(), table.getCurrentRound(), reason, Arrays.toString(scores));
 		table.upNextState(TableState.TABLE_OVER);
 	}
 
@@ -106,11 +112,12 @@ public class MjSettleService {
 		table.getGameResult().addRound(table.getCurrentRound(), primaryWinner, fanSum, scores, winType);
 		ScoreRepository.getInstance().saveRound(table);
 		sendRoundResult(table, primaryWinner, fanSum, scores, winType, winTile);
+		if (HubMetrics.getInstance() != null) {
+			HubMetrics.getInstance().recordRoundSettled("mj");
+		}
 
-		logger.info("麻将胡牌, table: {}, round: {}, winners: {}, fan: {}, type: {}, scores: {}",
-				table.getTableId(), table.getCurrentRound(),
-				winResults.stream().map(MjWinResult::getWinnerId).collect(Collectors.toList()),
-				fanSum, winType, Arrays.toString(scores));
+		logger.info("[MJ-Settle] 麻将胡牌结算, TableId: {}, Round: {}, PrimaryWinner: {}, Fan: {}, Type: {}, Scores: {}",
+				table.getTableId(), table.getCurrentRound(), primaryWinner, fanSum, winType, Arrays.toString(scores));
 
 		table.upNextState(TableState.TABLE_OVER);
 	}
@@ -133,8 +140,6 @@ public class MjSettleService {
 
 	private static void sendRoundResult(MjTable table, int winnerSeat, int fan, int[] scores, String winType, int winTile) {
 		int seatNum = table.getTableModel().getSeatNum();
-		MjTableContext ctx = table.getMjContext();
-
 		GameProto.NotRoundResult.Builder builder = GameProto.NotRoundResult.newBuilder()
 				.setRound(table.getCurrentRound())
 				.setWinnerSeat(winnerSeat)
@@ -148,7 +153,14 @@ public class MjSettleService {
 					.setScore(table.getGameResult().getTotalScore(i)).build());
 		}
 
-		// 每家副露统计
+		appendSeatExposed(builder, table, seatNum);
+		appendSeatHands(builder, table, seatNum);
+		table.sendTableMessage(builder.build(), GMsg.NOT_ROUND_RESULT);
+	}
+
+	/** 填充每家副露信息 */
+	private static void appendSeatExposed(GameProto.NotRoundResult.Builder builder, MjTable table, int seatNum) {
+		MjTableContext ctx = table.getMjContext();
 		for (int i = 0; i < seatNum; i++) {
 			GameProto.SeatExposed.Builder seatExposed = GameProto.SeatExposed.newBuilder().setSeat(i);
 			for (MjExposedSet set : ctx.getExposedSets(i)) {
@@ -159,8 +171,11 @@ public class MjSettleService {
 			}
 			builder.addSeatExposed(seatExposed.build());
 		}
+	}
 
-		// 每家手牌(结算展示用，按牌序排序避免乱序)
+	/** 填充每家手牌及副露展示 */
+	private static void appendSeatHands(GameProto.NotRoundResult.Builder builder, MjTable table, int seatNum) {
+		MjTableContext ctx = table.getMjContext();
 		for (int i = 0; i < seatNum; i++) {
 			TableUser u = table.getSeatUser(i);
 			GameProto.HandInfo.Builder handBuilder = GameProto.HandInfo.newBuilder().setSeat(i);
@@ -177,8 +192,6 @@ public class MjSettleService {
 			}
 			builder.addHands(handBuilder.build());
 		}
-
-		table.sendTableMessage(builder.build(), GMsg.NOT_ROUND_RESULT);
 	}
 
 

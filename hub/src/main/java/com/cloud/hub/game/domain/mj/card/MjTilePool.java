@@ -101,6 +101,15 @@ public class MjTilePool {
     }
 
     /**
+     * 获取牌墙中所有剩余牌的只读列表（用于调试与后台上帝视角透视）。
+     *
+     * @return 牌墙余牌 ID 列表
+     */
+    public List<Integer> getWallTiles() {
+        return Collections.unmodifiableList(new ArrayList<>(wallTiles));
+    }
+
+    /**
      * 发初始手牌(每人13张)，并通知每个玩家自己的手牌
      */
     public void dealInitTiles() {

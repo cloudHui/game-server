@@ -7,66 +7,51 @@ import com.cloud.hub.game.manager.TableManager;
 import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import proto.ModelProto;
 import threadtutil.thread.ExecutorPool;
 import threadtutil.thread.Task;
 import threadtutil.timer.Runner;
 import threadtutil.timer.Timer;
-import tools.ServerClientManager;
-import tools.ServerManager;
-import utils.metrics.MetricsHttpServer;
 
 /**
+ * 对局服务核心运行时门面单例。
+ * <p>
+ * 管理游戏线程池 {@link GameThreadPoolManager}、定时器 {@link Timer}、
+ * 游戏桌管理器 {@link TableManager} 以及异步落库执行器 {@link DatabaseExecutorManager}。
+ * 在一体化架构中以嵌入式模式 (Embedded) 启动运行，与大厅同进程协同工作。
+ * </p>
+ *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className Game
- * @description 游戏服务器主类，负责游戏逻辑处理、桌子管理和玩家会话
- * @createDate 2026-05-03
- * @since 1.0
  */
 public class Game {
+
     private static final Logger logger = LoggerFactory.getLogger(Game.class);
     private static final Game instance = new Game();
-    private final ServerClientManager serverClientManager = new ServerClientManager();
+
     private ExecutorPool executorPool;
     private Timer timer;
     private int serverId;
-    private String center;
-    private ModelProto.ServerInfo serverInfo;
-    private ServerManager serverManager;
     private TableManager tableManager;
     private DatabaseExecutorManager databaseExecutorManager;
-    private MetricsHttpServer metricsHttpServer;
     private GameThreadPoolManager threadPoolManager;
 
     private Game() {
-        // 私有构造函数,单例模式
     }
 
+    /**
+     * 获取对局引擎单例实例。
+     *
+     * @return Game 单例对象
+     */
     public static Game getInstance() {
         return instance;
     }
 
-    // Getter和Setter方法
     public int getServerId() {
         return serverId;
     }
 
     public void setServerId(int serverId) {
         this.serverId = serverId;
-    }
-
-    public void setCenter(String center) {
-        this.center = center;
-    }
-
-    public ServerManager getServerManager() {
-        return serverManager;
-    }
-
-    public ServerClientManager getServerClientManager() {
-        return serverClientManager;
     }
 
     public TableManager getTableManager() {
@@ -82,17 +67,21 @@ public class Game {
     }
 
     /**
-     * 统一释放桌子、定时器和数据库线程池，避免服务重启遗留非守护线程。
+     * 优雅停服：统一释放所有游戏桌逻辑、取消定时器并关闭数据库异步落库线程池。
      */
     public void shutdown() {
-        if (tableManager != null)
+        if (tableManager != null) {
             tableManager.shutdown();
-        if (threadPoolManager != null)
+        }
+        if (threadPoolManager != null) {
             threadPoolManager.shutdown();
-        if (timer != null)
+        }
+        if (timer != null) {
             timer.stop();
-        if (databaseExecutorManager != null)
+        }
+        if (databaseExecutorManager != null) {
             databaseExecutorManager.shutdown();
+        }
         tableManager = null;
         threadPoolManager = null;
         timer = null;
@@ -100,10 +89,19 @@ public class Game {
         databaseExecutorManager = null;
     }
 
+    /**
+     * 启动嵌入式对局引擎运行时。
+     *
+     * @param scoreDatabasePath 战绩持久化 SQLite 文件路径
+     * @param workers           业务对局工作线程数
+     * @param queueCapacity     工作队列容量
+     * @param databaseThreads   数据库异步写入线程数
+     */
     public synchronized void startEmbedded(String scoreDatabasePath, int workers,
             int queueCapacity, int databaseThreads) {
-        if (tableManager != null)
+        if (tableManager != null) {
             return;
+        }
         if (workers <= 0 || queueCapacity <= 0 || databaseThreads <= 0) {
             throw new IllegalArgumentException("Game线程与队列配置必须大于0");
         }
@@ -121,12 +119,8 @@ public class Game {
         logger.info("Game embedded runtime ready; no Center/TCP/metrics ports opened");
     }
 
-    public ModelProto.ServerInfo getServerInfo() {
-        return serverInfo;
-    }
-
     /**
-     * 注册定时器
+     * 注册全局定时器。
      */
     public <T> void registerTimer(long delay, long interval, int count, Runner<T> runner, T param) {
         timer.register(delay, interval, count, runner, param);
@@ -134,7 +128,7 @@ public class Game {
     }
 
     /**
-     * 注册串行定时器
+     * 注册串行定时器（同组内排队保序执行）。
      */
     public <T> void registerSerialTimer(int groupId, long delay, long interval, int count, Runner<T> runner, T param) {
         timer.registerSerial(groupId, delay, interval, count, runner, param);
@@ -142,7 +136,7 @@ public class Game {
     }
 
     /**
-     * 注册串行定时器并返回ID（用于后续替换间隔）
+     * 注册串行定时器并返回分配的计时器 ID。
      */
     public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner,
             T param) {
@@ -152,14 +146,14 @@ public class Game {
     }
 
     /**
-     * 注销定时器
+     * 注销指定计时器。
      */
     public void unregisterTimer(int nodeId) {
         timer.unregister(nodeId);
     }
 
     /**
-     * 直接提交任务到线程池
+     * 提交异步任务至主业务线程池。
      */
     public void execute(Runnable task) {
         executorPool.execute(task);
@@ -167,7 +161,7 @@ public class Game {
     }
 
     /**
-     * 按顺序有序处理任务
+     * 按顺序提交串行任务。
      */
     public void serialExecute(Task task) {
         executorPool.serialExecute(task);
@@ -175,10 +169,9 @@ public class Game {
     }
 
     /**
-     * 获取线程池当前大小
+     * 获取主线程池当前大小。
      */
     public int getPoolSize() {
         return executorPool.size();
     }
-
 }

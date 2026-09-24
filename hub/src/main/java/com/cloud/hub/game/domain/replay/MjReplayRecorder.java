@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 麻将回放记录器
- * 记录摸牌、出牌、碰杠吃胡等操作，最终写入文本文件
+ * 麻将对局回放记录器。
+ * <p>
+ * 负责记录麻将庄家、定赖/翻牌、摸牌、出牌、吃碰明暗杠、抢杠胡、自摸与点炮等全流程审计事件。
+ *
+ * @author cloud
  */
 public class MjReplayRecorder extends BaseReplayRecorder {
 

@@ -20,10 +20,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * 读取 game 落盘的回放文本（replay/日期/桌号_局.txt）
+ * 对局回放记录检索与文本读取服务。
+ * <p>
+ * 扫描并解析按日期组织的落盘对局回放文件（{@code replay/日期/桌号_局.txt}），
+ * 提供全局分页、玩家个人回放过滤以及回放文本内容获取。
+ *
+ * @author cloud
  */
 @Service
 public class ReplayService {
+
     private static final Logger logger = LoggerFactory.getLogger(ReplayService.class);
 
     private final DataPathResolver paths;
@@ -35,7 +41,10 @@ public class ReplayService {
     }
 
     /**
-     * 列出所有回放
+     * 列出最新回放列表。
+     *
+     * @param limit 最大条数
+     * @return 回放元数据列表
      */
     public List<Map<String, Object>> listReplays(int limit) {
         Path root = resolveRoot();
@@ -49,17 +58,8 @@ public class ReplayService {
                     .sorted(Comparator.reverseOrder())
                     .collect(Collectors.toList());
             for (Path day : dayDirs) {
-                try (Stream<Path> files = Files.list(day)) {
-                    List<Path> txts = files.filter(p -> p.getFileName().toString().endsWith(".txt"))
-                            .sorted(Comparator.comparingLong((Path p) -> p.toFile().lastModified()).reversed())
-                            .collect(Collectors.toList());
-                    for (Path f : txts) {
-                        Map<String, Object> m = summarize(day.getFileName().toString(), f);
-                        items.add(m);
-                        if (items.size() >= lim) {
-                            return items;
-                        }
-                    }
+                if (scanDayReplays(day, items, lim)) {
+                    return items;
                 }
             }
         } catch (IOException e) {
@@ -68,15 +68,31 @@ public class ReplayService {
         return items;
     }
 
+    private boolean scanDayReplays(Path day, List<Map<String, Object>> items, int lim) {
+        try (Stream<Path> files = Files.list(day)) {
+            List<Path> txts = files.filter(p -> p.getFileName().toString().endsWith(".txt"))
+                    .sorted(Comparator.comparingLong((Path p) -> p.toFile().lastModified()).reversed())
+                    .collect(Collectors.toList());
+            for (Path f : txts) {
+                items.add(summarize(day.getFileName().toString(), f));
+                if (items.size() >= lim) {
+                    return true;
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return false;
+    }
+
     /**
-     * 分页查询回放
+     * 分页查询回放。
      */
     public Map<String, Object> page(int page, int pageSize) {
         return page(page, pageSize, "", "");
     }
 
     /**
-     * 分页查询回放
+     * 条件分页查询回放。
      */
     public Map<String, Object> page(int page, int pageSize, String category, String gameType) {
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
@@ -84,16 +100,13 @@ public class ReplayService {
         String safeCategory = category == null ? "" : category.trim();
         String safeGameType = gameType == null ? "" : gameType.trim();
         if (!safeCategory.isEmpty() || !safeGameType.isEmpty()) {
-            all = all.stream().filter(item -> (safeCategory.isEmpty()
-                    || safeCategory.equals(String.valueOf(item.get("category"))))
-                    && (safeGameType.isEmpty()
-                            || safeGameType.equals(String.valueOf(item.get("gameType")))))
-                    .collect(Collectors.toList());
+            all = filterReplays(all, safeCategory, safeGameType);
         }
         int pageCount = Math.max(1, (all.size() + safeSize - 1) / safeSize);
         int safePage = Math.min(Math.max(page, 1), pageCount);
         int from = (safePage - 1) * safeSize;
         int to = Math.min(from + safeSize, all.size());
+
         Map<String, Object> result = new HashMap<>();
         result.put("page", safePage);
         result.put("pageSize", safeSize);
@@ -106,14 +119,19 @@ public class ReplayService {
         return result;
     }
 
+    private List<Map<String, Object>> filterReplays(List<Map<String, Object>> all, String category, String gameType) {
+        return all.stream().filter(item -> (category.isEmpty() || category.equals(String.valueOf(item.get("category"))))
+                && (gameType.isEmpty() || gameType.equals(String.valueOf(item.get("gameType")))))
+                .collect(Collectors.toList());
+    }
+
     /**
-     * 分页查询玩家回放
+     * 分页查询指定玩家可见的回放。
      */
     public Map<String, Object> pageForUser(int userId, int page, int pageSize) {
         List<Map<String, Object>> visible = new ArrayList<>();
         try {
-            for (ReplayRetention.FileRef file : ReplayRetention.visibleForUser(ReplayRetention.scan(resolveRoot()),
-                    userId)) {
+            for (ReplayRetention.FileRef file : ReplayRetention.visibleForUser(ReplayRetention.scan(resolveRoot()), userId)) {
                 visible.add(summarize(file.path.getParent().getFileName().toString(), file.path));
             }
         } catch (IOException e) {
@@ -124,6 +142,7 @@ public class ReplayService {
         int safePage = Math.min(Math.max(page, 1), pageCount);
         int from = (safePage - 1) * safeSize;
         int to = Math.min(from + safeSize, visible.size());
+
         Map<String, Object> result = new HashMap<>();
         result.put("page", safePage);
         result.put("pageSize", safeSize);
@@ -135,7 +154,7 @@ public class ReplayService {
     }
 
     /**
-     * 获取玩家回放
+     * 获取玩家可见的指定回放内容。
      */
     public Map<String, Object> getReplayForUser(int userId, String date, String name) {
         Map<String, Object> result = getReplay(date, name);
@@ -151,14 +170,12 @@ public class ReplayService {
         return result;
     }
 
-    /**
-     * 检查玩家是否可见回放
-     */
     private boolean containsUser(Path file, int userId) {
         try {
             for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
-                if (line.contains("userId=" + userId + ","))
+                if (line.contains("userId=" + userId + ",")) {
                     return true;
+                }
             }
         } catch (IOException ignored) {
         }
@@ -166,21 +183,18 @@ public class ReplayService {
     }
 
     /**
-     * 获取回放
+     * 安全读取回放文本文件。
      */
     public Map<String, Object> getReplay(String date, String name) {
         Map<String, Object> result = new HashMap<>();
-        if (date == null || name == null || date.contains("..") || name.contains("..")
-                || date.contains("/") || name.contains("/")) {
+        if (isIllegalPath(date, name)) {
             result.put("code", 400);
             result.put("msg", "非法路径");
             return result;
         }
-        if (!name.endsWith(".txt")) {
-            name = name + ".txt";
-        }
+        String fileName = name.endsWith(".txt") ? name : name + ".txt";
         Path root = resolveRoot().toAbsolutePath().normalize();
-        Path file = root.resolve(date).resolve(name).normalize();
+        Path file = root.resolve(date).resolve(fileName).normalize();
         if (!file.startsWith(root)) {
             result.put("code", 400);
             result.put("msg", "非法路径");
@@ -191,11 +205,20 @@ public class ReplayService {
             result.put("msg", "回放不存在");
             return result;
         }
+        return readReplayContent(date, fileName, file, result);
+    }
+
+    private boolean isIllegalPath(String date, String name) {
+        return date == null || name == null || date.contains("..") || name.contains("..")
+                || date.contains("/") || name.contains("/");
+    }
+
+    private Map<String, Object> readReplayContent(String date, String fileName, Path file, Map<String, Object> result) {
         try {
             String content = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
             result.put("code", 0);
             result.put("date", date);
-            result.put("name", name);
+            result.put("name", fileName);
             result.put("content", content);
             result.putAll(summarize(date, file));
             return result;
@@ -207,7 +230,7 @@ public class ReplayService {
     }
 
     /**
-     * 摘要回放信息
+     * 解析回放元数据摘要。
      */
     private Map<String, Object> summarize(String date, Path file) {
         Map<String, Object> m = new HashMap<>();
@@ -218,6 +241,11 @@ public class ReplayService {
         m.put("name", name);
         m.put("mtime", file.toFile().lastModified());
         m.put("size", file.toFile().length());
+        fillReplayHeaderMeta(m, file);
+        return m;
+    }
+
+    private void fillReplayHeaderMeta(Map<String, Object> m, Path file) {
         String tableId = "";
         String round = "";
         String gameType = "";
@@ -225,14 +253,15 @@ public class ReplayService {
         try {
             List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
             for (String line : lines) {
-                if (line.startsWith("桌号:"))
+                if (line.startsWith("桌号:")) {
                     tableId = line.substring(3).trim();
-                else if (line.startsWith("玩法:"))
+                } else if (line.startsWith("玩法:")) {
                     gameType = line.substring(3).trim();
-                else if (line.startsWith("当前局:"))
+                } else if (line.startsWith("当前局:")) {
                     round = line.substring(4).trim();
-                else if (line.startsWith("回放状态:"))
+                } else if (line.startsWith("回放状态:")) {
                     status = line.substring(5).trim();
+                }
             }
         } catch (IOException ignored) {
         }
@@ -241,7 +270,6 @@ public class ReplayService {
         m.put("gameType", gameType);
         m.put("category", isMahjong(gameType) ? "mahjong" : "poker");
         m.put("status", status);
-        return m;
     }
 
     private boolean isMahjong(String gameType) {

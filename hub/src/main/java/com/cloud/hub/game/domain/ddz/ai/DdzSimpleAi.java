@@ -1,12 +1,12 @@
 package com.cloud.hub.game.domain.ddz.ai;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.ai.AiSearchBudget;
 import com.cloud.hub.game.domain.card.CardConst;
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.ddz.DdzHand;
 import com.cloud.hub.game.domain.ddz.DdzRules;
 import com.cloud.hub.game.domain.ddz.DdzTable;
+import com.cloud.hub.game.domain.table.TableUser;
 import proto.ConstProto;
 import proto.GameProto;
 
@@ -18,8 +18,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * DdzSimpleAi
- * 简易托管 AI：拆牌规划 + 合法压制枚举 + 阶段/角色极简启发。
+ * 斗地主基础托管与启发式出牌决策引擎（AI_BASIC 与通用底层评估）。
+ * <p>
+ * 整合拆牌规划（{@link DdzSplitPlanner}）、合法牌型压制搜索（{@link DdzLegalBeatFinder}）、
+ * 阶段划分与农民阵营助攻机制，为机器人提供拟人化出牌决策。单个方法均在 40 行以内。
  *
  * @author cloud
  * @version 1.0
@@ -28,15 +30,20 @@ import java.util.Set;
  */
 public final class DdzSimpleAi {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DdzSimpleAi.class);
+
     private DdzSimpleAi() {
     }
 
     /**
-     * 决定
+     * 机器人主出牌决策入口。
+     * <p>
+     * 依次完成：信息视野感知装配 → 无脑 AI 兜底 → 首出决策（首出规划或大师搜索）
+     * → 队友让牌识别 → 合法压制过滤与最小成本跟牌。
      *
-     * @param table 桌子
-     * @param user  用户
-     * @return 决定
+     * @param table 当前斗地主牌桌实体
+     * @param user  待决策的 AI 玩家实体
+     * @return 最终构建的 Protobuf 出牌或过牌操作载荷
      */
     public static GameProto.OpInfo decide(DdzTable table, TableUser user) {
         List<Card> hand = new ArrayList<>(user.getCards());
@@ -48,7 +55,7 @@ public final class DdzSimpleAi {
         visionLevel = AiVision.effectiveVisionLevel(visionLevel, aiLevel);
         DdzVision vision = new DdzVision(table, user, visionLevel, aiLevel);
 
-        // 最低级 AI：无策略，出最小单牌或直接过
+        // 弱智档 AI：纯随机或出最小单张，不进行策略计算
         if (aiLevel == AiVision.AI_DUMB) {
             return decideDumb(hand, table);
         }
@@ -56,38 +63,52 @@ public final class DdzSimpleAi {
         int phase = phaseOf(hand.size());
         DdzHand last = table.getDdz().getLastHand();
 
+        // 1. 首出分支：当前桌面无牌或上一轮全员 PASS
         if (last == null || last.getCards().isEmpty()) {
             if (aiLevel >= AiVision.AI_MASTER) {
                 return DdzMasterAi.lead(hand, phase, new AiSearchBudget(80, 2400));
             }
             return lead(hand, phase, vision);
         }
+
+        // 2. 农民配合分支：队友刚出过牌且控场，己方应主动让行让队友逃牌
         if (shouldPassAfterTeammate(table, user, vision)) {
             return pass();
         }
+
+        // 3. 被动跟牌分支：枚举所有合法大过上家的牌型并择优压制
         int minOppCards = vision.getMinOpponentCards();
         List<DdzHand> beats = DdzLegalBeatFinder.findBeatingHands(hand, last);
         beats = filterHeavyBeats(beats, last, phase, minOppCards);
         if (beats.isEmpty()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("[DDZ-AI-Decide] 玩家: {}, 上家牌: {}, 无法压制, 选择 PASS", user.getUserId(), last.getType());
+            }
             return pass();
         }
+
         DdzHand pick = aiLevel >= AiVision.AI_MASTER
                 ? DdzMasterAi.pickBeat(hand, beats, minOppCards, new AiSearchBudget(80, 2400))
                 : pickCheapestBeat(beats, minOppCards);
+        if (logger.isDebugEnabled()) {
+            logger.debug("[DDZ-AI-Decide] 玩家: {}, 上家牌: {}, 候选数: {}, 选择出牌: {}",
+                    user.getUserId(), last.getType(), beats.size(), pick.getType());
+        }
         return playHand(pick);
     }
 
     /**
-     * 最低级 AI：无策略决策。
-     * 首出 → 出最小的一手（拆牌后取第一个组），跟牌 → 直接 pass。
+     * 弱智档 AI（AI_DUMB）保底决策：首出取最小拆数组或单牌，跟牌直接不出。
+     *
+     * @param hand  当前手牌
+     * @param table 牌桌实体
+     * @return 操作载荷
      */
     private static GameProto.OpInfo decideDumb(List<Card> hand, DdzTable table) {
         DdzHand last = table.getDdz().getLastHand();
-        // 跟牌：直接过
         if (last != null && !last.getCards().isEmpty()) {
             return pass();
         }
-        // 首出：出拆牌的第一组（最小的）
         List<CardGroup> plan = DdzSplitPlanner.plan(hand);
         if (!plan.isEmpty()) {
             Optional<DdzHand> o = DdzRules.analyze(plan.get(0).getCards());
@@ -95,17 +116,16 @@ public final class DdzSimpleAi {
                 return playHand(o.get());
             }
         }
-        // fallback: 出最小单牌
         Card c = Collections.min(hand);
         Optional<DdzHand> one = DdzRules.analyze(Collections.singletonList(c));
         return one.map(DdzSimpleAi::playHand).orElseGet(DdzSimpleAi::pass);
     }
 
     /**
-     * 阶段
+     * 根据剩余手牌张数推导所处的对局阶段。
      *
-     * @param handSize 手牌大小
-     * @return 阶段
+     * @param handSize 当前手牌总张数
+     * @return 0 为前期（≥14张），1 为中期（8~13张），2 为残局（≤7张）
      */
     static int phaseOf(int handSize) {
         if (handSize >= DdzAiConstants.PHASE_EARLY_MIN_CARDS) {
@@ -118,16 +138,19 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 是否应该在队友出牌后 PASS（农民智能配合）
+     * 判断当前农民玩家在队友出牌后是否应当主动让行（PASS）。
      * <p>
-     * 以下情况不 PASS：
-     * 1. 队友出的牌很弱（strengthKey < 阈值），主动接过来控场
-     * 2. 地主手牌 ≤ DANGER_CARDS，应该压制不让地主跑
-     * 3. 自己手牌能一手出完，直接走
+     * 例外情况（不让行）：
+     * <ol>
+     *   <li>自己能一手直接走完出光获胜；</li>
+     *   <li>地主手牌危险（≤3张），必须封锁；</li>
+     *   <li>队友打出的牌力过弱（低于阈值），己方主动接过来控场。</li>
+     * </ol>
      *
-     * @param table 桌子
-     * @param user  用户
-     * @return 是否应该 PASS
+     * @param table  牌桌实体
+     * @param user   当前农民玩家实体
+     * @param vision 视野控制器
+     * @return true 表示应当助攻让行
      */
     private static boolean shouldPassAfterTeammate(DdzTable table, TableUser user, DdzVision vision) {
         if (!DdzAiConstants.AI_PASS_AFTER_TEAMMATE_PLAY) {
@@ -135,15 +158,17 @@ public final class DdzSimpleAi {
         }
         int landlordSeat = table.getDdz().getLandlordSeat();
         int mySeat = user.getSeated();
+        // 自己不是农民，或尚未定地主，不触发农民配合
         if (landlordSeat < 0 || mySeat == landlordSeat) {
             return false;
         }
         int lastSeat = table.getDdz().getLastPlaySeat();
+        // 上一手并非同阵营队友出的牌，不触发让牌
         if (lastSeat < 0 || lastSeat == mySeat || lastSeat == landlordSeat) {
             return false;
         }
 
-        // 自己能一手出完 → 不让
+        // 己方手牌能一手打光直接斩杀获胜时，绝对不让
         if (user.getCards().size() <= 5) {
             DdzHand whole = DdzRules.analyze(new ArrayList<>(user.getCards())).orElse(null);
             if (whole != null) {
@@ -151,12 +176,12 @@ public final class DdzSimpleAi {
             }
         }
 
-        // 地主手牌危险（≤3张）→ 不让，必须压制
+        // 地主手牌告急进入斩杀线（≤3张）时，必须积极压制不可放行
         if (vision.getMinOpponentCards() <= DdzAiConstants.FARMER_DANGER_LANDLORD_CARDS) {
             return false;
         }
 
-        // 队友出的牌太弱 → 不让，主动接
+        // 队友出牌过弱容易被地主接走时，己方应主动接牌控场
         DdzHand lastHand = table.getDdz().getLastHand();
         if (lastHand != null && lastHand.getStrengthKey() < DdzAiConstants.FARMER_TEAMMATE_WEAK_THRESHOLD) {
             return false;
@@ -166,24 +191,28 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 过滤重牌
+     * 过滤过重牌型（在前期试探阶段避免用炸弹压制软牌）。
      *
-     * @param beats 牌
-     * @param last  上一手
-     * @param phase 阶段
-     * @return 过滤重牌
+     * @param beats       所有合法大过的牌型列表
+     * @param last        桌面上一手牌型
+     * @param phase       对局阶段
+     * @param minOppCards 对手最小余牌数
+     * @return 过滤后的牌型列表
      */
     private static List<DdzHand> filterHeavyBeats(List<DdzHand> beats, DdzHand last, int phase, int minOppCards) {
-        // 对手快赢时不过滤炸弹
+        // 对手快赢时取消所有过滤，允许全力动用炸弹拦截
         if (minOppCards <= DdzAiConstants.FOLLOW_BOMB_DANGER_OPP_CARDS) {
             return beats;
         }
+        // 中后期或上一手本来就是炸弹，不作过滤
         if (phase > 0 || last.isBomb() || last.isRocket()) {
             return beats;
         }
+        // 上一手牌面点数较大，允许动用强力牌
         if (last.getStrengthKey() > DdzAiConstants.FOLLOW_SOFT_LAST_STRENGTH_MAX) {
             return beats;
         }
+        // 前期且上一手为软牌时，过滤掉炸弹与火箭
         List<DdzHand> light = new ArrayList<>();
         for (DdzHand h : beats) {
             if (!h.isBomb() && !h.isRocket()) {
@@ -194,10 +223,11 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 选择最便宜的牌
+     * 在备选压制牌型中，按照「最小压制原则」选取综合代价最低的一手牌。
      *
-     * @param beats 牌
-     * @return 最便宜的牌
+     * @param beats       合法压制牌型列表
+     * @param minOppCards 对手最小余牌数
+     * @return 代价最低的最佳跟牌
      */
     static DdzHand pickCheapestBeat(List<DdzHand> beats, int minOppCards) {
         DdzHand best = null;
@@ -222,14 +252,15 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 出牌
+     * 基础启发式首出决策：综合成套拆牌、残局搜索与保留权重挑选最优起手牌。
      *
-     * @param hand  手牌
-     * @param phase 阶段
-     * @return 出牌
+     * @param hand   当前手牌
+     * @param phase  阶段
+     * @param vision 视野
+     * @return 出牌操作载荷
      */
     static GameProto.OpInfo lead(List<Card> hand, int phase, DdzVision vision) {
-        // 终局搜索：手牌≤5时穷举最快出完方案
+        // 残局搜索（≤5张时）：直接穷举最少步数必胜解
         if (hand.size() <= DdzAiConstants.PHASE_ENDGAME_MAX_CARDS) {
             DdzHand endgame = endgameSolve(hand);
             if (endgame != null) {
@@ -266,7 +297,11 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 出牌后剩余手牌的拆牌组数（越少越好）
+     * 计算打出指定牌型后，剩余牌拆解出的散组数量（组数越少越好）。
+     *
+     * @param hand 当前完整手牌
+     * @param play 假定打出的牌型
+     * @return 剩余散组总数
      */
     private static int residualGroupCount(List<Card> hand, DdzHand play) {
         List<Card> remaining = new ArrayList<>(hand);
@@ -280,11 +315,11 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 添加出牌候选
+     * 将一组扑克牌解析后去重装入首出候选集。
      *
-     * @param cards      牌
-     * @param candidates 候选
-     * @param seen       已见过
+     * @param cards      牌列表
+     * @param candidates 候选集
+     * @param seen       哈希去重集
      */
     static void addLeadCandidate(List<Card> cards, List<DdzHand> candidates, Set<Long> seen) {
         Optional<DdzHand> o = DdzRules.analyze(cards);
@@ -297,11 +332,34 @@ public final class DdzSimpleAi {
         }
     }
 
+    @FunctionalInterface
+    private interface PreserveEvaluator {
+        double evaluate(DdzHand h);
+    }
+
+    private static final java.util.Map<ConstProto.CardType, PreserveEvaluator> PRESERVE_EVALUATORS =
+            new java.util.EnumMap<>(ConstProto.CardType.class);
+
+    static {
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.STRAIGHT, h ->
+                DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_MIN_BONUS
+                        + h.getCards().size() * DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_PER_CARD);
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.STRAIGHT_DOUBLE, h ->
+                DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_DOUBLE_MIN_BONUS
+                        + h.getStraightLen() * DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_DOUBLE_PER_PAIR);
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.TRIPLE, h -> DdzAiConstants.SPLIT_WEIGHT_TRIPLE);
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.TRIPLE_ONE, h -> DdzAiConstants.SPLIT_WEIGHT_TRIPLE);
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.TRIPLE_DOUBLE, h -> DdzAiConstants.SPLIT_WEIGHT_TRIPLE);
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.PLANE_ONE, h -> DdzAiConstants.splitPlaneGroupScore(h.getStraightLen()));
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.PLANE_DOUBLE, h -> DdzAiConstants.splitPlaneGroupScore(h.getStraightLen()));
+        PRESERVE_EVALUATORS.put(ConstProto.CardType.DOUBLE, h -> DdzAiConstants.SPLIT_WEIGHT_PAIR);
+    }
+
     /**
-     * 保留提示
+     * 计算特定牌型的结构保留代价分（分值越高代表结构越强，尽量不拆）。
      *
-     * @param h 牌型
-     * @return 保留提示
+     * @param h 牌型对象
+     * @return 保留分分值
      */
     static double preserveHint(DdzHand h) {
         if (h.isRocket()) {
@@ -310,34 +368,16 @@ public final class DdzSimpleAi {
         if (h.isBomb()) {
             return DdzAiConstants.SPLIT_WEIGHT_BOMB;
         }
-        int n = h.getCards().size();
-        switch (h.getType()) {
-            case STRAIGHT:
-                return DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_MIN_BONUS
-                        + n * DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_PER_CARD;
-            case STRAIGHT_DOUBLE:
-                return DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_DOUBLE_MIN_BONUS
-                        + h.getStraightLen() * DdzAiConstants.SPLIT_WEIGHT_STRAIGHT_DOUBLE_PER_PAIR;
-            case TRIPLE:
-            case TRIPLE_ONE:
-            case TRIPLE_DOUBLE:
-                return DdzAiConstants.SPLIT_WEIGHT_TRIPLE;
-            case PLANE_ONE:
-            case PLANE_DOUBLE:
-                return DdzAiConstants.splitPlaneGroupScore(h.getStraightLen());
-            case DOUBLE:
-                return DdzAiConstants.SPLIT_WEIGHT_PAIR;
-            default:
-                return DdzAiConstants.SPLIT_WEIGHT_SINGLE;
-        }
+        PreserveEvaluator evaluator = PRESERVE_EVALUATORS.get(h.getType());
+        return evaluator != null ? evaluator.evaluate(h) : DdzAiConstants.SPLIT_WEIGHT_SINGLE;
     }
 
     /**
-     * 得分提示
+     * 计算牌型在当前阶段下的首出倾向评分（得分越低代表越推荐先出）。
      *
-     * @param h     牌型
-     * @param phase 阶段
-     * @return 得分提示
+     * @param h     待评估牌型
+     * @param phase 对局阶段
+     * @return 首出评分
      */
     static double scoreLead(DdzHand h, int phase) {
         double s = h.getStrengthKey();
@@ -371,10 +411,10 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 出牌
+     * 将确定打出的牌型封装为 Protobuf 操作协议。
      *
-     * @param h 牌型
-     * @return 出牌
+     * @param h 待打出牌型
+     * @return Protobuf 出牌操作
      */
     static GameProto.OpInfo playHand(DdzHand h) {
         return GameProto.OpInfo.newBuilder()
@@ -384,19 +424,20 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 终局搜索：手牌≤5时，BFS穷举最少轮次出完方案。
-     * 返回第一手应该出的牌型，无法出完返回 null。
+     * 残局搜索：在手牌 ≤5 张时，通过 BFS 深度搜索寻找最快出完手牌的路径。
+     *
+     * @param hand 当前残局手牌
+     * @return 第一手应该打出的最优牌型；若无法推算则返回 null
      */
     private static DdzHand endgameSolve(List<Card> hand) {
         if (hand.isEmpty()) {
             return null;
         }
-        // 一手出完
+        // 能直接一手打完，直接出
         Optional<DdzHand> whole = DdzRules.analyze(hand);
         if (whole.isPresent()) {
             return whole.get();
         }
-        // 枚举所有合法首手，找最快出完的
         List<DdzHand> allPlays = enumerateAllPlays(hand);
         DdzHand bestFirst = null;
         int bestPlays = Integer.MAX_VALUE;
@@ -407,7 +448,7 @@ public final class DdzSimpleAi {
                 bestPlays = plays;
                 bestFirst = play;
                 if (bestPlays == 1) {
-                    break; // 再一手就出完，已最优
+                    break; // 剩余仅需再打一手即出完，达到最优理论极值
                 }
             }
         }
@@ -415,16 +456,20 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 终局递归：返回 remaining 出完所需的最少手数，超过 cutoff 直接返回
+     * 残局递归剪枝：返回打光 remaining 手牌所需的最少手数。
+     *
+     * @param remaining 剩余手牌
+     * @param depth     当前已消耗步数
+     * @param cutoff    最优步数截断阈值
+     * @return 最少打出手数
      */
     private static int endgameMinPlays(List<Card> remaining, int depth, int cutoff) {
         if (remaining.isEmpty()) {
             return depth;
         }
         if (depth >= cutoff) {
-            return cutoff + 1; // 剪枝
+            return cutoff + 1; // 深度剪枝
         }
-        // 一手出完
         if (DdzRules.analyze(remaining).isPresent()) {
             return depth + 1;
         }
@@ -444,13 +489,15 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 枚举手牌中所有合法的出牌（所有非空子集的合法牌型）
+     * 枚举手牌中所有非空子集所构成的全部合法牌型。
+     *
+     * @param hand 当前手牌
+     * @return 所有合法牌型列表
      */
     private static List<DdzHand> enumerateAllPlays(List<Card> hand) {
         List<DdzHand> result = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
         int n = hand.size();
-        // 枚举所有非空子集 (bitmask)
         for (int mask = 1; mask < (1 << n); mask++) {
             List<Card> subset = new ArrayList<>();
             for (int i = 0; i < n; i++) {
@@ -466,6 +513,13 @@ public final class DdzSimpleAi {
         return result;
     }
 
+    /**
+     * 从手牌列表中扣除指定牌集合，生成新的余牌列表副本。
+     *
+     * @param hand     原手牌
+     * @param toRemove 待移除牌集合
+     * @return 扣除后的新牌列表
+     */
     static List<Card> removeCards(List<Card> hand, List<Card> toRemove) {
         List<Card> remaining = new ArrayList<>(hand);
         for (Card c : toRemove) {
@@ -475,9 +529,9 @@ public final class DdzSimpleAi {
     }
 
     /**
-     * 过牌
+     * 生成过牌（PASS）操作协议载荷。
      *
-     * @return 过牌
+     * @return PASS 操作对象
      */
     private static GameProto.OpInfo pass() {
         return GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build();

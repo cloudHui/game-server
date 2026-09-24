@@ -11,7 +11,11 @@ import proto.GameProto;
 import java.util.Map;
 
 /**
- * leave 命令：离开牌桌。
+ * 离开牌桌命令处理器（leave）。
+ * <p>
+ * 向底层网关发送离桌请求，等待 Game 处理完成确认后回包。
+ *
+ * @author cloud
  */
 @Component
 public class LeaveCommand implements WsCommandHandler {
@@ -20,6 +24,11 @@ public class LeaveCommand implements WsCommandHandler {
 
     private final GatewayTransport gateClient;
 
+    /**
+     * 构造离开牌桌命令处理器。
+     *
+     * @param gateClient 网关传输服务
+     */
     public LeaveCommand(GatewayTransport gateClient) {
         this.gateClient = gateClient;
     }
@@ -39,8 +48,7 @@ public class LeaveCommand implements WsCommandHandler {
         gateClient.sendAndWait(sessionId, GMsg.REQ_LEAVE, GameProto.ReqLeaveTable.newBuilder().build(), 5)
                 .whenComplete((response, error) -> {
                     if (error != null) {
-                        logger.error("离开桌子超时, sessionId: {}, seq: {}, msgId: 0x{}, cause: {}",
-                                sessionId, seq, Integer.toHexString(GMsg.REQ_LEAVE), error.toString());
+                        logger.error("离开桌子超时, sessionId: {}, seq: {}, cause: {}", sessionId, seq, error.toString());
                         ctx.sendError(ws, seq, "离开桌子超时");
                         return;
                     }

@@ -19,6 +19,7 @@ import net.message.Parser;
 import net.message.TCPMaker;
 import net.message.TCPMessage;
 import net.message.Transfer;
+import net.msg.MsgRouter;
 import net.safe.Safe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +28,16 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * WebSocket客户端连接处理器
- * 负责WebSocket连接管理、消息处理和发送
+ * WebSocket 客户端连接与消息分发处理器
+ * <p>负责 WebSocket 长连接会话生命周期管理、协议解包校验与 MsgRouter 统一分发。</p>
+ *
+ * @author cloud
  */
 public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame> implements Sender {
+
     private static final Logger logger = LoggerFactory.getLogger(WsClientHandler.class);
-    private static final SenderManager clientManager = SenderManager.INSTANCE;
-    private static final byte[] DEFAULT_DATA = "".getBytes();
+    private static final SenderManager CLIENT_MANAGER = SenderManager.INSTANCE;
+    private static final byte[] DEFAULT_DATA = new byte[0];
 
     private final int id;
     private final Parser parser;
@@ -47,18 +51,14 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
     private EventHandle closeEvent;
     private CompleterGroup completerGroup;
 
-    // ==================== 静态方法 ====================
-
     public static WsClientHandler getClient(long id) {
-        return (WsClientHandler) clientManager.getClient((int) id);
+        return (WsClientHandler) CLIENT_MANAGER.getClient((int) id);
     }
 
     public static InetSocketAddress getRemoteIP(WsClientHandler clientHandler) {
-        if (null == clientHandler.channel) return null;
+        if (clientHandler.channel == null) return null;
         return (InetSocketAddress) clientHandler.channel.remoteAddress();
     }
-
-    // ==================== 构造函数 ====================
 
     public WsClientHandler(Parser parser, Handlers handlers) {
         this(parser, handlers, (t, msg) -> Transfer.DEFAULT(), TCPMaker.INSTANCE);
@@ -70,14 +70,12 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
 
     public WsClientHandler(Parser parser, Handlers handlers, Transfer transfer, TCPMaker maker) {
         this.safe = (msgId) -> Safe.DEFAULT();
-        this.id = clientManager.getId();
+        this.id = CLIENT_MANAGER.getId();
         this.parser = parser;
         this.handlers = handlers;
         this.transfer = transfer;
         this.maker = maker;
     }
-
-    // ==================== 配置方法 ====================
 
     public int getId() {
         return this.id;
@@ -95,16 +93,14 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
         this.safe = safe;
     }
 
-    // ==================== 网络事件处理 ====================
-
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         this.channel = ctx.channel();
         this.completerGroup = new CompleterGroup(channel.eventLoop());
         ChannelAttr.setId(this.channel, this.getId());
-        clientManager.addClient(this);
+        CLIENT_MANAGER.addClient(this);
 
-        if (null != this.activeHandle) {
+        if (this.activeHandle != null) {
             try {
                 this.activeHandle.handle(this);
             } catch (Exception e) {
@@ -120,7 +116,7 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
             completerGroup.destroy();
             completerGroup = null;
         }
-        if (null != this.closeEvent) {
+        if (this.closeEvent != null) {
             try {
                 this.closeEvent.handle(this);
             } catch (Exception e) {
@@ -132,8 +128,9 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        Channel channel = ctx.channel();
-        if (channel.isActive()) closeChannel();
+        if (channel != null && channel.isActive()) {
+            closeChannel();
+        }
     }
 
     @Override
@@ -146,8 +143,6 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
         }
     }
 
-    // ==================== 消息处理 ====================
-
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object object) {
         if (object instanceof TCPMessage) {
@@ -159,28 +154,32 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame msg) {
-        // WebSocket帧由上层解码为TCPMessage后处理
+        // WebSocket 帧由前置编解码器转换为 TCPMessage 后流转至 channelRead
     }
 
-    /**
-     * 处理TCP消息
-     */
     private void processTCPMessage(TCPMessage tcpMsg) {
         try {
             if (!validateMessageSafety(tcpMsg)) return;
             if (this.transfer.isTransfer(this, tcpMsg)) return;
 
+            if (handlers instanceof MsgRouter) {
+                boolean shouldKeep = ((MsgRouter) handlers).dispatch(this, tcpMsg);
+                if (!shouldKeep) {
+                    channel.close();
+                }
+                return;
+            }
+
             Message message = parseMessageContent(tcpMsg);
             boolean shouldKeepOpen = executeMessageHandler(tcpMsg, message);
-            if (!shouldKeepOpen) channel.close();
+            if (!shouldKeepOpen) {
+                channel.close();
+            }
         } catch (Exception e) {
             logger.error("[{}] 处理消息({})失败", channel, Integer.toHexString(tcpMsg.getMessageId()), e);
         }
     }
 
-    /**
-     * 验证消息安全性
-     */
     private boolean validateMessageSafety(TCPMessage tcpMsg) {
         if (!safe.isValid(tcpMsg.getMessageId())) {
             logger.error("[{}] 错误! {} 不是安全的消息ID", channel, Integer.toHexString(tcpMsg.getMessageId()));
@@ -190,22 +189,16 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
         return true;
     }
 
-    /**
-     * 解析消息内容
-     */
     private Message parseMessageContent(TCPMessage tcpMsg) throws InvalidProtocolBufferException {
-        if (null != tcpMsg.getMessage() && tcpMsg.getMessage().length > 0) {
+        if (tcpMsg.getMessage() != null && tcpMsg.getMessage().length > 0) {
             return parser.parser(tcpMsg.getMessageId(), tcpMsg.getMessage());
         }
         return parser.parser(tcpMsg.getMessageId(), DEFAULT_DATA);
     }
 
-    /**
-     * 执行消息处理器
-     */
     private boolean executeMessageHandler(TCPMessage tcpMsg, Message message) {
         Handler handler = handlers.getHandler(tcpMsg.getMessageId());
-        if (null == handler) {
+        if (handler == null) {
             if (tcpMsg.getMessageId() == 0) {
                 logger.debug("[{}] 忽略空消息(0x0)", channel);
                 return true;
@@ -213,16 +206,12 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
             logger.error("[{}] 找不到消息({})的处理器", channel, Integer.toHexString(tcpMsg.getMessageId()));
             return false;
         }
-
         long startTime = System.currentTimeMillis();
         boolean shouldKeepOpen = handler.handler(this, tcpMsg.getClientId(), message, tcpMsg.getMapId(), tcpMsg.getSequence());
         logHandlerPerformance(handler, startTime);
         return shouldKeepOpen;
     }
 
-    /**
-     * 记录处理器性能
-     */
     private void logHandlerPerformance(Handler handler, long startTime) {
         long costTime = System.currentTimeMillis() - startTime;
         String handlerName = handler.getClass().getSimpleName();
@@ -232,8 +221,6 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
             logger.debug("客户端处理器:{} 耗时:{}ms", handlerName, costTime);
         }
     }
-
-    // ==================== 消息发送方法 ====================
 
     @Override
     public void sendMessage(int msgId, Message msg, int sequence) {
@@ -269,14 +256,9 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
         return completer;
     }
 
-    // ==================== 连接管理 ====================
-
-    /**
-     * 关闭通道并从管理器移除
-     */
     public void closeChannel() {
-        clientManager.removeClient(this);
-        if (null != this.channel) {
+        CLIENT_MANAGER.removeClient(this);
+        if (this.channel != null) {
             try {
                 this.channel.close();
             } catch (Exception e) {

@@ -13,36 +13,39 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * 全局配置管理器
+ * <p>负责加载并解析 app.properties，结构化映射为 ServerConfiguration 与 ConnectConfiguration。</p>
+ *
+ * @author cloud
+ */
 public class ConfigurationManager {
-    private static ConfigurationManager INSTANCE;
+
     private static final String FILE_NAME = "app.properties";
-    private static final String SERVER_PREFIX = "server";
-    private static final String CONNECT_PREFIX = "connect";
-    private static final String PROPERTY_PREFIX = "property";
     private static final Pattern DEFAULT_PATTERN = Pattern.compile("([\\w\\d_]+)\\.([\\w\\d_]+)\\.([\\w\\d_]+)");
     private static final Pattern PROPERTY_PATTERN = Pattern.compile("property\\.([\\w\\d_.]+)");
-    private Map<String, ServerConfiguration> serverConfigurationMap;
-    private Map<String, ConnectConfiguration> connectConfigurationMap;
-    private Map<String, String> propertiesMap;
+
+    private Map<String, ServerConfiguration> serverConfigurationMap = new HashMap<>();
+    private Map<String, ConnectConfiguration> connectConfigurationMap = new HashMap<>();
+    private Map<String, String> propertiesMap = new HashMap<>();
+
+    private static class Holder {
+        private static final ConfigurationManager INSTANCE = new ConfigurationManager();
+    }
 
     public static ConfigurationManager getInstance() {
-        if (null == INSTANCE) {
-            synchronized (FILE_NAME) {
-                if (null == INSTANCE) {
-                    INSTANCE = new ConfigurationManager();
-                }
-            }
-        }
-
-        return INSTANCE;
+        return Holder.INSTANCE;
     }
 
     private ConfigurationManager() {
         load();
     }
 
+    /**
+     * 获取自定义配置项
+     */
     public String getProperty(String name) {
-        return null == this.propertiesMap ? null : this.propertiesMap.get(name);
+        return this.propertiesMap.get(name);
     }
 
     public Map<String, ServerConfiguration> getServers() {
@@ -53,187 +56,140 @@ public class ConfigurationManager {
         return Collections.unmodifiableMap(this.connectConfigurationMap);
     }
 
+    /**
+     * 重新加载配置文件
+     */
     public synchronized void load() {
-        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(FILE_NAME);
         Properties properties = new Properties();
-
-        try {
-            if (inputStream == null) {
-                String filePath = ConfigPathUtils.getConfigFilePath() + FILE_NAME;
-                File file = new File(filePath);
-                if (file.exists()) {
-                    inputStream = new FileInputStream(filePath);
-                }
-                if (inputStream == null) {
-                    filePath = ConfigPathUtils.getResourceFilePath() + FILE_NAME;
-                    file = new File(filePath);
-                    if (file.exists()) {
-                        inputStream = new FileInputStream(filePath);
-                    }
-                }
-                if (inputStream == null) {
-                    filePath = ConfigPathUtils.getProjectPath() + File.separator + FILE_NAME;
-                    file = new File(filePath);
-                    if (file.exists()) {
-                        inputStream = new FileInputStream(filePath);
-                    }
-                }
+        try (InputStream in = findConfigurationStream()) {
+            if (in != null) {
+                properties.load(new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
             }
-
-            properties.load(new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)));
-        } catch (IOException var5) {
-            throw new RuntimeException("Error! failed for load " + FILE_NAME, var5);
+        } catch (IOException e) {
+            throw new RuntimeException("Error! Failed to load " + FILE_NAME, e);
         }
-
         this.parse(properties);
     }
 
+    /**
+     * 多路径探测定位配置文件输入流
+     */
+    private InputStream findConfigurationStream() throws IOException {
+        InputStream is = this.getClass().getClassLoader().getResourceAsStream(FILE_NAME);
+        if (is != null) {
+            return is;
+        }
+        String[] candidatePaths = {
+                ConfigPathUtils.getConfigFilePath() + FILE_NAME,
+                ConfigPathUtils.getResourceFilePath() + FILE_NAME,
+                ConfigPathUtils.getProjectPath() + File.separator + FILE_NAME
+        };
+        for (String path : candidatePaths) {
+            File f = new File(path);
+            if (f.exists()) {
+                return new FileInputStream(f);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 解析 Properties 属性集合
+     */
     private void parse(Properties properties) {
-        String key;
-        String value;
-
         for (Entry<Object, Object> entry : properties.entrySet()) {
-            key = (String) entry.getKey();
-            value = (String) entry.getValue();
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
             if (key.startsWith("server.")) {
-                this.parseServer(key, value);
+                parseNamedConfig(key, value, serverConfigurationMap, ServerConfiguration.class);
             } else if (key.startsWith("connect.")) {
-                this.parseConnect(key, value);
+                parseNamedConfig(key, value, connectConfigurationMap, ConnectConfiguration.class);
             } else if (key.startsWith("property.")) {
-                this.parseProperty(key, value);
+                parseProperty(key, value);
             } else {
-                this.addToPropertiesMap(key, value);
+                this.propertiesMap.put(key, value);
             }
         }
-
     }
 
-    private void parseServer(String key, String value) {
+    /**
+     * 通用结构化配置解析（整合 server.* 与 connect.*）
+     */
+    private <T> void parseNamedConfig(String key, String value, Map<String, T> map, Class<T> clazz) {
         Matcher matcher = DEFAULT_PATTERN.matcher(key);
-        if (matcher.matches()) {
-            if (matcher.groupCount() != 3) {
-                throw new RuntimeException(String.format("Invalid server configuration key(%s) formatter!", key));
-            }
-
-            String name = matcher.group(2);
-            String field = matcher.group(3);
-            ServerConfiguration server = null;
-            if (null == this.serverConfigurationMap) {
-                this.serverConfigurationMap = new HashMap<>();
-            } else {
-                server = this.serverConfigurationMap.get(name);
-            }
-
-            if (null == server) {
-                server = new ServerConfiguration();
-                server.setName(name);
-                this.serverConfigurationMap.put(name, server);
-            }
-
-            try {
-                this.setField(server, field, value);
-            } catch (Exception var8) {
-                throw new RuntimeException(String.format("Error! failed for parsing server(%s=%s)!", key, value), var8);
-            }
+        if (!matcher.matches() || matcher.groupCount() != 3) {
+            throw new RuntimeException("Invalid configuration key format: " + key);
         }
-
-    }
-
-    private void parseConnect(String key, String value) {
-        Matcher matcher = DEFAULT_PATTERN.matcher(key);
-        if (matcher.matches()) {
-            if (matcher.groupCount() != 3) {
-                throw new RuntimeException(String.format("Invalid connect configuration key(%s) formatter!", key));
-            }
-
-            String name = matcher.group(2);
-            String fieldName = matcher.group(3);
-            ConnectConfiguration conf = null;
-            if (this.connectConfigurationMap == null) {
-                this.connectConfigurationMap = new HashMap<>();
-            } else {
-                conf = this.connectConfigurationMap.get(name);
-            }
-
-            if (conf == null) {
-                conf = new ConnectConfiguration();
-                conf.setName(name);
-                this.connectConfigurationMap.put(name, conf);
-            }
-
+        String name = matcher.group(2);
+        String field = matcher.group(3);
+        T item = map.computeIfAbsent(name, k -> {
             try {
-                this.setField(conf, fieldName, value);
-            } catch (Exception var8) {
-                throw new RuntimeException(String.format("Error! failed for parsing connect(%s=%s)!", key, value), var8);
+                T obj = clazz.getDeclaredConstructor().newInstance();
+                Field nameField = clazz.getDeclaredField("name");
+                nameField.setAccessible(true);
+                nameField.set(obj, name);
+                return obj;
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot instantiate " + clazz.getSimpleName(), e);
             }
+        });
+        try {
+            setField(item, field, value);
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Failed to parse config (%s=%s)", key, value), e);
         }
-
     }
 
     private void parseProperty(String key, String value) {
         Matcher matcher = PROPERTY_PATTERN.matcher(key);
-        if (matcher.matches()) {
-            if (matcher.groupCount() != 1) {
-                throw new RuntimeException(String.format("Invalid property configuration key(%s) formatter!", key));
-            }
-
-            String name = matcher.group(1);
-            this.addToPropertiesMap(name, value);
+        if (matcher.matches() && matcher.groupCount() >= 1) {
+            this.propertiesMap.put(matcher.group(1), value);
         }
-
     }
 
-    private void addToPropertiesMap(String key, String value) {
-        if (this.propertiesMap == null) {
-            this.propertiesMap = new HashMap<>();
-        }
-
-        this.propertiesMap.put(key, value);
-    }
-
+    /**
+     * 反射注入对象字段值
+     */
     private void setField(Object object, String fieldName, String value) throws NoSuchFieldException, IllegalAccessException {
-        Class<?> type = object.getClass();
-        Field field = type.getDeclaredField(fieldName);
-        boolean needSet = !field.isAccessible();
-        if (needSet) {
-            field.setAccessible(true);
-        }
-
+        Field field = object.getClass().getDeclaredField(fieldName);
+        boolean accessible = field.isAccessible();
+        field.setAccessible(true);
         try {
-            field.set(object, this.parseValue(field.getType(), value));
+            field.set(object, parseValue(field.getType(), value));
         } finally {
-            if (needSet) {
-                field.setAccessible(false);
-            }
+            field.setAccessible(accessible);
         }
-
     }
 
-    private Object parseValue(Class<?> classType, String value) {
-        if (classType.isPrimitive()) {
-            switch (classType.getName()) {
-                case "double":
-                    return Double.parseDouble(value);
-                case "int":
-                    return Integer.parseInt(value);
-                case "byte":
-                    return Byte.parseByte(value);
-                case "long":
-                    return Long.parseLong(value);
-                case "boolean":
-                    return Boolean.parseBoolean(value);
-                case "float":
-                    return Float.parseFloat(value);
-                case "short":
-                    return Short.parseShort(value);
-            }
-        } else {
-            if (classType.getName().equals("java.lang.String")) {
-                return value;
-            }
+    /**
+     * 基础数据类型反射转换
+     */
+    private Object parseValue(Class<?> type, String value) {
+        if (type == String.class) {
+            return value;
         }
-
-        throw new UnsupportedOperationException("Only primitive type allowed now! type=" + classType.getName());
+        if (type == int.class || type == Integer.class) {
+            return Integer.parseInt(value);
+        }
+        if (type == long.class || type == Long.class) {
+            return Long.parseLong(value);
+        }
+        if (type == boolean.class || type == Boolean.class) {
+            return Boolean.parseBoolean(value);
+        }
+        if (type == double.class || type == Double.class) {
+            return Double.parseDouble(value);
+        }
+        if (type == float.class || type == Float.class) {
+            return Float.parseFloat(value);
+        }
+        if (type == byte.class || type == Byte.class) {
+            return Byte.parseByte(value);
+        }
+        if (type == short.class || type == Short.class) {
+            return Short.parseShort(value);
+        }
+        throw new UnsupportedOperationException("Unsupported field type: " + type.getName());
     }
 
     public Integer getInt(String name, Integer defaultValue) {

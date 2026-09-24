@@ -169,53 +169,47 @@ public final class PdkRules {
 		if (seen.add(key)) out.add(h);
 	}
 
+	@FunctionalInterface
+	private interface SameTypeBeatCollector {
+		void collect(Map<Integer, List<Card>> groups, DdzHand last, List<DdzHand> out);
+	}
+
+	@FunctionalInterface
+	private interface SameTypeBeatFinder {
+		Optional<List<Card>> find(Map<Integer, List<Card>> groups, DdzHand last);
+	}
+
+	private static final Map<ConstProto.CardType, SameTypeBeatCollector> BEAT_COLLECTORS = new java.util.EnumMap<>(ConstProto.CardType.class);
+	private static final Map<ConstProto.CardType, SameTypeBeatFinder> BEAT_FINDERS = new java.util.EnumMap<>(ConstProto.CardType.class);
+
+	static {
+		BEAT_COLLECTORS.put(ConstProto.CardType.SINGLE, (g, l, out) -> collectGroups(g, l.getStrengthKey(), 1, ConstProto.CardType.SINGLE, out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.DOUBLE, (g, l, out) -> collectGroups(g, l.getStrengthKey(), 2, ConstProto.CardType.DOUBLE, out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.TRIPLE, (g, l, out) -> collectGroups(g, l.getStrengthKey(), 3, ConstProto.CardType.TRIPLE, out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.TRIPLE_ONE, (g, l, out) -> collectTripleOnes(g, l.getStrengthKey(), out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.TRIPLE_DOUBLE, (g, l, out) -> collectTriplePairs(g, l.getStrengthKey(), out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.STRAIGHT, (g, l, out) -> collectSequenceBeats(g, l.getStrengthKey(), l.getStraightLen(), 1, out));
+		BEAT_COLLECTORS.put(ConstProto.CardType.STRAIGHT_DOUBLE, (g, l, out) -> collectSequenceBeats(g, l.getStrengthKey(), l.getStraightLen(), 2, out));
+
+		BEAT_FINDERS.put(ConstProto.CardType.SINGLE, (g, l) -> findGroup(g, l.getStrengthKey(), 1));
+		BEAT_FINDERS.put(ConstProto.CardType.DOUBLE, (g, l) -> findGroup(g, l.getStrengthKey(), 2));
+		BEAT_FINDERS.put(ConstProto.CardType.TRIPLE, (g, l) -> findGroup(g, l.getStrengthKey(), 3));
+		BEAT_FINDERS.put(ConstProto.CardType.TRIPLE_ONE, (g, l) -> findTripleOne(g, l.getStrengthKey()));
+		BEAT_FINDERS.put(ConstProto.CardType.TRIPLE_DOUBLE, (g, l) -> findTriplePair(g, l.getStrengthKey()));
+		BEAT_FINDERS.put(ConstProto.CardType.STRAIGHT, (g, l) -> findSequence(g, l.getStrengthKey(), l.getStraightLen(), 1));
+		BEAT_FINDERS.put(ConstProto.CardType.STRAIGHT_DOUBLE, (g, l) -> findSequence(g, l.getStrengthKey(), l.getStraightLen(), 2));
+	}
+
 	private static void collectSameTypeBeats(Map<Integer, List<Card>> groups, DdzHand last, List<DdzHand> out) {
-		switch (last.getType()) {
-		case SINGLE:
-			collectGroups(groups, last.getStrengthKey(), 1, ConstProto.CardType.SINGLE, out);
-			break;
-		case DOUBLE:
-			collectGroups(groups, last.getStrengthKey(), 2, ConstProto.CardType.DOUBLE, out);
-			break;
-		case TRIPLE:
-			collectGroups(groups, last.getStrengthKey(), 3, ConstProto.CardType.TRIPLE, out);
-			break;
-		case TRIPLE_ONE:
-			collectTripleOnes(groups, last.getStrengthKey(), out);
-			break;
-		case TRIPLE_DOUBLE:
-			collectTriplePairs(groups, last.getStrengthKey(), out);
-			break;
-		case STRAIGHT:
-			collectSequenceBeats(groups, last.getStrengthKey(), last.getStraightLen(), 1, out);
-			break;
-		case STRAIGHT_DOUBLE:
-			collectSequenceBeats(groups, last.getStrengthKey(), last.getStraightLen(), 2, out);
-			break;
-		default:
-			break;
+		SameTypeBeatCollector collector = BEAT_COLLECTORS.get(last.getType());
+		if (collector != null) {
+			collector.collect(groups, last, out);
 		}
 	}
 
 	private static Optional<List<Card>> findSameTypeBeat(Map<Integer, List<Card>> groups, DdzHand last) {
-		switch (last.getType()) {
-		case SINGLE:
-			return findGroup(groups, last.getStrengthKey(), 1);
-		case DOUBLE:
-			return findGroup(groups, last.getStrengthKey(), 2);
-		case TRIPLE:
-			return findGroup(groups, last.getStrengthKey(), 3);
-		case TRIPLE_ONE:
-			return findTripleOne(groups, last.getStrengthKey());
-		case TRIPLE_DOUBLE:
-			return findTriplePair(groups, last.getStrengthKey());
-		case STRAIGHT:
-			return findSequence(groups, last.getStrengthKey(), last.getStraightLen(), 1);
-		case STRAIGHT_DOUBLE:
-			return findSequence(groups, last.getStrengthKey(), last.getStraightLen(), 2);
-		default:
-			return Optional.empty();
-		}
+		SameTypeBeatFinder finder = BEAT_FINDERS.get(last.getType());
+		return finder != null ? finder.find(groups, last) : Optional.empty();
 	}
 
 	/** 按连续段扫描，直接构造顺/连对，避免对每个子集再 analyze。 */

@@ -12,8 +12,12 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * DdzSplitPlanner
- * 简易拆牌：火箭→炸弹→飞机带对→飞机带单→三张→顺子→连对→对子→单张。权重见 {@link DdzAiConstants}。
+ * 斗地主智能拆牌规划器（Split Planner）。
+ * <p>
+ * 按照贪心启发顺序依次提取：火箭 → 炸弹 → 飞机带对 → 飞机带单 → 三条 → 顺子 → 连对 → 对子 → 散牌单张。
+ * <p>
+ * 并支持“炸弹变体拆解搜索”（{@link #planBest}）：评估是否应当将 4 张炸弹拆成 3+1 补足飞机或顺子，以换取全局更少的手数与更低的总代价。
+ * 单个方法行数均在 35 行以内。
  *
  * @author cloud
  * @version 1.0
@@ -26,29 +30,26 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 计划（贪心单一拆法）
+     * 执行标准贪心单次拆牌规划。
      *
-     * @param hand 手牌
-     * @return 拆牌组
+     * @param hand 当前手牌列表
+     * @return 拆解划分出的牌组单元列表（CardGroup 列表）
      */
     public static List<CardGroup> plan(List<Card> hand) {
         return planWithSplitBombs(hand, Collections.emptySet());
     }
 
     /**
-     * 多拆法搜索：尝试默认拆法 + 拆每种炸弹变体，返回最优拆法。
-     * <p>
-     * 拆炸弹思路：将 4 张拆成 3+1，三张可能参与飞机/三带，单张填补空缺。
-     * 总组数更少或总保留分更低的拆法更优。
+     * 多分支变体拆牌搜索：在默认拆法与尝试拆解各个炸弹之间进行对比，选取综合代价最低的最优规划方案。
      *
-     * @param hand 手牌
-     * @return 最优拆牌组
+     * @param hand 当前手牌列表
+     * @return 最优拆牌方案
      */
     public static List<CardGroup> planBest(List<Card> hand) {
         List<CardGroup> best = plan(hand);
         double bestCost = splitCost(best);
 
-        // 收集手牌中所有炸弹的 rank
+        // 收集手牌中所有可供拆解测试的 4 张炸弹点数
         TreeMap<Integer, List<Card>> pool = new TreeMap<>();
         for (Card c : hand) {
             pool.computeIfAbsent(c.getCardVal(), k -> new ArrayList<>()).add(c);
@@ -60,7 +61,7 @@ public final class DdzSplitPlanner {
             }
         }
 
-        // 尝试拆每一种炸弹
+        // 分别尝试单拆每一种炸弹
         for (int rank : bombRanks) {
             Set<Integer> splitSet = new HashSet<>();
             splitSet.add(rank);
@@ -72,7 +73,7 @@ public final class DdzSplitPlanner {
             }
         }
 
-        // 尝试拆所有炸弹
+        // 尝试将所有炸弹全部拆解作为三带散牌
         if (bombRanks.size() > 1) {
             Set<Integer> splitSet = new HashSet<>(bombRanks);
             List<CardGroup> alt = planWithSplitBombs(hand, splitSet);
@@ -86,7 +87,10 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 拆牌评分：组数 × 惩罚 + 总保留分（越低越好）
+     * 计算拆牌方案的综合评价值（手牌组数惩罚 + 保留代价，越低代表越容易跑牌）。
+     *
+     * @param groups 拆牌后的组列表
+     * @return 综合代价分
      */
     private static double splitCost(List<CardGroup> groups) {
         double groupPenalty = groups.size() * 20.0;
@@ -97,17 +101,23 @@ public final class DdzSplitPlanner {
         return groupPenalty + preserve * 0.01;
     }
 
+    /**
+     * 判断点数是否为王牌（大王或小王）。
+     *
+     * @param rank 点数值
+     * @return true 为王牌
+     */
     private static boolean isJoker(int rank) {
         return rank == CardConst.SMALL_JOKER_VAL
                 || rank == CardConst.BIG_JOKER_VAL;
     }
 
     /**
-     * 带炸弹拆分提示的拆牌：splitBombRanks 中的 rank 不提取为炸弹，而是留给后续三张/飞机
+     * 支持指定炸弹点数暂不当炸弹处理的管线式拆牌。
      *
      * @param hand           手牌
-     * @param splitBombRanks 需要拆分的炸弹 rank 集合
-     * @return 拆牌组
+     * @param splitBombRanks 允许拆开用于三带/飞机的炸弹点数集合
+     * @return 拆解后的牌组单元集合
      */
     private static List<CardGroup> planWithSplitBombs(List<Card> hand, Set<Integer> splitBombRanks) {
         List<CardGroup> groups = new ArrayList<>();
@@ -133,7 +143,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取炸弹（排除指定 rank）
+     * 抽取炸弹，但跳过指定的拆解点数。
      */
     private static void extractBombsExcept(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups,
                                            Set<Integer> except) {
@@ -160,10 +170,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取火箭
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取双王火箭（王炸）。
      */
     private static void extractRocket(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         List<Card> sj = pool.get(CardConst.SMALL_JOKER_VAL);
@@ -179,10 +186,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 移除空牌
-     *
-     * @param pool 牌池
-     * @param rank 排名
+     * 牌池中若该点数已无可用牌，则从字典中移除该键。
      */
     private static void removeEmpty(TreeMap<Integer, List<Card>> pool, int rank) {
         List<Card> l = pool.get(rank);
@@ -192,10 +196,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取炸弹
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 贪心抽取所有 4 张同点数的普通炸弹。
      */
     private static void extractBombs(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         boolean progress = true;
@@ -203,8 +204,7 @@ public final class DdzSplitPlanner {
             progress = false;
             for (Map.Entry<Integer, List<Card>> e : new ArrayList<>(pool.entrySet())) {
                 int r = e.getKey();
-                if (r == CardConst.SMALL_JOKER_VAL
-                        || r == CardConst.BIG_JOKER_VAL) {
+                if (r == CardConst.SMALL_JOKER_VAL || r == CardConst.BIG_JOKER_VAL) {
                     continue;
                 }
                 List<Card> lst = e.getValue();
@@ -222,10 +222,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取飞机带对
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取飞机带翅膀（带对子）。
      */
     private static void extractPlaneDoubles(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         boolean progress = true;
@@ -247,10 +244,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取飞机带单
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取飞机带翅膀（带单牌）。
      */
     private static void extractPlaneOnes(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         boolean progress = true;
@@ -272,12 +266,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 尝试提取飞机带对
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param k     飞机带对数量
-     * @return 飞机带对
+     * 尝试提取指定起始位置、连续 k 段的飞机带对。
      */
     private static List<Card> tryTakePlaneDouble(TreeMap<Integer, List<Card>> pool, int start, int k) {
         if (!hasTripleBody(pool, start, k)) {
@@ -295,12 +284,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 尝试提取飞机带单
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param k     飞机带单数量
-     * @return 飞机带单
+     * 尝试提取指定起始位置、连续 k 段的飞机带单。
      */
     private static List<Card> tryTakePlaneOne(TreeMap<Integer, List<Card>> pool, int start, int k) {
         if (!hasTripleBody(pool, start, k)) {
@@ -318,10 +302,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 克隆牌池
-     *
-     * @param pool 牌池
-     * @return 克隆牌池
+     * 深度克隆点数牌池。
      */
     private static TreeMap<Integer, List<Card>> clonePool(TreeMap<Integer, List<Card>> pool) {
         TreeMap<Integer, List<Card>> c = new TreeMap<>();
@@ -332,10 +313,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 计算牌池中牌的数量
-     *
-     * @param pool 牌池
-     * @return 牌池中牌的数量
+     * 统计牌池中的全部余牌总张数。
      */
     private static int totalCards(TreeMap<Integer, List<Card>> pool) {
         int t = 0;
@@ -346,10 +324,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 计算牌池中对子的数量
-     *
-     * @param pool 牌池
-     * @return 牌池中对子的数量
+     * 统计牌池中最多能够凑出的对子总数。
      */
     private static int maxPairCount(TreeMap<Integer, List<Card>> pool) {
         int p = 0;
@@ -360,12 +335,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 判断牌池中是否有飞机带对
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param k     飞机带对数量
-     * @return 是否有飞机带对
+     * 预检从 start 起始、连续 k 段是否均具有 ≥3 张牌构筑机身。
      */
     private static boolean hasTripleBody(TreeMap<Integer, List<Card>> pool, int start, int k) {
         for (int i = 0; i < k; i++) {
@@ -379,12 +349,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取飞机带对
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param k     飞机带对数量
-     * @param sink  拆牌组
+     * 从牌池中移除并取出连续 k 段的飞机机身三张牌。
      */
     private static void takeTripleBody(TreeMap<Integer, List<Card>> pool, int start, int k, List<Card> sink) {
         for (int i = 0; i < k; i++) {
@@ -398,11 +363,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取对子
-     *
-     * @param pool        牌池
-     * @param pairsNeeded 对子数量
-     * @param sink        拆牌组
+     * 贪心挑出 pairsNeeded 个最小对子作为飞机翅膀。
      */
     private static void takeKPairsGreedy(TreeMap<Integer, List<Card>> pool, int pairsNeeded, List<Card> sink) {
         for (int done = 0; done < pairsNeeded; done++) {
@@ -424,11 +385,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取单张
-     *
-     * @param pool          牌池
-     * @param singlesNeeded 单张数量
-     * @param sink          拆牌组
+     * 贪心挑出 singlesNeeded 张最小单牌作为飞机翅膀。
      */
     private static void takeKSinglesGreedy(TreeMap<Integer, List<Card>> pool, int singlesNeeded, List<Card> sink) {
         for (int done = 0; done < singlesNeeded; done++) {
@@ -449,10 +406,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取三张
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取纯三张（三不带）。
      */
     private static void extractTriples(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         for (Map.Entry<Integer, List<Card>> e : new ArrayList<>(pool.entrySet())) {
@@ -470,10 +424,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取顺子
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取单顺子（长度从 12 贪心递减至 5）。
      */
     private static void extractStraights(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         boolean progress = true;
@@ -494,12 +445,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 判断是否可以提取顺子
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param len   顺子长度
-     * @return 是否可以提取顺子
+     * 预检从 start 起始、长度为 len 的单顺子能否完整抽取。
      */
     private static boolean canTakeStraight(TreeMap<Integer, List<Card>> pool, int start, int len) {
         for (int r = start; r < start + len; r++) {
@@ -515,12 +461,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取顺子
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param len   顺子长度
-     * @return 顺子
+     * 从牌池中取出长度为 len 的单顺子牌组。
      */
     private static List<Card> takeStraight(TreeMap<Integer, List<Card>> pool, int start, int len) {
         List<Card> straight = new ArrayList<>();
@@ -533,20 +474,14 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 判断是否是顺子排名
-     *
-     * @param r 排名
-     * @return 是否是顺子排名
+     * 判断点数是否在合法顺子点数区间内（3 ~ A 即 3~14）。
      */
     private static boolean isStraightRank(int r) {
         return r >= 3 && r <= 14;
     }
 
     /**
-     * 提取双顺子
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取双顺（连对，长度从 8 对递减至 3 对）。
      */
     private static void extractStraightDoubles(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         boolean progress = true;
@@ -567,12 +502,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 判断是否可以提取双顺子
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param pairs 双顺子数量
-     * @return 是否可以提取双顺子
+     * 预检从 start 起始、长度为 pairs 对的连对能否完整抽取。
      */
     private static boolean canTakeStraightPair(TreeMap<Integer, List<Card>> pool, int start, int pairs) {
         for (int i = 0; i < pairs; i++) {
@@ -589,12 +519,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取双顺子
-     *
-     * @param pool  牌池
-     * @param start 开始排名
-     * @param pairs 双顺子数量
-     * @return 双顺子
+     * 从牌池中取出 pairs 对连对牌组。
      */
     private static List<Card> takeStraightPair(TreeMap<Integer, List<Card>> pool, int start, int pairs) {
         List<Card> out = new ArrayList<>();
@@ -609,10 +534,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取对子
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取普通对子。
      */
     private static void extractPairs(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         for (Map.Entry<Integer, List<Card>> e : new ArrayList<>(pool.entrySet())) {
@@ -628,10 +550,7 @@ public final class DdzSplitPlanner {
     }
 
     /**
-     * 提取单张
-     *
-     * @param pool   牌池
-     * @param groups 拆牌组
+     * 抽取散牌单张。
      */
     private static void extractSingles(TreeMap<Integer, List<Card>> pool, List<CardGroup> groups) {
         for (Map.Entry<Integer, List<Card>> e : new ArrayList<>(pool.entrySet())) {

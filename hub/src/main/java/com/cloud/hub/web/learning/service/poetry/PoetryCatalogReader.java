@@ -14,8 +14,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Reads paged poetry metadata, then seeks only selected bodies from local JSONL. */
+/**
+ * 古诗词海量库只读索引与按需随机访问检索器。
+ * <p>
+ * 通过读取轻量 TSV 目录索引迅速定位分页匹配项，仅对命中的目标条目通过 RandomAccessFile 进行高效随机文件寻道读取。
+ *
+ * @author cloud
+ */
 public final class PoetryCatalogReader {
+
     private static final int LIMIT = 50;
     private final Path data;
     private final Path catalog;
@@ -27,37 +34,72 @@ public final class PoetryCatalogReader {
         this.mapper = mapper;
     }
 
-    public boolean isReady() { return Files.isRegularFile(data) && Files.isRegularFile(catalog); }
+    /**
+     * 判断底层古诗词索引与数据文件是否准备就绪。
+     *
+     * @return true 若文件均存在且可用
+     */
+    public boolean isReady() {
+        return Files.isRegularFile(data) && Files.isRegularFile(catalog);
+    }
 
+    /**
+     * 分页按朝代与作者检索古诗词条目。
+     *
+     * @param dynasty 朝代过滤条件
+     * @param author  作者过滤关键词
+     * @param page    页码
+     * @param size    分页大小
+     * @return 分页结果集及朝代/作者聚合标签
+     * @throws IOException IO 读取异常
+     */
     public Map<String, Object> page(String dynasty, String author, int page, int size) throws IOException {
         int safeSize = Math.max(1, Math.min(size, LIMIT));
         int safePage = Math.max(1, page);
         long from = (long) (safePage - 1) * safeSize;
         long matched = 0;
         List<long[]> hits = new ArrayList<>();
-        Map<String, Integer> dynasties = new LinkedHashMap<>(), authors = new LinkedHashMap<>();
+        Map<String, Integer> dynasties = new LinkedHashMap<>();
+        Map<String, Integer> authors = new LinkedHashMap<>();
+
         try (BufferedReader reader = Files.newBufferedReader(catalog, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("\t", 5);
-                if (parts.length < 5) continue;
-                String rowDynasty = parts[2], rowAuthor = parts[3];
+                if (parts.length < 5) {
+                    continue;
+                }
+                String rowDynasty = parts[2];
+                String rowAuthor = parts[3];
                 dynasties.merge(rowDynasty, 1, Integer::sum);
-                if (dynasty.isEmpty() || dynasty.equals(rowDynasty)) if (!rowAuthor.isEmpty()) authors.merge(rowAuthor, 1, Integer::sum);
-                if (!dynasty.isEmpty() && !dynasty.equals(rowDynasty)) continue;
-                if (!author.isEmpty() && !rowAuthor.contains(author)) continue;
+                if (dynasty.isEmpty() || dynasty.equals(rowDynasty)) {
+                    if (!rowAuthor.isEmpty()) {
+                        authors.merge(rowAuthor, 1, Integer::sum);
+                    }
+                }
+                if (!dynasty.isEmpty() && !dynasty.equals(rowDynasty)) {
+                    continue;
+                }
+                if (!author.isEmpty() && !rowAuthor.contains(author)) {
+                    continue;
+                }
                 if (matched >= from && hits.size() < safeSize) {
-                    try { hits.add(new long[]{Long.parseLong(parts[0]), Integer.parseInt(parts[1])}); }
-                    catch (NumberFormatException ignored) { }
+                    try {
+                        hits.add(new long[]{Long.parseLong(parts[0]), Integer.parseInt(parts[1])});
+                    } catch (NumberFormatException ignored) {
+                    }
                 }
                 matched++;
             }
         }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", load(hits));
         result.put("tags", tags(authors, 50));
         result.put("dynasties", tags(dynasties, 0));
-        result.put("page", safePage); result.put("size", safeSize); result.put("total", matched);
+        result.put("page", safePage);
+        result.put("size", safeSize);
+        result.put("total", matched);
         result.put("pageCount", Math.max(1, (matched + safeSize - 1) / safeSize));
         return result;
     }
@@ -66,13 +108,20 @@ public final class PoetryCatalogReader {
         List<Map<String, Object>> result = new ArrayList<>();
         try (RandomAccessFile file = new RandomAccessFile(data.toFile(), "r")) {
             for (long[] hit : hits) {
-                byte[] bytes = new byte[(int) hit[1]]; file.seek(hit[0]); file.readFully(bytes);
+                byte[] bytes = new byte[(int) hit[1]];
+                file.seek(hit[0]);
+                file.readFully(bytes);
+
                 JsonNode node = mapper.readTree(new String(bytes, StandardCharsets.UTF_8));
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("title", node.path("title").asText()); row.put("author", node.path("author").asText(""));
+                row.put("title", node.path("title").asText());
+                row.put("author", node.path("author").asText(""));
                 row.put("dynasty", node.path("dynasty").asText(""));
-                List<String> paragraphs = new ArrayList<>(); node.path("paragraphs").forEach(value -> paragraphs.add(value.asText()));
-                row.put("paragraphs", paragraphs); result.add(row);
+
+                List<String> paragraphs = new ArrayList<>();
+                node.path("paragraphs").forEach(value -> paragraphs.add(value.asText()));
+                row.put("paragraphs", paragraphs);
+                result.add(row);
             }
         }
         return result;
@@ -80,11 +129,21 @@ public final class PoetryCatalogReader {
 
     private List<Map<String, Object>> tags(Map<String, Integer> counts, int limit) {
         List<Map.Entry<String, Integer>> entries = new ArrayList<>(counts.entrySet());
-        entries.sort((a, b) -> { int c = Integer.compare(b.getValue(), a.getValue()); return c != 0 ? c : a.getKey().compareTo(b.getKey()); });
+        entries.sort((a, b) -> {
+            int c = Integer.compare(b.getValue(), a.getValue());
+            return c != 0 ? c : a.getKey().compareTo(b.getKey());
+        });
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : entries) {
-            if (limit > 0 && result.size() >= limit) break;
-            Map<String, Object> row = new LinkedHashMap<>(); row.put("id", entry.getKey()); row.put("name", entry.getKey()); row.put("count", entry.getValue()); result.add(row);
+            if (limit > 0 && result.size() >= limit) {
+                break;
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", entry.getKey());
+            row.put("name", entry.getKey());
+            row.put("count", entry.getValue());
+            result.add(row);
         }
         return result;
     }

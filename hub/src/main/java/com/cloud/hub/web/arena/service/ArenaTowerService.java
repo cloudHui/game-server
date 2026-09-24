@@ -1,6 +1,7 @@
 package com.cloud.hub.web.arena.service;
 
 import com.cloud.hub.game.arena.ArenaRules;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,8 +11,11 @@ import java.sql.SQLException;
  * 镇魔通天塔与挂机演武领域服务。
  * <p>
  * 负责 999 层通天塔逐层挑战、每日宗门俸禄结算及离线/在线持续演武收益收获。
+ *
+ * @author cloud
  */
 public class ArenaTowerService {
+
     private final ArenaDao dao;
 
     public ArenaTowerService(ArenaDao dao) {
@@ -24,10 +28,13 @@ public class ArenaTowerService {
      * @param c     数据库连接
      * @param uid   玩家唯一标识
      * @param stage 挑战层数 (1 ~ 999)
+     * @throws SQLException 数据库异常
      */
     public void climb(Connection c, long uid, int stage) throws SQLException {
-        int cleared, tries;
-        try (PreparedStatement p = c.prepareStatement("SELECT dungeon_cleared, dungeon_attempts FROM arena_player WHERE user_id=?")) {
+        int cleared;
+        int tries;
+        String query = "SELECT dungeon_cleared, dungeon_attempts FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -48,7 +55,7 @@ public class ArenaTowerService {
 
         StringBuilder sql = new StringBuilder(
                 "UPDATE arena_player SET dungeon_attempts=dungeon_attempts-1, " +
-                "dungeon_cleared=max(dungeon_cleared,?), liquid=liquid+?, coins=coins+?");
+                        "dungeon_cleared=max(dungeon_cleared,?), liquid=liquid+?, coins=coins+?");
         if (pillTier > 0) {
             sql.append(", pills_tier").append(pillTier).append(" = min(15, pills_tier").append(pillTier).append("+1)");
         }
@@ -69,10 +76,13 @@ public class ArenaTowerService {
      *
      * @param c   数据库连接
      * @param uid 玩家唯一标识
+     * @throws SQLException 数据库异常
      */
     public void settle(Connection c, long uid) throws SQLException {
-        int cleared, settled;
-        try (PreparedStatement p = c.prepareStatement("SELECT dungeon_cleared, dungeon_settled FROM arena_player WHERE user_id=?")) {
+        int cleared;
+        int settled;
+        String query = "SELECT dungeon_cleared, dungeon_settled FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -88,8 +98,9 @@ public class ArenaTowerService {
         }
 
         ArenaRules.DailySettlement ds = ArenaRules.dungeonDailyReward(cleared);
-        try (PreparedStatement p = c.prepareStatement(
-                "UPDATE arena_player SET liquid=liquid+?, coins=coins+?, stones=stones+?, fate=fate+?, dungeon_settled=1 WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET liquid=liquid+?, coins=coins+?, stones=stones+?, " +
+                "fate=fate+?, dungeon_settled=1 WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, ds.liquid);
             p.setLong(2, ds.coins);
             p.setLong(3, ds.stones);
@@ -105,11 +116,15 @@ public class ArenaTowerService {
      * @param c   数据库连接
      * @param uid 玩家唯一标识
      * @param now 当前系统时间戳
+     * @throws SQLException 数据库异常
      */
     public void grind(Connection c, long uid, long now) throws SQLException {
         long last;
-        int cleared, gLv, gExp;
-        try (PreparedStatement p = c.prepareStatement("SELECT last_grind_time, dungeon_cleared, grind_level, grind_exp FROM arena_player WHERE user_id=?")) {
+        int cleared;
+        int gLv;
+        int gExp;
+        String query = "SELECT last_grind_time, dungeon_cleared, grind_level, grind_exp FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -119,14 +134,16 @@ public class ArenaTowerService {
                 gExp = r.getInt(4);
             }
         }
-        if (last == 0) last = now - 60000;
+        if (last == 0) {
+            last = now - 60000;
+        }
         long minutes = Math.max(1, Math.min(1440, (now - last) / 60000));
         ArenaRules.GrindRates gr = ArenaRules.grindRates(cleared);
 
         long addExp = gr.expPerMin * minutes;
         long addLiquid = gr.liquidPerMin * minutes;
         long addCoins = gr.coinsPerMin * minutes;
-        int addShards = (int) (minutes / 120); // 每2小时必掉1神兽碎片
+        int addShards = (int) (minutes / 120);
 
         long totalExp = gExp + addExp;
         while (totalExp >= ArenaRules.grindExpForLevel(gLv)) {
@@ -134,9 +151,9 @@ public class ArenaTowerService {
             gLv++;
         }
 
-        try (PreparedStatement p = c.prepareStatement(
-                "UPDATE arena_player SET grind_level=?, grind_exp=?, last_grind_time=?, " +
-                "liquid=liquid+?, coins=coins+?, beast_shards=beast_shards+? WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET grind_level=?, grind_exp=?, last_grind_time=?, " +
+                "liquid=liquid+?, coins=coins+?, beast_shards=beast_shards+? WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setInt(1, gLv);
             p.setLong(2, totalExp);
             p.setLong(3, now);

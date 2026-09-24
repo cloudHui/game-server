@@ -14,93 +14,66 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 抽象定时器基类
- * 提供通用的定时器功能，支持延迟执行、间隔执行和有限次执行
+ * 抽象定时器驱动引擎
+ * <p>支持延迟执行、间隔循环、有限次执行与基于分组的串行时间节点调度。</p>
+ *
+ * @param <T> 任务执行器类型
+ * @author cloud
  */
 public abstract class AbstractTimer<T> implements Runnable {
+
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractTimer.class);
-
-    // ID生成器，用于为每个时间节点生成唯一ID
-    protected final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
-
-    // 时间节点列表
-    protected final List<TimeNode<?>> nodes;
-
-    // 用于保护nodes列表的锁
-    protected final Lock lock = new ReentrantLock(false);
-
-    // 时间信号，用于线程等待和唤醒
-    protected final TimeSignal timeSignal = new TimeSignal();
-
-    // 任务执行器
-    protected T runners;
-
-    // 循环计数器，用于优雅退出
-    protected int loops = 0;
-
-
     protected static final long WAIT_TIME = 180000L;
 
-    /**
-     * 构造函数
-     *
-     * @param nodes 时间节点列表的具体实现
-     */
+    /** 节点唯一自增 ID 生成器 */
+    protected final AtomicInteger idGenerator = new AtomicInteger(0);
+
+    /** 时间节点链表 */
+    protected final List<TimeNode<?>> nodes;
+
+    /** 保护节点列表的独占锁 */
+    protected final Lock lock = new ReentrantLock(false);
+
+    /** 线程唤醒信号量 */
+    protected final TimeSignal timeSignal = new TimeSignal();
+
+    /** 外部关联执行器 */
+    protected T runners;
+
+    /** 退出标志位计数 */
+    protected volatile int loops = 0;
+
     protected AbstractTimer(List<TimeNode<?>> nodes) {
         this.nodes = nodes;
     }
 
-    /**
-     * 设置任务执行器
-     *
-     * @param runners 任务执行器实例
-     * @return 当前定时器实例
-     */
     public abstract AbstractTimer<T> setRunners(T runners);
 
     /**
      * 注册普通时间节点
-     *
-     * @param <T>      参数类型
-     * @param delay    延迟时间（毫秒）
-     * @param interval 执行间隔（毫秒）
-     * @param count    执行次数（-1表示无限次）
-     * @param runner   任务执行器
-     * @param param    任务参数
      */
-    public <T> void register(long delay, long interval, int count, Runner<T> runner, T param) {
-        addNode(new TimeNode<>(ID_GENERATOR.incrementAndGet(), runner, param, delay, interval, count));
+    public <P> void register(long delay, long interval, int count, Runner<P> runner, P param) {
+        addNode(new TimeNode<>(idGenerator.incrementAndGet(), runner, param, delay, interval, count));
     }
 
     /**
-     * 注册串行时间节点（同一组内的节点会串行执行）
-     *
-     * @param <T>      参数类型
-     * @param groupId  组ID
-     * @param delay    延迟时间（毫秒）
-     * @param interval 执行间隔（毫秒）
-     * @param count    执行次数（-1表示无限次）
-     * @param runner   任务执行器
-     * @param param    任务参数
+     * 注册串行时间节点（同一组内的节点串行有序执行）
      */
-    public <T> void registerSerial(int groupId, long delay, long interval, int count,
-                                   Runner<T> runner, T param) {
-        addNode(new SerialTimeNode<>(groupId, ID_GENERATOR.incrementAndGet(),
-                runner, param, delay, interval, count));
+    public <P> void registerSerial(int groupId, long delay, long interval, int count, Runner<P> runner, P param) {
+        addNode(new SerialTimeNode<>(groupId, idGenerator.incrementAndGet(), runner, param, delay, interval, count));
     }
 
     /**
-     * 注册串行时间节点并返回节点ID（用于后续注销）
+     * 注册串行时间节点并返回唯一节点 ID
      */
-    public <T> int registerSerialWithId(int groupId, long delay, long interval, int count,
-                                        Runner<T> runner, T param) {
-        int id = ID_GENERATOR.incrementAndGet();
+    public <P> int registerSerialWithId(int groupId, long delay, long interval, int count, Runner<P> runner, P param) {
+        int id = idGenerator.incrementAndGet();
         addNode(new SerialTimeNode<>(groupId, id, runner, param, delay, interval, count));
         return id;
     }
 
     /**
-     * 注销指定ID的时间节点
+     * 注销指定 ID 的时间节点
      */
     public void unregister(int nodeId) {
         lock.lock();
@@ -119,9 +92,7 @@ public abstract class AbstractTimer<T> implements Runnable {
     }
 
     /**
-     * 添加时间节点到列表
-     *
-     * @param timeNode 要添加的时间节点
+     * 添加节点并通知工作线程
      */
     protected void addNode(TimeNode<?> timeNode) {
         lock.lock();
@@ -130,84 +101,77 @@ public abstract class AbstractTimer<T> implements Runnable {
         } finally {
             lock.unlock();
         }
-        // 添加新节点后唤醒等待线程
         timeSignal.notifySignal();
     }
 
     /**
-     * 退出定时器，停止当前循环。
-     * 调用方若线程正阻塞在 waitSignal，需额外 notifySignal。
+     * 终止定时器循环
      */
     public void exit() {
-        ++loops;
+        loops++;
+        timeSignal.notifySignal();
+    }
+
+    protected abstract CompletableFuture<?> executeTimeNode(TimeNode<?> timeNode);
+
+    protected abstract void rescheduleNode(TimeNode<?> node);
+
+    @Override
+    public void run() {
+        long waitTime = WAIT_TIME;
+        int currentLoop = loops;
+        while (currentLoop == loops) {
+            waitTime = processNodes();
+            timeSignal.waitSignal(waitTime);
+        }
     }
 
     /**
-     * 执行时间节点
-     *
-     * @param timeNode 要执行的时间节点
-     * @return 任务的CompletableFuture
+     * 扫描节点列表并调度到期节点，返回下次需要等待的最小毫秒数
      */
-    protected abstract CompletableFuture<?> executeTimeNode(TimeNode<?> timeNode);
+    private long processNodes() {
+        long waitTime = WAIT_TIME;
+        lock.lock();
+        try {
+            long now = System.currentTimeMillis();
+            Iterator<TimeNode<?>> it = nodes.iterator();
+            while (it.hasNext()) {
+                TimeNode<?> timeNode = it.next();
+                if (timeNode == null) {
+                    it.remove();
+                    continue;
+                }
+                long diff = timeNode.timeDifference(now);
+                if (diff > 0L) {
+                    waitTime = Math.min(diff, waitTime);
+                } else {
+                    it.remove();
+                    dispatchNode(timeNode);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Timer 周期扫描执行异常", e);
+        } finally {
+            lock.unlock();
+        }
+        return waitTime;
+    }
 
     /**
-     * 重新调度节点
-     *
-     * @param node 需要重新调度的节点
+     * 触发节点异步执行并注册后续重新调度回调
      */
-    protected abstract void rescheduleNode(TimeNode<?> node);
-
-    /**
-     * 主运行循环
-     * 检查时间节点是否到达执行时间，执行到达时间的节点
-     */
-    @Override
-    public void run() {
-        long waitTime;
-        // 循环直到loops发生变化（表示需要退出）
-        for (int loop = loops; loop == loops; timeSignal.waitSignal(waitTime)) {
-            // 获取初始等待时间
-            waitTime = WAIT_TIME;
-            lock.lock();
-
-            try {
-                long now = System.currentTimeMillis();
-                Iterator<TimeNode<?>> it = nodes.iterator();
-
-                while (it.hasNext()) {
-                    TimeNode<?> timeNode = it.next();
-                    if (null == timeNode) {
-                        // 移除空节点
-                        it.remove();
-                    } else {
-                        long diff = timeNode.timeDifference(now);
-                        if (diff > 0L) {
-                            // 节点还未到达执行时间，更新最小等待时间
-                            waitTime = Math.min(diff, waitTime);
-                        } else {
-                            // 节点到达执行时间，从列表中移除并执行
-                            it.remove();
-                            CompletableFuture<?> future = executeTimeNode(timeNode);
-                            if (null != future) {
-                                future.whenComplete((result, throwable) -> {
-                                    if (result instanceof TimeNode) {
-                                        TimeNode<?> node = (TimeNode<?>) result;
-                                        if (node.unFinished()) {
-                                            // 节点未执行完成，刷新触发时间并重新添加到列表
-                                            node.refreshTriggerTime();
-                                            rescheduleNode(node);
-                                        }
-                                    }
-                                });
-                            }
-                        }
+    private void dispatchNode(TimeNode<?> timeNode) {
+        CompletableFuture<?> future = executeTimeNode(timeNode);
+        if (future != null) {
+            future.whenComplete((result, throwable) -> {
+                if (result instanceof TimeNode) {
+                    TimeNode<?> node = (TimeNode<?>) result;
+                    if (node.unFinished()) {
+                        node.refreshTriggerTime();
+                        rescheduleNode(node);
                     }
                 }
-            } catch (Exception e) {
-                LOGGER.error("Timer execution error", e);
-            } finally {
-                lock.unlock();
-            }
+            });
         }
     }
 }

@@ -3,7 +3,12 @@ package com.cloud.hub.web.arena;
 import java.util.List;
 
 /**
- * 六个整数的均值约束分配器。供后台 API 和命令行示例共用，避免两套算法逐渐产生差异。
+ * 六个整数的均值约束分配器。
+ * <p>
+ * 供后台 API 和命令行示例共用，避免两套算法逻辑逐渐产生差异。
+ * 支持在固定总期望均值或连续 3 个子区间期望均值的约束下，反向填充未知的整数序列。
+ *
+ * @author cloud
  */
 public final class IntegerAllocator {
     public static final int VALUE_COUNT = 6;
@@ -14,8 +19,12 @@ public final class IntegerAllocator {
     }
 
     /**
-     * 按总均值分配整数；提供局部均值时，自动尝试第 1 至第 4 个位置。
-     * knownValues 可包含最多 6 个位置，其中最多 5 个位置有已知值。
+     * 按总均值分配整数；提供局部均值时，自动尝试第 1 至第 4 个滑动窗口起始位置。
+     *
+     * @param knownValues  已知数值列表（最多包含 6 个位置，其中最多 5 个非空）
+     * @param totalAverage 全局 6 个数值的期望均值
+     * @param subAverage   连续 3 个数值的局部期望均值（可选）
+     * @return 分配结果
      */
     public static Result calculate(List<Integer> knownValues, double totalAverage, Double subAverage) {
         validate(knownValues, totalAverage, subAverage);
@@ -51,7 +60,7 @@ public final class IntegerAllocator {
     }
 
     /**
-     * 先填充局部窗口，再把全局剩余和均匀分给未确定位置，保持原测试程序行为。
+     * 先填充局部窗口，再把全局剩余总和均匀分给未确定位置。
      */
     private static int[] tryAllocate(List<Integer> knownValues, int totalTargetSum,
                                      Integer subTargetSum, int startIndex) {

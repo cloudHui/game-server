@@ -12,8 +12,11 @@ import java.util.Map;
  * 每日问道任务、洞府聚灵与剑阵领域服务。
  * <p>
  * 负责每日活跃任务达成与奖励领取、洞府聚灵挂机灵液收获、诛仙剑阵强化及修士神通技能切换装配。
+ *
+ * @author cloud
  */
 public class ArenaTaskService {
+
     private static final Map<String, int[]> TASK_CFG = new HashMap<>();
 
     static {
@@ -38,14 +41,18 @@ public class ArenaTaskService {
      * @param c      数据库连接
      * @param uid    玩家唯一标识
      * @param taskId 任务标识 ("login", "dungeon", "rank", "recruit", "arena", "beast")
+     * @throws SQLException 数据库异常
      */
     public void claim(Connection c, long uid, String taskId) throws SQLException {
         int[] cfg = TASK_CFG.get(taskId);
-        if (cfg == null) throw new IllegalArgumentException("未知任务: " + taskId);
+        if (cfg == null) {
+            throw new IllegalArgumentException("未知任务: " + taskId);
+        }
 
         String claimed;
         int progress;
-        try (PreparedStatement p = c.prepareStatement("SELECT task_" + taskId + ", claimed FROM arena_player WHERE user_id=?")) {
+        String query = "SELECT task_" + taskId + ", claimed FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -60,8 +67,9 @@ public class ArenaTaskService {
             throw new IllegalArgumentException("任务尚未达成");
         }
 
-        try (PreparedStatement p = c.prepareStatement(
-                "UPDATE arena_player SET liquid=liquid+?, coins=coins+?, fate=fate+?, stones=stones+?, claimed=claimed||? WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET liquid=liquid+?, coins=coins+?, fate=fate+?, " +
+                "stones=stones+?, claimed=claimed||? WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setInt(1, cfg[1]);
             p.setInt(2, cfg[2]);
             p.setInt(3, cfg[3]);
@@ -78,11 +86,13 @@ public class ArenaTaskService {
      * @param c   数据库连接
      * @param uid 玩家唯一标识
      * @param now 当前时间戳
+     * @throws SQLException 数据库异常
      */
     public void grotto(Connection c, long uid, long now) throws SQLException {
         long last;
         int lv;
-        try (PreparedStatement p = c.prepareStatement("SELECT grotto_claim_at, grotto_level FROM arena_player WHERE user_id=?")) {
+        String query = "SELECT grotto_claim_at, grotto_level FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -91,7 +101,8 @@ public class ArenaTaskService {
             }
         }
         long hours = (last == 0) ? 4 : Math.max(1, Math.min(12, (now - last) / 3600000));
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_player SET liquid=liquid+?, grotto_claim_at=? WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET liquid=liquid+?, grotto_claim_at=? WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, hours * 240L * lv);
             p.setLong(2, now);
             p.setLong(3, uid);
@@ -104,10 +115,12 @@ public class ArenaTaskService {
      *
      * @param c   数据库连接
      * @param uid 玩家唯一标识
+     * @throws SQLException 数据库异常
      */
     public void upgradeFormation(Connection c, long uid) throws SQLException {
         int lv;
-        try (PreparedStatement p = c.prepareStatement("SELECT formation_level FROM arena_player WHERE user_id=?")) {
+        String query = "SELECT formation_level FROM arena_player WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(query)) {
             p.setLong(1, uid);
             try (ResultSet r = p.executeQuery()) {
                 r.next();
@@ -115,7 +128,8 @@ public class ArenaTaskService {
             }
         }
         dao.spend(c, uid, "stones", (long) lv * 100);
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_player SET formation_level=formation_level+1 WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET formation_level=formation_level+1 WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, uid);
             p.executeUpdate();
         }
@@ -127,12 +141,14 @@ public class ArenaTaskService {
      * @param c     数据库连接
      * @param uid   玩家唯一标识
      * @param skill 神通标识 ("pierce", "silence", "defense", "heal")
+     * @throws SQLException 数据库异常
      */
     public void equipSkill(Connection c, long uid, String skill) throws SQLException {
         if (!Arrays.asList("silence", "pierce", "defense", "heal").contains(skill)) {
             skill = "pierce";
         }
-        try (PreparedStatement p = c.prepareStatement("UPDATE arena_player SET equipped_skill=? WHERE user_id=?")) {
+        String update = "UPDATE arena_player SET equipped_skill=? WHERE user_id=?";
+        try (PreparedStatement p = c.prepareStatement(update)) {
             p.setString(1, skill);
             p.setLong(2, uid);
             p.executeUpdate();

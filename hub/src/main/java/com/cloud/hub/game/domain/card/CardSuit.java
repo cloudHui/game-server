@@ -4,15 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 扑克牌花色
+ * 扑克牌花色枚举。
+ * <p>
+ * 定义扑克牌四大花色（方块、梅花、红桃、黑桃）及大小王（JOKER），
+ * 并提供花色与编号编码转换。
  *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className CardSuit
- * @description 扑克牌花色，负责游戏桌子的扑克牌花色管理
- * @createDate 2026-05-03
- * @since 1.0
  */
 public enum CardSuit {
 

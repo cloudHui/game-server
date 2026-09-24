@@ -5,10 +5,7 @@ import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Registry;
@@ -33,18 +30,24 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
+/**
+ * HTTP 客户端连接池工具类
+ * <p>基于 Apache HttpClient 连接池实现，支持 HTTP/HTTPS、自定义超时、Header 注入与统一请求重试。</p>
+ *
+ * @author cloud
+ */
 public class HttpClientPool {
-    private final static Logger LOGGER = LoggerFactory.getLogger(HttpClientPool.class);
 
-    private static final String CONTENT_TYPE_TEXT_HTML = "text/xml";
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientPool.class);
+
     private static final String CONTENT_TYPE_JSON_URL = "application/json;charset=utf-8";
     private static final String CONTENT_TYPE_WWW_FORM = "application/x-www-form-urlencoded;charset=utf-8";
 
-    private final String CHARSET;
+    private final String charset;
     private PoolingHttpClientConnectionManager pool;
     private ConnectionConfig connectionConfig;
     private RequestConfig requestConfig;
-    private CloseableHttpClient httpClient;
+    private volatile CloseableHttpClient httpClient;
 
     public HttpClientPool() {
         this("UTF-8");
@@ -55,32 +58,31 @@ public class HttpClientPool {
     }
 
     public HttpClientPool(String charset, int timeout) {
-        this.CHARSET = charset;
+        this.charset = charset;
         setConnectionConfig(4 * 1024);
-
-        timeout *= 1000;
-        setTimeoutConfig(timeout, timeout, timeout);
+        int timeoutMs = timeout * 1000;
+        setTimeoutConfig(timeoutMs, timeoutMs, timeoutMs);
     }
 
+    /**
+     * 初始化连接池
+     */
     public HttpClientPool init(int poolSize) {
         try {
             SSLContextBuilder builder = new SSLContextBuilder()
                     .loadTrustMaterial(null, new TrustSelfSignedStrategy());
 
             SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(builder.build());
-
-            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+            Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("http", PlainConnectionSocketFactory.getSocketFactory())
                     .register("https", socketFactory).build();
 
-            pool = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-
+            pool = new PoolingHttpClientConnectionManager(registry);
             pool.setMaxTotal(poolSize);
             pool.setDefaultMaxPerRoute(20);
         } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-            LOGGER.error("", e);
+            LOGGER.error("初始化 HttpClient 连接池失败", e);
         }
-
         return this;
     }
 
@@ -89,7 +91,6 @@ public class HttpClientPool {
                 .setSocketTimeout(socketTimeout)
                 .setConnectTimeout(connectTimeout)
                 .setConnectionRequestTimeout(requestTimeout).build();
-
     }
 
     public void setConnectionConfig(int size) {
@@ -98,265 +99,138 @@ public class HttpClientPool {
                 .build();
     }
 
+    /**
+     * 获取或懒加载构建 HttpClient 单例实例
+     */
     public CloseableHttpClient getClient() {
-        if (null != httpClient) {
+        if (httpClient != null) {
             return httpClient;
         }
-
         synchronized (this) {
-            if (null == httpClient) {
+            if (httpClient == null) {
                 httpClient = HttpClients.custom()
                         .setConnectionManager(pool)
                         .setDefaultRequestConfig(requestConfig)
                         .setDefaultConnectionConfig(connectionConfig)
-                        .setKeepAliveStrategy((httpResponse, httpContext) -> {
-                            Header[] headers = httpResponse.getAllHeaders();
-                            if (null != headers) {
-                                Header header;
-                                HeaderElement headerElement;
-                                for (Header header1 : headers) {
-                                    header = header1;
-                                    HeaderElement[] headerElements = header.getElements();
-                                    if (null == headerElements) {
-                                        continue;
-                                    }
-
-                                    for (HeaderElement headerElement1 : headerElements) {
-                                        headerElement = headerElement1;
-                                        if (!headerElement.getName().toUpperCase().contains(HTTP.CONN_KEEP_ALIVE.toUpperCase())) {
-                                            continue;
-                                        }
-
-                                        if (isNullOrEmpty(headerElement.getValue())) {
-                                            return 10 * 1000;
-                                        }
-
-                                        return Long.parseLong(headerElement.getValue()) * 1000;
-                                    }
-                                }
-                            }
-
-                            return 10 * 1000;
-                        })
+                        .setKeepAliveStrategy((response, context) -> parseKeepAlive(response.getAllHeaders()))
                         .setRetryHandler(new DefaultHttpRequestRetryHandler())
                         .build();
             }
         }
-
         return httpClient;
     }
 
-    public String sendPost(HttpPost httpPost) {
-        String content = null;
-        CloseableHttpResponse httpResponse = null;
-        try {
-            httpPost.setConfig(requestConfig);
-
-            CloseableHttpClient httpClient = getClient();
-            httpResponse = httpClient.execute(httpPost, HttpClientContext.create());
-
-            if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                LOGGER.error("httpPost:{}", httpPost.toString());
-                throw new RuntimeException("HTTP Request is not success, Response code is " + httpResponse.getStatusLine().getStatusCode());
-            } else {
-                HttpEntity entity = httpResponse.getEntity();
-                if (null != entity) {
-                    content = EntityUtils.toString(entity, CHARSET);
-                    EntityUtils.consume(entity);
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("", e);
-        } finally {
-            if (null != httpResponse) {
-                try {
-                    httpResponse.close();
-                } catch (Exception e) {
-                    LOGGER.error("", e);
+    private long parseKeepAlive(Header[] headers) {
+        if (headers == null) return 10000L;
+        for (Header h : headers) {
+            HeaderElement[] elements = h.getElements();
+            if (elements == null) continue;
+            for (HeaderElement el : elements) {
+                if (el.getName().toUpperCase().contains(HTTP.CONN_KEEP_ALIVE.toUpperCase())) {
+                    if (el.getValue() != null && !el.getValue().isEmpty()) {
+                        return Long.parseLong(el.getValue()) * 1000L;
+                    }
                 }
             }
         }
+        return 10000L;
+    }
 
-        return content;
+    /**
+     * 核心统一请求执行器（带资源安全自动释放）
+     */
+    private String executeRequest(HttpUriRequest request) {
+        if (request instanceof HttpRequestBase && requestConfig != null) {
+            ((HttpRequestBase) request).setConfig(requestConfig);
+        }
+        try (CloseableHttpResponse response = getClient().execute(request, HttpClientContext.create())) {
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                LOGGER.error("HTTP 请求状态异常: {} URI: {}", response.getStatusLine().getStatusCode(), request.getURI());
+                throw new RuntimeException("HTTP Request is not success, Response code is " + response.getStatusLine().getStatusCode());
+            }
+            HttpEntity entity = response.getEntity();
+            return (entity != null) ? EntityUtils.toString(entity, charset) : null;
+        } catch (Exception e) {
+            LOGGER.error("HTTP 请求执行失败: {}", request.getURI(), e);
+            return null;
+        }
+    }
+
+    public String sendPost(HttpPost httpPost) {
+        return executeRequest(httpPost);
     }
 
     public String sendGet(HttpGet httpGet) {
-        String content = null;
-        CloseableHttpResponse httpResponse = null;
-        try {
-            httpGet.setConfig(requestConfig);
-            CloseableHttpClient httpClient = getClient();
-            httpResponse = httpClient.execute(httpGet, HttpClientContext.create());
+        return executeRequest(httpGet);
+    }
 
-            if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                throw new RuntimeException("HTTP Request is not success, Response code is " + httpResponse.getStatusLine().getStatusCode());
-            } else {
-                HttpEntity entity = httpResponse.getEntity();
-                if (null != entity) {
-                    content = EntityUtils.toString(entity, CHARSET);
-                    EntityUtils.consume(entity);
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("", e);
-        } finally {
-            if (null != httpResponse) {
-                try {
-                    httpResponse.close();
-                } catch (Exception e) {
-                    LOGGER.error("", e);
-                }
-            }
-        }
-
-        return content;
+    public String sendDelete(HttpDelete httpDelete) {
+        return executeRequest(httpDelete);
     }
 
     public String sendPost(String url, Map<String, String> header) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
+        if (isNullOrEmpty(url)) return null;
         HttpPost httpPost = new HttpPost(url);
-        if (null != header && !header.isEmpty()) {
-            for (Map.Entry<String, String> entry : header.entrySet()) {
-                httpPost.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
-
+        applyHeaders(httpPost, header);
         return sendPost(httpPost);
     }
 
     public String sendPostHeadBody(String url, Map<String, String> header, String content) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
+        if (isNullOrEmpty(url)) return null;
         HttpPost httpPost = new HttpPost(url);
-        if (null != header && !header.isEmpty()) {
-            for (Map.Entry<String, String> entry : header.entrySet()) {
-                httpPost.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
+        applyHeaders(httpPost, header);
         if (!isNullOrEmpty(content)) {
-            StringEntity stringEntity = new StringEntity(content, CHARSET);
-            stringEntity.setContentType(CONTENT_TYPE_JSON_URL);
-            httpPost.setEntity(stringEntity);
+            StringEntity entity = new StringEntity(content, charset);
+            entity.setContentType(CONTENT_TYPE_JSON_URL);
+            httpPost.setEntity(entity);
         }
-
         return sendPost(httpPost);
     }
 
     public String sendPost(String url, String content) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
-        HttpPost httpPost = new HttpPost(url);
-        if (!isNullOrEmpty(content)) {
-            StringEntity stringEntity = new StringEntity(content, CHARSET);
-            stringEntity.setContentType(CONTENT_TYPE_JSON_URL);
-            httpPost.setEntity(stringEntity);
-        }
-
-        return sendPost(httpPost);
+        return sendPostHeadBody(url, null, content);
     }
 
     public String sendPosFormHeadBody(String url, Map<String, String> header, String content) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
+        if (isNullOrEmpty(url)) return null;
         HttpPost httpPost = new HttpPost(url);
-        if (null != header && !header.isEmpty()) {
-            for (Map.Entry<String, String> entry : header.entrySet()) {
-                httpPost.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
+        applyHeaders(httpPost, header);
         if (!isNullOrEmpty(content)) {
-            StringEntity stringEntity = new StringEntity(content, CHARSET);
-            stringEntity.setContentType(CONTENT_TYPE_WWW_FORM);
-            httpPost.setEntity(stringEntity);
+            StringEntity entity = new StringEntity(content, charset);
+            entity.setContentType(CONTENT_TYPE_WWW_FORM);
+            httpPost.setEntity(entity);
         }
-
         return sendPost(httpPost);
     }
 
     public String sendPostForm(String url, String content) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-        HttpPost httpPost = new HttpPost(url);
-        if (!isNullOrEmpty(content)) {
-            StringEntity stringEntity = new StringEntity(content, CHARSET);
-            stringEntity.setContentType(CONTENT_TYPE_WWW_FORM);
-            httpPost.setEntity(stringEntity);
-        }
-
-        return sendPost(httpPost);
+        return sendPosFormHeadBody(url, null, content);
     }
 
     public String sendGet(String url) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
+        if (isNullOrEmpty(url)) return null;
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("{}", url);
+            LOGGER.debug("HTTP GET: {}", url);
         }
-
-        HttpGet httpGet = new HttpGet(url);
-        return sendGet(httpGet);
+        return sendGet(new HttpGet(url));
     }
 
     public String sendGetHead(String url, Map<String, String> header) {
-        if (isNullOrEmpty(url)) {
-            return null;
-        }
-
+        if (isNullOrEmpty(url)) return null;
         HttpGet httpGet = new HttpGet(url);
-        if (null != header && !header.isEmpty()) {
-            for (Map.Entry<String, String> entry : header.entrySet()) {
-                httpGet.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
+        applyHeaders(httpGet, header);
         return sendGet(httpGet);
     }
 
-    public String sendDelete(HttpDelete httpDelete) {
-        String content = null;
-        CloseableHttpResponse httpResponse = null;
-        try {
-            httpDelete.setConfig(requestConfig);
-
-            CloseableHttpClient httpClient = getClient();
-            httpResponse = httpClient.execute(httpDelete, HttpClientContext.create());
-
-            if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                throw new RuntimeException("HTTP Request is not success, Response code is " + httpResponse.getStatusLine().getStatusCode());
-            } else {
-                HttpEntity entity = httpResponse.getEntity();
-                if (null != entity) {
-                    content = EntityUtils.toString(entity, CHARSET);
-                    EntityUtils.consume(entity);
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("", e);
-        } finally {
-            if (null != httpResponse) {
-                try {
-                    httpResponse.close();
-                } catch (Exception e) {
-                    LOGGER.error("", e);
-                }
+    private void applyHeaders(HttpRequestBase request, Map<String, String> headers) {
+        if (headers != null && !headers.isEmpty()) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
             }
         }
-
-        return content;
     }
 
     private static boolean isNullOrEmpty(String data) {
-        return (null == data || data.isEmpty());
+        return data == null || data.isEmpty();
     }
 }

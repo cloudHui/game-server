@@ -21,7 +21,6 @@ import proto.GameProto;
 import proto.ModelProto;
 import proto.ServerProto;
 import tool.config.TableConfigManager;
-import utils.metrics.MetricsCollector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,8 +75,6 @@ public class TableManager {
         } else {
             tableMap.put(tableId, table);
             threadPoolManager.registerTable(tableId);
-            MetricsCollector.getInstance().setGauge("game.active_tables", tableMap.size());
-            MetricsCollector.getInstance().incrementCounter("game.tables_created");
             logger.debug("添加新桌子, tableId: {}", tableId);
         }
     }
@@ -102,8 +99,6 @@ public class TableManager {
             notifyPlayersTableDestroyed(removedTable);
             removedTable.stop();
             threadPoolManager.removeTable(tableId);
-            MetricsCollector.getInstance().setGauge("game.active_tables", tableMap.size());
-            MetricsCollector.getInstance().incrementCounter("game.tables_destroyed");
             logger.info("删除桌子, tableId: {}", tableId);
             notifyRoomTableDestroyed(tableId);
         } else {
@@ -164,14 +159,16 @@ public class TableManager {
 
     private CompletableFuture<List<ModelProto.RoomTableInfo>> collectTableInfo(List<Table> tables) {
         List<CompletableFuture<ModelProto.RoomTableInfo>> futures = new ArrayList<>();
-        for (Table table : tables) futures.add(table.getRoomTableInfoAsync());
+        for (Table table : tables)
+            futures.add(table.getRoomTableInfoAsync());
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply(ignored -> collectResults(futures));
     }
 
     private List<ModelProto.RoomTableInfo> collectResults(List<CompletableFuture<ModelProto.RoomTableInfo>> futures) {
         List<ModelProto.RoomTableInfo> result = new ArrayList<>();
-        for (CompletableFuture<ModelProto.RoomTableInfo> future : futures) result.add(future.join());
+        for (CompletableFuture<ModelProto.RoomTableInfo> future : futures)
+            result.add(future.join());
         return result;
     }
 

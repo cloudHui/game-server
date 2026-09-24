@@ -15,16 +15,35 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 对局过程回放记录器抽象基类。
+ * <p>
+ * 负责牌桌元数据头部记录、初始手牌记录、审计事件日志流水（带有序号与毫秒级时间戳）、
+ * 结算结果记录以及将回放内容原子化落盘（写临时文件再原子移动替换）。
+ *
+ * @author cloud
+ */
 public abstract class BaseReplayRecorder implements ReplayRecorder {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseReplayRecorder.class);
 
+    /** 关联牌桌 ID */
     protected final long tableId;
+    /** 当前局数索引 */
     protected final int round;
+    /** 回放文本流水缓冲区 */
     protected final StringBuilder sb = new StringBuilder();
+    /** 动作序号自增计数器 */
     protected int actionIndex = 0;
+    /** 是否已完成结算归档 */
     protected boolean finalized = false;
 
+    /**
+     * 构造回放记录器。
+     *
+     * @param tableId 牌桌 ID
+     * @param round   当前对局轮次
+     */
     protected BaseReplayRecorder(long tableId, int round) {
         this.tableId = tableId;
         this.round = round;
@@ -120,27 +139,7 @@ public abstract class BaseReplayRecorder implements ReplayRecorder {
         }
     }
 
-    /**
-     * 递归删除目录
-     */
-    private void deleteDir(File dir) {
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File f : files) {
-                if (f.isDirectory()) deleteDir(f);
-                else f.delete();
-            }
-        }
-        dir.delete();
-    }
-
-    protected String getJarDir() {
-        try {
-            return new File(BaseReplayRecorder.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
-        } catch (Exception e) {
-            return ".";
-        }
-    }
+    /** 格式化整型列表为逗号分隔字符串，例如 [101, 102] */
 
     protected String formatList(List<Integer> list) {
         if (list == null || list.isEmpty()) return "[]";

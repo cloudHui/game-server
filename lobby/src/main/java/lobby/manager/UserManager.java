@@ -2,7 +2,6 @@ package lobby.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.metrics.MetricsCollector;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +38,6 @@ public class UserManager {
         if (removed != null) {
             removed.destroy();
             logger.info("移除用户, userId: {}", userId);
-            MetricsCollector.getInstance().setGauge("lobby.online_users", users.size());
         }
     }
 
@@ -55,9 +53,7 @@ public class UserManager {
             logger.info("更新在线用户会话, userId: {}", user.getUserId());
         } else {
             logger.debug("添加在线用户, userId: {}", user.getUserId());
-            MetricsCollector.getInstance().incrementCounter("lobby.login_total");
         }
-        MetricsCollector.getInstance().setGauge("lobby.online_users", users.size());
         return user;
     }
 
@@ -70,8 +66,6 @@ public class UserManager {
             logger.warn("用户已在线, userId: {}", user.getUserId());
             return false;
         }
-        MetricsCollector.getInstance().incrementCounter("lobby.login_total");
-        MetricsCollector.getInstance().setGauge("lobby.online_users", users.size());
         return true;
     }
 

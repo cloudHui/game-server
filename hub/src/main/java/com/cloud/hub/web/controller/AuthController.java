@@ -19,11 +19,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 认证接口（对齐 /api/auth/*，参照 RuoYi 设计）
+ * 用户认证与鉴权核心控制器。
+ * <p>
+ * 提供账号密码登录、Token 免密登录、新玩家注册及会话 Cookie 植入等标准接口。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
     private final UserService userService;
 
     public AuthController(UserService userService) {
@@ -31,7 +36,14 @@ public class AuthController {
     }
 
     /**
-     * POST /api/auth/login { "username","password" } 或 { "token" }
+     * 玩家登录接口。
+     * <p>
+     * 支持两种登录模式：
+     * 1. 凭已有 Token 免密验证登录；
+     * 2. 凭借账号和明文密码鉴权登录。
+     *
+     * @param request 登录请求体
+     * @return 成功返回用户信息并植入 sessionId Cookie，失败返回对应错误码
      */
     @PostMapping("/login")
     public ResponseEntity<AjaxResult> login(@RequestBody LoginDto request) {
@@ -58,15 +70,18 @@ public class AuthController {
     }
 
     /**
-     * POST /api/auth/register { "username","password","nickname?","invite" }
+     * 玩家注册接口。
+     *
+     * @param request 包含账号、密码、昵称与邀请码的注册信息
+     * @return 注册并登录后的用户视图及 Session Cookie
      */
     @PostMapping("/register")
     @Log(title = "用户注册", businessType = BusinessType.INSERT)
     public ResponseEntity<AjaxResult> register(@RequestBody @Valid RegisterDto request) {
         String username = request.getUsername().trim();
         String password = request.getPassword();
-        String nickname = request.getNickname() != null && !request.getNickname().trim().isEmpty() ?
-                request.getNickname().trim() : username;
+        String nickname = request.getNickname() != null && !request.getNickname().trim().isEmpty()
+                ? request.getNickname().trim() : username;
         String invite = request.getInvite().trim();
 
         UserService.UserInfo userInfo = userService.register(username, password, nickname, invite);

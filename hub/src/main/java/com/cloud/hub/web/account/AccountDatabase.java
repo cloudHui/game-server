@@ -16,11 +16,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * 与 Lobby 共用 data/lobby.db（账号/邀请码）。
- * 采用 HikariCP 连接池优化 SQLite 读写吞吐与连接复用（参照 RuoYi 数据源配置规范）。
+ * 账号数据库连接池与表结构初始化管理器。
+ * <p>
+ * 与 Lobby 共享存储目录下的 {@code data/lobby.db} 文件。
+ * 采用 HikariCP 连接池优化 SQLite 读写吞吐与连接复用，启用 WAL 模式提高并发性能。
+ *
+ * @author cloud
  */
 @Component
 public class AccountDatabase {
+
     private static final Logger logger = LoggerFactory.getLogger(AccountDatabase.class);
 
     @Value("${account.db-path:data/lobby.db}")
@@ -30,10 +35,18 @@ public class AccountDatabase {
     private HikariDataSource dataSource;
     private final DataPathResolver paths;
 
+    /**
+     * 构造账号数据库管理器。
+     *
+     * @param paths 数据路径解析器
+     */
     public AccountDatabase(DataPathResolver paths) {
         this.paths = paths;
     }
 
+    /**
+     * 初始化 SQLite 数据库文件目录与连接池。
+     */
     @PostConstruct
     public void init() {
         File dbFile = paths.resolve(dbPath).toFile();
@@ -47,6 +60,9 @@ public class AccountDatabase {
         logger.info("账号库 HikariCP 连接池初始化完成: {}", dbFile.getAbsolutePath());
     }
 
+    /**
+     * 初始化 HikariCP 连接池配置。
+     */
     private void initDataSource() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
@@ -60,6 +76,12 @@ public class AccountDatabase {
         this.dataSource = new HikariDataSource(config);
     }
 
+    /**
+     * 获取数据库物理连接。
+     *
+     * @return 数据库连接对象
+     * @throws SQLException 获取连接失败时抛出
+     */
     public Connection getConnection() throws SQLException {
         if (dataSource == null) {
             throw new SQLException("数据源尚未初始化");
@@ -67,6 +89,9 @@ public class AccountDatabase {
         return dataSource.getConnection();
     }
 
+    /**
+     * 优雅关闭数据库连接池。
+     */
     @PreDestroy
     public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
@@ -75,6 +100,9 @@ public class AccountDatabase {
         }
     }
 
+    /**
+     * 初始化账号库的核心表结构（user 用户表与 invite 邀请码表）。
+     */
     private void initSchema() {
         String userSql = "CREATE TABLE IF NOT EXISTS user ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"

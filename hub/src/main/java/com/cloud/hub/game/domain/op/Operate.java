@@ -9,13 +9,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 牌桌操作流转管理器。
+ * <p>
+ * 跟踪当前出牌/操作座位号（currOpSeat）、上一操作座位号（lastOpSeat），
+ * 并记录各座位当前可用的操作选项集合（吃碰杠胡、出牌提示等）。
+ *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className Operate
- * @description 操作管理器，负责游戏桌子的操作记录和处理
- * @createDate 2026-05-03
- * @since 1.0
  */
 public class Operate {
 

@@ -3,12 +3,17 @@ package com.cloud.hub.web.dto;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 作废邀请码请求体（对齐 RuoYi 接口入参规范）
+ * 邀请码强制废弃请求传输对象。
+ *
+ * @author cloud
  */
 public class InviteRevokeDto {
+
+    /** 目标邀请码 Token */
     @NotBlank(message = "邀请码不能为空")
     private String token;
 
+    /** 会话标识 */
     private String sessionId;
 
     public String getToken() {

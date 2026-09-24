@@ -6,10 +6,11 @@ import utils.registry.annotation.ProcessEnum;
 import utils.registry.enums.TableState;
 
 /**
- * @author admin
- * @className TableDis
- * @description 牌局解散；停止桌子循环并从 TableManager 移除实例，避免泄漏。
- * @createDate 2025/10/20 16:57
+ * 牌桌解散状态处理器。
+ * <p>
+ * 停止牌桌主循环并从 TableManager 异步注销，释放内存资源并向大厅服务同步销毁事件。
+ *
+ * @author cloud
  */
 @ProcessEnum(TableState.TABLE_DIS)
 public class TableDis extends AbstractTableHandle {

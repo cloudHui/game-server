@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
 import proto.ModelProto;
-import utils.metrics.MetricsCollector;
 import utils.trace.TraceContext;
 
 import java.util.Map;
@@ -31,9 +30,18 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
- * 游戏桌子基类
- * 包含所有玩法共用的状态、玩家管理、循环控制
- * 具体玩法通过子类(MjTable/DdzTable)实现
+ * 棋牌桌子通用聚合根与生命周期基类。
+ * <p>
+ * <b>核心职责：</b>
+ * <ul>
+ *   <li>维护桌子标识（tableId）、桌规则模型（tableModel）与创建者信息；</li>
+ *   <li>管理玩家进退桌、座位分配（seatUsers）、在线状态与补位陪练机器人；</li>
+ *   <li>驱动状态机主循环（tableLoop 与 tick 调度），支持动态调整空闲/对局 tick 间隔；</li>
+ *   <li>管理对局多局流转、总结算汇总广播（sendGameResult）与安全异步销毁；</li>
+ *   <li>提供纯多态生命周期钩子，消灭外层状态机类型强转分支。</li>
+ * </ul>
+ *
+ * @author cloud
  */
 public abstract class Table {
     private static final Logger logger = LoggerFactory.getLogger(Table.class);
@@ -442,7 +450,10 @@ public abstract class Table {
     public void tableLoop() {
         try {
             TraceContext.setTableId(tableId);
-            MetricsCollector.getInstance().incrementCounter("game.table_loops");
+            com.cloud.hub.framework.metrics.HubMetrics metrics = com.cloud.hub.framework.metrics.HubMetrics.getInstance();
+            if (metrics != null) {
+                metrics.recordTableLoop();
+            }
             if (TableHeartbeatLifecycle.closeExpiredRobotRoom(this))
                 return;
             TableStateHandleManager.handle(this);

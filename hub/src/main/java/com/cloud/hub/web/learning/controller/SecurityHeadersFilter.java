@@ -1,20 +1,24 @@
 package com.cloud.hub.web.learning.controller;
 
-import java.io.IOException;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
 
 /**
- * 仅作用于学习页与学习 API，避免 CSP 影响娱乐前端。
+ * 学习中心页面与 API 专属安全响应头注入过滤器。
+ * <p>
+ * 设置严格的 CSP、防嗅探、防点击劫持及权限策略，隔离并防止跨域风险。
+ *
+ * @author cloud
  */
 @Component
 public class SecurityHeadersFilter extends OncePerRequestFilter {
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
@@ -23,7 +27,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+                                    FilterChain chain) throws ServletException, IOException {
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Frame-Options", "DENY");
         response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");

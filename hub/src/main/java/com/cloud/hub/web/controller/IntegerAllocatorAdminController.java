@@ -16,13 +16,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 管理员整数分配计算接口（参照 RuoYi 规范重构）
+ * 管理员整数分配与均值反推计算控制器。
+ * <p>
+ * 用于在固定总期望均值或连续子区间均值约束下，自动反向推导并填充未知的整数数值序列。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/admin/integer-allocator")
 @RequiresAdmin
 public class IntegerAllocatorAdminController {
 
+    /**
+     * 计算并反推满足均值约束的整数序列。
+     *
+     * @param body 计算请求参数
+     * @return 成功返回填充后的数值列表与统计信息，失败返回校验信息
+     */
     @PostMapping("/calculate")
     @Log(title = "整数分配计算", businessType = BusinessType.OTHER)
     public AjaxResult calculate(@RequestBody IntegerAllocatorDto body) {
@@ -33,8 +43,7 @@ public class IntegerAllocatorAdminController {
         double totalAverage = decimal(body.getTotalAverage(), "总期望均值");
         Double subAverage = optionalDecimal(body.getSubAverage(), "连续 3 个值的期望均值");
 
-        IntegerAllocator.Result allocation = IntegerAllocator.calculate(
-                knownValues, totalAverage, subAverage);
+        IntegerAllocator.Result allocation = IntegerAllocator.calculate(knownValues, totalAverage, subAverage);
         if (!allocation.isSuccess()) {
             return AjaxResult.error(422, allocation.getErrorMessage());
         }

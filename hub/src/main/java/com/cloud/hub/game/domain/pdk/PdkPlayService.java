@@ -80,6 +80,8 @@ public final class PdkPlayService {
         }
         ctx.addPass();
         ctx.addPassSeat(user.getSeated());
+        logger.info("[PDK-Play] TableId: {}, User: {} (Seat: {}), PASS, ConsecutivePasses: {}",
+                table.getTableId(), userId, user.getSeated(), ctx.getConsecutivePasses());
         int needPass = table.getTableModel().getSeatNum() - 1;
         if (ctx.getConsecutivePasses() >= needPass) {
             int leader = ctx.getLastPlaySeat();
@@ -123,6 +125,11 @@ public final class PdkPlayService {
         ctx.setLastPlayed(hand.toCardInfo());
         ctx.setConsecutivePasses(0);
         ctx.setLastPlaySeat(user.getSeated());
+
+        logger.info("[PDK-Play] TableId: {}, User: {} (Seat: {}), Play: {}, Cards: {}, RemainCards: {}",
+                table.getTableId(), user.getUserId(), user.getSeated(), hand.getType(), hand.getCards().size(),
+                user.getCards().size());
+
         if (table.getReplayRecorder() != null) {
             table.getReplayRecorder().writeAuditEvent("当前最大方 座" + user.getSeated());
         }

@@ -1,12 +1,9 @@
 package com.cloud.hub.game.domain.table;
 
-import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.cards.Card;
-import com.google.protobuf.Message;
-import utils.registry.enums.ServerType;
-import net.client.handler.ClientHandler;
-import net.message.TCPMessage;
 import com.cloud.hub.game.runtime.GamePushBus;
+import com.google.protobuf.Message;
+import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,13 +15,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
+ * 牌桌玩家实体模型。
+ * <p>
+ * 维护玩家在桌内的座位索引、在线与断线状态、手牌集合、所属网关连接（GateId）、
+ * 是否为陪练机器人以及 WebSocket 网页心跳保活时间戳。
+ *
  * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className TableUser
- * @description 游戏用户模型，负责游戏桌子的玩家管理
- * @createDate 2026-05-03
- * @since 1.0
  */
 public class TableUser {
     private static final Logger logger = LoggerFactory.getLogger(TableUser.class);
@@ -240,23 +236,10 @@ public class TableUser {
         if (GamePushBus.publish(userId, localMessage)) {
             logger.debug("sendRole:{} local push table:{} msgId:0x{}", userId, tableId,
                     Integer.toHexString(messageId));
-            return;
+        } else {
+            logger.debug("sendRole:{} push skipped (user offline or session closed) table:{} msgId:0x{}",
+                    userId, tableId, Integer.toHexString(messageId));
         }
-        ClientHandler serverClient = Game.getInstance().getServerClientManager().getServerClient(ServerType.Gate,
-                gateId);
-        if (serverClient == null) {
-            // 入桌时可能误存了 roleId；单网关场景回退到任意 Gate 连接
-            serverClient = Game.getInstance().getServerClientManager().getServerClient(ServerType.Gate);
-        }
-
-        if (serverClient == null) {
-            logger.error("sendRole:{} Message error gate:{} null table:{}", userId, gateId, tableId);
-            return;
-        }
-        // clientId=玩家 roleId，mapId=桌号，供 gate 转发到对应客户端
-        serverClient.sendMessage(localMessage);
-        logger.info("sendRole:{} Message success gate:{} table:{} msgId:0x{}",
-                userId, gateId, tableId, Integer.toHexString(messageId));
     }
 
     @Override

@@ -132,6 +132,8 @@ public final class DdzPlayService {
 
         broadcastAck(table, userId, GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PASS).build());
         ctx.addPass();
+        logger.info("[DDZ-Play] TableId: {}, User: {} (Seat: {}), PASS, ConsecutivePasses: {}",
+                table.getTableId(), userId, user != null ? user.getSeated() : -1, ctx.getConsecutivePasses());
         if (ctx.getConsecutivePasses() >= 2) {
             int leader = ctx.getLastPlaySeat();
             ctx.resetCurrentTrickCards();
@@ -179,34 +181,21 @@ public final class DdzPlayService {
     }
 
     /**
-     * 成功出牌后处理
+     * 成功出牌后的状态结算与下一轮流转。
      */
     private static void afterSuccessfulPlay(DdzTable table, TableUser user, DdzHand hand) {
         DdzTableContext ctx = table.getDdz();
         if (hand.isBomb() || hand.isRocket()) {
             ctx.doubleBombMultiplier();
         }
-        int landlordSeat = ctx.getLandlordSeat();
-        if (user.getSeated() == landlordSeat) {
+        if (user.getSeated() == ctx.getLandlordSeat()) {
             ctx.incrementLandlordPlayCount();
         } else {
             ctx.setFarmerEverPlayed(true);
         }
         ctx.recordPlayedCards(hand.getCards());
 
-        DdzReplayRecorder replay = table.getDdzReplay();
-        if (replay != null) {
-            List<Integer> ids = new ArrayList<>();
-            for (Card c : hand.getCards())
-                ids.add(c.getId());
-            replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 "
-                    + (ctx.getLastHand() == null ? "出牌" : "出牌/过") + " → 客户端展示");
-            replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
-            replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
-                    + " 强度 " + hand.getStrengthKey() + " 长度 " + hand.getCards().size()
-                    + (hand.isRocket() ? " 王炸" : (hand.isBomb() ? " 炸弹" : "")));
-            replay.recordPlay(user.getSeated(), ids);
-        }
+        recordPlayReplay(table.getDdzReplay(), user, hand, ctx.getLastHand());
 
         broadcastAck(table, user.getUserId(), GameProto.OpInfo.newBuilder()
                 .setChoice(ConstProto.Operation.PLAY)
@@ -215,18 +204,37 @@ public final class DdzPlayService {
         ctx.setLastPlayed(hand.toCardInfo());
         ctx.setConsecutivePasses(0);
         ctx.setLastPlaySeat(user.getSeated());
-        if (replay != null)
-            replay.writeAuditEvent("当前最大方 座" + user.getSeated());
+
+        logger.info("[DDZ-Play] TableId: {}, User: {} (Seat: {}), Play: {}, Cards: {}, RemainCards: {}, Multiplier: {}",
+                table.getTableId(), user.getUserId(), user.getSeated(), hand.getType(), hand.getCards().size(),
+                user.getCards().size(), ctx.getCurrentMultiplier());
 
         if (user.getCards().isEmpty()) {
             DdzSettleService.finishGame(table, user);
             return;
         }
         table.getOp().moveToNextOp();
-        if (replay != null)
+        DdzReplayRecorder replay = table.getDdzReplay();
+        if (replay != null) {
             replay.writeAuditEvent("下一操作位 座" + table.getOp().getCurrOpSeat());
+        }
         table.getBanner().setRobBroadcastDone(false);
         table.upNextStateWithTime(TableState.CARD, System.currentTimeMillis());
+    }
+
+    /** 记录出牌相关的审计与回放事件流水 */
+    private static void recordPlayReplay(DdzReplayRecorder replay, TableUser user, DdzHand hand, DdzHand lastHand) {
+        if (replay == null) return;
+        List<Integer> ids = new ArrayList<>(hand.getCards().size());
+        for (Card c : hand.getCards()) ids.add(c.getId());
+        replay.writeAuditEvent("座" + user.getSeated() + " 收到选项 "
+                + (lastHand == null ? "出牌" : "出牌/过") + " → 客户端展示");
+        replay.writeAuditEvent("座" + user.getSeated() + " " + source(user) + "选择 出牌 " + ids);
+        replay.writeAuditEvent("座" + user.getSeated() + " 牌型 " + hand.getType().name()
+                + " 强度 " + hand.getStrengthKey() + " 长度 " + hand.getCards().size()
+                + (hand.isRocket() ? " 王炸" : (hand.isBomb() ? " 炸弹" : "")));
+        replay.recordPlay(user.getSeated(), ids);
+        replay.writeAuditEvent("当前最大方 座" + user.getSeated());
     }
 
     private static String source(TableUser user) {

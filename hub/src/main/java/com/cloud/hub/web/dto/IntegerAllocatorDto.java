@@ -3,12 +3,22 @@ package com.cloud.hub.web.dto;
 import java.util.List;
 
 /**
- * 整数分配计算请求体（对齐 RuoYi 接口入参规范）
+ * 整数分配算法试算请求传输对象。
+ *
+ * @author cloud
  */
 public class IntegerAllocatorDto {
+
+    /** 已知固定数值列表 */
     private List<Object> knownValues;
+
+    /** 目标总平均值 */
     private Object totalAverage;
+
+    /** 子集合目标平均值 */
     private Object subAverage;
+
+    /** 可选的会话标识 */
     private String sessionId;
 
     public List<Object> getKnownValues() {

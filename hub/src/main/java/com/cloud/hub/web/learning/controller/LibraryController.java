@@ -1,21 +1,28 @@
 package com.cloud.hub.web.learning.controller;
 
-import org.springframework.web.bind.annotation.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.cloud.hub.web.learning.service.AuthService;
 import com.cloud.hub.web.learning.service.LibraryService;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * 开放学习库接口。
- * 列表类（图卡/词汇/词典/诗词/汉字）统一翻页；汉字笔顺详情单独按字读取。
+ * 开放学习库接口控制器。
+ * <p>
+ * 图卡、词汇、词典、诗词、汉字统一支持分页与分类标签检索；汉字笔顺动画轨迹按需单独按字读取。
+ *
+ * @author cloud
  */
 @RestController
 @RequestMapping("/api/learning/library")
 public class LibraryController {
+
     private final AuthService auth;
     private final LibraryService library;
 
@@ -25,7 +32,7 @@ public class LibraryController {
     }
 
     /**
-     * 数据就绪状态。
+     * 查询本地各项开源数据集资源就绪情况。
      */
     @GetMapping("/status")
     public Map<String, Object> status(@RequestHeader(value = "X-Session-Token", required = false) String token) throws Exception {
@@ -34,8 +41,7 @@ public class LibraryController {
     }
 
     /**
-     * 汉字列表翻页，或按 value 取笔顺详情。
-     * 列表统一：query 搜索 + tag 标签；value 有值时返回笔顺详情 JSON。
+     * 汉字列表翻页浏览，或指定 value 获取单字笔顺矢量轨迹。
      */
     @GetMapping("/character")
     public Object character(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -52,7 +58,7 @@ public class LibraryController {
     }
 
     /**
-     * 英汉词典翻页：统一 query + tag。
+     * 英汉词典综合检索翻页。
      */
     @GetMapping("/dictionary")
     public Map<String, Object> dictionary(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -65,7 +71,7 @@ public class LibraryController {
     }
 
     /**
-     * 古诗词翻页：统一 query + tag。
+     * 古诗文全库与精选翻页检索。
      */
     @GetMapping("/poetry")
     public Map<String, Object> poetry(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -79,7 +85,7 @@ public class LibraryController {
     }
 
     /**
-     * 查询教材目录（仅链接，不下载 PDF）。
+     * 查询教材目录列表（无前缀分级）。
      */
     @GetMapping("/textbooks")
     public List<JsonNode> textbooks(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -89,7 +95,7 @@ public class LibraryController {
     }
 
     /**
-     * 教材目录树浏览。
+     * 教材目录树层级浏览与搜索。
      */
     @GetMapping("/textbooks/tree")
     public Map<String, Object> textbooksTree(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -100,7 +106,7 @@ public class LibraryController {
     }
 
     /**
-     * 儿童英语图卡翻页。
+     * 儿童英语图卡分页浏览。
      */
     @GetMapping("/english")
     public Map<String, Object> english(@RequestHeader(value = "X-Session-Token", required = false) String token,
@@ -113,7 +119,7 @@ public class LibraryController {
     }
 
     /**
-     * 常用英语词汇翻页。
+     * 常用英语高频词汇翻页。
      */
     @GetMapping("/vocab")
     public Map<String, Object> vocab(@RequestHeader(value = "X-Session-Token", required = false) String token,
