@@ -4,7 +4,7 @@ import com.cloud.hub.game.Game;
 import com.cloud.hub.game.config.GameRuntimeConfig;
 import com.cloud.hub.game.domain.replay.ReplayDirectories;
 import com.cloud.hub.storage.DataPathResolver;
-import com.cloud.hub.lobby.manager.table.TableManager;
+import com.cloud.hub.lobby.manager.table.LobbyTableManager;
 import com.cloud.hub.lobby.db.SqliteDatabase;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -101,8 +101,8 @@ public class HubRuntime {
         // 2. 注册并按序启动各业务组件
         lifecycle.start(Arrays.asList(
                 managed(HubComponent.STORAGE, () -> SqliteDatabase.initialize(databasePath), () -> { }),
-                managed(HubComponent.LOBBY, () -> TableManager.getInstance().init(),
-                        () -> TableManager.getInstance().shutdown()),
+                managed(HubComponent.LOBBY, () -> LobbyTableManager.getInstance().init(),
+                        () -> LobbyTableManager.getInstance().shutdown()),
                 managed(HubComponent.GAME,
                         () -> Game.getInstance().startEmbedded(databasePath, gameWorkers,
                                 gameQueueCapacity, gameDatabaseThreads),

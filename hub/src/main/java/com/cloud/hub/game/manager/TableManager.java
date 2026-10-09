@@ -55,13 +55,18 @@ public class TableManager {
     public TableManager() {
         threadPoolManager = Game.getInstance().getThreadPoolManager();
         tableMap = new ConcurrentHashMap<>();
-        configManager = new TableConfigManager();
-        if (configManager.loadFail()) {
-            throw new RuntimeException("加载配置文件失败");
+        // 复用大厅已加载并监控的 TableConfigManager，避免重复解析与两套 Watcher 线程
+        TableConfigManager shared = com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance().getConfigManager();
+        if (shared != null && !shared.getAllTableModels().isEmpty()) {
+            this.configManager = shared;
+        } else {
+            this.configManager = new TableConfigManager();
+            if (this.configManager.loadFail()) {
+                throw new RuntimeException("加载配置文件失败");
+            }
+            RobotRoomTemplates.register(this.configManager::putRuntimeModel);
+            this.configManager.startWatch();
         }
-        // 与大厅注册同一组固定模板，机器人桌无需依赖外部配置文件。
-        RobotRoomTemplates.register(configManager::putRuntimeModel);
-        configManager.startWatch();
         logger.info("桌子管理器初始化完成");
     }
 
@@ -200,7 +205,7 @@ public class TableManager {
      */
     private void notifyRoomTableDestroyed(long tableId) {
         try {
-            com.cloud.hub.lobby.manager.table.TableManager.getInstance().removeTable(tableId);
+            com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance().removeTable(tableId);
             logger.debug("内置Lobby已移除桌子, tableId: {}", tableId);
         } catch (Exception e) {
             logger.error("通知Lobby桌子销毁失败, tableId: {}", tableId, e);
@@ -213,7 +218,7 @@ public class TableManager {
     public void notifyRoomPlayerLeft(long tableId, int roleId) {
         try {
             com.cloud.hub.lobby.manager.table.TableInfo info =
-                    com.cloud.hub.lobby.manager.table.TableManager.getInstance().getTableById(tableId);
+                    com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance().getTableById(tableId);
             com.cloud.hub.lobby.manager.User user =
                     com.cloud.hub.lobby.manager.UserManager.getInstance().getUser(roleId);
             if (info != null && user != null) {

@@ -61,7 +61,7 @@ public class AppConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/", "/index.html", "/api/auth/**", "/api/login",
-                        "/api/capabilities",
+                        "/api/capabilities", "/api/learning/auth/**",
                         "/app-base.js", "/favicon.ico", "/css/**", "/js/**", "/img/**",
                         "/shared/**", "/pages/learning/css/**", "/pages/learning/js/**",
                         "/ws/**");

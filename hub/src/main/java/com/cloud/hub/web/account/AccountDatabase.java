@@ -125,12 +125,25 @@ public class AccountDatabase {
                 + "used_count INTEGER NOT NULL DEFAULT 0,"
                 + "enabled INTEGER NOT NULL DEFAULT 1"
                 + ")";
+        String customRoomSql = "CREATE TABLE IF NOT EXISTS custom_room ("
+                + "model_id INTEGER PRIMARY KEY, model_json TEXT NOT NULL, game_type INTEGER NOT NULL,"
+                + "created_by TEXT, created_at INTEGER NOT NULL, enabled INTEGER NOT NULL DEFAULT 1"
+                + ")";
+        String scoreSql = "CREATE TABLE IF NOT EXISTS score_record ("
+                + "table_id INTEGER NOT NULL, room_id INTEGER NOT NULL, game_type INTEGER NOT NULL,"
+                + "round INTEGER NOT NULL, user_id INTEGER NOT NULL, seat INTEGER NOT NULL,"
+                + "score INTEGER NOT NULL, total_score INTEGER NOT NULL, winner_seat INTEGER NOT NULL,"
+                + "score_value INTEGER NOT NULL, win_type TEXT NOT NULL, created_at INTEGER NOT NULL,"
+                + "PRIMARY KEY(table_id, round, user_id)"
+                + ")";
         try (Connection conn = dataSource.getConnection();
              Statement st = conn.createStatement()) {
             st.execute(userSql);
             st.execute(inviteSql);
+            st.execute(customRoomSql);
+            st.execute(scoreSql);
         } catch (SQLException e) {
-            throw new IllegalStateException("初始化账号表失败", e);
+            throw new IllegalStateException("初始化核心业务表结构失败", e);
         }
     }
 }

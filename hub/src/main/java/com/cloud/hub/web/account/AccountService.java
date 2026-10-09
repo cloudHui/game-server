@@ -444,14 +444,32 @@ public class AccountService {
 
     /**
      * 统计当前系统用户总数。
+     *
+     * @return 注册用户总数
      */
-    private long countUsers() {
+    public long countUsers() {
         try (Connection conn = database.getConnection();
              PreparedStatement ps = conn.prepareStatement("SELECT COUNT(1) FROM user");
              ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getLong(1) : 0;
         } catch (SQLException e) {
             logger.error("countUsers 失败", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 统计当前系统邀请码总数。
+     *
+     * @return 邀请码总数
+     */
+    public long countInvites() {
+        try (Connection conn = database.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(1) FROM invite");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            logger.error("countInvites 失败", e);
             return 0;
         }
     }

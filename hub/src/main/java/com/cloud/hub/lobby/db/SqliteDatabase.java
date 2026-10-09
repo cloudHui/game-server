@@ -77,7 +77,11 @@ public class SqliteDatabase {
      * @throws SQLException 获取连接失败抛出
      */
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(jdbcUrl);
+        Connection conn = DriverManager.getConnection(jdbcUrl);
+        try (Statement st = conn.createStatement()) {
+            st.execute("PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;");
+        }
+        return conn;
     }
 
     /**

@@ -26,10 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author cloud
  */
-public class TableManager {
+public class LobbyTableManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(TableManager.class);
-    private static TableManager instance;
+    private static final Logger logger = LoggerFactory.getLogger(LobbyTableManager.class);
+    private static LobbyTableManager instance;
 
     /** Excel 与本地配表加载器 */
     private final TableConfigManager configManager;
@@ -42,21 +42,30 @@ public class TableManager {
     /** 房间列表只读视图本地短效缓存（1000ms），削减大厅轮询高频装配与 GC 压力 */
     private final LocalExpiringCache<String, LobbyProto.AckRoomList> roomListCache = new LocalExpiringCache<>(1000L);
 
-    private TableManager() {
+    private LobbyTableManager() {
         configManager = new TableConfigManager();
         customRoomRepository = new CustomRoomRepository(SqliteDatabase.getInstance());
     }
 
     /**
-     * 获取房间管理器全局单例。
+     * 获取大厅房间管理器全局单例。
      *
      * @return 单例实例
      */
-    public static synchronized TableManager getInstance() {
+    public static synchronized LobbyTableManager getInstance() {
         if (instance == null) {
-            instance = new TableManager();
+            instance = new LobbyTableManager();
         }
         return instance;
+    }
+
+    /**
+     * 获取底层的配置模板管理器，供游戏引擎共享避免重复解析。
+     *
+     * @return 配置管理器
+     */
+    public TableConfigManager getConfigManager() {
+        return configManager;
     }
 
     /**
@@ -284,4 +293,3 @@ public class TableManager {
         return tableInfoMap.size();
     }
 }
-

@@ -16,8 +16,8 @@ import com.cloud.hub.game.Game;
 import com.cloud.hub.game.runtime.GamePushBus;
 import com.cloud.hub.lobby.manager.User;
 import com.cloud.hub.lobby.manager.UserManager;
+import com.cloud.hub.lobby.manager.table.LobbyTableManager;
 import com.cloud.hub.lobby.manager.table.TableInfo;
-import com.cloud.hub.lobby.manager.table.TableManager;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 
@@ -97,7 +97,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
             return failed("会话不存在");
         }
         if (msgId == LMsg.REQ_ROOM_LIST_MSG) {
-            return CompletableFuture.completedFuture(TableManager.getInstance().getAllRoomTable());
+            return CompletableFuture.completedFuture(LobbyTableManager.getInstance().getAllRoomTable());
         }
         if (msgId == LMsg.REQ_JOIN_ROOM_TABLE_MSG) {
             return join(userId, (LobbyProto.ReqJoinRoomTable) message).thenApply(value -> value);
@@ -169,7 +169,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
     }
 
     private CompletableFuture<LobbyProto.AckJoinRoomTable> join(int userId, LobbyProto.ReqJoinRoomTable request) {
-        TableManager lobby = TableManager.getInstance();
+        LobbyTableManager lobby = LobbyTableManager.getInstance();
         User user = UserManager.getInstance().getUser(userId);
         TableModel model = lobby.getTableModel(request.getRoomId());
         if (user == null || model == null) {
@@ -185,7 +185,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
     }
 
     private CompletableFuture<LobbyProto.AckJoinRoomTable> createAndJoinTable(int userId, LobbyProto.ReqJoinRoomTable request,
-                                                                             TableManager lobby, User user, TableModel model) {
+                                                                             LobbyTableManager lobby, User user, TableModel model) {
         ModelProto.RoomRole.Builder role = ModelProto.RoomRole.newBuilder().setRoleId(userId)
                 .setNickName(ByteString.copyFromUtf8(user.getNick() == null ? user.getUsername() : user.getNick()));
         String json = TableModelJson.toJson(model);

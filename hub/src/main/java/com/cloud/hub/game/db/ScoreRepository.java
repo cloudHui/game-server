@@ -105,13 +105,55 @@ public class ScoreRepository {
                 entry.getWinnerSeat(), entry.getScore(), entry.getWinType(), System.currentTimeMillis(), rows);
     }
 
+    private Connection getConnection() throws SQLException {
+        Connection conn = DriverManager.getConnection(jdbcUrl);
+        try (Statement st = conn.createStatement()) {
+            st.execute("PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;");
+        }
+        return conn;
+    }
+
+    /**
+     * 分页查询历史对局结算战绩列表。
+     *
+     * @param page 页码（从 1 开始）
+     * @param size 每页大小
+     * @return 战绩记录字典列表
+     */
+    public java.util.List<java.util.Map<String, Object>> listRecords(int page, int size) {
+        java.util.List<java.util.Map<String, Object>> rows = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM score_record ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        try (Connection c = getConnection(); PreparedStatement p = c.prepareStatement(sql)) {
+            p.setInt(1, Math.min(Math.max(size, 1), 100));
+            p.setInt(2, Math.max(0, (page - 1) * size));
+            try (java.sql.ResultSet r = p.executeQuery()) {
+                while (r.next()) {
+                    java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("tableId", r.getLong("table_id"));
+                    row.put("roomId", r.getInt("room_id"));
+                    row.put("gameType", r.getInt("game_type"));
+                    row.put("round", r.getInt("round"));
+                    row.put("userId", r.getInt("user_id"));
+                    row.put("seat", r.getInt("seat"));
+                    row.put("score", r.getInt("score"));
+                    row.put("totalScore", r.getInt("total_score"));
+                    row.put("createdAt", r.getLong("created_at"));
+                    rows.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("listRecords 查询战绩失败", e);
+        }
+        return rows;
+    }
+
     /**
      * 批量执行 JDBC Batch 写入战绩行。
      */
     private void writeRound(RoundSnapshot snapshot) {
         String sql = "INSERT OR REPLACE INTO score_record(table_id, room_id, game_type, round, user_id, seat, score, total_score, winner_seat, score_value, win_type, created_at)"
                 + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-        try (Connection conn = DriverManager.getConnection(jdbcUrl);
+        try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             conn.setAutoCommit(false);
             for (ScoreRow row : snapshot.rows) {
@@ -183,7 +225,7 @@ public class ScoreRepository {
                 + "score INTEGER NOT NULL, total_score INTEGER NOT NULL, winner_seat INTEGER NOT NULL,"
                 + "score_value INTEGER NOT NULL, win_type TEXT NOT NULL, created_at INTEGER NOT NULL,"
                 + "PRIMARY KEY(table_id, round, user_id))";
-        try (Connection conn = DriverManager.getConnection(jdbcUrl); Statement st = conn.createStatement()) {
+        try (Connection conn = getConnection(); Statement st = conn.createStatement()) {
             st.execute(sql);
         } catch (SQLException e) {
             throw new IllegalStateException("初始化战绩表失败", e);

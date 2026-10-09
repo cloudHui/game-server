@@ -4,7 +4,7 @@ import com.cloud.hub.common.annotation.Log;
 import com.cloud.hub.common.annotation.RequiresAdmin;
 import com.cloud.hub.common.core.domain.AjaxResult;
 import com.cloud.hub.common.enums.BusinessType;
-import com.cloud.hub.web.arena.IntegerAllocator;
+import com.cloud.hub.common.util.IntegerAllocator;
 import com.cloud.hub.web.dto.IntegerAllocatorDto;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

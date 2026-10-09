@@ -33,6 +33,8 @@ import java.util.Map;
  * 管理后台核心控制器。
  * <p>
  * 提供邀请码管理、用户启停、活跃桌子监控、战局回放检索、以及管理员远程终端等管理接口。
+ * 全局由 {@link RequiresAdmin} 拦截鉴权，业务下沉至 {@link LobbyAdminClient} 与相关服务。
+ * </p>
  *
  * @author cloud
  */
@@ -62,9 +64,7 @@ public class AdminController {
      */
     @GetMapping("/invites")
     public AjaxResult list() {
-        LoginUser user = SecurityUtils.getRequiredUser();
-        Map<String, Object> result = lobbyAdminClient.listInvites(user.getToken());
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.listInvites());
     }
 
     /**
@@ -81,8 +81,7 @@ public class AdminController {
         payload.put("note", body.getNote() != null ? body.getNote() : "");
         payload.put("maxUses", body.getMaxUses());
         payload.put("expiresDays", body.getExpiresDays());
-        Map<String, Object> result = lobbyAdminClient.createInvite(user.getToken(), payload);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.createInvite(user.getUsername(), payload));
     }
 
     /**
@@ -94,11 +93,9 @@ public class AdminController {
     @PostMapping("/invites/revoke")
     @Log(title = "邀请码管理", businessType = BusinessType.DELETE)
     public AjaxResult revoke(@RequestBody @Valid InviteRevokeDto body) {
-        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
         payload.put("token", body.getToken());
-        Map<String, Object> result = lobbyAdminClient.revokeInvite(user.getToken(), payload);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.revokeInvite(payload));
     }
 
     /**
@@ -110,13 +107,11 @@ public class AdminController {
     @PostMapping("/invites/reactivate")
     @Log(title = "邀请码管理", businessType = BusinessType.UPDATE)
     public AjaxResult reactivate(@RequestBody @Valid InviteReactivateDto body) {
-        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
         payload.put("token", body.getToken());
         payload.put("expiresDays", body.getExpiresDays());
         payload.put("additionalUses", body.getAdditionalUses());
-        Map<String, Object> result = lobbyAdminClient.reactivateInvite(user.getToken(), payload);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.reactivateInvite(payload));
     }
 
     /**
@@ -126,9 +121,7 @@ public class AdminController {
      */
     @GetMapping("/users")
     public AjaxResult users() {
-        LoginUser user = SecurityUtils.getRequiredUser();
-        Map<String, Object> result = lobbyAdminClient.listUsers(user.getToken());
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.listUsers());
     }
 
     /**
@@ -140,12 +133,10 @@ public class AdminController {
     @PostMapping("/users/enable")
     @Log(title = "用户管理", businessType = BusinessType.UPDATE)
     public AjaxResult enableUser(@RequestBody @Valid UserEnableDto body) {
-        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>();
         payload.put("userId", body.getUserId());
         payload.put("enabled", body.getEnabled());
-        Map<String, Object> result = lobbyAdminClient.enableUser(user.getToken(), payload);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.enableUser(payload));
     }
 
     /**
@@ -155,9 +146,7 @@ public class AdminController {
      */
     @GetMapping("/tables")
     public AjaxResult tables(@RequestParam(value = "tableId", required = false) Long tableId) {
-        LoginUser user = SecurityUtils.getRequiredUser();
-        Map<String, Object> result = lobbyAdminClient.listTables(user.getToken(), tableId);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.listTables(tableId));
     }
 
     /**
@@ -168,9 +157,7 @@ public class AdminController {
      */
     @GetMapping("/tables/{tableId}")
     public AjaxResult tableDetail(@PathVariable("tableId") long tableId) {
-        LoginUser user = SecurityUtils.getRequiredUser();
-        Map<String, Object> result = lobbyAdminClient.getTableDetail(user.getToken(), tableId);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.getTableDetail(tableId));
     }
 
     /**
@@ -183,13 +170,11 @@ public class AdminController {
     @PostMapping("/tables/{tableId}/mj-cheat")
     @Log(title = "牌桌换牌调试", businessType = BusinessType.UPDATE)
     public AjaxResult mjCheat(@PathVariable("tableId") long tableId, @RequestBody Map<String, Object> body) {
-        LoginUser user = SecurityUtils.getRequiredUser();
         String command = body.get("command") != null ? String.valueOf(body.get("command")) : "";
         if (command.isEmpty() && body.containsKey("action")) {
             command = body.get("action") + " " + body.get("tile");
         }
-        Map<String, Object> result = lobbyAdminClient.executeMjCheat(user.getToken(), tableId, command);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.executeMjCheat(tableId, command));
     }
 
     /**
@@ -201,11 +186,9 @@ public class AdminController {
     @PostMapping("/robot-matches")
     @Log(title = "机器人对局", businessType = BusinessType.INSERT)
     public AjaxResult createRobotMatch(@RequestBody Map<String, Object> body) {
-        LoginUser user = SecurityUtils.getRequiredUser();
         Map<String, Object> payload = new HashMap<>(body);
         payload.remove("sessionId");
-        Map<String, Object> result = lobbyAdminClient.createRobotMatch(user.getToken(), payload);
-        return toAjax(result);
+        return toAjax(lobbyAdminClient.createRobotMatch(payload));
     }
 
     /**
@@ -237,8 +220,7 @@ public class AdminController {
     @GetMapping("/records")
     public TableDataInfo records(@RequestParam(required = false, defaultValue = "1") int page,
                                  @RequestParam(required = false, defaultValue = "20") int size) {
-        LoginUser user = SecurityUtils.getRequiredUser();
-        List<Map<String, Object>> records = lobbyAdminClient.listRecords(user.getToken(), page, size);
+        List<Map<String, Object>> records = lobbyAdminClient.listRecords(page, size);
         long total = records != null ? records.size() : 0;
         return TableDataInfo.build(records, total, page, size);
     }

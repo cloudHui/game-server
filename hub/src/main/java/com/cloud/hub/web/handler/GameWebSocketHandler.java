@@ -67,6 +67,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String removed = wsContext.sessionId(session);
         wsContext.remove(session);
         if (removed != null) {
+            // 级联注销网关层会话映射与大厅在线用户，避免产生僵尸在线会话与内存泄漏
+            gateClient.removeConnection(removed);
             logger.info("WebSocket连接关闭, sessionId: {}, status: {}", removed, status);
         }
     }

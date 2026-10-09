@@ -1,18 +1,20 @@
 package com.cloud.hub.web.controller;
 
+import com.cloud.hub.game.Game;
+import com.cloud.hub.game.db.ScoreRepository;
+import com.cloud.hub.game.inspector.MjTileCheatService;
+import com.cloud.hub.game.inspector.TableInspectorService;
+import com.cloud.hub.lobby.manager.UserManager;
+import com.cloud.hub.lobby.manager.table.LobbyTableManager;
 import com.cloud.hub.web.account.AccountDatabase;
 import com.cloud.hub.web.account.AccountService;
 import com.cloud.hub.web.account.AccountUser;
-import com.cloud.hub.game.inspector.TableInspectorService;
-import com.cloud.hub.game.inspector.MjTileCheatService;
-import com.cloud.hub.lobby.manager.UserManager;
-import com.cloud.hub.lobby.manager.table.TableManager;
+import com.google.protobuf.ByteString;
+import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import model.tablemodel.RobotRoomTemplates;
-import com.cloud.hub.game.Game;
+import org.springframework.stereotype.Service;
 import proto.ModelProto;
-import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,19 +30,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 大厅与管理后台进程内调用适配客户端。
+ * 大厅与管理后台业务服务适配器。
  * <p>
- * 为管理后台提供邀请码维护、玩家启停、牌桌巡检、机器人对局压测验收以及积分记录查询。
+ * 为管理后台（AdminController）与自定义创房（RoomController）提供进程内服务集成：
+ * 包含邀请码生命周期、用户启停、在线牌桌巡检、麻将换牌透视调试、机器人对局压测与历史积分记录查询。
+ * 鉴权已由上层拦截器 {@link com.cloud.hub.common.annotation.RequiresAdmin} 统一保障，本层专注业务逻辑与数据交互。
+ * </p>
  *
  * @author cloud
  */
-@Component
+@Service
 public class LobbyAdminClient {
 
+    /** 压测/验收机器人虚拟角色 ID 生成基准（从负数递增） */
     private static final AtomicInteger ROBOT_ID = new AtomicInteger(-2000000000);
+
+    /** 统一账号数据库连接源 */
     private final AccountDatabase database;
+    /** 账号核心服务 */
     private final AccountService accounts;
+    /** 牌桌上帝视角透视服务 */
     private final TableInspectorService tableInspectorService;
+    /** 麻将透视换牌调试服务 */
     private final MjTileCheatService mjTileCheatService;
 
     public LobbyAdminClient(AccountDatabase database, AccountService accounts,
@@ -52,10 +63,10 @@ public class LobbyAdminClient {
         this.mjTileCheatService = mjTileCheatService;
     }
 
-    public Map<String, Object> listInvites(String token) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 查询系统内所有邀请码列表。
+     */
+    public Map<String, Object> listInvites() {
         List<Map<String, Object>> invites = new ArrayList<>();
         try (Connection c = database.getConnection();
              Statement s = c.createStatement();
@@ -84,17 +95,19 @@ public class LobbyAdminClient {
         return row;
     }
 
-    public Map<String, Object> createInvite(String token, Map<String, Object> body) {
-        AccountUser admin = adminUser(token);
-        if (admin == null) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 创建新的邀请码。
+     *
+     * @param adminUsername 操作管理员用户名
+     * @param body          邀请码配置参数
+     */
+    public Map<String, Object> createInvite(String adminUsername, Map<String, Object> body) {
         int maxUses = integer(body.get("maxUses"), 1);
         int days = integer(body.get("expiresDays"), 7);
         long now = System.currentTimeMillis();
         Long expires = days > 0 ? now + days * 86400000L : null;
         String invite = UUID.randomUUID().toString().replace("-", "");
-        return insertInvite(admin.username, invite, string(body.get("note")), now, expires, maxUses);
+        return insertInvite(adminUsername, invite, string(body.get("note")), now, expires, maxUses);
     }
 
     private Map<String, Object> insertInvite(String adminUsername, String invite, String note,
@@ -114,8 +127,7 @@ public class LobbyAdminClient {
             p.setInt(6, Math.max(1, maxUses));
             p.executeUpdate();
 
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("code", 0);
+            Map<String, Object> result = ok();
             Map<String, Object> created = new LinkedHashMap<>();
             created.put("token", invite);
             created.put("expiresAt", expires);
@@ -127,14 +139,17 @@ public class LobbyAdminClient {
         }
     }
 
-    public Map<String, Object> revokeInvite(String token, Map<String, Object> body) {
-        return updateInvite(token, body, false);
+    /**
+     * 作废指定的邀请码。
+     */
+    public Map<String, Object> revokeInvite(Map<String, Object> body) {
+        return updateInvite(body, false);
     }
 
-    public Map<String, Object> reactivateInvite(String token, Map<String, Object> body) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 重新激活或延长邀请码有效期。
+     */
+    public Map<String, Object> reactivateInvite(Map<String, Object> body) {
         String invite = string(body.get("token"));
         int days = integer(body.get("expiresDays"), 7);
         int uses = Math.max(1, integer(body.get("additionalUses"), 1));
@@ -155,10 +170,10 @@ public class LobbyAdminClient {
         }
     }
 
-    public Map<String, Object> listUsers(String token) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 获取全量注册用户概况。
+     */
+    public Map<String, Object> listUsers() {
         List<Map<String, Object>> users = new ArrayList<>();
         for (AccountUser user : accounts.listUsers()) {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -173,10 +188,10 @@ public class LobbyAdminClient {
         return ok("users", users);
     }
 
-    public Map<String, Object> enableUser(String token, Map<String, Object> body) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 启用或禁用指定用户账号。
+     */
+    public Map<String, Object> enableUser(Map<String, Object> body) {
         long id = longValue(body.get("userId"), -1);
         boolean enabled = Boolean.parseBoolean(string(body.get("enabled")));
         try (Connection c = database.getConnection();
@@ -189,14 +204,10 @@ public class LobbyAdminClient {
         }
     }
 
-    public Map<String, Object> listTables(String token) {
-        return listTables(token, null);
-    }
-
-    public Map<String, Object> listTables(String token, Long tableId) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 获取存活桌子概览。
+     */
+    public Map<String, Object> listTables(Long tableId) {
         List<Map<String, Object>> tables = tableInspectorService.listAllTablesOverview(tableId);
         Map<String, Object> result = ok("tables", tables);
         // 兼容前端旧 rooms 字段与在线人数统计
@@ -205,10 +216,10 @@ public class LobbyAdminClient {
         return result;
     }
 
-    public Map<String, Object> executeMjCheat(String token, long tableId, String command) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 执行麻将换牌调试指令。
+     */
+    public Map<String, Object> executeMjCheat(long tableId, String command) {
         String msg = mjTileCheatService.executeCommand(tableId, command);
         boolean success = !msg.startsWith("错误");
         Map<String, Object> result = success ? ok("message", msg) : error(400, msg);
@@ -216,10 +227,10 @@ public class LobbyAdminClient {
         return result;
     }
 
-    public Map<String, Object> getTableDetail(String token, long tableId) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 获取指定牌桌透视全景详情。
+     */
+    public Map<String, Object> getTableDetail(long tableId) {
         Map<String, Object> detail = tableInspectorService.getTableDetail(tableId);
         if (detail == null) {
             return error(404, "桌子不存在或已解散");
@@ -227,12 +238,12 @@ public class LobbyAdminClient {
         return ok("table", detail);
     }
 
-    public Map<String, Object> createRobotMatch(String token, Map<String, Object> body) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    /**
+     * 发起机器人对局压测与玩法验收。
+     */
+    public Map<String, Object> createRobotMatch(Map<String, Object> body) {
         int roomId = integer(body.get("roomId"), RobotRoomTemplates.MAHJONG_ROOM_ID);
-        TableModel source = TableManager.getInstance().getTableModel(roomId);
+        TableModel source = LobbyTableManager.getInstance().getTableModel(roomId);
         if (source == null || !RobotRoomTemplates.isRobotRoom(roomId)) {
             return error(400, "不支持的机器人验收玩法");
         }
@@ -254,11 +265,11 @@ public class LobbyAdminClient {
         }
         TableModel model = AdminRobotMatchRules.create(source, values);
         model.setId(30000 + roomId);
-        TableManager.getInstance().putRuntimeModel(model, "admin-robot-test");
+        LobbyTableManager.getInstance().putRuntimeModel(model, "admin-robot-test");
         int robotId = ROBOT_ID.incrementAndGet();
         ModelProto.RoomRole role = ModelProto.RoomRole.newBuilder().setRoleId(robotId)
-                .setNickName(com.google.protobuf.ByteString.copyFromUtf8("管理员验收"))
-                .setAvatar(com.google.protobuf.ByteString.copyFromUtf8("TMJSON:" + TableModelJson.toJson(model)))
+                .setNickName(ByteString.copyFromUtf8("管理员验收"))
+                .setAvatar(ByteString.copyFromUtf8("TMJSON:" + TableModelJson.toJson(model)))
                 .build();
         com.cloud.hub.game.domain.table.Table table = Game.getInstance().getTableManager()
                 .createTableAsync(model.getId(), role).get(5, TimeUnit.SECONDS);
@@ -266,7 +277,7 @@ public class LobbyAdminClient {
         ModelProto.RoomTableInfo info = ModelProto.RoomTableInfo.newBuilder()
                 .setTableId(table.getTableId()).setRoomId(model.getId()).setGameType(model.getType())
                 .setCreatorId(robotId).setOwnerId(robotId).addTableRoles(role).build();
-        TableManager.getInstance().putRoomInfo(info);
+        LobbyTableManager.getInstance().putRoomInfo(info);
 
         Map<String, Object> result = ok();
         result.put("tableId", table.getTableId());
@@ -275,17 +286,19 @@ public class LobbyAdminClient {
         return result;
     }
 
-    public Map<String, Object> createCustomRoom(String token, Map<String, Object> body) {
-        AccountUser user = accounts.findByToken(token).orElse(null);
-        if (user == null || !user.enabled) {
-            return error(401, "需要登录");
-        }
+    /**
+     * 注册自定义规则房间并返回房间 ID。
+     *
+     * @param username 创建者用户名
+     * @param body     房间规则参数
+     */
+    public Map<String, Object> createCustomRoom(String username, Map<String, Object> body) {
         int gameType = integer(body.get("gameType"), 1);
         if (gameType != 1 && gameType != 2) {
             return error(400, "gameType 须为 1麻将 或 2斗地主");
         }
         try {
-            TableManager manager = TableManager.getInstance();
+            LobbyTableManager manager = LobbyTableManager.getInstance();
             int modelId = manager.nextRuntimeModelId();
             TableModel model = TableModelJson.parse(rulesJson(body, gameType, modelId));
             if (model == null) {
@@ -293,7 +306,7 @@ public class LobbyAdminClient {
             }
             model.setId(modelId);
             model.setType(gameType);
-            manager.putRuntimeModel(model, user.username);
+            manager.putRuntimeModel(model, username != null ? username : "player");
 
             Map<String, Object> result = ok();
             result.put("roomId", modelId);
@@ -304,43 +317,15 @@ public class LobbyAdminClient {
         }
     }
 
-    public List<Map<String, Object>> listRecords(String token, int page, int size) {
-        if (!admin(token)) {
-            return Collections.emptyList();
-        }
-        List<Map<String, Object>> rows = new ArrayList<>();
-        String sql = "SELECT * FROM score_record ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        try (Connection c = database.getConnection(); PreparedStatement p = c.prepareStatement(sql)) {
-            p.setInt(1, Math.min(Math.max(size, 1), 100));
-            p.setInt(2, Math.max(0, (page - 1) * size));
-            try (ResultSet r = p.executeQuery()) {
-                while (r.next()) {
-                    rows.add(mapRecordRow(r));
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return rows;
+    /**
+     * 分页查询对局积分战绩。
+     * 直接复用 {@link ScoreRepository#listRecords(int, int)}，消除重复 SQL。
+     */
+    public List<Map<String, Object>> listRecords(int page, int size) {
+        return ScoreRepository.getInstance().listRecords(page, size);
     }
 
-    private Map<String, Object> mapRecordRow(ResultSet r) throws Exception {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("tableId", r.getLong("table_id"));
-        row.put("roomId", r.getInt("room_id"));
-        row.put("gameType", r.getInt("game_type"));
-        row.put("round", r.getInt("round"));
-        row.put("userId", r.getInt("user_id"));
-        row.put("seat", r.getInt("seat"));
-        row.put("score", r.getInt("score"));
-        row.put("totalScore", r.getInt("total_score"));
-        row.put("createdAt", r.getLong("created_at"));
-        return row;
-    }
-
-    private Map<String, Object> updateInvite(String token, Map<String, Object> body, boolean enabled) {
-        if (!admin(token)) {
-            return error(401, "需要 admin 登录");
-        }
+    private Map<String, Object> updateInvite(Map<String, Object> body, boolean enabled) {
         try (Connection c = database.getConnection();
              PreparedStatement p = c.prepareStatement("UPDATE invite SET enabled=? WHERE token=?")) {
             p.setInt(1, enabled ? 1 : 0);
@@ -349,15 +334,6 @@ public class LobbyAdminClient {
         } catch (Exception e) {
             return error(500, e.getMessage());
         }
-    }
-
-    private boolean admin(String token) {
-        return adminUser(token) != null;
-    }
-
-    private AccountUser adminUser(String token) {
-        AccountUser user = accounts.findByToken(token).orElse(null);
-        return user != null && "admin".equals(user.username) && user.enabled ? user : null;
     }
 
     private static Map<String, Object> ok() {
@@ -475,4 +451,3 @@ public class LobbyAdminClient {
         }
     }
 }
-

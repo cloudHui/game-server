@@ -1,5 +1,6 @@
 package com.cloud.hub.web.arena;
 
+import com.cloud.hub.common.util.IntegerAllocator;
 import org.junit.Test;
 
 import java.util.Arrays;

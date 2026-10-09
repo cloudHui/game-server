@@ -1,12 +1,13 @@
-package com.cloud.hub.web.arena;
+package com.cloud.hub.common.util;
 
 import java.util.List;
 
 /**
  * 六个整数的均值约束分配器。
  * <p>
- * 供后台 API 和命令行示例共用，避免两套算法逻辑逐渐产生差异。
+ * 供管理后台计算接口与测试套件共用，避免两套算法逻辑逐渐产生差异。
  * 支持在固定总期望均值或连续 3 个子区间期望均值的约束下，反向填充未知的整数序列。
+ * </p>
  *
  * @author cloud
  */

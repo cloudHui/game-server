@@ -35,7 +35,7 @@ public class ReplayService {
     private final DataPathResolver paths;
     private final String replayDir;
 
-    public ReplayService(DataPathResolver paths, @Value("${game.replay-dir:../build/game/replay}") String replayDir) {
+    public ReplayService(DataPathResolver paths, @Value("${game.replay-dir:data/replay}") String replayDir) {
         this.paths = paths;
         this.replayDir = replayDir;
     }

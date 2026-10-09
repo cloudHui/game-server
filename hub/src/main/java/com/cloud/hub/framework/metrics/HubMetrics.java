@@ -1,14 +1,13 @@
 package com.cloud.hub.framework.metrics;
 
-import com.cloud.hub.lobby.Lobby;
-import com.cloud.hub.lobby.db.InviteRepository;
-import com.cloud.hub.lobby.db.UserRepository;
 import com.cloud.hub.lobby.manager.UserManager;
-import com.cloud.hub.lobby.manager.table.TableManager;
+import com.cloud.hub.lobby.manager.table.LobbyTableManager;
+import com.cloud.hub.web.account.AccountService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -35,6 +34,7 @@ public class HubMetrics {
     private static volatile HubMetrics instance;
 
     private final MeterRegistry registry;
+    private final AccountService accountService;
     private final Counter tableCreatedCounter;
     private final Counter tableDestroyedCounter;
     private final Counter tableLoopCounter;
@@ -42,8 +42,9 @@ public class HubMetrics {
     private final ConcurrentMap<String, Counter> settleCounters = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Counter> loginCounters = new ConcurrentHashMap<>();
 
-    public HubMetrics(MeterRegistry registry) {
+    public HubMetrics(MeterRegistry registry, @Lazy AccountService accountService) {
         this.registry = registry;
+        this.accountService = accountService;
         this.tableCreatedCounter = Counter.builder("game_tables_created_total")
                 .description("游戏牌桌创建累计总次数")
                 .register(registry);
@@ -81,7 +82,7 @@ public class HubMetrics {
         // 绑定大厅活跃桌子数水位
         registry.gauge("game_tables_active", this, m -> {
             try {
-                return TableManager.getInstance().getTableCount();
+                return LobbyTableManager.getInstance().getTableCount();
             } catch (Exception e) {
                 return 0;
             }
@@ -159,23 +160,19 @@ public class HubMetrics {
     public java.util.Map<String, Object> getSystemOverview() {
         java.util.Map<String, Object> overview = new java.util.LinkedHashMap<>();
         overview.put("onlineUsers", UserManager.getInstance().getUserCount());
-        overview.put("activeTables", TableManager.getInstance().getTableCount());
+        overview.put("activeTables", LobbyTableManager.getInstance().getTableCount());
         overview.put("tablesCreatedTotal", (long) tableCreatedCounter.count());
         overview.put("tablesDestroyedTotal", (long) tableDestroyedCounter.count());
         overview.put("tableLoopsTotal", (long) tableLoopCounter.count());
         overview.put("registerSuccessTotal", (long) registerSuccessCounter.count());
 
         try {
-            UserRepository userRepo = Lobby.getInstance().getUserRepository();
-            if (userRepo != null) {
-                overview.put("totalUsers", userRepo.countUsers());
-            }
-            InviteRepository inviteRepo = Lobby.getInstance().getInviteRepository();
-            if (inviteRepo != null) {
-                overview.put("totalInvites", inviteRepo.countInvites());
+            if (accountService != null) {
+                overview.put("totalUsers", accountService.countUsers());
+                overview.put("totalInvites", accountService.countInvites());
             }
         } catch (Exception e) {
-            logger.debug("读取仓储统计度量略过: {}", e.getMessage());
+            logger.debug("读取账号仓储统计度量略过: {}", e.getMessage());
         }
 
         java.util.Map<String, Long> settles = new java.util.LinkedHashMap<>();

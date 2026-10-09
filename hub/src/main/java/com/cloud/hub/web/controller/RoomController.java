@@ -174,7 +174,7 @@ public class RoomController {
         }
         c.gameType = gt.intValue();
         Map<String, Object> payload = buildCustomPayload(request, c.gameType);
-        Map<String, Object> prepared = lobbyAdminClient.createCustomRoom(user.getToken(), payload);
+        Map<String, Object> prepared = lobbyAdminClient.createCustomRoom(user.getUsername(), payload);
         if (prepared == null || !Integer.valueOf(0).equals(asInt(prepared.get("code")))) {
             c.error = prepared != null ? toAjax(prepared) : AjaxResult.error(502, "lobby 不可用");
             return c;
