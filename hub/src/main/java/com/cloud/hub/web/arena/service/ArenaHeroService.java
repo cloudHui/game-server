@@ -49,6 +49,16 @@ public class ArenaHeroService {
             }
         }
         dao.spend(c, uid, "liquid", ArenaRules.rankCost(rank));
+        // 每 5 阶大突破额外消耗 1 颗炼气丹
+        if ((rank + 1) % 5 == 0) {
+            String deductPillSql = "UPDATE arena_item SET quantity=quantity-1 WHERE user_id=? AND item_id='pill' AND quantity>=1";
+            try (PreparedStatement p = c.prepareStatement(deductPillSql)) {
+                p.setLong(1, uid);
+                if (p.executeUpdate() != 1) {
+                    throw new IllegalArgumentException("突破大境界瓶颈需消耗 1 颗炼气丹 (可前往历练与无尽书阁炼制)");
+                }
+            }
+        }
         String update = "UPDATE arena_hero SET rank=rank+1 WHERE user_id=? AND hero_id=?";
         try (PreparedStatement p = c.prepareStatement(update)) {
             p.setLong(1, uid);
@@ -116,12 +126,32 @@ public class ArenaHeroService {
             throw new IllegalArgumentException("该仙修已达五星圆满");
         }
         int need = ArenaRules.starShardCost(stars);
-        if (shards < need) {
-            throw new IllegalArgumentException("本命碎片不足，还需 " + (need - shards) + " 碎片");
+        int missing = need - shards;
+        int useStarPills = 0;
+        if (missing > 0) {
+            int starPills = 0;
+            try (PreparedStatement p = c.prepareStatement("SELECT quantity FROM arena_item WHERE user_id=? AND item_id='star_pill'")) {
+                p.setLong(1, uid);
+                try (ResultSet r = p.executeQuery()) {
+                    if (r.next()) {
+                        starPills = r.getInt(1);
+                    }
+                }
+            }
+            if (shards + starPills < need) {
+                throw new IllegalArgumentException("本命碎片不足，还需 " + missing + " 碎片或升星丹 (可前往书阁炼制)");
+            }
+            useStarPills = missing;
+            try (PreparedStatement p = c.prepareStatement("UPDATE arena_item SET quantity=quantity-? WHERE user_id=? AND item_id='star_pill'")) {
+                p.setInt(1, useStarPills);
+                p.setLong(2, uid);
+                p.executeUpdate();
+            }
         }
+        int spendShards = need - useStarPills;
         String update = "UPDATE arena_hero SET stars=stars+1, shards=shards-? WHERE user_id=? AND hero_id=?";
         try (PreparedStatement p = c.prepareStatement(update)) {
-            p.setInt(1, need);
+            p.setInt(1, spendShards);
             p.setLong(2, uid);
             p.setString(3, heroId);
             p.executeUpdate();

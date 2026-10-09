@@ -147,6 +147,45 @@ public class ArenaController {
         return ResponseEntity.ok(result.toMap());
     }
 
+    /**
+     * 3v3 仙修战阵小队回合制仿真对战接口。
+     *
+     * @param attackers 攻击方小队阵容（逗号分隔，如 "jianhuang,leizun,yaohuang"）
+     * @param defenders 防守方小队阵容（逗号分隔，如 "mingwang,kongming,taixu"）
+     * @param skill     携带神通道法
+     * @param stage     关卡阶段编号
+     * @param seed      随机种子
+     * @return 仿真战斗回放、阵法羁绊与结算
+     */
+    @GetMapping("/team-battle")
+    @RequiresLogin
+    public ResponseEntity<?> teamBattle(@RequestParam(defaultValue = "jianhuang,leizun,yaohuang") String attackers,
+                                        @RequestParam(defaultValue = "mingwang,kongming,taixu") String defenders,
+                                        @RequestParam(defaultValue = "pierce") String skill,
+                                        @RequestParam(defaultValue = "0") int stage,
+                                        @RequestParam(defaultValue = "42") long seed) {
+        List<Hero> aList = parseTeam(attackers);
+        List<Hero> dList = parseTeam(defenders);
+        ArenaBattleEngine.BattleResult result = ArenaBattleEngine.simulateTeam(aList, dList, skill, stage, seed);
+        return ResponseEntity.ok(result.toMap());
+    }
+
+    private List<Hero> parseTeam(String raw) {
+        List<Hero> list = new ArrayList<>();
+        if (raw != null) {
+            for (String id : raw.split(",")) {
+                String clean = id.trim();
+                if (!clean.isEmpty()) {
+                    list.add(find(clean));
+                }
+            }
+        }
+        if (list.isEmpty()) {
+            list.add(HEROES.get(0));
+        }
+        return list;
+    }
+
     private Hero find(String id) {
         for (Hero h : HEROES) {
             if (h.id.equals(id)) {

@@ -1,4 +1,4 @@
-﻿package game.manager.table.pdk.ai;
+package game.manager.table.pdk.ai;
 
 import java.util.ArrayList;
 import java.util.Collections;

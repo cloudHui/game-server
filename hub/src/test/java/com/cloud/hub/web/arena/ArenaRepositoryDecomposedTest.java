@@ -89,5 +89,34 @@ public class ArenaRepositoryDecomposedTest {
         // 8. 每日登录任务领取
         Map<String, Object> claimed = repo.action(uid, "claim", "login", 1, System.currentTimeMillis());
         assertNotNull(claimed);
+
+        // 9. 神装精炼
+        Map<String, Object> gearRefined = repo.action(uid, "refine_gear", "weapon", 1, System.currentTimeMillis());
+        assertNotNull(gearRefined);
+        assertNotNull(gearRefined.get("gears"));
+
+        // 10. 九天雷劫渡劫试炼（需仙侣突破至 4 阶）
+        repo.action(uid, "rank", "jianhuang", 1, System.currentTimeMillis()); // 升至 3 阶
+        repo.action(uid, "rank", "jianhuang", 1, System.currentTimeMillis()); // 升至 4 阶
+        Map<String, Object> tribulated = repo.action(uid, "tribulation", "", 1, System.currentTimeMillis());
+        assertNotNull(tribulated);
+        assertEquals(1, ((Number) tribulated.get("tribulationLevel")).intValue());
+
+        // 11. 洞府灵田播种与收获
+        long now = System.currentTimeMillis();
+        Map<String, Object> planted = repo.action(uid, "plant", "herb", 1, now);
+        assertNotNull(planted.get("fields"));
+
+        // 模拟 150 秒后成熟收获
+        Map<String, Object> harvested = repo.action(uid, "harvest", "", 1, now + 150_000L);
+        assertNotNull(harvested.get("items"));
+
+        // 12. 虚空秘境（通天塔肉鸽）闯关与气运选择
+        Map<String, Object> voidFloor1 = repo.action(uid, "void_climb", "", 1, now);
+        assertEquals(1, ((Number) voidFloor1.get("voidCleared")).intValue());
+        Map<String, Object> buffed = repo.action(uid, "void_buff", "VAMP", 1, now);
+        assertEquals("VAMP", buffed.get("voidBuffs"));
+        Map<String, Object> resetVoid = repo.action(uid, "void_reset", "", 1, now);
+        assertEquals(0, ((Number) resetVoid.get("voidCleared")).intValue());
     }
 }

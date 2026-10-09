@@ -22,6 +22,10 @@ public class GomokuEngine implements MiniGameEngine {
     /** 底层五子棋盘核心逻辑状态实例（包含 15x15 棋盘数组、行棋方及连珠判定） */
     private final GomokuBoard board = new GomokuBoard();
 
+    public GomokuBoard getBoard() {
+        return board;
+    }
+
     /**
      * 获取小游戏唯一英文标识。
      *

@@ -20,6 +20,10 @@ public class ChessEngine implements MiniGameEngine {
 
     private final ChessBoard board = new ChessBoard();
 
+    public ChessBoard getBoard() {
+        return board;
+    }
+
     @Override
     public String gameName() {
         return "chess";

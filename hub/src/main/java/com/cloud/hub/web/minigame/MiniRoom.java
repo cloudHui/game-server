@@ -23,6 +23,12 @@ public class MiniRoom {
         GOMOKU, CHESS
     }
 
+    public static final String BOT_SESSION = "BOT_SESSION";
+
+    public boolean isBotGame() {
+        return BOT_SESSION.equals(playerBSession) || BOT_SESSION.equals(playerASession);
+    }
+
     private final String roomId = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     private final GameType gameType;
     private final String playerASession;

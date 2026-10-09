@@ -57,6 +57,125 @@ public final class ArenaBattleEngine {
     }
 
     /**
+     * 模拟 3v3 仙修小队回合制对战与战阵羁绊。
+     *
+     * @param attackers 攻击方仙修阵容 (最多 3 人)
+     * @param defenders 防守方仙修阵容 (最多 3 人)
+     * @param skill     携带神通道法
+     * @param stage     关卡/秘境编号 (匹配敌方词缀)
+     * @param seed      随机种子
+     * @return 包含全队快照、激活羁绊与对战事件流的战斗结果
+     */
+    public static BattleResult simulateTeam(List<Hero> attackers, List<Hero> defenders, String skill, int stage, long seed) {
+        if (attackers == null || attackers.isEmpty()) {
+            throw new IllegalArgumentException("攻击方队伍不能为空");
+        }
+        if (defenders == null || defenders.isEmpty()) {
+            throw new IllegalArgumentException("防守方队伍不能为空");
+        }
+
+        Random rng = new Random(seed);
+        String archetype = stage > 0 ? ArenaRules.enemyArchetype(stage) : "NORMAL";
+
+        // 羁绊检测
+        List<String> synergies = new ArrayList<>();
+        long warriorCount = attackers.stream().filter(h -> "强攻".equals(h.role) || h.id.contains("jian")).count();
+        if (warriorCount >= 2) {
+            synergies.add("诛仙剑阵: 攻伐如雷，全队攻击放大 15%");
+        }
+        long tankCount = attackers.stream().filter(h -> "坚守".equals(h.role) || h.id.contains("yao") || h.id.contains("ming")).count();
+        if (tankCount >= 1) {
+            synergies.add("回天法相: 仙道造化，全队气血上限提升 20%");
+        }
+        long spellCount = attackers.stream().filter(h -> "控制".equals(h.role) || "灵巧".equals(h.role) || h.id.contains("lei")).count();
+        if (spellCount >= 1) {
+            synergies.add("九霄天劫: 劫雷聚顶，全队暴击率提升 10%");
+        }
+
+        List<Fighter> aFighters = new ArrayList<>();
+        for (Hero h : attackers) {
+            Fighter f = initFighter(h, skill, "NORMAL", true);
+            if (warriorCount >= 2) f.atkBoost *= 1.15;
+            if (tankCount >= 1) f.hp = (long) (f.hp * 1.20);
+            aFighters.add(f);
+        }
+
+        List<Fighter> dFighters = new ArrayList<>();
+        for (Hero h : defenders) {
+            Fighter f = initFighter(h, skill, archetype, false);
+            dFighters.add(f);
+        }
+
+        List<Map<String, Object>> events = new ArrayList<>();
+        int[] seq = {0};
+
+        addEvent(events, seq, "BATTLE_START", 0, null, null, 0, "3v3 仙修战阵启动 · " + skillDesc(skill));
+        for (String syn : synergies) {
+            addEvent(events, seq, "STATUS_APPLY", 0, null, null, 0, "【羁绊】" + syn);
+        }
+        if (!"NORMAL".equals(archetype)) {
+            addEvent(events, seq, "STATUS_APPLY", 0, null, null, 0, "敌阵特性: " + ArenaRules.enemyArchetypeName(archetype));
+        }
+
+        int totalRounds = 0;
+        for (int round = 1; round <= 30; round++) {
+            totalRounds = round;
+            boolean anyA = aFighters.stream().anyMatch(f -> f.hp > 0);
+            boolean anyD = dFighters.stream().anyMatch(f -> f.hp > 0);
+            if (!anyA || !anyD) break;
+
+            addEvent(events, seq, "ROUND_START", round, null, null, round, "第" + round + "回合");
+
+            // 全场存活修士按敏捷/速度降序排序行动
+            List<Fighter> turnOrder = new ArrayList<>();
+            turnOrder.addAll(aFighters);
+            turnOrder.addAll(dFighters);
+            turnOrder.sort((f1, f2) -> Long.compare(f2.hero.speed, f1.hero.speed));
+
+            for (Fighter actor : turnOrder) {
+                if (actor.hp <= 0) continue;
+                boolean isAttacker = aFighters.contains(actor);
+                List<Fighter> enemyTeam = isAttacker ? dFighters : aFighters;
+
+                // 挑选敌方第一个存活单位（优先打击前排先锋）
+                Fighter target = null;
+                for (Fighter enemy : enemyTeam) {
+                    if (enemy.hp > 0) {
+                        target = enemy;
+                        break;
+                    }
+                }
+                if (target == null) break;
+
+                execAction(actor, target, round, skill, isAttacker, rng, events, seq);
+            }
+
+            applyTeamRegen(aFighters, dFighters, skill, archetype, round, events, seq);
+        }
+
+        boolean aAlive = aFighters.stream().anyMatch(f -> f.hp > 0);
+        boolean dAlive = dFighters.stream().anyMatch(f -> f.hp > 0);
+        String winnerId;
+        if (aAlive && !dAlive) {
+            winnerId = "attacker";
+        } else if (!aAlive && dAlive) {
+            winnerId = "defender";
+        } else {
+            long aHp = aFighters.stream().mapToLong(f -> Math.max(0, f.hp)).sum();
+            long dHp = dFighters.stream().mapToLong(f -> Math.max(0, f.hp)).sum();
+            winnerId = aHp >= dHp ? "attacker" : "defender";
+        }
+
+        addEvent(events, seq, "BATTLE_END", totalRounds, winnerId, null, 0,
+                "attacker".equals(winnerId) ? "我方仙修战阵大获全胜！" : "敌阵坚固，我方力竭败退！");
+
+        Hero mainAttacker = attackers.get(0);
+        Hero mainDefender = defenders.get(0);
+        return new BattleResult("TEAM-" + Long.toString(seed, 36), "arena-v2-team", mainAttacker, mainDefender, winnerId, events,
+                attackers, defenders, synergies);
+    }
+
+    /**
      * 初始化出战修士状态与词缀/神通加成。
      */
     private static Fighter initFighter(Hero h, String skill, String archetype, boolean isAttacker) {
@@ -255,6 +374,28 @@ public final class ArenaBattleEngine {
         }
     }
 
+    private static void applyTeamRegen(List<Fighter> aFighters, List<Fighter> dFighters, String skill, String archetype,
+                                       int round, List<Map<String, Object>> events, int[] seq) {
+        if ("HIGH_HEAL".equals(archetype)) {
+            for (Fighter df : dFighters) {
+                if (df.hp > 0 && df.silencedRounds <= 0) {
+                    long regen = (long) (df.hero.hp * 0.12);
+                    df.hp = Math.min(df.hero.hp, df.hp + regen);
+                    addEvent(events, seq, "HEAL", round, df.hero.id, df.hero.id, regen, "枯木逢春 · 恢复气血 " + regen);
+                }
+            }
+        }
+        if ("heal".equals(skill)) {
+            for (Fighter af : aFighters) {
+                if (af.hp > 0) {
+                    long regen = (long) (af.hero.hp * 0.08);
+                    af.hp = Math.min(af.hero.hp, af.hp + regen);
+                    addEvent(events, seq, "HEAL", round, af.hero.id, af.hero.id, regen, "长生自愈 +" + regen);
+                }
+            }
+        }
+    }
+
     private static Hero determineWinner(Fighter af, Fighter df, Hero attacker, Hero defender) {
         if (af.hp > 0 && df.hp <= 0) return attacker;
         if (df.hp > 0 && af.hp <= 0) return defender;
@@ -351,14 +492,25 @@ public final class ArenaBattleEngine {
         public final Hero defender;
         public final String winner;
         public final List<Map<String, Object>> events;
+        public final List<Hero> attackerTeam;
+        public final List<Hero> defenderTeam;
+        public final List<String> synergies;
 
         public BattleResult(String battleId, String ruleVersion, Hero attacker, Hero defender, String winner, List<Map<String, Object>> events) {
+            this(battleId, ruleVersion, attacker, defender, winner, events, null, null, null);
+        }
+
+        public BattleResult(String battleId, String ruleVersion, Hero attacker, Hero defender, String winner,
+                            List<Map<String, Object>> events, List<Hero> attackerTeam, List<Hero> defenderTeam, List<String> synergies) {
             this.battleId = battleId;
             this.ruleVersion = ruleVersion;
             this.attacker = attacker;
             this.defender = defender;
             this.winner = winner;
             this.events = events;
+            this.attackerTeam = attackerTeam;
+            this.defenderTeam = defenderTeam;
+            this.synergies = synergies;
         }
 
         public Map<String, Object> toMap() {
@@ -367,6 +519,9 @@ public final class ArenaBattleEngine {
             m.put("ruleVersion", ruleVersion);
             m.put("attacker", attacker);
             m.put("defender", defender);
+            if (attackerTeam != null) m.put("attackerTeam", attackerTeam);
+            if (defenderTeam != null) m.put("defenderTeam", defenderTeam);
+            if (synergies != null) m.put("synergies", synergies);
             m.put("winner", winner);
             m.put("events", events);
             return m;

@@ -98,6 +98,13 @@ public class ArenaRepository {
         actionHandlers.put("formation", (c, uid, id, count, now) -> tasks.upgradeFormation(c, uid));
         actionHandlers.put("equip_skill", (c, uid, id, count, now) -> tasks.equipSkill(c, uid, id));
         actionHandlers.put("arena", (c, uid, id, count, now) -> dao.progress(c, uid, "task_arena", 1));
+        actionHandlers.put("refine_gear", (c, uid, id, count, now) -> dao.refineGear(c, uid, id));
+        actionHandlers.put("tribulation", (c, uid, id, count, now) -> dao.tribulate(c, uid));
+        actionHandlers.put("plant", (c, uid, id, count, now) -> dao.plantField(c, uid, count, id, now));
+        actionHandlers.put("harvest", (c, uid, id, count, now) -> dao.harvestField(c, uid, count, now));
+        actionHandlers.put("void_climb", (c, uid, id, count, now) -> dao.voidClimb(c, uid));
+        actionHandlers.put("void_buff", (c, uid, id, count, now) -> dao.voidChooseBuff(c, uid, id));
+        actionHandlers.put("void_reset", (c, uid, id, count, now) -> dao.voidReset(c, uid));
     }
 
     /**

@@ -43,10 +43,29 @@ public class RoomController {
 
     private final UserService userService;
     private final LobbyAdminClient lobbyAdminClient;
+    private final com.cloud.hub.game.inspector.TableInspectorService tableInspectorService;
 
-    public RoomController(UserService userService, LobbyAdminClient lobbyAdminClient) {
+    public RoomController(UserService userService, LobbyAdminClient lobbyAdminClient,
+                          com.cloud.hub.game.inspector.TableInspectorService tableInspectorService) {
         this.userService = userService;
         this.lobbyAdminClient = lobbyAdminClient;
+        this.tableInspectorService = tableInspectorService;
+    }
+
+    /**
+     * 获取指定牌桌在当前登录玩家视角的断线重连全量快照（防作弊安全保护）。
+     *
+     * @param tableId 桌号
+     * @return 牌桌状态快照
+     */
+    @GetMapping("/rooms/table/{tableId}/snapshot")
+    public AjaxResult getTableSnapshot(@org.springframework.web.bind.annotation.PathVariable("tableId") long tableId) {
+        LoginUser user = SecurityUtils.getRequiredUser();
+        Map<String, Object> snapshot = tableInspectorService.getPlayerTableSnapshot(tableId, user.getUserId());
+        if (snapshot == null) {
+            return AjaxResult.error(404, "桌子不存在或当前玩家不在该牌桌中");
+        }
+        return AjaxResult.success(snapshot);
     }
 
     /**

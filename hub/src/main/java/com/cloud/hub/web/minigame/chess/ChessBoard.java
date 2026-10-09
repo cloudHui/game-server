@@ -150,7 +150,43 @@ public class ChessBoard {
         endReason = (redSide ? "红方" : "黑方") + "认输";
     }
 
-    private static boolean inBoard(int r, int c) {
+    /**
+     * 判断指定走法是否合法（不改变棋盘状态，供 AI 决策与预判）。
+     *
+     * @param fr 起始行
+     * @param fc 起始列
+     * @param tr 目标行
+     * @param tc 目标列
+     * @param redSide 是否为红方操作
+     * @return true 表示合法
+     */
+    public boolean canMove(int fr, int fc, int tr, int tc, boolean redSide) {
+        if (finished || redSide != redTurn) {
+            return false;
+        }
+        if (!inBoard(fr, fc) || !inBoard(tr, tc)) {
+            return false;
+        }
+        char piece = cells[fr][fc];
+        if (piece == '.' || (redTurn && !isRedPiece(piece)) || (!redTurn && !isBlackPiece(piece))) {
+            return false;
+        }
+        char target = cells[tr][tc];
+        if ((redTurn && isRedPiece(target)) || (!redTurn && isBlackPiece(target))) {
+            return false;
+        }
+        return validatePieceMove(piece, fr, fc, tr, tc, target);
+    }
+
+    /**
+     * 获取指定坐标位置上的棋子字符。
+     */
+    public char getPieceAt(int r, int c) {
+        if (!inBoard(r, c)) return '.';
+        return cells[r][c];
+    }
+
+    public static boolean inBoard(int r, int c) {
         return r >= 0 && r < ROWS && c >= 0 && c < COLS;
     }
 

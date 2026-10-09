@@ -55,6 +55,15 @@
         el.classList.add('show');
         setTimeout(function () { el.classList.remove('show'); }, 2000);
     }
+    window.toast = toast;
+    window.refreshArenaState = async function () {
+        try {
+            state = await json('/api/arena/state', { headers: headers });
+            render();
+        } catch (e) {
+            console.warn(e);
+        }
+    };
 
     /**
      * 发送异步 JSON 网络请求。
@@ -218,8 +227,75 @@
         // 10. 神通道法装配
         renderSkillsSection();
 
-        // 11. 重新绑定交互监听
+        // 11. 神装宝库四大槽位渲染
+        renderGearSection();
+
+        // 12. 渡劫破境大境界渲染
+        renderTribulationSection();
+
+        // 13. 洞府灵田药园
+        renderGardenSection();
+
+        // 14. 虚空秘境肉鸽模式
+        renderVoidSection();
+
+        // 15. 重新绑定交互监听
         bindActionEvents();
+    }
+
+    /** 渲染渡劫破境卡片 */
+    function renderTribulationSection() {
+        var r = state;
+        if (!r) return;
+        var tLv = r.tribulationLevel || 0;
+        var tTitles = ['炼气期', '筑基期', '结丹期', '元婴期', '化神期', '大乘期', '飞升真仙'];
+        var tName = tTitles[Math.min(tTitles.length - 1, tLv)];
+        var nextName = tTitles[Math.min(tTitles.length - 1, tLv + 1)];
+        if ($('#tribulation-badge')) $('#tribulation-badge').textContent = tName;
+        if ($('#tribulation-desc')) {
+            $('#tribulation-desc').textContent = tLv >= 6 ? '功德圆满，已证不朽金仙' :
+                '当前大境界：' + tName + ' · 渡劫目标：' + nextName + '（需仙修达到 ' + ((tLv + 1) * 4) + ' 阶，耗丹药护体）';
+        }
+        if ($('#btn-tribulation')) {
+            $('#btn-tribulation').onclick = function () {
+                action('tribulation', '', 1);
+            };
+        }
+    }
+
+    /** 渲染神装宝库卡片 */
+    function renderGearSection() {
+        var r = state;
+        var el = $('#gear-grid');
+        if (!r || !el || !r.gears) return;
+
+        var gearSlots = [
+            { slot: 'weapon', label: '本命神兵', icon: '🗡️' },
+            { slot: 'armor', label: '护体仙袍', icon: '🥋' },
+            { slot: 'helmet', label: '紫霄宝冠', icon: '👑' },
+            { slot: 'talisman', label: '混元玉佩', icon: '📿' }
+        ];
+
+        el.innerHTML = gearSlots.map(function (s) {
+            var g = r.gears[s.slot] || { name: '初品法器', level: 0, desc: '暂无加成' };
+            return '<div class="glass-card" style="padding:18px;">' +
+                '<div class="title" style="margin-bottom:8px;">' +
+                '<h4 style="font-size:16px; color:var(--gold);">' + s.icon + ' ' + g.name + '</h4>' +
+                '<span class="tag" style="color:var(--sky);">' + g.level + ' 品强化</span>' +
+                '</div>' +
+                '<p style="font-size:12px; color:var(--text); margin-bottom:6px;">【' + s.label + '】</p>' +
+                '<div style="font-size:12px; color:var(--jade); margin-bottom:14px;">' + (g.desc || '') + '</div>' +
+                '<button class="btn btn-primary" data-refine="' + s.slot + '" style="width:100%; font-size:12px;">' +
+                '🔨 精炼打造 · 消耗精炼石' +
+                '</button>' +
+                '</div>';
+        }).join('');
+
+        el.querySelectorAll('[data-refine]').forEach(function (b) {
+            b.onclick = function () {
+                action('refine_gear', b.dataset.refine, 1);
+            };
+        });
     }
 
     /** 渲染通天塔卡片与监听 */
@@ -343,15 +419,74 @@
         $('#battle-toggle').textContent = '暂停';
     };
 
+    var currentBattleMode = '1v1';
+
+    function switchBattleMode(mode) {
+        currentBattleMode = mode;
+        if (mode === '1v1') {
+            if ($('#btn-mode-1v1')) $('#btn-mode-1v1').className = 'btn btn-primary btn-sm';
+            if ($('#btn-mode-3v3')) $('#btn-mode-3v3').className = 'btn btn-ghost btn-sm';
+            if ($('#panel-1v1-versus')) $('#panel-1v1-versus').style.display = 'flex';
+            if ($('#panel-3v3-versus')) $('#panel-3v3-versus').style.display = 'none';
+        } else {
+            if ($('#btn-mode-1v1')) $('#btn-mode-1v1').className = 'btn btn-ghost btn-sm';
+            if ($('#btn-mode-3v3')) $('#btn-mode-3v3').className = 'btn btn-primary btn-sm';
+            if ($('#panel-1v1-versus')) $('#panel-1v1-versus').style.display = 'none';
+            if ($('#panel-3v3-versus')) $('#panel-3v3-versus').style.display = 'block';
+            updateTeamSynergiesPreview();
+        }
+    }
+    window.switchBattleMode = switchBattleMode;
+
+    function updateTeamSynergiesPreview() {
+        if (!catalog || !catalog.heroes) return;
+        var a1 = $('#attacker-1') ? $('#attacker-1').value : '';
+        var a2 = $('#attacker-2') ? $('#attacker-2').value : '';
+        var a3 = $('#attacker-3') ? $('#attacker-3').value : '';
+        var teamIds = [a1, a2, a3].filter(Boolean);
+        var teamHeroes = teamIds.map(function (id) {
+            return catalog.heroes.find(function (h) { return h.id === id; });
+        }).filter(Boolean);
+
+        var syns = [];
+        var warriorCount = teamHeroes.filter(function (h) { return h.role === '强攻' || h.id.indexOf('jian') !== -1; }).length;
+        if (warriorCount >= 2) syns.push('【诛仙剑阵: 全队攻击+15%】');
+        var tankCount = teamHeroes.filter(function (h) { return h.role === '坚守' || h.id.indexOf('yao') !== -1 || h.id.indexOf('ming') !== -1; }).length;
+        if (tankCount >= 1) syns.push('【回天法相: 全队气血+20%】');
+        var spellCount = teamHeroes.filter(function (h) { return h.role === '控制' || h.role === '灵巧' || h.id.indexOf('lei') !== -1; }).length;
+        if (spellCount >= 1) syns.push('【九霄天劫: 全队暴击+10%】');
+
+        var box = $('#team-synergies-preview');
+        if (box) {
+            box.innerHTML = syns.length ? '激活战阵羁绊：' + syns.join(' ') : '阵容羁绊：当前未达成羁绊组合';
+        }
+    }
+
     /** 执行回合挑战对决 */
     async function fight() {
         try {
-            var a = $('#attacker').value, d = $('#defender').value;
             var skill = (state && state.equippedSkill) || 'pierce';
-            var r = await json('/api/arena/battle?attacker=' + encodeURIComponent(a) +
-                '&defender=' + encodeURIComponent(d) +
-                '&skill=' + encodeURIComponent(skill) +
-                '&seed=' + Date.now(), { headers: headers });
+            var r;
+            if (currentBattleMode === '3v3') {
+                var a1 = $('#attacker-1') ? $('#attacker-1').value : 'jianhuang';
+                var a2 = $('#attacker-2') ? $('#attacker-2').value : 'leizun';
+                var a3 = $('#attacker-3') ? $('#attacker-3').value : 'yaohuang';
+                var d1 = $('#defender-1') ? $('#defender-1').value : 'mingwang';
+                var d2 = $('#defender-2') ? $('#defender-2').value : 'kongming';
+                var d3 = $('#defender-3') ? $('#defender-3').value : 'taixu';
+                var aTeam = [a1, a2, a3].join(',');
+                var dTeam = [d1, d2, d3].join(',');
+                r = await json('/api/arena/team-battle?attackers=' + encodeURIComponent(aTeam) +
+                    '&defenders=' + encodeURIComponent(dTeam) +
+                    '&skill=' + encodeURIComponent(skill) +
+                    '&seed=' + Date.now(), { headers: headers });
+            } else {
+                var a = $('#attacker').value, d = $('#defender').value;
+                r = await json('/api/arena/battle?attacker=' + encodeURIComponent(a) +
+                    '&defender=' + encodeURIComponent(d) +
+                    '&skill=' + encodeURIComponent(skill) +
+                    '&seed=' + Date.now(), { headers: headers });
+            }
             await action('arena', '', 1);
             $('#battle-log').innerHTML = '';
             if (arenaStage) {
@@ -367,6 +502,106 @@
         }
     }
     $('#fight').onclick = fight;
+
+    /** 渲染洞府灵田 */
+    function renderGardenSection() {
+        var r = state;
+        var el = $('#garden-grid');
+        if (!r || !el) return;
+        var fields = r.fields || [];
+        if (!fields.length) return;
+
+        var seedOpts = '<option value="herb">凝气草 (2分 · 产灵草+灵液)</option>' +
+                       '<option value="ore">玄铁藤 (5分 · 产玄铁+灵液)</option>' +
+                       '<option value="lotus">九叶金莲 (10分 · 产精炼石+灵丹)</option>';
+
+        el.innerHTML = fields.map(function (f) {
+            var fid = f.fieldId;
+            var isGrowing = f.seedId && f.remainingSeconds > 0;
+            var isMature = f.isMature;
+            var isEmpty = !f.seedId;
+
+            var body = '';
+            if (isEmpty) {
+                body = '<div style="display:flex;gap:6px;align-items:center;">' +
+                    '<select id="seed-select-' + fid + '" style="flex:1;font-size:12px;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,0.3);color:var(--text);border:1px solid var(--border);">' + seedOpts + '</select>' +
+                    '<button class="btn btn-primary btn-sm" onclick="plantGarden(' + fid + ')">播种</button>' +
+                    '</div>';
+            } else if (isGrowing) {
+                var matureTotal = f.seedId === 'herb' ? 120 : (f.seedId === 'ore' ? 300 : 600);
+                var pct = Math.round(((matureTotal - f.remainingSeconds) / matureTotal) * 100);
+                body = '<div>' +
+                    '<div style="font-size:12px;color:var(--sky);margin-bottom:6px;">正在培元生机 · 剩余 ' + f.remainingSeconds + ' 秒</div>' +
+                    '<div style="background:rgba(255,255,255,0.1);height:6px;border-radius:3px;overflow:hidden;">' +
+                    '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,var(--sky),var(--jade));"></div>' +
+                    '</div></div>';
+            } else if (isMature) {
+                body = '<button class="btn btn-primary btn-sm" style="width:100%;" onclick="harvestGarden(' + fid + ')">✨ 灵植已成熟 · 一键采摘收获</button>';
+            }
+
+            return '<div class="glass-card" style="padding:14px;border-color:rgba(255,255,255,0.1);">' +
+                '<div class="title" style="margin-bottom:8px;">' +
+                '<h4 style="font-size:14px;color:var(--gold);margin:0;">' + f.name + '</h4>' +
+                '<span class="tag" style="color:' + (isMature ? 'var(--jade)' : (isGrowing ? 'var(--sky)' : 'var(--text-muted)')) + ';">' + f.cropName + '</span>' +
+                '</div>' + body + '</div>';
+        }).join('');
+    }
+
+    window.plantGarden = function (fid) {
+        var sel = $('#seed-select-' + fid);
+        if (sel) action('plant', sel.value, fid);
+    };
+    window.harvestGarden = function (fid) {
+        action('harvest', '', fid);
+    };
+
+    /** 渲染虚空秘境肉鸽模式 */
+    function renderVoidSection() {
+        var r = state;
+        if (!r) return;
+        var vFloor = r.voidCleared || 0;
+        var vBuffs = (r.voidBuffs || '').split(',').filter(Boolean);
+
+        if ($('#void-floor-tag')) $('#void-floor-tag').textContent = '深度 ' + vFloor + ' 层';
+        if ($('#void-desc')) {
+            $('#void-desc').textContent = '虚空秘境当前深度：第 ' + vFloor + ' 层 · 每一层获天降机缘气运，战胜获得海量灵液与灵石！';
+        }
+
+        var listEl = $('#void-buffs-list');
+        if (listEl) {
+            if (vBuffs.length === 0) {
+                listEl.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">暂未获得虚空气运加持，请挑战通关获得</span>';
+            } else {
+                listEl.innerHTML = vBuffs.map(function (b) {
+                    return '<span class="tag" style="color:var(--gold);background:rgba(251,191,36,0.12);">✨ ' + b + '</span>';
+                }).join('');
+            }
+        }
+
+        if ($('#btn-void-climb')) {
+            $('#btn-void-climb').onclick = async function () {
+                try {
+                    await action('void_climb', '', 1);
+                    if (window.ArenaRogue && arenaRogue) {
+                        arenaRogue.promptChoice(function (chosen) {
+                            action('void_buff', chosen.name, 1);
+                            toast('领悟机缘：' + chosen.name);
+                        });
+                    }
+                } catch (e) {
+                    toast(e.message);
+                }
+            };
+        }
+
+        if ($('#btn-void-reset')) {
+            $('#btn-void-reset').onclick = function () {
+                if (confirm('确定要重置虚空秘境进度吗？层数与当前气运将重新开始。')) {
+                    action('void_reset', '', 1);
+                }
+            };
+        }
+    }
 
     /** 模块入口启动初始化 */
     async function init() {
@@ -392,7 +627,23 @@
                 if (catalog.heroes.length > 1) {
                     $('#defender').value = catalog.heroes[1].id;
                 }
+
+                // 填充 3v3 小队选择器
+                ['attacker-1', 'attacker-2', 'attacker-3', 'defender-1', 'defender-2', 'defender-3'].forEach(function (id, idx) {
+                    var sel = $('#' + id);
+                    if (sel) {
+                        sel.innerHTML = opts;
+                        if (catalog.heroes[idx % catalog.heroes.length]) {
+                            sel.value = catalog.heroes[idx % catalog.heroes.length].id;
+                        }
+                        sel.onchange = updateTeamSynergiesPreview;
+                    }
+                });
             }
+
+            if ($('#btn-mode-1v1')) $('#btn-mode-1v1').onclick = function () { switchBattleMode('1v1'); };
+            if ($('#btn-mode-3v3')) $('#btn-mode-3v3').onclick = function () { switchBattleMode('3v3'); };
+            if (window.ArenaRogue) window.arenaRogue = new ArenaRogue();
 
             // 初始化 Canvas 舞台
             var canvas = $('#stage-canvas');

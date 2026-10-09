@@ -86,6 +86,75 @@ public class TableInspectorService {
         return buildTableDetail(table);
     }
 
+    /**
+     * 获取指定牌桌在当前玩家合法视角的安全重连快照（防作弊：仅透出本人的手牌，其他玩家仅透出手牌张数）。
+     *
+     * @param tableId       桌号
+     * @param currentUserId 请求玩家 ID
+     * @return 玩家视角合法快照；若桌子不存在或玩家不在桌上则返回 null
+     */
+    public Map<String, Object> getPlayerTableSnapshot(long tableId, int currentUserId) {
+        TableManager tm = Game.getInstance().getTableManager();
+        if (tm == null) return null;
+
+        Table table = tm.getTable(tableId);
+        if (table == null) return null;
+
+        Map<Integer, TableUser> seatUsers = table.getSeatUsers();
+        if (seatUsers == null) return null;
+
+        // 验证当前玩家是否在桌上
+        boolean inTable = false;
+        int mySeat = -1;
+        for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().getUserId() == currentUserId) {
+                inTable = true;
+                mySeat = entry.getKey();
+                break;
+            }
+        }
+        if (!inTable) {
+            return null;
+        }
+
+        Map<String, Object> snapshot = buildTableOverview(table);
+        int gameType = (int) snapshot.get("gameType");
+        snapshot.put("mySeat", mySeat);
+
+        List<Map<String, Object>> players = new ArrayList<>();
+        for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
+            int seat = entry.getKey();
+            TableUser user = entry.getValue();
+            if (user == null) continue;
+
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("seat", seat);
+            p.put("userId", user.getUserId());
+            p.put("nick", user.getNick());
+            p.put("online", user.isOnline());
+            p.put("robot", user.isRobot());
+            p.put("cardCount", user.getCards().size());
+            p.put("score", table.getGameResult() != null ? table.getGameResult().getTotalScore(seat) : 0);
+
+            // 防作弊核心：本人显示完整理牌手牌，其他玩家仅透出手牌张数
+            if (user.getUserId() == currentUserId) {
+                List<Card> myCards = new ArrayList<>(user.getCards());
+                CardSortUtil.sortCards(gameType, myCards);
+                List<Map<String, Object>> cardList = new ArrayList<>();
+                List<Integer> rawCardIds = new ArrayList<>();
+                for (Card c : myCards) {
+                    cardList.add(CardFormatter.toCardMap(gameType, c.getId()));
+                    rawCardIds.add(c.getId());
+                }
+                p.put("cards", cardList);
+                p.put("rawCards", rawCardIds);
+            }
+            players.add(p);
+        }
+        snapshot.put("players", players);
+        return snapshot;
+    }
+
     private Map<String, Object> buildTableOverview(Table table) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("tableId", table.getTableId());

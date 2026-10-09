@@ -25,6 +25,15 @@ import utils.match.EloRatingCalculator;
 import utils.match.MatchResult;
 import utils.match.MatchmakingQueue;
 
+import com.cloud.hub.web.minigame.ai.ChessAi;
+import com.cloud.hub.web.minigame.ai.GomokuAi;
+import com.cloud.hub.web.minigame.chess.ChessEngine;
+import com.cloud.hub.web.minigame.gomoku.GomokuBoard;
+import com.cloud.hub.web.minigame.gomoku.GomokuEngine;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /**
  * 休闲小游戏 WebSocket 处理器：五子棋 / 象棋匹配与实时对战。
  * <p>
@@ -39,6 +48,11 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     private static final Logger logger = LoggerFactory.getLogger(MiniGameWebSocketHandler.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserService userService;
+    private final ScheduledExecutorService botScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "MiniGame-Bot-Worker");
+        t.setDaemon(true);
+        return t;
+    });
 
     private final Map<String, String> wsToSession = new ConcurrentHashMap<>();
     private final Map<String, WebSocketSession> sessionToWs = new ConcurrentHashMap<>();
@@ -169,6 +183,18 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        boolean vsBot = Boolean.TRUE.equals(data.get("vsBot")) || "bot".equalsIgnoreCase(String.valueOf(data.get("mode")));
+        if (vsBot) {
+            leaveQueue(sid);
+            MiniRoom botRoom = new MiniRoom(type, sid, user.getUserId(), displayName(user),
+                    MiniRoom.BOT_SESSION, -999, "AI 棋灵");
+            rooms.put(botRoom.getRoomId(), botRoom);
+            sessionRoom.put(sid, botRoom.getRoomId());
+            sendOk(ws, "match", seq, "人机匹配成功", mapOf("status", "matched", "vsBot", true));
+            notifyMatched(botRoom);
+            return;
+        }
+
         MiniRoom matched = tryMatchInQueue(sid, user, type);
         if (matched == null) {
             sendOk(ws, "match", seq, "排队中", mapOf("status", "queued", "game", String.valueOf(data.get("game"))));
@@ -256,7 +282,59 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
         broadcast(room, "move", result.getPayload(), sid);
         if (engine.isFinished()) {
             finishRoom(room, engine.gameResult());
+        } else if (room.isBotGame()) {
+            scheduleBotMove(room);
         }
+    }
+
+    private void scheduleBotMove(MiniRoom room) {
+        botScheduler.schedule(() -> {
+            try {
+                if (room.getEngine().isFinished()) {
+                    return;
+                }
+                Map<String, Object> moveData = calculateBotMove(room);
+                if (moveData == null) {
+                    Map<String, Object> res = room.getEngine().resign(false);
+                    finishRoom(room, res);
+                    return;
+                }
+                MiniGameEngine.MoveResult res = room.getEngine().applyMove(moveData, false);
+                if (!res.isOk()) {
+                    return;
+                }
+                room.getReplayTape().record(1, room.getPlayerBUserId(), moveData);
+                broadcast(room, "move", res.getPayload(), null);
+                if (room.getEngine().isFinished()) {
+                    finishRoom(room, room.getEngine().gameResult());
+                }
+            } catch (Exception e) {
+                logger.error("AI 走步异常, roomId: {}", room.getRoomId(), e);
+            }
+        }, 350, TimeUnit.MILLISECONDS);
+    }
+
+    private Map<String, Object> calculateBotMove(MiniRoom room) {
+        if (room.getGameType() == MiniRoom.GameType.GOMOKU) {
+            GomokuEngine gomoku = (GomokuEngine) room.getEngine();
+            int[] best = GomokuAi.bestMove(gomoku.getBoard().snapshot(), GomokuBoard.WHITE);
+            if (best == null) return null;
+            Map<String, Object> d = new HashMap<>();
+            d.put("x", best[0]);
+            d.put("y", best[1]);
+            return d;
+        } else if (room.getGameType() == MiniRoom.GameType.CHESS) {
+            ChessEngine chess = (ChessEngine) room.getEngine();
+            int[] best = ChessAi.bestMove(chess.getBoard(), false);
+            if (best == null) return null;
+            Map<String, Object> d = new HashMap<>();
+            d.put("fr", best[0]);
+            d.put("fc", best[1]);
+            d.put("tr", best[2]);
+            d.put("tc", best[3]);
+            return d;
+        }
+        return null;
     }
 
     /**
