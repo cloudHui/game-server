@@ -21,6 +21,10 @@ import com.cloud.hub.web.minigame.MiniRoom;
 import com.cloud.hub.web.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import utils.match.EloRatingCalculator;
+import utils.match.MatchResult;
+import utils.match.MatchmakingQueue;
+
 /**
  * 休闲小游戏 WebSocket 处理器：五子棋 / 象棋匹配与实时对战。
  * <p>
@@ -42,8 +46,12 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, String> sessionRoom = new ConcurrentHashMap<>();
 
     private final Object queueLock = new Object();
-    private final List<QueueEntry> gomokuQueue = new ArrayList<>();
-    private final List<QueueEntry> chessQueue = new ArrayList<>();
+    /** 五子棋天梯自适应撮合队列 */
+    private final MatchmakingQueue<QueueEntry> gomokuMatchQueue = new MatchmakingQueue<>(80, 15, 450);
+    /** 象棋天梯自适应撮合队列 */
+    private final MatchmakingQueue<QueueEntry> chessMatchQueue = new MatchmakingQueue<>(80, 15, 450);
+    /** 玩家天梯积分本地状态缓存 <玩家UserId, 当前ELO积分> */
+    private final Map<Integer, Integer> userEloRatings = new ConcurrentHashMap<>();
 
     @FunctionalInterface
     private interface MiniGameActionHandler {
@@ -182,46 +190,33 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 线程安全地在匹配队列中寻找对手并创建房间。
+     * 线程安全地在匹配队列中寻找对手并创建房间（基于动态窗口天梯撮合池）。
      */
     private MiniRoom tryMatchInQueue(String sid, UserService.UserInfo user, MiniRoom.GameType type) {
         synchronized (queueLock) {
             leaveQueueLocked(sid);
-            List<QueueEntry> queue = type == MiniRoom.GameType.GOMOKU ? gomokuQueue : chessQueue;
-            QueueEntry peer = pollAvailablePeer(queue, sid, user.getUserId());
-            if (peer != null) {
-                MiniRoom matched = new MiniRoom(type, peer.sessionId, peer.userId, peer.name,
-                        sid, user.getUserId(), displayName(user));
+            MatchmakingQueue<QueueEntry> queue = type == MiniRoom.GameType.GOMOKU ? gomokuMatchQueue : chessMatchQueue;
+            int rating = userEloRatings.getOrDefault(user.getUserId(), EloRatingCalculator.DEFAULT_INITIAL_RATING);
+            long now = System.currentTimeMillis();
+
+            // 注册进入带动态时间窗口放宽的天梯队列
+            queue.enqueue(user.getUserId(), rating, now, new QueueEntry(sid, user.getUserId(), displayName(user)));
+            List<MatchResult<QueueEntry>> matches = queue.pollMatches(now);
+            if (!matches.isEmpty()) {
+                MatchResult<QueueEntry> m = matches.get(0);
+                QueueEntry pA = m.getPlayerA().getPayload();
+                QueueEntry pB = m.getPlayerB().getPayload();
+                MiniRoom matched = new MiniRoom(type, pA.sessionId, pA.userId, pA.name,
+                        pB.sessionId, pB.userId, pB.name);
+                matched.setPlayerARating(m.getPlayerA().getRating());
+                matched.setPlayerBRating(m.getPlayerB().getRating());
                 rooms.put(matched.getRoomId(), matched);
                 sessionRoom.put(matched.getPlayerASession(), matched.getRoomId());
                 sessionRoom.put(matched.getPlayerBSession(), matched.getRoomId());
                 return matched;
             }
-            queue.add(new QueueEntry(sid, user.getUserId(), displayName(user)));
             return null;
         }
-    }
-
-    private QueueEntry pollAvailablePeer(List<QueueEntry> queue, String sid, int userId) {
-        Iterator<QueueEntry> it = queue.iterator();
-        while (it.hasNext()) {
-            QueueEntry e = it.next();
-            if (e.sessionId.equals(sid)) {
-                it.remove();
-                continue;
-            }
-            if (e.userId == userId) {
-                continue;
-            }
-            WebSocketSession peerWs = sessionToWs.get(e.sessionId);
-            if (peerWs == null || !peerWs.isOpen()) {
-                it.remove();
-                continue;
-            }
-            it.remove();
-            return e;
-        }
-        return null;
     }
 
     /**
@@ -254,6 +249,9 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
             sendError(ws, seq, result.getError());
             return;
         }
+        // 记录单步对弈时序动作帧至回放带
+        room.getReplayTape().record(1, room.isSideA(sid) ? room.getPlayerAUserId() : room.getPlayerBUserId(), data);
+
         sendOk(ws, "move", seq, "ok", result.getPayload());
         broadcast(room, "move", result.getPayload(), sid);
         if (engine.isFinished()) {
@@ -321,6 +319,23 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void finishRoom(MiniRoom room, Map<String, Object> result) {
+        room.getReplayTape().finish();
+
+        // 基于标准 ELO 胜率模型与动态 K 因子结算双方新天梯积分
+        String winner = (String) result.get("winner");
+        double scoreA = "draw".equalsIgnoreCase(winner) ? 0.5 : "A".equalsIgnoreCase(winner) ? 1.0 : 0.0;
+        double scoreB = 1.0 - scoreA;
+        int newRatingA = EloRatingCalculator.calculateNewRating(room.getPlayerARating(), room.getPlayerBRating(), scoreA, 15);
+        int newRatingB = EloRatingCalculator.calculateNewRating(room.getPlayerBRating(), room.getPlayerARating(), scoreB, 15);
+        userEloRatings.put(room.getPlayerAUserId(), newRatingA);
+        userEloRatings.put(room.getPlayerBUserId(), newRatingB);
+
+        result.put("ratingA", newRatingA);
+        result.put("ratingB", newRatingB);
+        result.put("ratingDeltaA", newRatingA - room.getPlayerARating());
+        result.put("ratingDeltaB", newRatingB - room.getPlayerBRating());
+        result.put("replayFrames", room.getReplayTape().frameCount());
+
         broadcast(room, "gameOver", result, null);
         cleanupRoom(room);
     }
@@ -384,8 +399,16 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void leaveQueueLocked(String sid) {
-        gomokuQueue.removeIf(e -> e.sessionId.equals(sid));
-        chessQueue.removeIf(e -> e.sessionId.equals(sid));
+        int userId = userIdOfSession(sid);
+        if (userId > 0) {
+            gomokuMatchQueue.cancel(userId);
+            chessMatchQueue.cancel(userId);
+        }
+    }
+
+    private int userIdOfSession(String sid) {
+        UserService.UserInfo user = userService.getSession(sid);
+        return user != null ? user.getUserId() : 0;
     }
 
     private String requireAuth(WebSocketSession ws, int seq) {

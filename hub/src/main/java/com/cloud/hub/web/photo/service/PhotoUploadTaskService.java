@@ -1,10 +1,5 @@
 package com.cloud.hub.web.photo.service;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import com.cloud.hub.web.photo.model.PhotoException;
-import com.cloud.hub.web.service.UserService;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -12,14 +7,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+
+import javax.annotation.PreDestroy;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.photo.model.PhotoException;
+import com.cloud.hub.web.service.UserService;
+
+import utils.concurrent.AsyncPipeline;
 
 @Service
 public class PhotoUploadTaskService {
-    private static final int MAX_TASKS = 20;
+    private static final int MAX_TASKS = 30;
     private static final long RETAIN_MILLIS = 60 * 60 * 1000L;
-    private final Semaphore workers = new Semaphore(3, true);
+    /** 异步图片转码与任务执行流水线 */
+    private final AsyncPipeline<Supplier<Map<String, Object>>, Map<String, Object>> pipeline =
+            new AsyncPipeline<>("photo-upload", 4, 30, Supplier::get);
     private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
 
     public Map<String, Object> execute(String requestedId, String filename, UserService.UserInfo user,
@@ -28,32 +37,45 @@ public class PhotoUploadTaskService {
         String id = validId(requestedId) ? requestedId : UUID.randomUUID().toString();
         Task task = new Task(id, filename, user.getUserId());
         synchronized (tasks) {
-            if (activeCount() >= MAX_TASKS) throw new PhotoException(429, "上传任务已满，请稍后重试");
-            if (tasks.putIfAbsent(id, task) != null) throw new PhotoException(409, "上传任务编号重复");
+            if (activeCount() >= MAX_TASKS) {
+                throw new PhotoException(429, "上传任务已满，请稍后重试");
+            }
+            if (tasks.putIfAbsent(id, task) != null) {
+                throw new PhotoException(409, "上传任务编号重复");
+            }
         }
-        boolean acquired = false;
         try {
-            workers.acquire();
-            acquired = true;
             task.status = "PROCESSING";
             task.updatedAt = System.currentTimeMillis();
-            Map<String, Object> photo = work.get();
+            Map<String, Object> photo = pipeline.submit(work).get(60, TimeUnit.SECONDS);
             task.status = "SUCCESS";
             task.photo = photo;
             return photo;
+        } catch (TimeoutException e) {
+            task.status = "FAILED";
+            task.error = "处理超时";
+            throw new PhotoException(504, task.error, e);
+        } catch (ExecutionException e) {
+            task.status = "FAILED";
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            task.error = cause.getMessage() == null ? "图片处理失败" : cause.getMessage();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new PhotoException(500, task.error, cause);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             task.status = "FAILED";
             task.error = "任务已中断";
             throw new PhotoException(503, task.error, e);
-        } catch (RuntimeException e) {
-            task.status = "FAILED";
-            task.error = e.getMessage() == null ? "图片处理失败" : e.getMessage();
-            throw e;
         } finally {
             task.updatedAt = System.currentTimeMillis();
-            if (acquired) workers.release();
         }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        pipeline.shutdown();
     }
 
     public List<Map<String, Object>> list(UserService.UserInfo user) {

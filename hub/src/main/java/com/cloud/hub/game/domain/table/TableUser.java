@@ -1,11 +1,15 @@
 package com.cloud.hub.game.domain.table;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.runtime.GamePushBus;
 import com.google.protobuf.Message;
+
+import io.netty.buffer.ByteBuf;
 import net.message.TCPMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import utils.net.buffer.PooledByteBufUtil;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -219,12 +223,28 @@ public class TableUser {
     }
 
     /**
-     * 发送玩家消息
+     * 发送玩家消息（深度适配 Netty ByteBuf 池化零拷贝）。
      *
-     * @param message 消息
+     * @param message 待发送 Protobuf 消息
+     * @param messageId 协议 ID
+     * @param tableId 所属桌号
      */
     public void sendRoleMessage(Message message, int messageId, long tableId) {
-        sendRoleMessageBytes(messageId, message.toByteArray(), tableId);
+        if (robot) {
+            logger.debug("跳过机器人消息, userId: {}, msgId: 0x{}, table:{}", userId, Integer.toHexString(messageId), tableId);
+            return;
+        }
+        ByteBuf buf = PooledByteBufUtil.encodeProtobuf(message);
+        TCPMessage localMessage = TCPMessage.newInstance(0, messageId, userId, buf, tableId, 0);
+        if (GamePushBus.publish(userId, localMessage)) {
+            logger.debug("sendRole:{} local push table:{} msgId:0x{}", userId, tableId,
+                    Integer.toHexString(messageId));
+        } else {
+            // 下发通道未就绪或玩家离线时，安全归还池化直接内存
+            localMessage.release();
+            logger.debug("sendRole:{} push skipped (user offline or session closed) table:{} msgId:0x{}",
+                    userId, tableId, Integer.toHexString(messageId));
+        }
     }
 
     public void sendRoleMessageBytes(int messageId, byte[] payload, long tableId) {

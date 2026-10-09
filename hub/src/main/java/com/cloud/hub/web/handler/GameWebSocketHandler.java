@@ -108,6 +108,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void onGatePush(String sessionId, TCPMessage tcpMessage) {
         WebSocketSession ws = wsContext.session(sessionId);
         if (ws == null || !ws.isOpen()) {
+            tcpMessage.release();
             return;
         }
         try {
@@ -123,6 +124,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             logger.error("转发推送失败, sessionId: {}, msgId: 0x{}", sessionId,
                     Integer.toHexString(tcpMessage.getMessageId()), e);
+        } finally {
+            // 安全释放直接内存 / 池化 ByteBuf 载荷，防止跨线程泄漏
+            tcpMessage.release();
         }
     }
 }

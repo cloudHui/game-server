@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import proto.LobbyProto;
 import proto.ModelProto;
 import tool.config.TableConfigManager;
+import utils.cache.LocalExpiringCache;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,8 @@ public class TableManager {
     private final Map<Integer, Map<Long, TableInfo>> roomTables = new ConcurrentHashMap<>();
     /** 桌子全局唯一 ID -> 桌子详情 快速检索映射表 */
     private final Map<Long, TableInfo> tableInfoMap = new ConcurrentHashMap<>();
+    /** 房间列表只读视图本地短效缓存（1000ms），削减大厅轮询高频装配与 GC 压力 */
+    private final LocalExpiringCache<String, LobbyProto.AckRoomList> roomListCache = new LocalExpiringCache<>(1000L);
 
     private TableManager() {
         configManager = new TableConfigManager();
@@ -103,6 +106,10 @@ public class TableManager {
      * @return Protobuf 协议房间列表响应包
      */
     public synchronized LobbyProto.AckRoomList getAllRoomTable() {
+        LobbyProto.AckRoomList cached = roomListCache.get("all");
+        if (cached != null) {
+            return cached;
+        }
         LobbyProto.AckRoomList.Builder response = LobbyProto.AckRoomList.newBuilder();
         try {
             ensureOfficialRoomsRegistered();
@@ -119,7 +126,9 @@ public class TableManager {
         } catch (Exception e) {
             logger.error("获取房间列表失败", e);
         }
-        return response.build();
+        LobbyProto.AckRoomList result = response.build();
+        roomListCache.put("all", result);
+        return result;
     }
 
     private void ensureOfficialRoomsRegistered() {
@@ -197,6 +206,7 @@ public class TableManager {
             if (tables != null) {
                 tables.remove(tableId);
             }
+            roomListCache.invalidate("all");
             logger.info("大厅移除桌子, tableId: {}", tableId);
         }
     }
@@ -237,6 +247,7 @@ public class TableManager {
         roomTables.computeIfAbsent(model.getId(), k -> new ConcurrentHashMap<>())
                 .put(tableInfo.getTableId(), tableInfo);
         tableInfoMap.put(tableInfo.getTableId(), tableInfo);
+        roomListCache.invalidate("all");
         return tableInfo;
     }
 

@@ -110,6 +110,10 @@ public class OpCommand implements WsCommandHandler {
         } catch (Exception e) {
             logger.error("处理操作响应异常, sessionId: {}, seq: {}", sessionId, seq, e);
             ctx.sendError(ws, seq, "处理响应失败");
+        } finally {
+            if (tcp != null) {
+                tcp.release();
+            }
         }
     }
 }

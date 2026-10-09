@@ -1,5 +1,7 @@
 package com.cloud.hub.web.service;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,9 +20,10 @@ import com.cloud.hub.lobby.manager.table.TableInfo;
 import com.cloud.hub.lobby.manager.table.TableManager;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+
+import io.netty.buffer.ByteBuf;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import utils.registry.annotation.ProcessType;
 import msg.registor.message.GMsg;
 import msg.registor.message.LMsg;
 import net.client.Sender;
@@ -29,9 +32,9 @@ import net.message.TCPMessage;
 import proto.ConstProto;
 import proto.LobbyProto;
 import proto.ModelProto;
+import utils.net.buffer.PooledByteBufUtil;
 import utils.registry.HandlerRegistry;
-
-import java.util.HashMap;
+import utils.registry.annotation.ProcessType;
 
 /**
  * Hub 内置高性能进程内网关传输实现。
@@ -52,7 +55,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
         void apply(int userId, Message msg, CompletableFuture<Message> future);
     }
 
-    private static final Map<Class<?>, java.lang.reflect.Method> TABLE_ID_METHODS = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Method> TABLE_ID_METHODS = new ConcurrentHashMap<>();
 
     private final Map<String, Integer> sessionUsers = new ConcurrentHashMap<>();
     private final Map<Integer, String> userSessions = new ConcurrentHashMap<>();
@@ -186,7 +189,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
         ModelProto.RoomRole.Builder role = ModelProto.RoomRole.newBuilder().setRoleId(userId)
                 .setNickName(ByteString.copyFromUtf8(user.getNick() == null ? user.getUsername() : user.getNick()));
         String json = TableModelJson.toJson(model);
-        if (json != null && !json.isEmpty()) {
+        if (!json.isEmpty()) {
             role.setAvatar(ByteString.copyFromUtf8("TMJSON:" + json));
         }
         ModelProto.RoomRole created = role.build();
@@ -210,7 +213,7 @@ public final class LocalGatewayTransport implements GatewayTransport {
     private long tableId(int userId, int msgId, Message message) {
         if (message != null) {
             try {
-                java.lang.reflect.Method method = TABLE_ID_METHODS.computeIfAbsent(message.getClass(), clazz -> {
+                Method method = TABLE_ID_METHODS.computeIfAbsent(message.getClass(), clazz -> {
                     try {
                         return clazz.getMethod("getTableId");
                     } catch (NoSuchMethodException e) {
@@ -242,6 +245,9 @@ public final class LocalGatewayTransport implements GatewayTransport {
         BiConsumer<String, TCPMessage> listener = pushListener;
         if (sessionId != null && listener != null) {
             listener.accept(sessionId, message);
+        } else {
+            // 用户当前未连接或会话已注销，主动释放池化 ByteBuf 防止内存泄漏
+            message.release();
         }
     }
 
@@ -293,8 +299,10 @@ public final class LocalGatewayTransport implements GatewayTransport {
             if (sequence == 0) {
                 return;
             }
+            // 利用 PooledByteBufUtil 将 Protobuf 序列化为池化 ByteBuf，避免 byte[] 堆分配
+            ByteBuf buf = PooledByteBufUtil.encodeProtobuf(body);
             TCPMessage packet = TCPMessage.newInstance(ConstProto.Result.SUCCESS_VALUE, msgId, clientId,
-                    body.toByteArray(), mapId, sequence);
+                    buf, mapId, sequence);
             message.complete(body);
             tcp.complete(packet);
         }

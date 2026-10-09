@@ -1,14 +1,22 @@
 package com.cloud.hub.web.learning.service;
 
-import com.cloud.hub.web.learning.model.Mistake;
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.web.learning.model.Mistake;
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import utils.learning.MemoryItem;
+import utils.learning.SpacedRepetitionScheduler;
 
 /**
  * 错题本归集与重练复习服务。
@@ -114,6 +122,72 @@ public class MistakeService {
      */
     public int pendingCount(String studentId) throws Exception {
         return (int) all(studentId).stream().filter(item -> !"已掌握".equals(item.status)).count();
+    }
+
+    /**
+     * 基于艾宾浩斯记忆与自适应复习算法（SpacedRepetitionScheduler）推荐最紧急需要重练的错题列表。
+     *
+     * @param studentId 学生档案 ID
+     * @param limit     推荐错题数量上限
+     * @return 经过艾宾浩斯紧急度加权排序后的错题列表
+     * @throws Exception 存储异常
+     */
+    public List<Mistake> recommendAdaptiveReview(String studentId, int limit) throws Exception {
+        List<Mistake> all = all(studentId);
+        if (all.isEmpty() || limit <= 0) {
+            return new ArrayList<>();
+        }
+        long now = System.currentTimeMillis();
+        // 将错题映射为记忆单元模型
+        List<MemoryItem> memoryItems = new ArrayList<>();
+        Map<String, Mistake> mistakeMap = new HashMap<>();
+
+        for (Mistake m : all) {
+            // 已完全掌握的错题不进入主动推荐
+            if ("已掌握".equals(m.status)) {
+                continue;
+            }
+            mistakeMap.put(m.id, m);
+            MemoryItem item = new MemoryItem(m.id, now);
+            item.setRepetitions(m.consecutiveCorrect);
+            // 错误次数越多，记忆易记度因子相应扣减，促使其高频复习
+            double easeFactor = Math.max(1.3, 2.5 - (m.errorCount * 0.15));
+            item.setEaseFactor(easeFactor);
+            // 设定间隔：若从未答对则间隔为 0 天
+            int interval = m.consecutiveCorrect <= 0 ? 0 : m.consecutiveCorrect == 1 ? 1 : 3;
+            item.setIntervalDays(interval);
+            long lastTime = m.lastReviewedAt != null
+                    ? m.lastReviewedAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    : m.lastWrongAt != null
+                    ? m.lastWrongAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    : now;
+            item.setLastReviewTime(lastTime);
+            item.setNextReviewTime(lastTime + (interval * 24L * 60 * 60 * 1000));
+            memoryItems.add(item);
+        }
+
+        List<MemoryItem> picked = SpacedRepetitionScheduler.pickDueItems(memoryItems, limit, now);
+        // 若到期不足 limit，按紧急度补充候选
+        if (picked.size() < limit && memoryItems.size() > picked.size()) {
+            memoryItems.sort(Comparator.comparingDouble((MemoryItem it) -> SpacedRepetitionScheduler.calculateUrgency(it, now)).reversed());
+            for (MemoryItem item : memoryItems) {
+                if (picked.size() >= limit) {
+                    break;
+                }
+                if (!picked.contains(item)) {
+                    picked.add(item);
+                }
+            }
+        }
+
+        List<Mistake> result = new ArrayList<>();
+        for (MemoryItem item : picked) {
+            Mistake m = mistakeMap.get(item.getItemId());
+            if (m != null) {
+                result.add(m);
+            }
+        }
+        return result;
     }
 
     /**

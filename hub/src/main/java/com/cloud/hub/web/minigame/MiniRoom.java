@@ -1,8 +1,12 @@
 package com.cloud.hub.web.minigame;
 
+import java.util.Map;
+import java.util.UUID;
+
 import com.cloud.hub.web.minigame.chess.ChessEngine;
 import com.cloud.hub.web.minigame.gomoku.GomokuEngine;
-import java.util.UUID;
+
+import utils.replay.ReplayTape;
 
 /**
  * 休闲小游戏房间（1v1 对局）。
@@ -31,6 +35,15 @@ public class MiniRoom {
     /** 统一引擎实例，封装具体棋类的全部差异化操作 */
     private final MiniGameEngine engine;
 
+    /** 对局回放动作带，记录整场对弈时序数据 */
+    private final ReplayTape<Map<String, Object>> replayTape;
+
+    /** 玩家 A 初始天梯积分 */
+    private int playerARating = 1200;
+
+    /** 玩家 B 初始天梯积分 */
+    private int playerBRating = 1200;
+
     public MiniRoom(GameType gameType,
                     String aSession, int aUserId, String aName,
                     String bSession, int bUserId, String bName) {
@@ -43,6 +56,27 @@ public class MiniRoom {
         this.playerBName = bName == null || bName.isEmpty() ? ("玩家" + bUserId) : bName;
         // 根据游戏类型创建对应引擎，新增棋类只需在此追加一行
         this.engine = gameType == GameType.CHESS ? new ChessEngine() : new GomokuEngine();
+        this.replayTape = new ReplayTape<>(roomId, gameType == GameType.CHESS ? 102 : 101, System.currentTimeMillis());
+    }
+
+    public ReplayTape<Map<String, Object>> getReplayTape() {
+        return replayTape;
+    }
+
+    public int getPlayerARating() {
+        return playerARating;
+    }
+
+    public void setPlayerARating(int playerARating) {
+        this.playerARating = playerARating;
+    }
+
+    public int getPlayerBRating() {
+        return playerBRating;
+    }
+
+    public void setPlayerBRating(int playerBRating) {
+        this.playerBRating = playerBRating;
     }
 
     public String getRoomId() {
