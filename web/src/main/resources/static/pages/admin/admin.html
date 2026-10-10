@@ -3,349 +3,819 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理后台</title>
+    <title>Hub 综合管理系统 - 若依架构风格</title>
     <link rel="stylesheet" href="./admin.css">
     <link rel="stylesheet" href="./tools.css">
-    <link rel="stylesheet" href="./robot-test.css">
-    <link rel="stylesheet" href="./viewport-fit.css">
     <link rel="stylesheet" href="../../shared/theme.css">
     <link rel="stylesheet" href="../../shared/poker-card.css">
     <link rel="stylesheet" href="../../shared/mahjong-tile.css">
+    <link rel="stylesheet" href="../../shared/table-seat-view.css">
     <link rel="stylesheet" href="./replay-table.css">
     <link rel="stylesheet" href="./replay-player.css">
     <script src="../../shared/app-base.js"></script>
     <script src="../../shared/room-config.js"></script>
 </head>
 <body class="page-theme">
-<div class="header">
-    <h1>管理后台</h1>
-    <div class="header-actions">
-        <a href="../learning/admin.html">学习管理</a>
-        <a href="./terminal.html">服务器终端</a>
-        <a href="../../pages/lobby/index.html">回大厅</a>
-        <button onclick="doLogout()">退出</button>
+<div class="ruoyi-layout" id="appWrapper">
+    <!-- 左侧菜单栏 Sidebar -->
+    <aside class="ruoyi-sidebar" id="sidebar">
+        <!-- 系统 Logo -->
+        <div class="sidebar-logo-container">
+            <a class="sidebar-logo-link" href="javascript:void(0)" onclick="switchTab('metrics')">
+                <div class="sidebar-logo-icon">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2" fill="rgba(64,158,255,0.4)" stroke="#409eff" />
+                        <polyline points="2 17 12 22 22 17" stroke="#409eff" />
+                        <polyline points="2 12 12 17 22 12" stroke="#409eff" />
+                    </svg>
+                </div>
+                <div class="sidebar-logo-text">
+                    <span class="logo-title">Hub 综合管理系统</span>
+                    <span class="logo-badge">RuoYi PRO</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- 菜单列表 Sidebar Menu -->
+        <div class="sidebar-menu-scroll">
+            <ul class="sidebar-menu">
+                <li class="menu-group-title"><span>监控总览</span></li>
+                <li class="menu-item active" data-tab="metrics" onclick="switchTab('metrics')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">系统监控大盘</span>
+                </li>
+
+                <li class="menu-group-title"><span>用户与权限</span></li>
+                <li class="menu-item" data-tab="invites" onclick="switchTab('invites')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                            <line x1="7" y1="7" x2="7.01" y2="7"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">邀请码管理</span>
+                </li>
+                <li class="menu-item" data-tab="users" onclick="switchTab('users')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">玩家用户列表</span>
+                </li>
+                <li class="menu-item" data-tab="arpu" onclick="switchTab('arpu')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">ARPU 数值查询</span>
+                </li>
+
+                <li class="menu-group-title"><span>游戏运营</span></li>
+                <li class="menu-item" data-tab="tables" onclick="switchTab('tables')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">实时桌况 / 测试</span>
+                </li>
+                <li class="menu-item" data-tab="records" onclick="switchTab('records')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">战绩 / 回放记录</span>
+                </li>
+                <li class="menu-item" data-tab="arena" onclick="switchTab('arena')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>
+                            <line x1="13" y1="19" x2="19" y2="13"/>
+                            <line x1="16" y1="16" x2="20" y2="20"/>
+                            <line x1="19" y1="21" x2="21" y2="19"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">剑气除魔运营</span>
+                </li>
+
+                <li class="menu-group-title"><span>系统工具箱</span></li>
+                <li class="menu-item" data-tab="photos" onclick="switchTab('photos')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">图片资源管理</span>
+                </li>
+                <li class="menu-item" data-tab="sequence" onclick="switchTab('sequence')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="22" y1="12" x2="18" y2="12"/>
+                            <line x1="6" y1="12" x2="2" y2="12"/>
+                            <line x1="12" y1="6" x2="12" y2="2"/>
+                            <line x1="12" y1="22" x2="12" y2="18"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">序列均值分析</span>
+                </li>
+                <li class="menu-item" data-tab="terminal" onclick="switchTab('terminal')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="4 17 10 11 4 5"/>
+                            <line x1="12" y1="19" x2="20" y2="19"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">服务器终端</span>
+                </li>
+                <li class="menu-item" data-tab="learning" onclick="switchTab('learning')">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">学习管理中心</span>
+                </li>
+
+                <li class="menu-group-title"><span>快捷直达</span></li>
+                <li class="menu-item menu-item-link" onclick="location.href='../../pages/lobby/index.html'">
+                    <div class="menu-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                    </div>
+                    <span class="menu-title">进入游戏大厅 ↗</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 底部折叠收起控制 -->
+        <div class="sidebar-collapse-bar" onclick="toggleSidebarCollapse()" title="展开/收起侧边栏">
+            <svg id="collapseIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="11 19 4 12 11 5"/>
+                <polyline points="18 19 11 12 18 5"/>
+            </svg>
+            <span class="collapse-label">收起侧栏</span>
+        </div>
+    </aside>
+
+    <!-- 右侧主体内容 Container -->
+    <div class="ruoyi-main-container">
+        <!-- 顶部 Navbar -->
+        <header class="ruoyi-navbar">
+            <div class="navbar-left">
+                <button class="hamburger-btn" onclick="toggleSidebarCollapse()" title="切换侧边栏">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <nav class="ruoyi-breadcrumb" id="breadcrumbNav">
+                    <span class="breadcrumb-item" onclick="switchTab('metrics')">首页</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-item" id="breadcrumbParent">监控总览</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-active" id="breadcrumbActive">系统监控大盘</span>
+                </nav>
+            </div>
+
+            <div class="navbar-right">
+                <button class="nav-action-btn" onclick="refreshCurrentTab()" title="刷新当前页面数据">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    <span>刷新</span>
+                </button>
+                <button class="nav-action-btn" onclick="toggleFullScreen()" title="全屏切换">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                    <span>全屏</span>
+                </button>
+                <a class="nav-quick-link" href="../../pages/lobby/index.html">
+                    <span>🎮 游戏大厅</span>
+                </a>
+                <a class="nav-quick-link" href="./terminal.html" target="_blank">
+                    <span>💻 终端</span>
+                </a>
+
+                <!-- 管理员用户下拉 -->
+                <div class="navbar-avatar-container" id="userMenuDropdown">
+                    <div class="avatar-box" onclick="toggleUserDropdown(event)">
+                        <div class="avatar-circle">AD</div>
+                        <span class="user-nickname" id="navUsername">admin</span>
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <div class="avatar-dropdown-menu" id="avatarMenu">
+                        <div class="dropdown-header">
+                            <span class="user-role-tag">超级管理员</span>
+                            <span class="user-status-text">● 在线运行中</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../../pages/lobby/index.html">🎮 进入游戏大厅</a>
+                        <a class="dropdown-item" href="../learning/admin.html">📚 学习管理中心</a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item dropdown-danger" onclick="doLogout()">🚪 退出管理后台</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- TagsView 多标签页栏 -->
+        <nav class="ruoyi-tags-view-container">
+            <div class="tags-view-wrapper" id="tagsViewList">
+                <!-- 动态标签页由 core.js 渲染 -->
+            </div>
+            <div class="tags-actions-wrapper">
+                <button class="tags-action-btn" onclick="toggleTagsDropdown(event)">
+                    <span>页签操作</span>
+                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div class="tags-action-menu" id="tagsActionMenu">
+                    <button class="tags-menu-item" onclick="refreshCurrentTab()">🔄 刷新当前页</button>
+                    <button class="tags-menu-item" onclick="closeOtherTags()">✖ 关闭其他标签</button>
+                    <button class="tags-menu-item" onclick="closeAllTags()">⏹ 关闭所有标签</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- AppMain 主内容展示区 -->
+        <main class="ruoyi-app-main">
+            <!-- 1. 系统运行监控与性能指标大盘 (Metrics) -->
+            <div id="panel-metrics" class="panel active">
+                <div class="card">
+                    <div class="card-heading">
+                        <h2 style="margin:0;">系统运行监控与性能指标大盘</h2>
+                        <button class="btn btn-ghost" onclick="loadMetrics()">刷新指标</button>
+                    </div>
+                    <div id="metricsContainer" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <!-- 2. 邀请码管理 (Invites) -->
+            <div id="panel-invites" class="panel">
+                <div class="card">
+                    <h2>创建邀请码</h2>
+                    <div class="form-row">
+                        <div>
+                            <label>备注</label>
+                            <input id="note" placeholder="例如：朋友局">
+                        </div>
+                        <div>
+                            <label>可用次数</label>
+                            <input id="maxUses" type="number" min="1" value="5">
+                        </div>
+                        <div>
+                            <label>有效天数</label>
+                            <input id="expiresDays" type="number" min="0" value="7">
+                        </div>
+                        <button class="btn" onclick="createInvite()">创建邀请码</button>
+                    </div>
+                    <div class="msg" id="createMsg"></div>
+                </div>
+                <div class="card">
+                    <div class="card-heading">
+                        <h2 style="margin:0;">邀请列表</h2>
+                        <button class="btn btn-ghost" onclick="loadInvites()">刷新</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>邀请码</th>
+                                <th>备注</th>
+                                <th>使用</th>
+                                <th>过期</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="inviteBody">
+                            <tr>
+                                <td colspan="6">加载中...</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="msg" id="listMsg"></div>
+                </div>
+            </div>
+
+            <!-- 3. 玩家管理 (Users) -->
+            <div id="panel-users" class="panel">
+                <div class="card">
+                    <div class="card-heading">
+                        <h2 style="margin:0;">玩家用户列表</h2>
+                        <button class="btn btn-ghost" onclick="loadUsers()">刷新</button>
+                    </div>
+                    <div class="meta" id="usersMeta"></div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户名</th>
+                                <th>昵称</th>
+                                <th>在线</th>
+                                <th>状态</th>
+                                <th>最近登录</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="userBody">
+                            <tr>
+                                <td colspan="7">切换到此页后加载</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="msg" id="usersMsg"></div>
+                </div>
+            </div>
+
+            <!-- 4. 剑气除魔运营 (Arena) -->
+            <div id="panel-arena" class="panel">
+                <section class="card">
+                    <div class="card-heading">
+                        <div>
+                            <h2>剑气除魔玩家</h2>
+                            <div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div>
+                        </div>
+                        <button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>玩家</th>
+                                <th>灵液</th>
+                                <th>灵币</th>
+                                <th>仙缘</th>
+                                <th>战阵石</th>
+                                <th>副本</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="arenaPlayerBody">
+                            <tr>
+                                <td colspan="8">切换到此页后加载</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="arenaMsg" class="msg"></div>
+                </section>
+                <section id="arenaDetail" class="card arena-detail" hidden>
+                    <div class="card-heading">
+                        <h2 id="arenaDetailTitle">玩家详情</h2>
+                        <button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button>
+                    </div>
+                    <section class="admin-subsection">
+                        <div class="admin-subsection-heading">
+                            <h3>资源调整</h3>
+                            <span>增减或直接设置当前资源</span>
+                        </div>
+                        <div class="form-row arena-form-row">
+                            <div>
+                                <label for="arenaResource">资源类型</label>
+                                <select id="arenaResource">
+                                    <option value="liquid">至尊灵液</option>
+                                    <option value="coins">灵币</option>
+                                    <option value="fate">仙缘</option>
+                                    <option value="stones">战阵石</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="arenaDelta">调整数量</label>
+                                <input id="arenaDelta" type="number" value="1000">
+                            </div>
+                            <div class="admin-action-group">
+                                <button class="btn" onclick="adjustArenaResource()">增减资源</button>
+                                <button class="btn btn-ghost" onclick="setArenaResource()">设为此值</button>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="admin-subsection">
+                        <div class="admin-subsection-heading">
+                            <h3>进度控制</h3>
+                            <span id="arenaProgress" class="meta"></span>
+                        </div>
+                        <div class="form-row arena-form-row">
+                            <label for="arenaCleared">通关<input id="arenaCleared" type="number" min="0" max="12"></label>
+                            <label for="arenaAttempts">剩余次数<input id="arenaAttempts" type="number" min="0"></label>
+                            <label for="arenaFormation">战阵<input id="arenaFormation" type="number" min="1"></label>
+                            <label for="arenaGrotto">洞府<input id="arenaGrotto" type="number" min="1"></label>
+                            <div class="admin-action-group"><button class="btn" onclick="saveArenaProgress()">保存进度</button></div>
+                        </div>
+                    </section>
+                    <section class="admin-subsection">
+                        <div class="admin-subsection-heading">
+                            <h3>物品 / 装备发放</h3>
+                            <span id="arenaInventory" class="meta"></span>
+                        </div>
+                        <div class="form-row arena-form-row">
+                            <div>
+                                <label for="arenaItemId">物品</label>
+                                <select id="arenaItemId">
+                                    <option value="herb">灵草</option>
+                                    <option value="ore">玄铁</option>
+                                    <option value="star_dust">星尘</option>
+                                    <option value="pill">炼气丹</option>
+                                    <option value="star_pill">升星丹</option>
+                                    <option value="refine_stone">精炼石</option>
+                                    <option value="green_sword">青锋法宝</option>
+                                    <option value="zhuxian_sword">诛仙断界剑</option>
+                                    <option value="xuanwu_armor">玄武神甲</option>
+                                    <option value="tianji_compass">天机罗盘</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="arenaItemDelta">数量</label>
+                                <input id="arenaItemDelta" type="number" value="1">
+                            </div>
+                            <div class="admin-action-group">
+                                <button class="btn" onclick="adjustArenaItem()">发放 / 扣除</button>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="admin-subsection">
+                        <div class="admin-subsection-heading">
+                            <h3>仙侣</h3>
+                            <span>选择后发放给当前玩家</span>
+                        </div>
+                        <div class="form-row arena-form-row">
+                            <div>
+                                <label for="arenaNewHero">仙侣</label>
+                                <select id="arenaNewHero">
+                                    <option value="jianhuang">无极剑皇</option>
+                                    <option value="leizun">九霄雷尊</option>
+                                    <option value="yaohuang">长生药皇</option>
+                                    <option value="luocha">血海罗刹</option>
+                                    <option value="xingjun">紫微星君</option>
+                                    <option value="kongming">空明道祖</option>
+                                    <option value="taixu">太虚剑主</option>
+                                    <option value="chixiao">赤霄真君</option>
+                                    <option value="qinglan">青岚剑君</option>
+                                    <option value="xuanshuang">玄霜仙子</option>
+                                </select>
+                            </div>
+                            <div class="admin-action-group">
+                                <button class="btn" onclick="addArenaHero()">发放仙侣</button>
+                            </div>
+                        </div>
+                        <div class="table-scroll">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>境界</th>
+                                    <th>星级</th>
+                                    <th>功法</th>
+                                    <th>碎片</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody id="arenaHeroBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+            </div>
+
+            <!-- 5. ARPU 查询 (ARPU) -->
+            <div id="panel-arpu" class="panel">
+                <div class="tool-page-head">
+                    <div>
+                        <div class="tool-eyebrow">数据工具 / 外部查询</div>
+                        <h2>ARPU 查询分析</h2>
+                        <p>输入手机号查询月度 ARPU，原始返回 JSON 和近 3 / 6 个月平均值集中展示。</p>
+                    </div>
+                    <span class="tool-admin-badge"><i></i>管理员专用</span>
+                </div>
+                <section class="card tool-card arpu-query-card">
+                    <div class="tool-card-head">
+                        <div class="tool-card-title"><span class="tool-card-icon">↗</span><div><h2>查询条件</h2><p>请求固定接口，仅替换 <code>phone_no</code> 参数。</p></div></div>
+                        <span class="tool-step">01</span>
+                    </div>
+                    <div class="arpu-query-row">
+                        <div class="tool-field arpu-phone-field">
+                            <label for="arpuPhone">手机号</label>
+                            <input class="tool-input" id="arpuPhone" type="tel" inputmode="numeric" maxlength="11" autocomplete="off" value="13717949145" placeholder="请输入 11 位手机号">
+                        </div>
+                        <button class="btn tool-primary arpu-query-button" id="arpuQueryButton" type="button" onclick="checkArpu()">查询数据</button>
+                    </div>
+                    <div class="tool-help">外部请求由服务端代理完成，避免浏览器跨域；手机号只用于本次查询，不写入本地存储。</div>
+                    <div class="arpu-request-url" id="arpuRequestUrl" hidden></div>
+                    <div class="msg" id="arpuMsg"></div>
+                </section>
+                <div id="arpuResult" hidden>
+                    <div class="arpu-stats" id="arpuStats"></div>
+                    <section class="card tool-card">
+                        <div class="tool-card-head">
+                            <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">▦</span><div><h2>月度明细</h2><p>按接口返回顺序取最新可用的数字月份计算平均值。</p></div></div>
+                        </div>
+                        <div class="table-scroll arpu-table-scroll"><table class="arpu-table"><thead><tr><th>月份</th><th>ARPU</th><th>状态</th></tr></thead><tbody id="arpuMonthly"></tbody></table></div>
+                    </section>
+                    <section class="card tool-card">
+                        <div class="tool-card-head">
+                            <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">{ }</span><div><h2>原始 JSON</h2><p>完整保留外部接口返回内容，便于核对。</p></div></div>
+                            <button class="btn btn-ghost" type="button" onclick="copyArpuJson()">复制 JSON</button>
+                        </div>
+                        <pre class="arpu-json" id="arpuRawJson"></pre>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 6. 实时桌况 / 测试 (Tables) -->
+            <div id="panel-tables" class="panel">
+                <!-- 列表分页面：60 秒自动刷新，支持桌号检索 -->
+                <div id="inspectorListView">
+                    <div class="card">
+                        <div class="card-heading">
+                            <div>
+                                <h2>实时对局监控巡检</h2>
+                                <div class="meta" id="tablesMeta">列表每 60 秒自动刷新</div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <input id="tableSearchInput" class="tool-input" style="width:160px;padding:4px 8px;font-size:13px;" placeholder="按桌号检索..." onkeydown="if(event.keyCode===13)TableInspector.loadList(true)">
+                                <button class="btn btn-sm" onclick="TableInspector.loadList(true)">检索</button>
+                                <button class="btn btn-ghost btn-sm" onclick="TableInspector.resetSearch()">重置</button>
+                                <button class="btn btn-ghost btn-sm" onclick="TableInspector.loadList(true)">刷新</button>
+                            </div>
+                        </div>
+                        <div class="table-scroll">
+                            <table>
+                                <thead>
+                                    <tr><th>桌号</th><th>玩法</th><th>状态码/描述</th><th>局数</th><th>在桌玩家</th><th>操作</th></tr>
+                                </thead>
+                                <tbody id="tableBody"><tr><td colspan="6">加载中...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="msg" id="tablesMsg"></div>
+                    </div>
+
+                    <div class="card" style="margin-top:16px;">
+                        <div class="card-heading">
+                            <div>
+                                <h2>全机器人规则测试</h2>
+                                <div class="meta robot-test-intro">机器人自动坐满并按所选规则完成指定局数，结束后自动解散，回放保留在“战绩/回放”。</div>
+                            </div>
+                        </div>
+                        <div class="robot-rule-grid">
+                            <div><label for="robotMatchRoom">玩法</label><select id="robotMatchRoom" onchange="changeRobotRules()"></select></div>
+                            <div><label for="robotMatchRounds">测试局数</label><select id="robotMatchRounds"><option value="1">1 局</option><option value="3" selected>3 局</option><option value="5">5 局</option><option value="10">10 局</option></select></div>
+                            <div><label for="robotBaseScore">底分</label><input id="robotBaseScore" type="number" min="1" max="100" value="1"></div>
+                            <div><label for="robotMaxFan">最大番数</label><input id="robotMaxFan" type="number" min="1" max="128" value="16"></div>
+                        </div>
+                        <div id="robotMahjongRules" class="robot-rule-options">
+                            <span class="robot-rule-title">麻将规则</span>
+                            <label><input id="robotAllowChi" type="checkbox" checked>允许吃</label>
+                            <label><input id="robotAllowDianPao" type="checkbox" checked>允许点炮</label>
+                            <label><input id="robotAllowGang" type="checkbox" checked>允许杠</label>
+                            <label><input id="robotAllowSevenPairs" type="checkbox" checked>允许七对</label>
+                            <label><input id="robotAllowMultiHu" type="checkbox">一炮多响</label>
+                        </div>
+                        <div class="robot-test-actions">
+                            <button class="btn" id="robotMatchStart" onclick="startRobotMatch()">开始机器人测试</button>
+                            <span class="meta">测试在后台运行，无需停留此页。</span>
+                        </div>
+                        <div class="msg" id="robotMatchMsg"></div>
+                    </div>
+                </div>
+
+                <!-- 详情分页面：1 秒高频自动刷新，含手牌理牌透视与麻将换牌调试控制台 -->
+                <div id="inspectorDetailView" style="display:none;">
+                    <div class="card">
+                        <div class="card-heading" style="flex-wrap:wrap;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <button class="btn btn-sm" onclick="TableInspector.backToList()">← 返回牌桌列表</button>
+                                <h2 id="inspectorDetailTitle" style="margin:0;">牌局实时透视</h2>
+                                <span style="font-size:12px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-weight:bold;display:inline-flex;align-items:center;gap:4px;">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;"></span> 实时刷新中 (1s/次)
+                                </span>
+                            </div>
+                            <div>
+                                <button class="btn btn-ghost btn-sm" onclick="TableInspector.refreshCurrent()">手动刷新本桌</button>
+                            </div>
+                        </div>
+                        <div class="meta" id="inspectorDetailMeta" style="margin-top:6px;padding-top:6px;border-top:1px dashed #ebeef5;"></div>
+                        <div id="inspectorDetailContent" style="margin-top:12px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. 战绩 / 回放记录 (Records) -->
+            <div id="panel-records" class="panel">
+                <div class="card">
+                    <div class="card-heading">
+                        <h2 style="margin:0;">战绩 / 回放记录</h2>
+                        <button class="btn btn-ghost" onclick="loadReplays()">刷新</button>
+                    </div>
+                    <div class="form-row">
+                        <select id="replayCategory" onchange="changeReplayCategory()">
+                            <option value="">全部牌类</option><option value="mahjong">麻将牌类</option><option value="poker">扑克牌类</option>
+                        </select>
+                        <select id="replayGameType" onchange="loadReplays(1)"><option value="">全部子玩法</option></select>
+                        <input id="replayCode" placeholder="输入回放码，例如 2026-07-21/90001_1.txt">
+                        <button class="btn btn-ghost" onclick="openReplayCode()">打开回放</button>
+                        <button class="btn btn-ghost" onclick="loadReplays(1)">刷新全部</button>
+                    </div>
+                    <div class="meta">先按麻将/扑克牌类筛选，再按具体子玩法分页查看全部回放。</div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>文件</th>
+                                <th>桌号</th>
+                                <th>局</th>
+                                <th>玩法</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="replayBody">
+                            <tr>
+                                <td colspan="6">切换到此页后加载</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-row" style="justify-content:flex-end;">
+                        <button id="replayPrevPage" class="btn btn-ghost" onclick="changeReplayPage(-1)">上一页</button>
+                        <span id="replayPageLabel" class="meta"></span>
+                        <button id="replayNextPage" class="btn btn-ghost" onclick="changeReplayPage(1)">下一页</button>
+                    </div>
+                    <div class="msg" id="replayMsg"></div>
+                </div>
+                <div class="card">
+                    <h2>落库战绩</h2>
+                    <div class="meta">游戏结算后按玩家、局次和累计分数保存到 SQLite。</div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>桌号</th>
+                                <th>局</th>
+                                <th>玩家</th>
+                                <th>本局</th>
+                                <th>累计</th>
+                                <th>结果</th>
+                            </tr>
+                            </thead>
+                            <tbody id="recordBody">
+                            <tr>
+                                <td colspan="6">切换到此页后加载</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="replayMount"></div>
+            </div>
+
+            <!-- 8. 图片管理 (Photos) -->
+            <div id="panel-photos" class="panel">
+                <div class="card">
+                    <div class="card-heading">
+                        <h2>图片库设置</h2>
+                        <button class="btn btn-ghost" onclick="loadPhotoAdmin()">刷新</button>
+                    </div>
+                    <div class="photo-admin-row">
+                        <div>
+                            <label for="photoVisibility">全局查看范围</label>
+                            <select id="photoVisibility">
+                                <option value="ALL">全部共享</option>
+                                <option value="OWN">仅看自己</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="savePhotoVisibility()">保存设置</button>
+                        <button class="btn btn-danger" onclick="clearPhotoCache()">清空高清缓存</button>
+                    </div>
+                    <div class="meta">管理员始终可查看全部图片；此设置同时作用于列表、缩略图和原图接口。</div>
+                    <div id="photoAdminMsg" class="msg"></div>
+                </div>
+                <div class="card">
+                    <h2>存储概况</h2>
+                    <div id="photoStats" class="photo-stats"></div>
+                    <div class="table-scroll"><table><tbody id="photoPaths"></tbody></table></div>
+                </div>
+                <div class="card">
+                    <div class="card-heading">
+                        <h2>全部照片</h2>
+                        <button class="btn btn-ghost" onclick="loadAdminPhotos(1)">刷新</button>
+                    </div>
+                    <div class="form-row photo-filter-row">
+                        <input id="photoOwnerFilter" placeholder="按上传用户名筛选">
+                        <button class="btn btn-ghost" onclick="loadAdminPhotos(1)">查询</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>缩略图</th>
+                                <th>名称</th>
+                                <th>拍摄时间</th>
+                                <th>上传人</th>
+                                <th>大小</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="adminPhotoBody">
+                            <tr>
+                                <td colspan="6">切换到此页后加载</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="photo-admin-pager">
+                        <button class="btn btn-ghost" onclick="changeAdminPhotoPage(-1)">上一页</button>
+                        <span id="adminPhotoPage" class="meta"></span>
+                        <button class="btn btn-ghost" onclick="changeAdminPhotoPage(1)">下一页</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. 序列均值分析 (Sequence Analysis) - 内嵌工具 -->
+            <div id="panel-sequence" class="panel">
+                <div class="ruoyi-iframe-wrapper">
+                    <div class="ruoyi-iframe-toolbar">
+                        <div class="ruoyi-iframe-toolbar-title">
+                            <span>🎯 序列均值与数字组成联动分析器</span>
+                        </div>
+                        <div class="ruoyi-iframe-toolbar-actions">
+                            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('iframe-sequence').src='./sequence.html'">🔄 重新加载</button>
+                            <a class="btn btn-sm" href="./sequence.html" target="_blank" style="text-decoration:none;">↗ 新窗口全屏打开</a>
+                        </div>
+                    </div>
+                    <iframe id="iframe-sequence" class="ruoyi-iframe" src="./sequence.html"></iframe>
+                </div>
+            </div>
+
+            <!-- 10. 服务器终端 (Terminal) - 内嵌工具 -->
+            <div id="panel-terminal" class="panel">
+                <div class="ruoyi-iframe-wrapper">
+                    <div class="ruoyi-iframe-toolbar">
+                        <div class="ruoyi-iframe-toolbar-title">
+                            <span>💻 服务器 Shell 终端控制台</span>
+                        </div>
+                        <div class="ruoyi-iframe-toolbar-actions">
+                            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('iframe-terminal').src='./terminal.html'">🔄 重新连接</button>
+                            <a class="btn btn-sm" href="./terminal.html" target="_blank" style="text-decoration:none;">↗ 新窗口全屏打开</a>
+                        </div>
+                    </div>
+                    <iframe id="iframe-terminal" class="ruoyi-iframe" src="./terminal.html"></iframe>
+                </div>
+            </div>
+
+            <!-- 11. 学习管理中心 (Learning Admin) - 内嵌工具 -->
+            <div id="panel-learning" class="panel">
+                <div class="ruoyi-iframe-wrapper">
+                    <div class="ruoyi-iframe-toolbar">
+                        <div class="ruoyi-iframe-toolbar-title">
+                            <span>📚 成长小课堂学习管理后台</span>
+                        </div>
+                        <div class="ruoyi-iframe-toolbar-actions">
+                            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('iframe-learning').src='../learning/admin.html'">🔄 重新加载</button>
+                            <a class="btn btn-sm" href="../learning/admin.html" target="_blank" style="text-decoration:none;">↗ 新窗口全屏打开</a>
+                        </div>
+                    </div>
+                    <iframe id="iframe-learning" class="ruoyi-iframe" src="../learning/admin.html"></iframe>
+                </div>
+            </div>
+        </main>
     </div>
 </div>
 
-<div class="wrap">
-    <div class="tabs">
-        <button class="tab active" data-tab="invites" onclick="switchTab('invites')">邀请</button>
-        <button class="tab" data-tab="users" onclick="switchTab('users')">玩家</button>
-        <button class="tab" data-tab="arena" onclick="switchTab('arena')">剑气除魔</button>
-        <button class="tab" data-tab="allocator" onclick="switchTab('allocator')">整数分配</button>
-        <button class="tab" data-tab="arpu" onclick="switchTab('arpu')">ARPU 查询</button>
-        <button class="tab" data-tab="tables" onclick="switchTab('tables')">机器人测试</button>
-        <button class="tab" data-tab="records" onclick="switchTab('records')">战绩/回放</button>
-        <button class="tab" data-tab="photos" onclick="switchTab('photos')">图片管理</button>
-    </div>
-
-    <div id="panel-invites" class="panel active">
-        <div class="card">
-            <h2>创建邀请码</h2>
-            <div class="form-row">
-                <div>
-                    <label>备注</label>
-                    <input id="note" placeholder="例如：朋友局">
-                </div>
-                <div>
-                    <label>可用次数</label>
-                    <input id="maxUses" type="number" min="1" value="5">
-                </div>
-                <div>
-                    <label>有效天数</label>
-                    <input id="expiresDays" type="number" min="0" value="7">
-                </div>
-                <button class="btn" onclick="createInvite()">创建</button>
-            </div>
-            <div class="msg" id="createMsg"></div>
-        </div>
-        <div class="card">
-            <div class="card-heading">
-                <h2 style="margin:0;">邀请列表</h2>
-                <button class="btn btn-ghost" onclick="loadInvites()">刷新</button>
-            </div>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>邀请码</th>
-                        <th>备注</th>
-                        <th>使用</th>
-                        <th>过期</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="inviteBody">
-                    <tr>
-                        <td colspan="6">加载中...</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="msg" id="listMsg"></div>
-        </div>
-    </div>
-
-    <div id="panel-users" class="panel">
-        <div class="card">
-            <div class="card-heading">
-                <h2 style="margin:0;">玩家列表</h2>
-                <button class="btn btn-ghost" onclick="loadUsers()">刷新</button>
-            </div>
-            <div class="meta" id="usersMeta"></div>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>用户名</th>
-                        <th>昵称</th>
-                        <th>在线</th>
-                        <th>状态</th>
-                        <th>最近登录</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="userBody">
-                    <tr>
-                        <td colspan="7">切换到此页后加载</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="msg" id="usersMsg"></div>
-        </div>
-    </div>
-
-    <div id="panel-arena" class="panel">
-        <div class="card"><div class="card-heading"><div><h2>剑气除魔玩家</h2><div class="meta">状态、资源、背包、培养与副本进度均来自 lobby.db。</div></div><button class="btn btn-ghost" onclick="loadArenaPlayers()">刷新</button></div>
-            <div class="table-scroll"><table><thead><tr><th>ID</th><th>玩家</th><th>灵液</th><th>灵币</th><th>仙缘</th><th>战阵石</th><th>副本</th><th>操作</th></tr></thead><tbody id="arenaPlayerBody"><tr><td colspan="8">切换到此页后加载</td></tr></tbody></table></div><div id="arenaMsg" class="msg"></div></div>
-        <div id="arenaDetail" class="card" hidden><div class="card-heading"><h2 id="arenaDetailTitle">玩家详情</h2><button class="btn btn-ghost" onclick="loadArenaDetail()">刷新</button></div>
-            <h3>资源调整</h3><div class="form-row"><select id="arenaResource"><option value="liquid">至尊灵液</option><option value="coins">灵币</option><option value="fate">仙缘</option><option value="stones">战阵石</option></select><input id="arenaDelta" type="number" value="1000"><button class="btn" onclick="adjustArenaResource()">增减</button><button class="btn btn-ghost" onclick="setArenaResource()">设为此值</button></div>
-            <div id="arenaProgress" class="meta"></div><h3>进度控制</h3><div class="form-row"><label>通关 <input id="arenaCleared" type="number" min="0" max="12"></label><label>剩余次数 <input id="arenaAttempts" type="number" min="0"></label><label>战阵 <input id="arenaFormation" type="number" min="1"></label><label>洞府 <input id="arenaGrotto" type="number" min="1"></label><button class="btn" onclick="saveArenaProgress()">保存进度</button></div><h3>物品 / 装备发放</h3><div id="arenaInventory" class="meta"></div><div class="form-row"><select id="arenaItemId"><option value="herb">灵草</option><option value="ore">玄铁</option><option value="star_dust">星尘</option><option value="pill">炼气丹</option><option value="star_pill">升星丹</option><option value="refine_stone">精炼石</option><option value="green_sword">青锋法宝</option><option value="zhuxian_sword">诛仙断界剑</option><option value="xuanwu_armor">玄武神甲</option><option value="tianji_compass">天机罗盘</option></select><input id="arenaItemDelta" type="number" value="1"><button class="btn" onclick="adjustArenaItem()">发放 / 扣除</button></div><h3>仙侣</h3><div class="form-row"><select id="arenaNewHero"><option value="jianhuang">无极剑皇</option><option value="leizun">九霄雷尊</option><option value="yaohuang">长生药皇</option><option value="luocha">血海罗刹</option><option value="xingjun">紫微星君</option><option value="kongming">空明道祖</option><option value="taixu">太虚剑主</option><option value="chixiao">赤霄真君</option><option value="qinglan">青岚剑君</option><option value="xuanshuang">玄霜仙子</option></select><button class="btn" onclick="addArenaHero()">发放仙侣</button></div><div class="table-scroll"><table><thead><tr><th>ID</th><th>境界</th><th>星级</th><th>功法</th><th>碎片</th><th>操作</th></tr></thead><tbody id="arenaHeroBody"></tbody></table></div></div>
-    </div>
-
-    <div id="panel-allocator" class="panel">
-        <div class="tool-page-head">
-            <div>
-                <div class="tool-eyebrow">数据工具 / 计算器</div>
-                <h2>整数分配计算器</h2>
-                <p>根据已知值和均值条件，自动补齐 6 个尽可能均匀的整数。</p>
-            </div>
-            <span class="tool-admin-badge"><i></i>管理员专用</span>
-        </div>
-        <div class="tool-grid allocator-grid">
-            <section class="card tool-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon">∑</span><div><h2>输入计算条件</h2><p>已知值按第 1 项开始依次固定。</p></div></div>
-                    <span class="tool-step">01</span>
-                </div>
-                <div class="tool-field">
-                    <label for="allocatorKnown">已知值 <span class="tool-label-hint">最多 5 个</span></label>
-                    <input class="tool-input" id="allocatorKnown" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：20 20">
-                    <div class="tool-help">使用空格或逗号分隔；留空表示没有已知值。未知项由程序自动计算。</div>
-                </div>
-                <div class="tool-form-grid">
-                    <div class="tool-field">
-                        <label for="allocatorTotalAverage">6 个值的总期望均值</label>
-                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorTotalAverage" type="number" min="0" step="0.01" value="10"><span>均值</span></div>
-                    </div>
-                    <div class="tool-field">
-                        <label for="allocatorSubAverage">连续 3 个值的期望均值 <span class="tool-label-hint">可选</span></label>
-                        <div class="tool-input-suffix"><input class="tool-input" id="allocatorSubAverage" type="number" min="0" step="0.01" placeholder="不设置"><span>均值</span></div>
-                    </div>
-                </div>
-                <div class="tool-actions">
-                    <button class="btn tool-primary" id="allocatorCalculate" type="button" onclick="calculateAllocator()">开始计算</button>
-                    <button class="btn btn-ghost" type="button" onclick="resetAllocator()">重置</button>
-                </div>
-                <div class="msg" id="allocatorMsg"></div>
-            </section>
-            <aside class="card tool-card tool-rule-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">?</span><div><h2>计算规则</h2><p>与 IntegerAllocatorTest 保持一致。</p></div></div>
-                    <span class="tool-step">02</span>
-                </div>
-                <ol class="tool-rule-list">
-                    <li><span>1</span><div>已知值从第 1 项开始按顺序固定，最多填写 5 个。</div></li>
-                    <li><span>2</span><div>只设置总均值时，把剩余总和均匀分给未知项。</div></li>
-                    <li><span>3</span><div>设置连续 3 项均值时，自动尝试第 1 至第 4 个起始位置。</div></li>
-                    <li><span>4</span><div>结果出现冲突或负数时，提示无法计算，不返回部分结果。</div></li>
-                </ol>
-                <div class="tool-rule-note"><strong>提示</strong><span>小数均值会按目标总和四舍五入，结果卡会同时展示实际校验值。</span></div>
-            </aside>
-        </div>
-        <section class="card tool-card tool-result" id="allocatorResult" hidden>
-            <div class="tool-card-head tool-result-head">
-                <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-success">✓</span><div><h2>计算结果</h2><p id="allocatorResultHint">已完成均值校验。</p></div></div>
-                <button class="btn btn-ghost" type="button" onclick="copyAllocatorResult()">复制结果</button>
-            </div>
-            <div class="tool-metrics" id="allocatorMetrics"></div>
-            <div class="tool-section-label">六个分配值</div>
-            <div class="allocator-values" id="allocatorValues"></div>
-            <div class="tool-section-label">结果校验</div>
-            <div class="allocator-checks" id="allocatorChecks"></div>
-        </section>
-    </div>
-
-    <div id="panel-arpu" class="panel">
-        <div class="tool-page-head">
-            <div>
-                <div class="tool-eyebrow">数据工具 / 外部查询</div>
-                <h2>ARPU 查询</h2>
-                <p>输入手机号查询月度 ARPU，原始返回 JSON 和近 3 / 6 个月平均值集中展示。</p>
-            </div>
-            <span class="tool-admin-badge"><i></i>管理员专用</span>
-        </div>
-        <section class="card tool-card arpu-query-card">
-            <div class="tool-card-head">
-                <div class="tool-card-title"><span class="tool-card-icon">↗</span><div><h2>查询条件</h2><p>请求固定接口，仅替换 <code>phone_no</code> 参数。</p></div></div>
-                <span class="tool-step">01</span>
-            </div>
-            <div class="arpu-query-row">
-                <div class="tool-field arpu-phone-field">
-                    <label for="arpuPhone">手机号</label>
-                    <input class="tool-input" id="arpuPhone" type="tel" inputmode="numeric" maxlength="11" autocomplete="off" value="13717949145" placeholder="请输入 11 位手机号">
-                </div>
-                <button class="btn tool-primary arpu-query-button" id="arpuQueryButton" type="button" onclick="checkArpu()">查询数据</button>
-            </div>
-            <div class="tool-help">外部请求由服务端代理完成，避免浏览器跨域；手机号只用于本次查询，不写入本地存储。</div>
-            <div class="arpu-request-url" id="arpuRequestUrl" hidden></div>
-            <div class="msg" id="arpuMsg"></div>
-        </section>
-        <div id="arpuResult" hidden>
-            <div class="arpu-stats" id="arpuStats"></div>
-            <section class="card tool-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">▦</span><div><h2>月度明细</h2><p>按接口返回顺序取最新可用的数字月份计算平均值。</p></div></div>
-                </div>
-                <div class="table-scroll arpu-table-scroll"><table class="arpu-table"><thead><tr><th>月份</th><th>ARPU</th><th>状态</th></tr></thead><tbody id="arpuMonthly"></tbody></table></div>
-            </section>
-            <section class="card tool-card">
-                <div class="tool-card-head">
-                    <div class="tool-card-title"><span class="tool-card-icon tool-card-icon-soft">{ }</span><div><h2>原始 JSON</h2><p>完整保留外部接口返回内容，便于核对。</p></div></div>
-                    <button class="btn btn-ghost" type="button" onclick="copyArpuJson()">复制 JSON</button>
-                </div>
-                <pre class="arpu-json" id="arpuRawJson"></pre>
-            </section>
-        </div>
-    </div>
-
-    <div id="panel-tables" class="panel">
-        <div class="card">
-            <div class="card-heading">
-                <div>
-                    <h2>全机器人规则测试</h2>
-                    <div class="meta robot-test-intro">机器人自动坐满并按所选规则完成指定局数，结束后自动解散，回放保留在“战绩/回放”。</div>
-                </div>
-            </div>
-            <div class="robot-rule-grid">
-                <div><label for="robotMatchRoom">玩法</label><select id="robotMatchRoom" onchange="changeRobotRules()"></select></div>
-                <div><label for="robotMatchRounds">测试局数</label><select id="robotMatchRounds"><option value="1">1 局</option><option value="3" selected>3 局</option><option value="5">5 局</option><option value="10">10 局</option></select></div>
-                <div><label for="robotBaseScore">底分</label><input id="robotBaseScore" type="number" min="1" max="100" value="1"></div>
-                <div><label for="robotMaxFan">最大番数</label><input id="robotMaxFan" type="number" min="1" max="128" value="16"></div>
-            </div>
-            <div id="robotMahjongRules" class="robot-rule-options">
-                <span class="robot-rule-title">麻将规则</span>
-                <label><input id="robotAllowChi" type="checkbox" checked>允许吃</label>
-                <label><input id="robotAllowDianPao" type="checkbox" checked>允许点炮</label>
-                <label><input id="robotAllowGang" type="checkbox" checked>允许杠</label>
-                <label><input id="robotAllowSevenPairs" type="checkbox" checked>允许七对</label>
-                <label><input id="robotAllowMultiHu" type="checkbox">一炮多响</label>
-            </div>
-            <div class="robot-test-actions">
-                <button class="btn" id="robotMatchStart" onclick="startRobotMatch()">开始机器人测试</button>
-                <span class="meta">测试在后台运行，无需停留此页。</span>
-            </div>
-            <div class="msg" id="robotMatchMsg"></div>
-        </div>
-        <div class="card">
-            <div class="card-heading"><div><h2>实时对局</h2><div class="meta" id="tablesMeta"></div></div><button class="btn btn-ghost" onclick="loadTables()">刷新</button></div>
-            <div class="table-scroll"><table><thead><tr><th>桌号</th><th>玩法</th><th>状态</th><th>人数</th><th>房主</th><th>操作</th></tr></thead>
-                <tbody id="tableBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div>
-            <div class="msg" id="tablesMsg"></div>
-        </div>
-    </div>
-
-    <div id="panel-records" class="panel">
-        <div class="card">
-            <div class="card-heading">
-                <h2 style="margin:0;">战绩 / 回放记录</h2>
-                <button class="btn btn-ghost" onclick="loadReplays()">刷新</button>
-            </div>
-            <div class="form-row">
-                <select id="replayCategory" onchange="changeReplayCategory()">
-                    <option value="">全部牌类</option><option value="mahjong">麻将牌类</option><option value="poker">扑克牌类</option>
-                </select>
-                <select id="replayGameType" onchange="loadReplays(1)"><option value="">全部子玩法</option></select>
-                <input id="replayCode" placeholder="输入回放码，例如 2026-07-21/90001_1.txt">
-                <button class="btn btn-ghost" onclick="openReplayCode()">打开回放</button>
-                <button class="btn btn-ghost" onclick="loadReplays(1)">刷新全部</button>
-            </div>
-            <div class="meta">先按麻将/扑克牌类筛选，再按具体子玩法分页查看全部回放。</div>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>日期</th>
-                        <th>文件</th>
-                        <th>桌号</th>
-                        <th>局</th>
-                        <th>玩法</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="replayBody">
-                    <tr>
-                        <td colspan="6">切换到此页后加载</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="form-row" style="justify-content:flex-end;">
-                <button id="replayPrevPage" class="btn btn-ghost" onclick="changeReplayPage(-1)">上一页</button>
-                <span id="replayPageLabel" class="meta"></span>
-                <button id="replayNextPage" class="btn btn-ghost" onclick="changeReplayPage(1)">下一页</button>
-            </div>
-            <div class="msg" id="replayMsg"></div>
-        </div>
-        <div class="card">
-            <h2>落库战绩</h2>
-            <div class="meta">游戏结算后按玩家、局次和累计分数保存到 SQLite。</div>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>桌号</th>
-                        <th>局</th>
-                        <th>玩家</th>
-                        <th>本局</th>
-                        <th>累计</th>
-                        <th>结果</th>
-                    </tr>
-                    </thead>
-                    <tbody id="recordBody">
-                    <tr>
-                        <td colspan="6">切换到此页后加载</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div id="replayMount"></div>
-    </div>
-    <div id="panel-photos" class="panel">
-        <div class="card"><div class="card-heading"><h2>图片库设置</h2><button class="btn btn-ghost" onclick="loadPhotoAdmin()">刷新</button></div>
-            <div class="photo-admin-row"><div><label for="photoVisibility">全局查看范围</label><select id="photoVisibility"><option value="ALL">全部共享</option><option value="OWN">仅看自己</option></select></div><button class="btn" onclick="savePhotoVisibility()">保存设置</button><button class="btn btn-danger" onclick="clearPhotoCache()">清空高清缓存</button></div>
-            <div class="meta">管理员始终可查看全部图片；此设置同时作用于列表、缩略图和原图接口。</div><div id="photoAdminMsg" class="msg"></div>
-        </div>
-        <div class="card"><h2>存储概况</h2><div id="photoStats" class="photo-stats"></div><div class="table-scroll"><table><tbody id="photoPaths"></tbody></table></div></div>
-        <div class="card"><div class="card-heading"><h2>全部照片</h2><button class="btn btn-ghost" onclick="loadAdminPhotos(1)">刷新</button></div><div class="form-row photo-filter-row"><input id="photoOwnerFilter" placeholder="按上传用户名筛选"><button class="btn btn-ghost" onclick="loadAdminPhotos(1)">查询</button></div><div class="table-scroll"><table><thead><tr><th>缩略图</th><th>名称</th><th>拍摄时间</th><th>上传人</th><th>大小</th><th>操作</th></tr></thead><tbody id="adminPhotoBody"><tr><td colspan="6">切换到此页后加载</td></tr></tbody></table></div><div class="photo-admin-pager"><button class="btn btn-ghost" onclick="changeAdminPhotoPage(-1)">上一页</button><span id="adminPhotoPage" class="meta"></span><button class="btn btn-ghost" onclick="changeAdminPhotoPage(1)">下一页</button></div></div>
-    </div>
-</div>
-
+<!-- 重新激活邀请码弹窗 -->
 <div id="reactivateInviteDialog" class="admin-popover" hidden>
     <section class="admin-dialog" role="dialog" aria-labelledby="reactivateInviteTitle">
         <header class="admin-dialog-header">
@@ -375,14 +845,16 @@
 <script src="../../shared/replay-table-view.js"></script>
 <script src="./replay-shell.js"></script>
 <script src="./replay-player.js"></script>
+<script src="./js/tools-common.js"></script>
 <script src="./js/core.js"></script>
 <script src="./js/invites.js"></script>
 <script src="./js/users.js"></script>
 <script src="./js/arena.js"></script>
 <script src="./js/records.js"></script>
+<script src="./js/table-inspector.js"></script>
 <script src="./js/tables.js"></script>
 <script src="./js/photos.js"></script>
-<script src="./js/allocator.js"></script>
 <script src="./js/arpu.js"></script>
+<script src="./js/metrics.js"></script>
 </body>
 </html>

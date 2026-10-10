@@ -88,9 +88,24 @@ main {
 }
 
 .admin-link {
-    color: var(--blue);
-    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #ecf5ff;
+    color: #409eff;
+    border: 1px solid #d9ecff;
+    border-radius: 4px;
     font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all .2s;
+}
+
+.admin-link:hover {
+    background: #409eff;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
 }
 
 .game-grid {

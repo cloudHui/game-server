@@ -6,13 +6,14 @@
     <title>休闲 · 登录</title>
     <style>
         :root {
-            --bg0: #0f2a1c;
-            --bg1: #1a472a;
-            --accent: #c9a227;
-            --danger: #d64545;
-            --ink: #1b1b1b;
-            --muted: #6b7280;
-            --card: rgba(255, 252, 245, 0.96);
+            --ruoyi-primary: #409eff;
+            --ruoyi-primary-hover: #66b1ff;
+            --ruoyi-bg: #1f2d3d;
+            --ruoyi-card: #ffffff;
+            --ink: #303133;
+            --muted: #909399;
+            --danger: #f56c6c;
+            --accent: #409eff;
         }
 
         * {
@@ -22,118 +23,146 @@
         }
 
         body {
-            font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
             min-height: 100vh;
-            background: radial-gradient(ellipse at 20% 10%, rgba(201, 162, 39, 0.18), transparent 45%),
-            radial-gradient(ellipse at 80% 90%, rgba(45, 106, 58, 0.5), transparent 50%),
-            linear-gradient(160deg, var(--bg0), var(--bg1) 55%, #12301f);
+            background: radial-gradient(ellipse at 20% 15%, rgba(64, 158, 255, 0.18), transparent 50%),
+                        radial-gradient(ellipse at 80% 85%, rgba(30, 64, 175, 0.3), transparent 50%),
+                        linear-gradient(135deg, #1f2d3d 0%, #111827 50%, #0f172a 100%);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 24px;
             color: var(--ink);
+            -webkit-font-smoothing: antialiased;
         }
 
         .shell {
             width: 100%;
             max-width: 420px;
-            background: var(--card);
-            border-radius: 18px;
-            padding: 36px 32px 28px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 36px 32px 30px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
         .shell::before {
             content: "";
             position: absolute;
             inset: 0 0 auto 0;
-            height: 4px;
-            background: linear-gradient(90deg, #8b6914, var(--accent), #8b6914);
+            height: 3.5px;
+            background: linear-gradient(90deg, #1890ff, #409eff, #36cfc9);
         }
 
         .brand {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 12px;
+            background: rgba(64, 158, 255, 0.1);
+            border: 1px solid rgba(64, 158, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #409eff;
         }
 
         .brand h1 {
-            font-size: 30px;
-            letter-spacing: 0.08em;
-            color: #1f3d2a;
+            font-size: 22px;
+            letter-spacing: 0.04em;
+            color: #303133;
             font-weight: 700;
         }
 
         .brand p {
             margin-top: 6px;
-            color: var(--muted);
+            color: #909399;
             font-size: 13px;
         }
 
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 20px;
-            background: #eef2ec;
-            border-radius: 10px;
-            padding: 4px;
+            background: #f0f2f5;
+            border-radius: 6px;
+            padding: 3px;
         }
 
         .tabs button {
             flex: 1;
             border: none;
             background: transparent;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 9px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
-            color: var(--muted);
+            font-size: 13.5px;
+            color: #606266;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
         .tabs button.active {
-            background: #fff;
-            color: #1f3d2a;
+            background: #ffffff;
+            color: #409eff;
             font-weight: 600;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
         }
 
         label {
             display: block;
-            font-size: 12px;
-            color: var(--muted);
+            font-size: 12.5px;
+            color: #606266;
             margin-bottom: 6px;
+            font-weight: 500;
         }
 
         .field {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
         input {
             width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #d7ddd4;
-            border-radius: 10px;
-            font-size: 15px;
+            height: 40px;
+            padding: 0 14px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
             outline: none;
-            background: #fff;
+            background: #ffffff;
+            color: #303133;
+            transition: border-color .2s, box-shadow .2s;
         }
 
         input:focus {
-            border-color: #2d6a3a;
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.15);
         }
 
         .primary {
             width: 100%;
-            margin-top: 8px;
-            padding: 13px;
+            margin-top: 6px;
+            height: 42px;
             border: none;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #1f5c36, #2d8a4e);
-            color: #fff;
-            font-size: 16px;
+            border-radius: 4px;
+            background: #409eff;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
+            transition: background-color .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .primary:disabled {
@@ -142,7 +171,7 @@
         }
 
         .primary:hover:not(:disabled) {
-            filter: brightness(1.05);
+            background: #66b1ff;
         }
 
         .error {
@@ -173,7 +202,8 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(8, 18, 12, 0.62);
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(2px);
             z-index: 20;
             align-items: center;
             justify-content: center;
@@ -187,16 +217,18 @@
         .modal {
             width: 100%;
             max-width: 420px;
-            background: #fffaf0;
-            border-radius: 16px;
+            background: #ffffff;
+            border-radius: 8px;
             padding: 24px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+            border: 1px solid #ebeef5;
         }
 
         .modal h2 {
-            font-size: 18px;
+            font-size: 17px;
             margin-bottom: 8px;
-            color: #1f3d2a;
+            color: #303133;
+            font-weight: 600;
         }
 
         .modal .sub {
@@ -210,36 +242,51 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 14px;
-            background: #f3f6f1;
-            border-radius: 10px;
+            background: #f8f9fa;
+            border: 1px solid #ebeef5;
+            border-radius: 4px;
             margin-bottom: 8px;
         }
 
         .table-item button {
             border: none;
-            background: #1f5c36;
-            color: #fff;
-            padding: 7px 14px;
-            border-radius: 8px;
+            background: #409eff;
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
+            transition: background .2s;
+        }
+
+        .table-item button:hover {
+            background: #66b1ff;
         }
 
         .skip-btn {
             width: 100%;
             margin-top: 12px;
-            padding: 11px;
-            border: 1px solid #cfd7cb;
-            background: transparent;
-            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid #dcdfe6;
+            background: #ffffff;
+            border-radius: 4px;
             cursor: pointer;
-            color: #445;
+            color: #606266;
+            font-size: 13px;
+            transition: all .2s;
+        }
+
+        .skip-btn:hover {
+            background: #f5f7fa;
+            color: #409eff;
+            border-color: #c6e2ff;
         }
 
         .resume-box {
             display: none;
-            background: #eef5ea;
-            border-radius: 10px;
+            background: #ecf5ff;
+            border: 1px solid #d9ecff;
+            border-radius: 6px;
             padding: 14px;
             margin-bottom: 16px;
             text-align: left;
@@ -251,7 +298,7 @@
 
         .resume-box p {
             font-size: 13px;
-            color: #334;
+            color: #409eff;
             margin-bottom: 10px;
         }
 
@@ -262,22 +309,34 @@
 
         .resume-actions button {
             flex: 1;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 4px;
             border: none;
             cursor: pointer;
             font-size: 13px;
         }
 
         .resume-go {
-            background: #1f5c36;
-            color: #fff;
+            background: #409eff;
+            color: #ffffff;
+        }
+
+        .resume-go:hover {
+            background: #66b1ff;
         }
 
         .resume-clear {
-            background: #fff;
-            border: 1px solid #cfd7cb !important;
-            color: #445;
+            background: #ffffff;
+            border: 1px solid #dcdfe6 !important;
+            color: #606266;
+        }
+
+        .footer-copyright {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+            letter-spacing: 0.04em;
         }
     </style>
     <!--
@@ -296,8 +355,15 @@
 <body class="page-theme">
 <div class="shell">
     <div class="brand">
-        <h1>休闲大厅</h1>
-        <p id="brandHint">登录 · 邀请入局</p>
+        <div class="brand-logo">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" fill="rgba(64,158,255,0.4)" stroke="#409eff" />
+                <polyline points="2 17 12 22 22 17" stroke="#409eff" />
+                <polyline points="2 12 12 17 22 12" stroke="#409eff" />
+            </svg>
+        </div>
+        <h1>Hub 综合管理系统</h1>
+        <p id="brandHint">若依架构风格 · 账号登录与统一认证</p>
     </div>
     <div class="resume-box" id="resumeBox">
         <p>检测到已登录账号：<strong id="resumeName"></strong></p>
@@ -345,6 +411,10 @@
 
     <div class="error" id="errorMsg"></div>
     <div class="hint" id="regHint" style="display:none">邀请码已带入，可注册</div>
+</div>
+
+<div class="footer-copyright">
+    Copyright © 2026 Game Server Hub · RuoYi Architecture Style
 </div>
 
 <div class="overlay" id="tableOverlay">

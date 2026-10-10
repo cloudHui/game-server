@@ -26,15 +26,15 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/learning/admin/users")
-public class LearningUserAdminController {
+public class UserAdminController {
 
     private final LearningAdminAccess access;
     private final StudentService students;
     private final AccountService accounts;
 
-    public LearningUserAdminController(LearningAdminAccess access,
-                                       StudentService students,
-                                       AccountService accounts) {
+    public UserAdminController(LearningAdminAccess access,
+                               StudentService students,
+                               AccountService accounts) {
         this.access = access;
         this.students = students;
         this.accounts = accounts;
@@ -117,9 +117,13 @@ public class LearningUserAdminController {
     }
 
     public static class UserRequest {
+        /** 用户名登录标识 */
         public String username;
+        /** 真实姓名/显示昵称 */
         public String name;
+        /** 角色定位 (student/parent/admin) */
         public String role;
+        /** 分配的功能模块权限列表 */
         public List<String> permissions = new ArrayList<>();
     }
 }

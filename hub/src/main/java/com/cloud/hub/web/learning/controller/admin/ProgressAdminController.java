@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/learning/admin")
-public class LearningProgressAdminController {
+public class ProgressAdminController {
 
     private final LearningAdminAccess access;
     private final RecordService records;
@@ -39,12 +39,12 @@ public class LearningProgressAdminController {
     private final UsageService usage;
     private final DailyReportService reports;
 
-    public LearningProgressAdminController(LearningAdminAccess access,
-                                           RecordService records,
-                                           MistakeService mistakes,
-                                           StatsService stats,
-                                           UsageService usage,
-                                           DailyReportService reports) {
+    public ProgressAdminController(LearningAdminAccess access,
+                                   RecordService records,
+                                   MistakeService mistakes,
+                                   StatsService stats,
+                                   UsageService usage,
+                                   DailyReportService reports) {
         this.access = access;
         this.records = records;
         this.mistakes = mistakes;

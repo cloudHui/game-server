@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/integer-allocator")
 @RequiresAdmin
-public class IntegerAllocatorAdminController {
+public class AllocAdminController {
 
     /**
      * 计算并反推满足均值约束的整数序列。

@@ -25,15 +25,15 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/learning/admin")
-public class LearningContentAdminController {
+public class ContentAdminController {
 
     private final LearningAdminAccess access;
     private final WordService words;
     private final ContentService content;
 
-    public LearningContentAdminController(LearningAdminAccess access,
-                                          WordService words,
-                                          ContentService content) {
+    public ContentAdminController(LearningAdminAccess access,
+                                  WordService words,
+                                  ContentService content) {
         this.access = access;
         this.words = words;
         this.content = content;
