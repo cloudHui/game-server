@@ -150,12 +150,20 @@ public final class GameThreadPoolManager {
 
     /**
      * 获取或懒加载初始化第三版实时竞技专用 Dedicated Loop 引擎。
+     * <p>
+     * 引擎配置 4 个独立循环时钟 Worker 与 60 FPS（16.6ms）定长步长，
+     * 并绑定业务执行线程池 {@code businessPool.getExecutorService()}，
+     * 实现时钟巡检与业务执行彻底解耦，单桌卡顿不阻塞其他任何房间。
+     * </p>
      *
      * @return 60 FPS 专用引擎实例
      */
     public synchronized DedicatedGameLoopEngine getDedicatedGameLoopEngine() {
         if (dedicatedGameLoopEngine == null) {
-            dedicatedGameLoopEngine = new DedicatedGameLoopEngine(4);
+            dedicatedGameLoopEngine = new DedicatedGameLoopEngine(
+                    4,
+                    DedicatedGameLoopEngine.FRAME_INTERVAL_60_FPS,
+                    businessPool.getExecutorService());
         }
         return dedicatedGameLoopEngine;
     }
@@ -230,7 +238,7 @@ public final class GameThreadPoolManager {
      */
     public void registerTable(long tableId) {
         activeTables.add(tableId);
-        if (threadModelMode == ThreadModelMode.MAILBOX) {
+        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
             tableMailboxes.computeIfAbsent(tableId, id -> new ActorMailbox(id, businessPool.getExecutorService()));
         }
     }
@@ -249,8 +257,8 @@ public final class GameThreadPoolManager {
             return future;
         }
 
-        // 第二版：MAILBOX 模式直接走单桌独占私有队列，达成绝对零碰撞
-        if (threadModelMode == ThreadModelMode.MAILBOX) {
+        // 第二版 (MAILBOX) 与 第三版 (DEDICATED)：直接走单桌独占私有队列，达成绝对零碰撞
+        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
             ActorMailbox mailbox = tableMailboxes.computeIfAbsent(tableId,
                     id -> new ActorMailbox(id, businessPool.getExecutorService()));
             return mailbox.tell(() -> {
@@ -263,7 +271,7 @@ public final class GameThreadPoolManager {
             });
         }
 
-        // 第一版 (SLOTS) 与 第三版 (DEDICATED) 默认走 1024 高维槽位亲和池
+        // 第一版 (SLOTS) 默认走 1024 高维槽位亲和池
         return businessPool.serialExecute(tableId, () -> {
             try {
                 TraceContext.setTableId(tableId);
@@ -289,8 +297,8 @@ public final class GameThreadPoolManager {
             return future;
         }
 
-        // 第二版：MAILBOX 模式直接走单桌独占私有队列
-        if (threadModelMode == ThreadModelMode.MAILBOX) {
+        // 第二版 (MAILBOX) 与 第三版 (DEDICATED)：直接走单桌独占私有队列
+        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
             ActorMailbox mailbox = tableMailboxes.computeIfAbsent(tableId,
                     id -> new ActorMailbox(id, businessPool.getExecutorService()));
             return mailbox.ask(() -> {
@@ -303,7 +311,7 @@ public final class GameThreadPoolManager {
             });
         }
 
-        // 第一版 (SLOTS) 与 第三版 (DEDICATED) 默认走 1024 高维槽位亲和池
+        // 第一版 (SLOTS) 默认走 1024 高维槽位亲和池
         return businessPool.serialExecute(tableId, () -> {
             try {
                 TraceContext.setTableId(tableId);

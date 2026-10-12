@@ -16,7 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
-import proto.ModelProto;
+import utils.concurrent.realtime.FrameSyncRoom;
+import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
 import utils.trace.TraceContext;
 
 import java.util.Map;
@@ -38,12 +39,13 @@ import java.util.function.Supplier;
  *   <li>管理玩家进退桌、座位分配（seatUsers）、在线状态与补位陪练机器人；</li>
  *   <li>驱动状态机主循环（tableLoop 与 tick 调度），支持动态调整空闲/对局 tick 间隔；</li>
  *   <li>管理对局多局流转、总结算汇总广播（sendGameResult）与安全异步销毁；</li>
- *   <li>提供纯多态生命周期钩子，消灭外层状态机类型强转分支。</li>
+ *   <li>提供纯多态生命周期钩子，消灭外层状态机类型强转分支；</li>
+ *   <li>实现 {@link FrameSyncRoom}，可在第三版 DEDICATED 实时竞技模式下无缝挂载 DedicatedGameLoopEngine 驱动。</li>
  * </ul>
  *
  * @author cloud
  */
-public abstract class Table {
+public abstract class Table implements FrameSyncRoom {
     private static final Logger logger = LoggerFactory.getLogger(Table.class);
 
     private final long tableId;
@@ -404,8 +406,26 @@ public abstract class Table {
         });
     }
 
+    @Override
+    public long getRoomId() {
+        return this.tableId;
+    }
+
+    @Override
+    public void onFixedTick(long deltaNs) {
+        // 在 DEDICATED 实时竞技模式下作为定长帧回调驱动状态机
+        this.tableLoop();
+    }
+
     public void start() {
         try {
+            GameThreadPoolManager poolMgr = Game.getInstance().getThreadPoolManager();
+            if (poolMgr != null && poolMgr.getThreadModelMode() == GameThreadPoolManager.ThreadModelMode.DEDICATED) {
+                poolMgr.getDedicatedGameLoopEngine().registerRoom(this);
+                logger.info("启动实时专用引擎桌子循环(Mode 3 DEDICATED), tableId: {}", tableId);
+                return;
+            }
+
             if (loopFuture != null && !loopFuture.isCancelled())
                 return;
             loopFuture = Game.getInstance().getThreadPoolManager().scheduleTable(
@@ -422,6 +442,11 @@ public abstract class Table {
      */
     public void stop() {
         try {
+            GameThreadPoolManager poolMgr = Game.getInstance().getThreadPoolManager();
+            if (poolMgr != null && poolMgr.getThreadModelMode() == GameThreadPoolManager.ThreadModelMode.DEDICATED) {
+                poolMgr.getDedicatedGameLoopEngine().unregisterRoom(this);
+                logger.info("停止实时专用引擎桌子循环(Mode 3 DEDICATED), tableId: {}", tableId);
+            }
             if (loopFuture != null) {
                 Game.getInstance().getThreadPoolManager().cancelTableSchedule(loopFuture);
                 loopFuture = null;

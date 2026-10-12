@@ -1,7 +1,9 @@
 package utils.concurrent.realtime;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
@@ -19,7 +21,8 @@ import utils.concurrent.pool.ObjectPool;
  * <li><b>分片独占线程：</b> 每个 Game Loop 线程独占负责绑定固定数量的实时房间（例如单线程轮询 20 个房间）；</li>
  * <li><b>高精度累加器（Accumulator）：</b> 采用纳秒级时钟定长积分，彻底杜绝掉帧、漏算导致的客户端位移穿模；</li>
  * <li><b>防死亡螺旋上限：</b> 严格限制单次 Tick 最大追帧步数（默认最多追 5 帧），防止系统过载时连环卡死；</li>
- * <li><b>自适应休眠（ParkNanos）：</b> 结合剩余时间执行微秒级精准休眠，避免 100% 空转打满 CPU。</li>
+ * <li><b>自适应休眠（ParkNanos）：</b> 结合剩余时间执行微秒级精准休眠，避免 100% 空转打满 CPU；</li>
+ * <li><b>时钟与执行解耦分发：</b> 支持配置 {@link ExecutorService} 异步非阻塞分发逻辑帧，单个房间耗时卡顿绝不连累同线程其他房间。</li>
  * </ul>
  *
  * @author cloud
@@ -67,23 +70,45 @@ public class DedicatedGameLoopEngine {
     private final LoopWorker[] workers;
 
     /**
+     * 异步业务执行线程池：用于解耦时钟与执行，单房间卡顿不阻塞其他房间（为空则降级为同线程同步执行）
+     */
+    private final ExecutorService dispatchExecutor;
+
+    /**
+     * 单房间逻辑帧执行忙碌防堆积标记表 <roomId, AtomicBoolean>，上一拍未结束自动跳过本拍
+     */
+    private final ConcurrentHashMap<Long, AtomicBoolean> roomBusyMap = new ConcurrentHashMap<>();
+
+    /**
      * 实时帧事件专用对象池（4096 深度），实现高频网络指令零 GC 堆分配
      */
     private final ObjectPool<FrameEvent> eventPool = new ObjectPool<>(FrameEvent::new, 4096);
 
     public DedicatedGameLoopEngine(int workerCount) {
-        this(workerCount, FRAME_INTERVAL_30_FPS);
+        this(workerCount, FRAME_INTERVAL_30_FPS, null);
     }
 
     public DedicatedGameLoopEngine(int workerCount, long targetIntervalNs) {
+        this(workerCount, targetIntervalNs, null);
+    }
+
+    /**
+     * 完整构造函数：支持时钟与执行解耦的异步非阻塞分发。
+     *
+     * @param workerCount      独占时钟 Worker 线程数
+     * @param targetIntervalNs 单帧目标纳秒间隔（如 33,333,333 ns）
+     * @param dispatchExecutor 业务执行线程池（非空时启用异步隔离分发模式）
+     */
+    public DedicatedGameLoopEngine(int workerCount, long targetIntervalNs, ExecutorService dispatchExecutor) {
         int count = Math.max(1, workerCount);
+        this.dispatchExecutor = dispatchExecutor;
         this.workers = new LoopWorker[count];
         for (int i = 0; i < count; ++i) {
-            this.workers[i] = new LoopWorker("Dedicated-GameLoop-" + i, targetIntervalNs);
+            this.workers[i] = new LoopWorker("Dedicated-GameLoop-" + i, targetIntervalNs, dispatchExecutor, roomBusyMap);
             this.workers[i].start();
         }
-        LOGGER.info("[init] DedicatedGameLoopEngine 启动完成, workers:{}, interval:{}ns",
-                count, targetIntervalNs);
+        LOGGER.info("[init] DedicatedGameLoopEngine 启动完成, workers:{}, interval:{}ns, asyncDecoupled:{}",
+                count, targetIntervalNs, dispatchExecutor != null);
     }
 
     /**
@@ -117,18 +142,22 @@ public class DedicatedGameLoopEngine {
      * @param room 待注销房间
      */
     public void unregisterRoom(FrameSyncRoom room) {
+        if (room != null) {
+            roomBusyMap.remove(room.getRoomId());
+        }
         for (LoopWorker worker : workers) {
             worker.removeRoom(room);
         }
     }
 
     /**
-     * 优雅关闭所有独占循环线程并清理对象池。
+     * 优雅关闭所有独占循环线程并清理对象池与运行状态。
      */
     public void shutdown() {
         for (LoopWorker worker : workers) {
             worker.stopGracefully();
         }
+        roomBusyMap.clear();
         eventPool.clear();
     }
 
@@ -141,10 +170,15 @@ public class DedicatedGameLoopEngine {
         private final Thread thread;
         private final AtomicBoolean running = new AtomicBoolean(true);
         private final List<FrameSyncRoom> boundRooms = new CopyOnWriteArrayList<>();
+        private final ExecutorService dispatchExecutor;
+        private final ConcurrentHashMap<Long, AtomicBoolean> roomBusyMap;
 
-        public LoopWorker(String name, long tickIntervalNs) {
+        public LoopWorker(String name, long tickIntervalNs, ExecutorService dispatchExecutor,
+                          ConcurrentHashMap<Long, AtomicBoolean> roomBusyMap) {
             this.name = name;
             this.tickIntervalNs = tickIntervalNs;
+            this.dispatchExecutor = dispatchExecutor;
+            this.roomBusyMap = roomBusyMap;
             this.thread = new Thread(this, name);
             this.thread.setDaemon(true);
         }
@@ -232,15 +266,51 @@ public class DedicatedGameLoopEngine {
 
         /**
          * 推进所有绑定房间的单次定长逻辑帧。
+         * <p>
+         * 如果配置了 dispatchExecutor（异步解耦模式），则仅作纳秒级快速时钟巡检，
+         * 通过 roomBusyMap 进行非阻塞 CAS 门禁校验，分发至业务线程池并发执行，
+         * 彻底避免单个房间卡顿连带拖慢当前线程绑定的其他房间。
+         * </p>
          *
          * @param deltaNs 本次定长帧步长（纳秒）
          */
         private void tickRooms(long deltaNs) {
+            if (dispatchExecutor == null || dispatchExecutor.isShutdown()) {
+                // 同步串行模式（兜底基准）
+                for (FrameSyncRoom room : boundRooms) {
+                    try {
+                        room.onFixedTick(deltaNs);
+                    } catch (Throwable t) {
+                        LOGGER.error("房间逻辑帧 Tick 异常, roomId: {}", room.getRoomId(), t);
+                    }
+                }
+                return;
+            }
+
+            // 异步非阻塞解耦模式：时钟秒级打铃，业务 Worker 并发消费
             for (FrameSyncRoom room : boundRooms) {
+                final long roomId = room.getRoomId();
+                AtomicBoolean busy = roomBusyMap.computeIfAbsent(roomId, k -> new AtomicBoolean(false));
+                // 非阻塞 CAS 门禁：若该桌上一帧仍在 Worker 执行中，则跳过本次打铃，防止任务在线程池队列中无限积压雪崩
+                if (!busy.compareAndSet(false, true)) {
+                    LOGGER.warn("[DedicatedLoop] 房间 [{}] 上一逻辑帧仍在执行中，跳过当前定长脉冲（防积压）", roomId);
+                    continue;
+                }
+
                 try {
-                    room.onFixedTick(deltaNs);
-                } catch (Throwable t) {
-                    LOGGER.error("房间逻辑帧 Tick 异常, roomId: {}", room.getRoomId(), t);
+                    dispatchExecutor.execute(() -> {
+                        try {
+                            room.onFixedTick(deltaNs);
+                        } catch (Throwable t) {
+                            LOGGER.error("[DedicatedLoop] 异步派发房间逻辑帧异常, roomId: {}", roomId, t);
+                        } finally {
+                            busy.set(false);
+                        }
+                    });
+                } catch (Throwable ex) {
+                    // 若线程池已满拒绝任务，释放 busy 锁
+                    busy.set(false);
+                    LOGGER.error("[DedicatedLoop] 线程池拒绝执行房间逻辑帧任务, roomId: {}", roomId, ex);
                 }
             }
         }
