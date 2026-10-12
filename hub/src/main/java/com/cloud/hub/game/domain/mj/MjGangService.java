@@ -7,6 +7,7 @@ import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.GameProto;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,11 +34,13 @@ public class MjGangService {
     public static boolean applyAnGang(MjTable table, int userId, int gangTileId) {
         int seat = table.getOp().getCurrOpSeat();
         TableUser user = table.getSeatUser(seat);
-        if (user == null || user.getUserId() != userId) return false;
+        if (user == null || user.getUserId() != userId)
+            return false;
 
         MjWinChecker winChecker = MjPlayService.createWinChecker(table);
         List<Integer> gangTiles = winChecker.getAnGangTiles(user.getCards());
-        if (!gangTiles.contains(gangTileId)) return false;
+        if (!gangTiles.contains(gangTileId))
+            return false;
 
         // 从手牌移除4张
         int removed = removeCardsById(user, gangTileId, 4);
@@ -55,15 +58,17 @@ public class MjGangService {
         int drawnTile = MjDrawService.drawTile(table);
 
         MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
-        if (replay != null) replay.recordAnGang(seat, gangTileId, drawnTile >= 0 ? drawnTile : -1);
+        if (replay != null)
+            replay.recordAnGang(seat, gangTileId, drawnTile >= 0 ? drawnTile : -1);
 
         if (drawnTile >= 0) {
-            if (MjDrawService.checkZiMo(table, drawnTile)) return true;
+            if (MjDrawService.checkZiMo(table, drawnTile))
+                return true;
             ctx.setGangShangKaiHua(false);
             // 杠发生在 MJ_DISCARD 内，状态虽然重新进入 MJ_DISCARD，但不是一次
             // 不同枚举值的切换。必须重置提示标记，否则补摸后不会再次发送出牌按钮。
             ctx.setDiscardPromptSent(false);
-            table.upNextState(utils.registry.enums.TableState.MJ_DISCARD);
+            table.upNextState(TableState.MJ_DISCARD);
         } else {
             MjSettleService.finishGame(table, "暗杠后牌墙已空");
         }
@@ -80,19 +85,22 @@ public class MjGangService {
     public static boolean applyBuGang(MjTable table, int userId, int tileId) {
         int seat = table.getOp().getCurrOpSeat();
         TableUser user = table.getSeatUser(seat);
-        if (user == null || user.getUserId() != userId) return false;
+        if (user == null || user.getUserId() != userId)
+            return false;
 
         MjTableContext ctx = table.getMjContext();
         MjWinChecker winChecker = MjPlayService.createWinChecker(table);
 
-        if (!winChecker.canBuGang(user.getCards(), ctx.getExposedSets(seat), tileId)) return false;
+        if (!winChecker.canBuGang(user.getCards(), ctx.getExposedSets(seat), tileId))
+            return false;
 
         // 检查抢杠胡
         int seatNum = table.getTableModel().getSeatNum();
         for (int i = 1; i < seatNum; i++) {
             int checkSeat = (seat + i) % seatNum;
             TableUser other = table.getSeatUser(checkSeat);
-            if (other == null) continue;
+            if (other == null)
+                continue;
 
             List<Card> testHand = new ArrayList<>(other.getCards());
             testHand.add(new Card(tileId));
@@ -100,7 +108,8 @@ public class MjGangService {
                 ctx.setQiangGangHu(true);
                 user.removeCardsByProtoIds(Collections.singletonList(tileId));
                 MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
-                if (replay != null) replay.recordBuGangRobbed(seat, tileId, checkSeat);
+                if (replay != null)
+                    replay.recordBuGangRobbed(seat, tileId, checkSeat);
                 MjClaimService.clearClaimState(table);
                 MjClaimService.processHu(table, checkSeat, tileId, seat, true);
                 return true;
@@ -127,12 +136,14 @@ public class MjGangService {
         settleGangScore(table, seat, MjExposedSet.Type.BU_GANG);
 
         MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
-        if (replay != null) replay.recordBuGang(seat, tileId, 0);
+        if (replay != null)
+            replay.recordBuGang(seat, tileId, 0);
 
         ctx.setGangShangKaiHua(true);
         int drawnTile = MjDrawService.drawTile(table);
         if (drawnTile >= 0) {
-            if (MjDrawService.checkZiMo(table, drawnTile)) return true;
+            if (MjDrawService.checkZiMo(table, drawnTile))
+                return true;
             ctx.setGangShangKaiHua(false);
             // 同暗杠：补杠前的出牌提示已经发送过，补摸后要开启一个新的出牌窗口。
             ctx.setDiscardPromptSent(false);
@@ -152,7 +163,8 @@ public class MjGangService {
      */
     static void settleGangScore(MjTable table, int seat, MjExposedSet.Type gangType) {
         int gangScore = table.getTableModel().getGangScore();
-        if (gangScore <= 0) gangScore = 1;
+        if (gangScore <= 0)
+            gangScore = 1;
 
         int multiplier = (gangType == MjExposedSet.Type.AN_GANG) ? 2 : 1;
         int scorePerPlayer = gangScore * multiplier;

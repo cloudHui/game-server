@@ -11,13 +11,13 @@ import net.service.ServerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
-import threadtutil.thread.ExecutorPool;
-import threadtutil.timer.Runner;
-import threadtutil.timer.Timer;
+import utils.concurrent.thread.ExecutorPool;
+import utils.concurrent.timer.Runner;
+import utils.concurrent.timer.Timer;
 import tools.ServerManager;
 import tools.manager.HandleManager;
 import utils.config.ConfigurationManager;
-import utils.other.IpUtil;
+import utils.net.IpUtils;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -139,7 +139,7 @@ public class Gate {
         int wsPort = config.getInt("wsGate", 0);
         setServerId(config.getInt("id", 0));
         setCenter(config.getProperty("center"));
-        setInnerIp(IpUtil.getLocalIP());
+        setInnerIp(IpUtils.getLocalIP());
 
         logger.info("配置加载完成 - 端口: {}, WebSocket端口: {}, 服务器ID: {}, 中心服务器: {}",
                 port, wsPort, serverId, center);

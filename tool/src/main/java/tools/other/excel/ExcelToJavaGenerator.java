@@ -1,6 +1,7 @@
 package tools.other.excel;
 
-import utils.other.TableUtils;
+import utils.table.TableUtils;
+
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

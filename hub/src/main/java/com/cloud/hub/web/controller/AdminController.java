@@ -45,8 +45,11 @@ public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
+    /** 大厅后台客户端，负责邀请码、玩家启停与活跃桌况透传 */
     private final LobbyAdminClient lobbyAdminClient;
+    /** 对局回放记录查询与文件读取服务 */
     private final ReplayService replayService;
+    /** 管理员远程受控 Shell 执行服务 */
     private final ShellService shellService;
 
     public AdminController(LobbyAdminClient lobbyAdminClient,

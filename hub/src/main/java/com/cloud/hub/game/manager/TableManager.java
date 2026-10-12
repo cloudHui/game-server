@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import proto.GameProto;
 import proto.ModelProto;
 import tool.config.TableConfigManager;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +57,8 @@ public class TableManager {
         threadPoolManager = Game.getInstance().getThreadPoolManager();
         tableMap = new ConcurrentHashMap<>();
         // 复用大厅已加载并监控的 TableConfigManager，避免重复解析与两套 Watcher 线程
-        TableConfigManager shared = com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance().getConfigManager();
+        TableConfigManager shared = com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance()
+                .getConfigManager();
         if (shared != null && !shared.getAllTableModels().isEmpty()) {
             this.configManager = shared;
         } else {
@@ -69,7 +71,6 @@ public class TableManager {
         }
         logger.info("桌子管理器初始化完成");
     }
-
 
     /**
      * 添加桌子
@@ -141,7 +142,7 @@ public class TableManager {
      */
     private void notifyPlayersTableDestroyed(Table table) {
         GameProto.NotTableState notification = table.buildStateNotification(
-                utils.registry.enums.TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
+                TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
         for (TableUser user : table.getSeatUsers().values()) {
             try {
                 user.sendRoleMessage(notification, GMsg.NOT_TABLE_STATE, table.getTableId());
@@ -189,14 +190,16 @@ public class TableManager {
 
     private CompletableFuture<List<ModelProto.RoomTableInfo>> collectTableInfo(List<Table> tables) {
         List<CompletableFuture<ModelProto.RoomTableInfo>> futures = new ArrayList<>();
-        for (Table table : tables) futures.add(table.getRoomTableInfoAsync());
+        for (Table table : tables)
+            futures.add(table.getRoomTableInfoAsync());
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply(ignored -> collectResults(futures));
     }
 
     private List<ModelProto.RoomTableInfo> collectResults(List<CompletableFuture<ModelProto.RoomTableInfo>> futures) {
         List<ModelProto.RoomTableInfo> result = new ArrayList<>();
-        for (CompletableFuture<ModelProto.RoomTableInfo> future : futures) result.add(future.join());
+        for (CompletableFuture<ModelProto.RoomTableInfo> future : futures)
+            result.add(future.join());
         return result;
     }
 
@@ -217,10 +220,10 @@ public class TableManager {
      */
     public void notifyRoomPlayerLeft(long tableId, int roleId) {
         try {
-            com.cloud.hub.lobby.manager.table.TableInfo info =
-                    com.cloud.hub.lobby.manager.table.LobbyTableManager.getInstance().getTableById(tableId);
-            com.cloud.hub.lobby.manager.User user =
-                    com.cloud.hub.lobby.manager.UserManager.getInstance().getUser(roleId);
+            com.cloud.hub.lobby.manager.table.TableInfo info = com.cloud.hub.lobby.manager.table.LobbyTableManager
+                    .getInstance().getTableById(tableId);
+            com.cloud.hub.lobby.manager.User user = com.cloud.hub.lobby.manager.UserManager.getInstance()
+                    .getUser(roleId);
             if (info != null && user != null) {
                 info.removeUser(user);
             }

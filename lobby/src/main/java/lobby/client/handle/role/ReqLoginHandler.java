@@ -15,7 +15,7 @@ import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.LobbyProto;
-import utils.other.MD5Utils;
+import utils.crypto.MD5Utils;
 import utils.trace.TraceContext;
 
 import java.util.ArrayList;

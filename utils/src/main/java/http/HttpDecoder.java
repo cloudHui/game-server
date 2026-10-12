@@ -1,6 +1,6 @@
 package http;
 
-import http.handler.Handler;
+import http.handler.HttpHandler;
 import http.handler.Maker;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -109,7 +109,7 @@ public abstract class HttpDecoder extends ChannelInboundHandlerAdapter implement
     }
 
     private void httpGet(String[] data, String path) {
-        Handler handler = getHandler(data[0]);
+        HttpHandler handler = getHandler(data[0]);
         if (handler == null) {
             LOGGER.info("[{}] 未找到 GET 处理器: {} path: {}", channel, data[0], path);
             channel.close();
@@ -120,7 +120,7 @@ public abstract class HttpDecoder extends ChannelInboundHandlerAdapter implement
     }
 
     private void httpPost(String[] data, FullHttpRequest request, String path) {
-        Handler handler = getHandler(data[0]);
+        HttpHandler handler = getHandler(data[0]);
         if (handler == null) {
             LOGGER.info("[{}] 未找到 POST 处理器: {} path: {}", channel, data[0], path);
             channel.close();
@@ -134,7 +134,7 @@ public abstract class HttpDecoder extends ChannelInboundHandlerAdapter implement
      * 统一执行 HTTP 业务处理器并记录耗时
      */
     @SuppressWarnings("unchecked")
-    private void executeHttpHandler(Handler handler, Object parsedParam, String methodDesc) {
+    private void executeHttpHandler(HttpHandler handler, Object parsedParam, String methodDesc) {
         long start = System.currentTimeMillis();
         boolean keepChannel = handler.handler(this, parsedParam);
         long elapsed = System.currentTimeMillis() - start;
@@ -160,7 +160,7 @@ public abstract class HttpDecoder extends ChannelInboundHandlerAdapter implement
             if (buf.readableBytes() > 0) {
                 byte[] bytes = new byte[buf.readableBytes()];
                 buf.readBytes(bytes);
-                Handler handler = getHandler(WEB_SOCKET);
+                HttpHandler handler = getHandler(WEB_SOCKET);
                 if (handler != null) {
                     if (!handler.handler(this, handler.parser(new String(bytes, CharsetUtil.UTF_8)))) {
                         LOGGER.info("[{}] WebSocket 处理器返回关闭连接", channel);
@@ -230,5 +230,5 @@ public abstract class HttpDecoder extends ChannelInboundHandlerAdapter implement
     /**
      * 根据请求路径获取对应的业务处理器
      */
-    public abstract Handler getHandler(String path);
+    public abstract HttpHandler getHandler(String path);
 }

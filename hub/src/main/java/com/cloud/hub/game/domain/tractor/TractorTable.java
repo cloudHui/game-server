@@ -7,7 +7,6 @@ import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.ddz.DdzGameResult;
 import com.cloud.hub.game.domain.replay.PokerReplayRecorder;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
-import com.cloud.hub.game.domain.state.IdleShowCard;
 import model.tablemodel.TableModel;
 import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
@@ -40,7 +39,8 @@ public class TractorTable extends Table {
     @Override
     public void dealCards() {
         int banker = tractor.getBankerSeat();
-        if (banker < 0) banker = 0;
+        if (banker < 0)
+            banker = 0;
         tractor.setBankerSeat(banker);
         // 洗牌后进入 START_ANI：服务端一次发完，客户端播动画期间可抢主
         cardPool.prepareDeal(banker);
@@ -104,7 +104,8 @@ public class TractorTable extends Table {
         }
         List<Integer> ids = new ArrayList<>();
         for (GameProto.CardInfo ci : op.getOpCardsList()) {
-            for (GameProto.Card c : ci.getCardsList()) ids.add(c.getValue());
+            for (GameProto.Card c : ci.getCardsList())
+                ids.add(c.getValue());
         }
         if (!cardPool.buryCards(this, tractor.getBottomHolderSeat(), ids)) {
             return ConstProto.Result.OP_CARD_NOT_MATCH_VALUE;
@@ -118,13 +119,15 @@ public class TractorTable extends Table {
 
     @Override
     public void syncGameState(TableUser user) {
-        if (user.getSeated() < 0) return;
+        if (user.getSeated() < 0)
+            return;
         cardPool.sendInitCardNotice(getSeatUsers());
         user.sendRoleMessage(buildStateNotification(getTableState().getId(),
                 getStateStartTime(), tractorStateDuration()), GMsg.NOT_STATE, getTableId());
         TableState ts = getTableState();
         int opSeat = getOp().getCurrOpSeat();
-        if (opSeat < 0) return;
+        if (opSeat < 0)
+            return;
         if (ts == TableState.START_ANI && tractor.isDealing()) {
             TractorBidService.notifyDealBid(this);
         } else if (ts == TableState.IDLE_ROB || ts == TableState.ROB) {
@@ -152,7 +155,8 @@ public class TractorTable extends Table {
                 .setCurrentMultiplier(Math.max(1, tractor.getBidStrength()));
         // 底牌牌面仅当前持底/扣底庄家可见（扣完也可看、不可改）
         int holder = tractor.getBottomHolderSeat();
-        if (holder < 0) holder = tractor.getBankerSeat();
+        if (holder < 0)
+            holder = tractor.getBankerSeat();
         if (viewer.getSeated() == holder && !tractor.getRevealedBottom().isEmpty()) {
             b.addAllBottomCards(tractor.getRevealedBottom());
         }
@@ -161,7 +165,8 @@ public class TractorTable extends Table {
             GameProto.SnapshotExposed.Builder ex = GameProto.SnapshotExposed.newBuilder()
                     .setSeat(tractor.getTrickSeats().get(i))
                     .setType(com.google.protobuf.ByteString.copyFromUtf8("trick"));
-            for (Card c : tractor.getTrickPlays().get(i)) ex.addTileIds(c.getId());
+            for (Card c : tractor.getTrickPlays().get(i))
+                ex.addTileIds(c.getId());
             b.addExposed(ex);
         }
         if (viewer.getSeated() == getOp().getCurrOpSeat() && b.getChoicesCount() == 0) {
@@ -180,12 +185,14 @@ public class TractorTable extends Table {
         if (getTableState() == TableState.IDLE_SHOW_CARD && b.getChoicesCount() > 0) {
             b.setOpSeat(viewer.getSeated());
         }
-        if (tractor.getLastPlayed() != null) b.setLastCards(tractor.getLastPlayed());
+        if (tractor.getLastPlayed() != null)
+            b.setLastCards(tractor.getLastPlayed());
         return b.build();
     }
 
     private int tractorStateDuration() {
-        if (getTableState() == TableState.IDLE_ROB) return TractorBidService.DECLARE_SECONDS;
+        if (getTableState() == TableState.IDLE_ROB)
+            return TractorBidService.DECLARE_SECONDS;
         if (getTableState() == TableState.IDLE_SHOW_CARD) {
             return TRACTOR_BURY_SECONDS;
         }
@@ -263,7 +270,8 @@ public class TractorTable extends Table {
     @Override
     public boolean onIdleShowCardHandle() {
         int seat = tractor.getBottomHolderSeat();
-        if (seat < 0) seat = tractor.getBankerSeat();
+        if (seat < 0)
+            seat = tractor.getBankerSeat();
         TableUser u = getSeatUser(seat);
         long now = System.currentTimeMillis();
         long deadline = getStateStartTime() + TRACTOR_BURY_SECONDS * 1000L;

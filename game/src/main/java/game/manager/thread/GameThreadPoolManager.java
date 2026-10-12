@@ -1,8 +1,8 @@
 package game.manager.thread;
 
-import threadtutil.thread.ExecutorPool;
-import threadtutil.thread.Task;
-import threadtutil.utils.TimeUtils;
+import utils.concurrent.thread.ExecutorPool;
+import utils.concurrent.thread.Task;
+import utils.concurrent.thread.ThreadPool;
 import utils.trace.TraceContext;
 
 import java.util.Set;
@@ -27,7 +27,7 @@ public final class GameThreadPoolManager {
     private final Set<Long> tickBusy = ConcurrentHashMap.newKeySet();
 
     public GameThreadPoolManager(int workerSize, int queueCapacity, int databaseSize) {
-        int size = workerSize > 0 ? workerSize : Math.max(32, TimeUtils.PROCESS_NUMBER);
+        int size = workerSize > 0 ? workerSize : Math.max(32, ThreadPool.DEFAULT_POOL_SIZE);
         tablePool = new ExecutorPool("Game-Table", size, queueCapacity);
         playerPool = new ExecutorPool("Game-Player", size, queueCapacity);
         tableManagerPool = new ExecutorPool("Game-TableManager", 1, queueCapacity);

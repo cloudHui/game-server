@@ -24,7 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 统一处理器注册与协议路由构建引擎
- * <p>提供注解元驱动、Fail-Fast 冲突校验、单例去重共享与统一反序列化能力。</p>
+ * <p>
+ * 提供注解元驱动、Fail-Fast 冲突校验、单例去重共享与统一反序列化能力。
+ * </p>
  *
  * @author cloud
  */
@@ -33,7 +35,7 @@ public final class HandlerRegistry {
     private static final Logger logger = LoggerFactory.getLogger(HandlerRegistry.class);
 
     public static final String DEFAULT_HANDLE_PACKAGE = "tools.handle";
-    private static final String[] DEFAULT_MESSAGE_PACKAGES = {"msg.registor.message", "msg.message"};
+    private static final String[] DEFAULT_MESSAGE_PACKAGES = { "msg.registor.message", "msg.message" };
 
     private static final Map<Integer, Class<?>> TRANS_MAP = new ConcurrentHashMap<>();
     private static final Map<Class<?>, Integer> MSG_TRANS_MAP = new ConcurrentHashMap<>();
@@ -177,7 +179,6 @@ public final class HandlerRegistry {
         handles.putAll(mapped);
     }
 
-    @SuppressWarnings("unchecked")
     public static <K, T> void bind(Class<?> packageClass, Class<K> keyType, Map<K, T> handles) {
         Class<? extends Annotation> annotationType;
         if (keyType.equals(Integer.class)) {
@@ -195,12 +196,12 @@ public final class HandlerRegistry {
     // ==================== 核心处理器映射表构建流程 ====================
 
     public static <K, T> Map<K, T> buildSingle(String packageName, Class<T> baseType,
-                                               Class<? extends Annotation> annotationType, Class<K> keyType) {
+            Class<? extends Annotation> annotationType, Class<K> keyType) {
         return buildSingle(Collections.singletonList(packageName), baseType, annotationType, keyType);
     }
 
     public static <K, T> Map<K, T> buildSingle(Iterable<String> packageNames, Class<T> baseType,
-                                               Class<? extends Annotation> annotationType, Class<K> keyType) {
+            Class<? extends Annotation> annotationType, Class<K> keyType) {
         Map<K, Set<T>> multiMap = build(packageNames, baseType, annotationType, keyType, false);
         Map<K, T> result = new LinkedHashMap<>();
         for (Map.Entry<K, Set<T>> entry : multiMap.entrySet()) {
@@ -210,12 +211,13 @@ public final class HandlerRegistry {
     }
 
     private static <K, T> Map<K, Set<T>> build(Iterable<String> packageNames, Class<T> baseType,
-                                               Class<? extends Annotation> annotationType,
-                                               Class<K> keyType, boolean multiple) {
+            Class<? extends Annotation> annotationType,
+            Class<K> keyType, boolean multiple) {
         long start = System.currentTimeMillis();
         KeyResolver<Annotation> resolver = getResolver(annotationType);
         Set<Class<? extends T>> candidateClasses = collectCandidates(packageNames, baseType, annotationType);
-        Map<K, Set<Class<? extends T>>> bindings = resolveBindings(candidateClasses, annotationType, resolver, keyType, multiple);
+        Map<K, Set<Class<? extends T>>> bindings = resolveBindings(candidateClasses, annotationType, resolver, keyType,
+                multiple);
         Map<K, Set<T>> resultMap = instantiateHandlers(bindings);
 
         logger.info("HandlerRegistry 注册完成! 包: {}, 注解: @{}, Key类型: {}, 映射条数: {}, 耗时: {}ms",
@@ -225,7 +227,7 @@ public final class HandlerRegistry {
     }
 
     private static <T> Set<Class<? extends T>> collectCandidates(Iterable<String> packageNames, Class<T> baseType,
-                                                                 Class<? extends Annotation> annotationType) {
+            Class<? extends Annotation> annotationType) {
         Set<Class<? extends T>> candidateClasses = new LinkedHashSet<>();
         for (String pkg : packageNames) {
             candidateClasses.addAll(ClassScanner.scan(pkg, baseType, annotationType));
@@ -251,7 +253,8 @@ public final class HandlerRegistry {
                     currentResolver = getResolver(legacyAnno);
                 }
             }
-            if (annotation == null) continue;
+            if (annotation == null)
+                continue;
             bindClassKeys(type, annotation, currentResolver, keyType, multiple, bindings);
         }
         return bindings;
@@ -265,10 +268,12 @@ public final class HandlerRegistry {
             throw new IllegalStateException("处理器未声明有效的 Key: " + type.getName());
         }
         for (Object rawKey : keys) {
-            if (rawKey == null) throw new IllegalStateException("处理器声明了 null Key: " + type.getName());
+            if (rawKey == null)
+                throw new IllegalStateException("处理器声明了 null Key: " + type.getName());
             Object convertedKey = convertKeyIfEnum(rawKey, keyType);
             if (!keyType.isInstance(convertedKey)) {
-                throw new IllegalStateException(String.format("处理器 Key 类型不匹配! 类: %s, 期望: %s", type.getName(), keyType.getName()));
+                throw new IllegalStateException(
+                        String.format("处理器 Key 类型不匹配! 类: %s, 期望: %s", type.getName(), keyType.getName()));
             }
             K key = keyType.cast(convertedKey);
             Set<Class<? extends T>> owners = bindings.computeIfAbsent(key, k -> new LinkedHashSet<>());

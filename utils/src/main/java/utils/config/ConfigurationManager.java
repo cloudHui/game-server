@@ -1,6 +1,6 @@
 package utils.config;
 
-import utils.other.ConfigPathUtils;
+import utils.io.ConfigPathUtils;
 
 import java.io.*;
 import java.lang.reflect.Field;

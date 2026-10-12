@@ -1,8 +1,6 @@
 package com.cloud.hub.game.domain.tractor;
 
 import com.cloud.hub.game.db.ScoreRepository;
-import com.cloud.hub.game.domain.table.GameResult;
-import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.replay.ReplayRecorder;
@@ -24,7 +22,8 @@ public final class TractorSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(TractorSettleService.class);
 
-	private TractorSettleService() {}
+	private TractorSettleService() {
+	}
 
 	/**
 	 * 执行拖拉机单局结算逻辑。
@@ -55,12 +54,15 @@ public final class TractorSettleService {
 		broadcastTractorResult(table, ctx, winnerSeat, bankerWin, def, upgrade, delta, winType, seatNum, scores);
 
 		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());
-		logger.info("[Tractor-Settle] 拖拉机单局结算完成, TableId: {}, Round: {}, WinnerSeat: {}, DefScore: {}, BankerWin: {}, Upgrade: {}, Level: {}, Trump: {}",
-				table.getTableId(), table.getCurrentRound(), winnerSeat, def, bankerWin, upgrade, ctx.getLevelRank(), ctx.getTrumpSuit());
+		logger.info(
+				"[Tractor-Settle] 拖拉机单局结算完成, TableId: {}, Round: {}, WinnerSeat: {}, DefScore: {}, BankerWin: {}, Upgrade: {}, Level: {}, Trump: {}",
+				table.getTableId(), table.getCurrentRound(), winnerSeat, def, bankerWin, upgrade, ctx.getLevelRank(),
+				ctx.getTrumpSuit());
 	}
 
 	/** 计算庄闲双方得分增量与各座位分值 */
-	private static int calcTractorScores(TractorTableContext ctx, boolean bankerWin, int upgrade, int seatNum, int[] scores) {
+	private static int calcTractorScores(TractorTableContext ctx, boolean bankerWin, int upgrade, int seatNum,
+			int[] scores) {
 		int delta = bankerWin ? 10 * Math.max(1, upgrade) : -10 * Math.max(1, upgrade == 0 ? 1 : upgrade);
 		for (int s = 0; s < seatNum; s++) {
 			scores[s] = ctx.isBankerTeam(s) ? delta : -delta;
@@ -80,7 +82,7 @@ public final class TractorSettleService {
 
 	/** 记录对局回放与审计流水 */
 	private static void recordTractorReplay(TractorTable table, TractorTableContext ctx, int def, boolean bankerWin,
-											int upgrade, int winnerSeat, String winType, int[] scores, int delta) {
+			int upgrade, int winnerSeat, String winType, int[] scores, int delta) {
 		ReplayRecorder replay = table.getReplayRecorder();
 		if (replay != null) {
 			replay.writeAuditEvent("结算 闲家抓分 " + def + "，庄家方胜 " + bankerWin
@@ -98,18 +100,20 @@ public final class TractorSettleService {
 			ctx.upgradeBankerTeam(upgrade);
 		} else {
 			ctx.setBankerSeat(winnerSeat);
-			if (upgrade > 0) ctx.upgradeSeatTeam(winnerSeat, upgrade);
+			if (upgrade > 0)
+				ctx.upgradeSeatTeam(winnerSeat, upgrade);
 		}
 	}
 
 	/** 广播单局与多局结算通知 */
 	private static void broadcastTractorResult(TractorTable table, TractorTableContext ctx, int winnerSeat,
-											  boolean bankerWin, int def, int upgrade, int delta,
-											  String winType, int seatNum, int[] scores) {
+			boolean bankerWin, int def, int upgrade, int delta,
+			String winType, int seatNum, int[] scores) {
 		GameProto.NotResult.Builder result = GameProto.NotResult.newBuilder()
 				.setWinner(table.getSeatUser(winnerSeat) != null ? table.getSeatUser(winnerSeat).getUserId() : 0)
 				.setLandlordId(table.getSeatUser(ctx.getBankerSeat()) != null
-						? table.getSeatUser(ctx.getBankerSeat()).getUserId() : 0)
+						? table.getSeatUser(ctx.getBankerSeat()).getUserId()
+						: 0)
 				.setWinTeam(bankerWin ? 0 : 1).setBaseScore(def).setRobMultiplier(upgrade)
 				.setSpring(def == 0).setAntiSpring(false).setSettleFactor(Math.abs(delta));
 
@@ -117,7 +121,8 @@ public final class TractorSettleService {
 			GameProto.RPlayer.Builder rp = GameProto.RPlayer.newBuilder().setRoleId(u.getUserId());
 			List<Card> remain = new ArrayList<>(u.getCards());
 			TractorRules.sortHand(remain, ctx.getLevelRank(), ctx.getTrumpSuit());
-			for (Card c : remain) rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
+			for (Card c : remain)
+				rp.addCards(GameProto.Card.newBuilder().setValue(c.getId()));
 			result.addRPlayers(rp.build());
 		}
 		table.sendTableMessage(result.build(), GMsg.NOT_RESULT);
@@ -129,11 +134,11 @@ public final class TractorSettleService {
 							+ "|闲抓" + def + "|主" + ctx.getTrumpSuit()));
 			for (int i = 0; i < seatNum; i++) {
 				round.addSeatScores(GameProto.SeatScore.newBuilder().setSeat(i).setScore(scores[i]));
-				round.addTotalScores(GameProto.SeatScore.newBuilder().setSeat(i).setScore(table.getGameResult().getTotalScore(i)));
+				round.addTotalScores(
+						GameProto.SeatScore.newBuilder().setSeat(i).setScore(table.getGameResult().getTotalScore(i)));
 			}
 			table.sendTableMessage(round.build(), GMsg.NOT_ROUND_RESULT);
 		}
 	}
-
 
 }

@@ -9,7 +9,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.JsonUtils;
+import utils.json.JsonUtils;
 
 /**
  * HTTP响应构建器

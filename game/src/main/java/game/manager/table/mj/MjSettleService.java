@@ -2,7 +2,6 @@ package game.manager.table.mj;
 
 import com.google.protobuf.ByteString;
 import game.manager.table.GameResult;
-import game.manager.table.mj.MjTable;
 import game.manager.table.TableUser;
 import game.manager.table.cards.Card;
 import game.manager.table.replay.MjReplayRecorder;
@@ -26,7 +25,8 @@ public class MjSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(MjSettleService.class);
 
-	private MjSettleService() {}
+	private MjSettleService() {
+	}
 
 	// ======================== 流局结算 ========================
 
@@ -89,7 +89,8 @@ public class MjSettleService {
 			int fan = scoring.calcFan(winResult, ctx, model);
 			fanSum += fan;
 			int[] part = scoring.settle(winResult, fan, ctx, model, seatNum);
-			for (int i = 0; i < seatNum; i++) scores[i] += part[i];
+			for (int i = 0; i < seatNum; i++)
+				scores[i] += part[i];
 		}
 
 		MjReplayRecorder replay = (MjReplayRecorder) table.getReplayRecorder();
@@ -113,10 +114,14 @@ public class MjSettleService {
 
 	/** 确定胡牌方式 */
 	private static String determineWinType(MjWinResult winResult) {
-		if (winResult.isZiMo()) return "ziMo";
-		if (winResult.isGangShangKaiHua()) return "gangShangHua";
-		if (winResult.isQiangGangHu()) return "qiangGangHu";
-		if (winResult.isHaiDi()) return "haiDi";
+		if (winResult.isZiMo())
+			return "ziMo";
+		if (winResult.isGangShangKaiHua())
+			return "gangShangHua";
+		if (winResult.isQiangGangHu())
+			return "qiangGangHu";
+		if (winResult.isHaiDi())
+			return "haiDi";
 		return "dianPao";
 	}
 
@@ -127,7 +132,8 @@ public class MjSettleService {
 		sendRoundResult(table, winnerSeat, fan, scores, winType, 0);
 	}
 
-	private static void sendRoundResult(MjTable table, int winnerSeat, int fan, int[] scores, String winType, int winTile) {
+	private static void sendRoundResult(MjTable table, int winnerSeat, int fan, int[] scores, String winType,
+			int winTile) {
 		int seatNum = table.getTableModel().getSeatNum();
 		MjTableContext ctx = table.getMjContext();
 
@@ -150,7 +156,8 @@ public class MjSettleService {
 			for (MjExposedSet set : ctx.getExposedSets(i)) {
 				GameProto.ExposedInfo.Builder info = GameProto.ExposedInfo.newBuilder()
 						.setType(ByteString.copyFromUtf8(set.toWireName()));
-				for (int tileId : set.getTileIds()) info.addTileIds(tileId);
+				for (int tileId : set.getTileIds())
+					info.addTileIds(tileId);
 				seatExposed.addExposed(info.build());
 			}
 			builder.addSeatExposed(seatExposed.build());
@@ -163,12 +170,14 @@ public class MjSettleService {
 			if (u != null) {
 				List<Card> remain = new ArrayList<>(u.getCards());
 				remain.sort((a, b) -> Integer.compare(a.getId(), b.getId()));
-				for (Card c : remain) handBuilder.addHandTiles(c.getId());
+				for (Card c : remain)
+					handBuilder.addHandTiles(c.getId());
 			}
 			for (MjExposedSet set : ctx.getExposedSets(i)) {
 				GameProto.ExposedInfo.Builder info = GameProto.ExposedInfo.newBuilder()
 						.setType(ByteString.copyFromUtf8(set.toWireName()));
-				for (int tileId : set.getTileIds()) info.addTileIds(tileId);
+				for (int tileId : set.getTileIds())
+					info.addTileIds(tileId);
 				handBuilder.addExposed(info.build());
 			}
 			builder.addHands(handBuilder.build());
@@ -256,7 +265,8 @@ public class MjSettleService {
 				boolean sameAction = action == ConstProto.Operation.MJ_PENG
 						? set.getType() == MjExposedSet.Type.PENG
 						: action == ConstProto.Operation.MJ_CHI
-								? set.getType() == MjExposedSet.Type.CHI : set.isGang();
+								? set.getType() == MjExposedSet.Type.CHI
+								: set.isGang();
 				if (sameAction && set.getTileIds().contains(tileId)) {
 					builder.setFromSeat(set.getFromSeat()).addAllExposedTiles(set.getTileIds());
 					break;

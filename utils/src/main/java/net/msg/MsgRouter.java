@@ -13,7 +13,7 @@ import net.handler.Handlers;
 import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.ClazzUtil;
+import utils.reflect.ClazzUtils;
 import utils.trace.TraceContext;
 
 import java.lang.reflect.Method;
@@ -82,7 +82,7 @@ public class MsgRouter implements Handlers, net.message.Parser {
 
         for (String pkg : packageNames) {
             try {
-                List<Class<?>> classes = ClazzUtil.getClasses(pkg);
+                List<Class<?>> classes = ClazzUtils.getClasses(pkg);
                 for (Class<?> clazz : classes) {
                     if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())) {
                         continue;

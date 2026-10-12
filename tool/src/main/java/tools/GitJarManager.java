@@ -2,8 +2,8 @@ package tools;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.DirectoryScanner;
-import utils.other.ExecCommand;
+import utils.io.DirectoryScanner;
+import utils.system.ExecCommand;
 
 import java.util.HashMap;
 import java.util.List;

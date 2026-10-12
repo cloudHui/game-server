@@ -7,10 +7,10 @@ import com.cloud.hub.game.manager.TableManager;
 import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import threadtutil.thread.ExecutorPool;
-import threadtutil.thread.Task;
-import threadtutil.timer.Runner;
-import threadtutil.timer.Timer;
+import utils.concurrent.thread.ExecutorPool;
+import utils.concurrent.thread.Task;
+import utils.concurrent.timer.Runner;
+import utils.concurrent.timer.Timer;
 
 /**
  * 对局服务核心运行时门面单例。

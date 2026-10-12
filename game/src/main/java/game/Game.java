@@ -12,11 +12,11 @@ import org.slf4j.LoggerFactory;
 import proto.ModelProto;
 import utils.registry.HandlerRegistry;
 import utils.registry.enums.ServerType;
-import threadtutil.thread.ExecutorPool;
-import threadtutil.thread.Task;
-import threadtutil.timer.Runner;
-import threadtutil.timer.Timer;
-import threadtutil.utils.TimeUtils;
+import utils.concurrent.thread.ExecutorPool;
+import utils.concurrent.thread.Task;
+import utils.concurrent.thread.ThreadPool;
+import utils.concurrent.timer.Runner;
+import utils.concurrent.timer.Timer;
 import tools.ServerClientManager;
 import tools.ServerManager;
 import game.config.GameRuntimeConfig;
@@ -219,7 +219,7 @@ public class Game {
      */
     private void initializeComponents() {
         ConfigurationManager config = ConfigurationManager.getInstance();
-        int poolSize = config.getInt("game.threadPoolSize", Math.max(32, TimeUtils.PROCESS_NUMBER));
+        int poolSize = config.getInt("game.threadPoolSize", Math.max(32, ThreadPool.DEFAULT_POOL_SIZE));
         int queueCap = config.getInt("game.queueCapacity", 100000);
 
         threadPoolManager = new GameThreadPoolManager(poolSize, queueCap,

@@ -4,7 +4,7 @@ import center.Center;
 import center.client.CenterClient;
 import center.client.handle.NotClientLinkHandle;
 import http.Linker;
-import http.handler.Handler;
+import http.handler.HttpHandler;
 import msg.http.res.Response;
 import utils.registry.enums.ServerType;
 import org.slf4j.Logger;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * HTTP接口：为客户端分配网关服务器
  * 实现负载均衡和会话保持
  */
-public class DistributeGateHandle implements Handler<String> {
+public class DistributeGateHandle implements HttpHandler<String> {
     private static final Logger logger = LoggerFactory.getLogger(DistributeGateHandle.class);
 
     public String path() {

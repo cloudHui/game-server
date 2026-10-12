@@ -3,17 +3,17 @@ package center.client.handle.http;
 import center.Center;
 import center.client.CenterClient;
 import http.Linker;
-import http.handler.Handler;
+import http.handler.HttpHandler;
 import msg.http.res.Response;
 import utils.registry.enums.ServerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.other.JsonUtils;
+import utils.json.JsonUtils;
 
 /**
  * HTTP接口：查询网关服务器信息
  */
-public class GetGateInfoHandle implements Handler<String> {
+public class GetGateInfoHandle implements HttpHandler<String> {
     private static final Logger logger = LoggerFactory.getLogger(GetGateInfoHandle.class);
 
     public String path() {

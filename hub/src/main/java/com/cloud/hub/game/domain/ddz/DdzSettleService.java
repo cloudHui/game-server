@@ -2,12 +2,9 @@ package com.cloud.hub.game.domain.ddz;
 
 import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.db.ScoreRepository;
-import com.cloud.hub.game.domain.table.GameResult;
-import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.replay.DdzReplayRecorder;
-import com.cloud.hub.game.domain.replay.ReplayRecorder;
 import com.google.protobuf.ByteString;
 import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
@@ -27,10 +24,12 @@ public final class DdzSettleService {
 
 	private static final Logger logger = LoggerFactory.getLogger(DdzSettleService.class);
 
-	private DdzSettleService() {}
+	private DdzSettleService() {
+	}
 
 	/**
 	 * 结束游戏：计算得分、记录回放、发送结算通知
+	 * 
 	 * @param table  桌子
 	 * @param winner 赢家
 	 */
@@ -46,8 +45,10 @@ public final class DdzSettleService {
 		boolean antiSpring = !landlordWin && ctx.getLandlordPlayCount() <= 1;
 
 		int settleFactor = ctx.getCurrentMultiplier();
-		if (spring) settleFactor *= 2;
-		if (antiSpring) settleFactor *= 2;
+		if (spring)
+			settleFactor *= 2;
+		if (antiSpring)
+			settleFactor *= 2;
 
 		int seatNum = table.getTableModel().getSeatNum();
 		int[] scores = calcScores(seatNum, landlordSeat, landlordWin, settleFactor);
@@ -61,12 +62,14 @@ public final class DdzSettleService {
 			metrics.recordRoundSettled("ddz");
 		}
 
-		logger.info("[DDZ-Settle] TableId: {}, Round: {}, WinnerSeat: {} (UserId: {}), LandlordSeat: {}, Team: {}, WinType: {}, SettleFactor: {}, Scores: {}",
+		logger.info(
+				"[DDZ-Settle] TableId: {}, Round: {}, WinnerSeat: {} (UserId: {}), LandlordSeat: {}, Team: {}, WinType: {}, SettleFactor: {}, Scores: {}",
 				table.getTableId(), table.getCurrentRound(), winner.getSeated(), winner.getUserId(), landlordSeat,
 				landlordWin ? "LANDLORD" : "FARMERS", winType, settleFactor, java.util.Arrays.toString(scores));
 
 		saveReplay(table, winner, settleFactor, winType, scores);
-		sendResultMessage(table, winner, rPlayers(table), landlordUserId, winTeam, ctx, spring, antiSpring, settleFactor, seatNum, scores, winType);
+		sendResultMessage(table, winner, rPlayers(table), landlordUserId, winTeam, ctx, spring, antiSpring,
+				settleFactor, seatNum, scores, winType);
 
 		// 连局时：由上一局最先打完手牌的获胜玩家获得下一局优先叫地主/叫分资格
 		int nextCall = winner.getSeated();
@@ -74,7 +77,6 @@ public final class DdzSettleService {
 
 		table.upNextStateWithTime(TableState.TABLE_OVER, System.currentTimeMillis());
 	}
-
 
 	// ======================== 内部方法 ========================
 
@@ -119,8 +121,8 @@ public final class DdzSettleService {
 
 	/** 发送结算消息 */
 	private static void sendResultMessage(DdzTable table, TableUser winner, List<GameProto.RPlayer> rPlayers,
-                                          int landlordUserId, int winTeam, DdzTableContext ctx, boolean spring, boolean antiSpring,
-                                          int settleFactor, int seatNum, int[] scores, String winType) {
+			int landlordUserId, int winTeam, DdzTableContext ctx, boolean spring, boolean antiSpring,
+			int settleFactor, int seatNum, int[] scores, String winType) {
 		try {
 			byte[] payload = DdzResultEncoder.encodeNotResultExtended(
 					winner.getUserId(), rPlayers, landlordUserId, winTeam,
@@ -129,7 +131,8 @@ public final class DdzSettleService {
 		} catch (IOException e) {
 			logger.error("encode NotResult failed table:{}", table.getTableId(), e);
 			GameProto.NotResult.Builder b = GameProto.NotResult.newBuilder().setWinner(winner.getUserId());
-			for (GameProto.RPlayer rp : rPlayers) b.addRPlayers(rp);
+			for (GameProto.RPlayer rp : rPlayers)
+				b.addRPlayers(rp);
 			table.sendTableMessage(b.build(), GMsg.NOT_RESULT);
 		}
 

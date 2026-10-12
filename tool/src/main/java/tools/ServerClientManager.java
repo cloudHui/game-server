@@ -2,7 +2,7 @@ package tools;
 
 import utils.registry.enums.ServerType;
 import net.client.handler.ClientHandler;
-import utils.other.RandomUtils;
+import utils.lang.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,7 @@
 package center.client;
 
 import http.HttpDecoder;
-import http.handler.Handler;
+import http.handler.HttpHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.registry.ClassScanner;
@@ -17,7 +17,7 @@ import java.util.Map;
 public class ServerDecoder extends HttpDecoder {
     private static final Logger logger = LoggerFactory.getLogger(ServerDecoder.class);
 
-    private static final Map<String, Handler<?>> handlers = new HashMap<>();
+    private static final Map<String, HttpHandler<?>> handlers = new HashMap<>();
 
     static {
         initializeHandlers();
@@ -30,9 +30,10 @@ public class ServerDecoder extends HttpDecoder {
     /**
      * 初始化所有HTTP请求处理器
      */
+    @SuppressWarnings("rawtypes")
     private static void initializeHandlers() {
         try {
-            List<Class<? extends Handler>> classes = ClassScanner.scan("center.client.handle", Handler.class);
+            List<Class<? extends HttpHandler>> classes = ClassScanner.scan("center.client.handle", HttpHandler.class);
 
             for (Class<?> clazz : classes) {
                 registerHandler(clazz);
@@ -50,7 +51,7 @@ public class ServerDecoder extends HttpDecoder {
      */
     private static void registerHandler(Class<?> handlerClass) {
         try {
-            Handler<?> handler = (Handler<?>) handlerClass.getConstructor().newInstance();
+            HttpHandler<?> handler = (HttpHandler<?>) handlerClass.getConstructor().newInstance();
             String path = handler.path();
 
             if (handlers.containsKey(path)) {
@@ -65,8 +66,9 @@ public class ServerDecoder extends HttpDecoder {
         }
     }
 
-    public Handler<?> getHandler(String path) {
-        Handler<?> handler = handlers.get(path);
+    @Override
+    public HttpHandler<?> getHandler(String path) {
+        HttpHandler<?> handler = handlers.get(path);
         if (handler == null) {
             logger.debug("未找到对应的HTTP处理器, path: {}", path);
         }

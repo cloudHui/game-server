@@ -16,10 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ModelProto;
 import proto.ServerProto;
-import threadtutil.timer.Timer;
+import utils.concurrent.timer.Timer;
 import utils.config.ConfigurationManager;
-import utils.other.IpUtil;
-import utils.other.RandomUtils;
+import utils.lang.RandomUtils;
+import utils.net.IpUtils;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -266,7 +266,7 @@ public class ServerManager {
                 .setServerId(cfgMgr.getInt("id", 0))
                 .setServerType(serverType.getServerType())
                 .setIpConfig(ByteString.copyFromUtf8(
-                        IpUtil.getLocalIP() + ":" + cfgMgr.getInt("port", 0))).build();
+                        IpUtils.getLocalIP() + ":" + cfgMgr.getInt("port", 0))).build();
     }
 
     /**
