@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import utils.concurrent.mailbox.ActorMailbox;
+import utils.concurrent.pool.ObjectPool;
 import utils.concurrent.realtime.DedicatedGameLoopEngine;
+import utils.concurrent.realtime.FrameEvent;
 import utils.concurrent.thread.ExecutorPool;
 import utils.concurrent.thread.ThreadPool;
 import utils.trace.TraceContext;
@@ -30,7 +32,7 @@ import utils.trace.TraceContext;
  * <li><b>Mode 2: MAILBOX（第二版）：</b> 去中心化 Actor Mailbox 模型。每张桌子私有独占无锁队列，
  * 彻底消除全局哈希碰撞，桌间 100% 物理隔离，支持批量 64 任务配额与安全注销排空；</li>
  * <li><b>Mode 3: DEDICATED（第三版）：</b> 混合/实时竞技模式。棋牌业务走亲和池/Mailbox，
- * 针对高帧率（30/60 FPS）实时对局房间挂载 {@link DedicatedGameLoopEngine} 纳秒定长补帧引擎。</li>
+ * 针对高帧率（30/60 FPS）实时对局房间挂载 {@link DedicatedGameLoopEngine} 纳秒定长补帧引擎与零垃圾对象池。</li>
  * </ul>
  * 可通过 JVM 启动参数 {@code -Dgame.thread.mode=SLOTS|MAILBOX|DEDICATED} 或
  * {@link #setThreadModelMode(ThreadModelMode)} 动态平滑切换。
@@ -46,7 +48,7 @@ public final class GameThreadPoolManager {
         SLOTS,
         /** 【第二版】去中心化 Actor Mailbox 模型（单桌私有无锁队列，彻底零碰撞物理隔离） */
         MAILBOX,
-        /** 【第三版】实时竞技模式（棋牌走独立调度，实时房间挂载 60 FPS Dedicated Loop 引擎） */
+        /** 【第三版】实时竞技模式（棋牌走独立调度，实时房间挂载 60 FPS Dedicated Loop 引擎与对象池） */
         DEDICATED
     }
 
@@ -73,6 +75,9 @@ public final class GameThreadPoolManager {
 
     /** 实时竞技专用 Dedicated Loop 调度引擎（第三版），懒加载单例 */
     private volatile DedicatedGameLoopEngine dedicatedGameLoopEngine;
+
+    /** 第三版实时竞技专用对象池注册表 <Class, ObjectPool>，用于 Mode 3 零 GC 复用 */
+    private final ConcurrentHashMap<Class<?>, ObjectPool<?>> dedicatedPools = new ConcurrentHashMap<>();
 
     /** 全局桌子管理串行分组 ID，用于 submitTableManager 串行化防冲突 */
     private static final long MANAGER_GROUP_ID = 0L;
@@ -112,6 +117,12 @@ public final class GameThreadPoolManager {
             return t;
         });
 
+        // 4. 若配置为 DEDICATED 模式，预热专用实时引擎与帧事件对象池
+        if (this.threadModelMode == ThreadModelMode.DEDICATED) {
+            getDedicatedGameLoopEngine();
+            LOGGER.info("[init] DEDICATED 实时竞技模式激活，DedicatedGameLoopEngine 与 FrameEvent 对象池预热完成");
+        }
+
         LOGGER.info("[init] GameThreadPoolManager 启动完成, 当前模式: {}, workers: {}, slots: {}, databasePool: {}",
                 this.threadModelMode, size, ExecutorPool.DEFAULT_SLOT_COUNT, databaseSize);
     }
@@ -131,6 +142,10 @@ public final class GameThreadPoolManager {
     public void setThreadModelMode(ThreadModelMode mode) {
         LOGGER.info("[GameThreadPoolManager] 动态切换工作模式: {} -> {}", this.threadModelMode, mode);
         this.threadModelMode = mode;
+        if (mode == ThreadModelMode.DEDICATED) {
+            getDedicatedGameLoopEngine();
+            LOGGER.info("[GameThreadPoolManager] DEDICATED 模式已激活，DedicatedGameLoopEngine 与 FrameEvent 对象池预热完成");
+        }
     }
 
     /**
@@ -143,6 +158,30 @@ public final class GameThreadPoolManager {
             dedicatedGameLoopEngine = new DedicatedGameLoopEngine(4);
         }
         return dedicatedGameLoopEngine;
+    }
+
+    /**
+     * 获取或创建指定类型的专用对象池（仅在 DEDICATED 模式或高频运算下使用，达成零 GC 堆分配）。
+     *
+     * @param <T>      对象类型
+     * @param clazz    对象类型 Class
+     * @param creator  对象创建工厂
+     * @param capacity 最大缓存容量
+     * @return 对应的对象池实例
+     */
+    @SuppressWarnings("unchecked")
+    public <T> ObjectPool<T> getDedicatedPool(Class<T> clazz, Supplier<T> creator, int capacity) {
+        return (ObjectPool<T>) dedicatedPools.computeIfAbsent(clazz,
+                k -> new ObjectPool<>(creator, capacity));
+    }
+
+    /**
+     * 便捷入口：获取预置的实时帧事件对象池（DEDICATED 模式标配）。
+     *
+     * @return 帧事件对象池
+     */
+    public ObjectPool<FrameEvent> getFrameEventPool() {
+        return getDedicatedGameLoopEngine().getEventPool();
     }
 
     /**
@@ -350,6 +389,10 @@ public final class GameThreadPoolManager {
         if (dedicatedGameLoopEngine != null) {
             dedicatedGameLoopEngine.shutdown();
         }
+        for (ObjectPool<?> pool : dedicatedPools.values()) {
+            pool.clear();
+        }
+        dedicatedPools.clear();
         tableScheduler.shutdownNow();
         businessPool.getExecutorService().shutdownNow();
         databasePool.shutdownNow();

@@ -1,13 +1,15 @@
 package utils.concurrent.realtime;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import utils.concurrent.pool.ObjectPool;
 
 /**
  * 实时对战专用 Dedicated Game Loop 调度引擎（30/60 FPS 高精度物理与帧同步引擎）。
@@ -64,6 +66,11 @@ public class DedicatedGameLoopEngine {
      */
     private final LoopWorker[] workers;
 
+    /**
+     * 实时帧事件专用对象池（4096 深度），实现高频网络指令零 GC 堆分配
+     */
+    private final ObjectPool<FrameEvent> eventPool = new ObjectPool<>(FrameEvent::new, 4096);
+
     public DedicatedGameLoopEngine(int workerCount) {
         this(workerCount, FRAME_INTERVAL_30_FPS);
     }
@@ -77,6 +84,15 @@ public class DedicatedGameLoopEngine {
         }
         LOGGER.info("[init] DedicatedGameLoopEngine 启动完成, workers:{}, interval:{}ns",
                 count, targetIntervalNs);
+    }
+
+    /**
+     * 获取高频实时帧事件对象池。
+     *
+     * @return 帧事件池实例
+     */
+    public ObjectPool<FrameEvent> getEventPool() {
+        return eventPool;
     }
 
     /**
@@ -107,12 +123,13 @@ public class DedicatedGameLoopEngine {
     }
 
     /**
-     * 优雅关闭所有独占循环线程。
+     * 优雅关闭所有独占循环线程并清理对象池。
      */
     public void shutdown() {
         for (LoopWorker worker : workers) {
             worker.stopGracefully();
         }
+        eventPool.clear();
     }
 
     /**
