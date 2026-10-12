@@ -10,6 +10,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
+import proto.ModelProto;
 import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
@@ -148,8 +149,22 @@ public abstract class Table implements FrameSyncRoom {
         return creator;
     }
 
+    /**
+     * 获取本桌绑定的房间规则配置模板 ID（对应 TableModel.id）。
+     *
+     * @return 房间模板配置 ID，若未关联模板则返回 0
+     */
+    public int getModelId() {
+        return tableModel != null ? tableModel.getId() : 0;
+    }
+
+    /**
+     * 获取房间模板 ID（兼容历史命名与 Proto 协议中的 roomId 字段）。
+     *
+     * @return 房间模板配置 ID
+     */
     public int getRoomId() {
-        return tableModel.getId();
+        return getModelId();
     }
 
     public Map<Integer, TableUser> getUsers() {
@@ -407,7 +422,7 @@ public abstract class Table implements FrameSyncRoom {
     }
 
     @Override
-    public long getRoomId() {
+    public long getSyncRoomId() {
         return this.tableId;
     }
 

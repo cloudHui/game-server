@@ -10,11 +10,13 @@ package utils.concurrent.realtime;
 public interface FrameSyncRoom {
 
     /**
-     * 获取实时房间唯一标识。
+     * 获取实时帧同步房间唯一标识。
+     * <p>
+     * 采用独立命名以避免与上层棋牌桌业务模板配置编号（getRoomId）发生方法签名与返回类型冲突。
      *
-     * @return 房间唯一 ID
+     * @return 房间唯一实例 ID（对应对局桌子的全局 tableId）
      */
-    long getRoomId();
+    long getSyncRoomId();
 
     /**
      * 定长逻辑/物理帧演算回调（Fixed Update）。

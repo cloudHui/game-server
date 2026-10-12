@@ -133,7 +133,7 @@ public class DedicatedGameLoopEngine {
             }
         }
         selected.addRoom(room);
-        LOGGER.info("注册实时房间: {} 到 Worker: {}", room.getRoomId(), selected.getName());
+        LOGGER.info("注册实时房间: {} 到 Worker: {}", room.getSyncRoomId(), selected.getName());
     }
 
     /**
@@ -143,7 +143,7 @@ public class DedicatedGameLoopEngine {
      */
     public void unregisterRoom(FrameSyncRoom room) {
         if (room != null) {
-            roomBusyMap.remove(room.getRoomId());
+            roomBusyMap.remove(room.getSyncRoomId());
         }
         for (LoopWorker worker : workers) {
             worker.removeRoom(room);
@@ -281,7 +281,7 @@ public class DedicatedGameLoopEngine {
                     try {
                         room.onFixedTick(deltaNs);
                     } catch (Throwable t) {
-                        LOGGER.error("房间逻辑帧 Tick 异常, roomId: {}", room.getRoomId(), t);
+                        LOGGER.error("房间逻辑帧 Tick 异常, roomId: {}", room.getSyncRoomId(), t);
                     }
                 }
                 return;
@@ -289,7 +289,7 @@ public class DedicatedGameLoopEngine {
 
             // 异步非阻塞解耦模式：时钟秒级打铃，业务 Worker 并发消费
             for (FrameSyncRoom room : boundRooms) {
-                final long roomId = room.getRoomId();
+                final long roomId = room.getSyncRoomId();
                 AtomicBoolean busy = roomBusyMap.computeIfAbsent(roomId, k -> new AtomicBoolean(false));
                 // 非阻塞 CAS 门禁：若该桌上一帧仍在 Worker 执行中，则跳过本次打铃，防止任务在线程池队列中无限积压雪崩
                 if (!busy.compareAndSet(false, true)) {
