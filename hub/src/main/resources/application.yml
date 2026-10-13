@@ -1,6 +1,6 @@
 server:
   port: 8081
-  address: 127.0.0.1
+  address: ${SERVER_ADDRESS:0.0.0.0}
   servlet:
     context-path: /
   forward-headers-strategy: native
@@ -89,6 +89,9 @@ management:
       show-details: always
     prometheus:
       enabled: true
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
   metrics:
     tags:
       application: ${spring.application.name:hub}

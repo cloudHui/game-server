@@ -1,6 +1,6 @@
 server:
   port: 8081
-  address: 127.0.0.1
+  address: ${SERVER_ADDRESS:0.0.0.0}
   servlet:
     context-path: /
   forward-headers-strategy: native
@@ -80,3 +80,8 @@ photo-library:
   max-files-per-request: ${PHOTO_MAX_FILES_PER_REQUEST:20}
   max-pixels: ${PHOTO_MAX_PIXELS:100000000}
   default-zone: ${PHOTO_DEFAULT_ZONE:Asia/Shanghai}
+
+management:
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}

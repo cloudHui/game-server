@@ -3,6 +3,40 @@
     box-sizing: border-box;
 }
 
+/* 覆盖 admin.css 的全局 overflow:hidden，使页面在任何窗口高度和 iframe 内部均可自由顺畅滚动 */
+html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: var(--ruoyi-bg, #f0f2f5) !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+body::-webkit-scrollbar-thumb {
+    background: #b0b8c4;
+    border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+    background: #909ba8;
+}
+
+/* 当页面嵌入在管理后台的 iframe 内时，自动隐藏内层重复的顶栏，节省垂直空间 */
+body.in-iframe .header {
+    display: none !important;
+}
+
+body.in-iframe .wrap {
+    margin-top: 0 !important;
+    padding-top: 14px !important;
+}
+
 /* 彻底移除数字输入框自带的上下微调箭头，防止遮挡内容 */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

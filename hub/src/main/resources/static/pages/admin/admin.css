@@ -281,6 +281,7 @@ html, body {
     flex-direction: column;
     height: 100vh;
     min-width: 0;
+    min-height: 0;
     overflow: hidden;
     background-color: var(--ruoyi-bg);
     position: relative;
@@ -663,21 +664,33 @@ html, body {
 
 /* AppMain 主内容展示区 */
 .ruoyi-app-main {
-    flex: 1;
+    flex: 1 1 0%;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
     padding: 16px 20px 24px;
     background-color: var(--ruoyi-bg);
 }
 
 .ruoyi-app-main::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
+}
+
+.ruoyi-app-main::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .ruoyi-app-main::-webkit-scrollbar-thumb {
-    background: #c0c4cc;
-    border-radius: 3px;
+    background: #b0b8c4;
+    border-radius: 4px;
+}
+
+.ruoyi-app-main::-webkit-scrollbar-thumb:hover {
+    background: #909399;
 }
 
 /* 面板切换 */
@@ -1320,16 +1333,111 @@ pre.replay {
     padding: 0 20px 40px;
 }
 
-/* 移动端全套响应式断点适配 (<= 768px) */
+/* ==========================================================================
+   内嵌 iframe 工具容器规范 (Sequence, Terminal, Learning)
+   ========================================================================== */
+.ruoyi-iframe-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 140px);
+    min-height: 520px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid var(--ruoyi-border-card);
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.06);
+    overflow: hidden;
+}
+
+.ruoyi-iframe-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #fafafa;
+    border-bottom: 1px solid #ebeef5;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.ruoyi-iframe-toolbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ruoyi-text-main);
+}
+
+.ruoyi-iframe-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ruoyi-iframe {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    border: none;
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   移动端全套深度响应式与触控滑动适配 (<= 768px)
+   ========================================================================== */
 @media (max-width: 768px) {
-    /* 侧边栏转为移动端抽屉 (Drawer) */
+    /* 1. 移动端视口与防锁死滚动策略 */
+    html, body {
+        height: 100% !important;
+        width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .ruoyi-layout {
+        width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        position: relative !important;
+    }
+
+    .ruoyi-main-container {
+        width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* 核心滚动区：打破 flex 撑大 bug，强制开启 pan-y 触摸滚动 */
+    .ruoyi-app-main {
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overscroll-behavior-y: contain !important;
+        padding: 10px 10px 48px !important;
+    }
+
+    .panel {
+        width: 100% !important;
+        min-height: fit-content !important;
+    }
+
+    /* 2. 侧边栏抽屉与遮罩层（绝不拦截页面触摸） */
     .ruoyi-sidebar {
         position: fixed !important;
         left: 0 !important;
         top: 0 !important;
         bottom: 0 !important;
         width: 260px !important;
-        max-width: 80vw !important;
+        max-width: 82vw !important;
         z-index: 2001 !important;
         transform: translateX(-100%) !important;
         transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease !important;
@@ -1341,24 +1449,32 @@ pre.replay {
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
     }
 
-    /* 移动端遮罩层 */
+    .sidebar-menu-scroll {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overscroll-behavior-y: contain !important;
+    }
+
+    /* 遮罩平时彻底 display: none，杜绝隐形图层吞触摸 */
     .sidebar-mobile-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 2000;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.25s ease, visibility 0.25s ease;
-        backdrop-filter: blur(2px);
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 2000 !important;
+        display: none !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+        transition: opacity 0.25s ease !important;
+        backdrop-filter: blur(2px) !important;
     }
 
     .sidebar-mobile-backdrop.show {
-        opacity: 1;
-        visibility: visible;
+        display: block !important;
+        pointer-events: auto !important;
+        opacity: 1 !important;
     }
 
-    /* 移动端覆盖桌面端折叠样式，防止抽屉内文字和宽度异常缩窄 */
+    /* 移动端覆盖桌面端折叠样式 */
     .sidebar-collapsed .ruoyi-sidebar {
         width: 260px !important;
         transform: translateX(-100%) !important;
@@ -1389,26 +1505,27 @@ pre.replay {
         margin-right: 12px !important;
     }
 
-    /* 顶部导航栏响应式精简 */
+    /* 3. 顶部导航栏紧凑排布 */
     .ruoyi-navbar {
-        padding: 0 8px;
-        height: 48px;
+        padding: 0 8px !important;
+        height: 48px !important;
+        flex-shrink: 0 !important;
     }
 
     .navbar-left {
-        min-width: 0;
+        min-width: 0 !important;
     }
 
     .hamburger-btn {
-        margin-right: 6px;
-        padding: 7px;
+        margin-right: 6px !important;
+        padding: 8px !important;
     }
 
     .ruoyi-breadcrumb {
-        font-size: 13px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 13px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     .breadcrumb-item:not(#breadcrumbActive),
@@ -1417,19 +1534,19 @@ pre.replay {
     }
 
     .breadcrumb-active {
-        font-weight: 600;
+        font-weight: 600 !important;
     }
 
     .navbar-right {
-        gap: 6px;
+        gap: 6px !important;
     }
 
     .nav-action-btn span {
-        display: none;
+        display: none !important;
     }
 
     .nav-action-btn {
-        padding: 6px 8px;
+        padding: 6px 8px !important;
     }
 
     .nav-action-btn[onclick*="toggleFullScreen"],
@@ -1442,61 +1559,99 @@ pre.replay {
     }
 
     .avatar-box {
-        padding: 2px;
+        padding: 2px !important;
     }
 
-    /* TagsView 紧凑微调 */
+    /* 4. TagsView 紧凑微调 */
     .ruoyi-tags-view-container {
-        height: 32px;
-        padding: 0 6px;
+        height: 32px !important;
+        padding: 0 6px !important;
+        flex-shrink: 0 !important;
     }
 
     .tags-view-item {
-        height: 24px;
-        line-height: 24px;
-        padding: 0 8px;
-        font-size: 11.5px;
+        height: 24px !important;
+        line-height: 24px !important;
+        padding: 0 8px !important;
+        font-size: 11.5px !important;
     }
 
-    /* 主内容区内边距微调 */
-    .ruoyi-app-main {
-        padding: 10px 8px 32px;
+    /* 5. 卡片与布局组件流式排版 */
+    .card {
+        padding: 14px 12px !important;
+        margin-bottom: 12px !important;
+        overflow: hidden !important;
+    }
+
+    .card-heading {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .card-heading .btn {
+        align-self: flex-start !important;
     }
 
     .tool-page-head {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        margin-bottom: 12px;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
     }
 
     .tool-page-head h2 {
-        font-size: 18px;
+        font-size: 18px !important;
     }
 
     .tool-page-head p {
-        font-size: 12px;
+        font-size: 12px !important;
     }
 
-    .tool-card {
-        padding: 14px 12px;
+    /* 6. 表单通用流式竖排 */
+    .form-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
     }
 
-    /* 表格自适应容器防溢出 */
+    .form-row > * {
+        width: 100% !important;
+    }
+
+    .form-row select,
+    .form-row input,
+    .form-row .btn,
+    .form-row button {
+        width: 100% !important;
+        min-height: 42px !important;
+        font-size: 14px !important;
+    }
+
+    /* 7. 表格横向流畅滑动防撑破 */
     .table-scroll,
     .arpu-table-scroll {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
-    /* 业务模块自适应 */
-    .robot-rule-grid {
-        grid-template-columns: 1fr;
+    /* 8. 各业务面板专属深度适配 */
+    /* 邀请码面板 */
+    #panel-invites .form-row > div {
+        width: 100% !important;
+    }
+    #panel-invites input {
+        width: 100% !important;
+        min-height: 42px !important;
     }
 
-    .photo-stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* 战绩记录筛选 */
+    #panel-records .form-row select,
+    #panel-records .form-row input,
+    #panel-records .form-row button {
+        width: 100% !important;
+        min-height: 40px !important;
     }
 
     /* ARPU 查询在手机端排版 */
@@ -1512,10 +1667,57 @@ pre.replay {
 
     .arpu-query-button {
         width: 100% !important;
-        height: 42px !important;
+        min-height: 44px !important;
     }
 
     .arpu-stats {
         grid-template-columns: 1fr !important;
+    }
+
+    .arpu-json {
+        max-height: 240px !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* 监控图表在小屏适配 */
+    #metricsContainer canvas {
+        max-width: 100% !important;
+    }
+
+    /* 图片管理面板 */
+    .photo-admin-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+    .photo-admin-row > div {
+        width: 100% !important;
+    }
+    .photo-admin-row select,
+    .photo-admin-row button {
+        width: 100% !important;
+        min-height: 40px !important;
+    }
+    .photo-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    /* 机器人规则测试 */
+    .robot-rule-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* 内嵌 iframe 工具在手机端高度适配 */
+    .ruoyi-iframe-wrapper {
+        height: calc(100vh - 110px) !important;
+        height: calc(100dvh - 110px) !important;
+        min-height: 460px !important;
+        border-radius: 4px !important;
+    }
+    .ruoyi-iframe-toolbar {
+        padding: 8px 10px !important;
+    }
+    .ruoyi-iframe-toolbar-title {
+        font-size: 13px !important;
     }
 }
