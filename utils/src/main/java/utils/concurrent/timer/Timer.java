@@ -24,10 +24,12 @@ public class Timer extends AbstractTimer<ExecutorPool> {
         exit();
         timeSignal.notifySignal();
         this.runners = runners;
-        Thread thread = new Thread(this, "ThreadUtil-Timer-" + TIMER_SEQ.incrementAndGet());
+        String name = "ThreadUtil-Timer-" + TIMER_SEQ.incrementAndGet();
+        Thread thread = new Thread(this, name);
         thread.setDaemon(true);
         this.schedulerThread = thread;
         thread.start();
+        LOGGER.info("[setRunners] 成功绑定 ExecutorPool 并拉起后台定时调度线程: threadName='{}'", name);
         return this;
     }
 
@@ -48,11 +50,13 @@ public class Timer extends AbstractTimer<ExecutorPool> {
      * 停止调度线程（通过 exit 打断循环）。
      */
     public void stop() {
+        LOGGER.info("[stop] 正在停止 Timer 调度线程...");
         exit();
         timeSignal.notifySignal();
         Thread thread = schedulerThread;
         if (thread != null) {
             thread.interrupt();
+            LOGGER.info("[stop] Timer 调度线程中断信号已发送: threadName='{}'", thread.getName());
         }
     }
 }

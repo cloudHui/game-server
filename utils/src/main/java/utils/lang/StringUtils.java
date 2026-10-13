@@ -1,5 +1,8 @@
 package utils.lang;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,6 +15,9 @@ import java.util.StringJoiner;
  * @author cloud
  */
 public class StringUtils {
+
+    /** 统一日志记录器 */
+    private static final Logger LOGGER = LoggerFactory.getLogger(StringUtils.class);
 
     private static final String DEFAULT_DELIMITER = ",";
 
@@ -41,7 +47,8 @@ public class StringUtils {
         for (String part : parts) {
             try {
                 result.add(Long.parseLong(part.trim()));
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                LOGGER.trace("[splitLong] 忽略无法解析为 Long 的子项: part='{}'", part);
             }
         }
         return result;

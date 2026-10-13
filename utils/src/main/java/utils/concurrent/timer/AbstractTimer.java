@@ -50,32 +50,40 @@ public abstract class AbstractTimer<T> implements Runnable {
     public abstract AbstractTimer<T> setRunners(T runners);
 
     /**
-     * 注册普通时间节点
+     * 注册普通时间节点。
      */
     public <P> void register(long delay, long interval, int count, Runner<P> runner, P param) {
-        addNode(new TimeNode<>(idGenerator.incrementAndGet(), runner, param, delay, interval, count));
+        int id = idGenerator.incrementAndGet();
+        LOGGER.debug("[register] 注册普通定时节点: id={}, delay={}ms, interval={}ms, count={}", id, delay, interval, count);
+        addNode(new TimeNode<>(id, runner, param, delay, interval, count));
     }
 
     /**
-     * 注册串行时间节点（同一组内的节点串行有序执行）
+     * 注册串行时间节点（同一组内的节点串行有序执行）。
      */
     public <P> void registerSerial(int groupId, long delay, long interval, int count, Runner<P> runner, P param) {
-        addNode(new SerialTimeNode<>(groupId, idGenerator.incrementAndGet(), runner, param, delay, interval, count));
+        int id = idGenerator.incrementAndGet();
+        LOGGER.debug("[registerSerial] 注册串行定时节点: id={}, groupId={}, delay={}ms, interval={}ms, count={}",
+                id, groupId, delay, interval, count);
+        addNode(new SerialTimeNode<>(groupId, id, runner, param, delay, interval, count));
     }
 
     /**
-     * 注册串行时间节点并返回唯一节点 ID
+     * 注册串行时间节点并返回唯一节点 ID。
      */
     public <P> int registerSerialWithId(int groupId, long delay, long interval, int count, Runner<P> runner, P param) {
         int id = idGenerator.incrementAndGet();
+        LOGGER.debug("[registerSerialWithId] 注册串行节点: id={}, groupId={}, delay={}ms, interval={}ms, count={}",
+                id, groupId, delay, interval, count);
         addNode(new SerialTimeNode<>(groupId, id, runner, param, delay, interval, count));
         return id;
     }
 
     /**
-     * 注销指定 ID 的时间节点
+     * 注销指定 ID 的时间节点。
      */
     public void unregister(int nodeId) {
+        boolean removed = false;
         lock.lock();
         try {
             Iterator<TimeNode<?>> it = nodes.iterator();
@@ -83,16 +91,18 @@ public abstract class AbstractTimer<T> implements Runnable {
                 TimeNode<?> node = it.next();
                 if (node != null && node.getId() == nodeId) {
                     it.remove();
+                    removed = true;
                     break;
                 }
             }
         } finally {
             lock.unlock();
         }
+        LOGGER.debug("[unregister] 注销定时节点: id={}, removed={}", nodeId, removed);
     }
 
     /**
-     * 添加节点并通知工作线程
+     * 添加节点并通知工作线程。
      */
     protected void addNode(TimeNode<?> timeNode) {
         lock.lock();
@@ -101,14 +111,16 @@ public abstract class AbstractTimer<T> implements Runnable {
         } finally {
             lock.unlock();
         }
+        LOGGER.trace("[addNode] 添加定时节点入队并唤醒调度器: id={}, totalNodes={}", timeNode.getId(), nodes.size());
         timeSignal.notifySignal();
     }
 
     /**
-     * 终止定时器循环
+     * 终止定时器循环。
      */
     public void exit() {
         loops++;
+        LOGGER.info("[exit] 触发定时器循环退出信号: loops={}", loops);
         timeSignal.notifySignal();
     }
 
@@ -120,14 +132,16 @@ public abstract class AbstractTimer<T> implements Runnable {
     public void run() {
         long waitTime = WAIT_TIME;
         int currentLoop = loops;
+        LOGGER.info("[run] 定时器驱动引擎主循环已启动");
         while (currentLoop == loops) {
             waitTime = processNodes();
             timeSignal.waitSignal(waitTime);
         }
+        LOGGER.info("[run] 定时器驱动引擎主循环正常退出: loops={}", loops);
     }
 
     /**
-     * 扫描节点列表并调度到期节点，返回下次需要等待的最小毫秒数
+     * 扫描节点列表并调度到期节点，返回下次需要等待的最小毫秒数。
      */
     private long processNodes() {
         long waitTime = WAIT_TIME;
@@ -146,6 +160,7 @@ public abstract class AbstractTimer<T> implements Runnable {
                     waitTime = Math.min(diff, waitTime);
                 } else {
                     it.remove();
+                    LOGGER.trace("[processNodes] 节点到期触发派工: id={}", timeNode.getId());
                     dispatchNode(timeNode);
                 }
             }
@@ -158,16 +173,20 @@ public abstract class AbstractTimer<T> implements Runnable {
     }
 
     /**
-     * 触发节点异步执行并注册后续重新调度回调
+     * 触发节点异步执行并注册后续重新调度回调。
      */
     private void dispatchNode(TimeNode<?> timeNode) {
         CompletableFuture<?> future = executeTimeNode(timeNode);
         if (future != null) {
             future.whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    LOGGER.error("[dispatchNode] 节点执行异常: id={}", timeNode.getId(), throwable);
+                }
                 if (result instanceof TimeNode) {
                     TimeNode<?> node = (TimeNode<?>) result;
                     if (node.unFinished()) {
                         node.refreshTriggerTime();
+                        LOGGER.trace("[dispatchNode] 周期性节点重新排期: id={}", node.getId());
                         rescheduleNode(node);
                     }
                 }

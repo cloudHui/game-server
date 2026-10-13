@@ -13,7 +13,7 @@ import net.handler.Handlers;
 import net.message.TCPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.reflect.ClazzUtils;
+import utils.registry.ClassScanner;
 import utils.trace.TraceContext;
 
 import java.lang.reflect.Method;
@@ -76,27 +76,33 @@ public class MsgRouter implements Handlers, net.message.Parser {
      * 扫描指定包名并注册带 @Msg 的控制器与消息处理器
      */
     public synchronized void scan(String... packageNames) {
-        if (packageNames == null) return;
+        if (packageNames == null || packageNames.length == 0) {
+            logger.warn("[MsgRouter.scan] 待扫描包路径为空，直接返回");
+            return;
+        }
         long start = System.currentTimeMillis();
         int beforeSize = routes.size();
 
         for (String pkg : packageNames) {
             try {
-                List<Class<?>> classes = ClazzUtils.getClasses(pkg);
+                logger.info("[MsgRouter.scan] 开始扫描消息路由包: package='{}'", pkg);
+                List<Class<? extends Object>> classes = ClassScanner.scan(pkg, Object.class, null);
+                logger.debug("[MsgRouter.scan] 包 [{}] 检索到候选具体类数量: {}", pkg, classes.size());
                 for (Class<?> clazz : classes) {
                     if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())) {
                         continue;
                     }
                     if (hasMsgAnnotation(clazz)) {
+                        logger.debug("[MsgRouter.scan] 发现带有 @Msg 注解的目标类: {}", clazz.getName());
                         Object instance = clazz.getConstructor().newInstance();
                         register(instance);
                     }
                 }
             } catch (Exception e) {
-                logger.error("MsgRouter 扫描包 [{}] 失败", pkg, e);
+                logger.error("[MsgRouter.scan] 扫描包 [{}] 消息处理器失败", pkg, e);
             }
         }
-        logger.info("MsgRouter 扫描完成, 新增路由: {} 条, 总路由: {} 条, 耗时: {}ms",
+        logger.info("[MsgRouter.scan] 扫描完成, 新增路由: {} 条, 当前总路由: {} 条, 总耗时: {}ms",
                 (routes.size() - beforeSize), routes.size(), (System.currentTimeMillis() - start));
     }
 
@@ -266,6 +272,8 @@ public class MsgRouter implements Handlers, net.message.Parser {
     private boolean executeRoute(Sender sender, TCPMessage tcpMsg, RouteEntry route, int msgId) {
         String traceId = TraceContext.beginTrace();
         long start = System.currentTimeMillis();
+        logger.trace("[MsgRouter.dispatch] 收到待分发消息: msgId=0x{}({}), clientId={}, seq={}, traceId={}",
+                Integer.toHexString(msgId), msgId, tcpMsg.getClientId(), tcpMsg.getSequence(), traceId);
         try {
             Message msg = null;
             if (route.parser != null) {
@@ -281,6 +289,9 @@ public class MsgRouter implements Handlers, net.message.Parser {
             long cost = System.currentTimeMillis() - start;
             if (cost > 500) {
                 logger.warn("消息处理慢, msgId: 0x{}, cost: {}ms, traceId: {}", Integer.toHexString(msgId), cost, traceId);
+            } else {
+                logger.trace("[MsgRouter.dispatch] 消息处理完成: msgId=0x{}, cost={}ms, traceId={}",
+                        Integer.toHexString(msgId), cost, traceId);
             }
             TraceContext.endTrace();
         }

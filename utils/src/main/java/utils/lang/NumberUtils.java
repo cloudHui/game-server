@@ -1,5 +1,8 @@
 package utils.lang;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 数字类型安全转换工具类
  * <p>提供字符串及任意对象向基础数字类型（int/long/float/double）的安全转换与默认值兜底。</p>
@@ -7,6 +10,9 @@ package utils.lang;
  * @author cloud
  */
 public class NumberUtils {
+
+    /** 统一日志记录器 */
+    private static final Logger LOGGER = LoggerFactory.getLogger(NumberUtils.class);
 
     public NumberUtils() {
     }
@@ -25,6 +31,7 @@ public class NumberUtils {
         try {
             return Integer.parseInt(str.trim());
         } catch (Exception e) {
+            LOGGER.trace("[stringToNumber] 解析 int 异常，使用兜底值: str='{}', default={}", str, defaultValue);
             return defaultValue;
         }
     }
