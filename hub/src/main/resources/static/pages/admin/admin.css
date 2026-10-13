@@ -1320,37 +1320,202 @@ pre.replay {
     padding: 0 20px 40px;
 }
 
-/* 移动端断点适配 */
+/* 移动端全套响应式断点适配 (<= 768px) */
 @media (max-width: 768px) {
+    /* 侧边栏转为移动端抽屉 (Drawer) */
     .ruoyi-sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        transform: translateX(-100%);
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 260px !important;
+        max-width: 80vw !important;
+        z-index: 2001 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease !important;
+        box-shadow: none !important;
     }
 
     .ruoyi-sidebar.show-mobile {
-        transform: translateX(0);
+        transform: translateX(0) !important;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
     }
 
+    /* 移动端遮罩层 */
+    .sidebar-mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+        backdrop-filter: blur(2px);
+    }
+
+    .sidebar-mobile-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* 移动端覆盖桌面端折叠样式，防止抽屉内文字和宽度异常缩窄 */
     .sidebar-collapsed .ruoyi-sidebar {
-        transform: translateX(-100%);
+        width: 260px !important;
+        transform: translateX(-100%) !important;
     }
 
-    .nav-quick-link {
+    .sidebar-collapsed .ruoyi-sidebar.show-mobile {
+        transform: translateX(0) !important;
+    }
+
+    .sidebar-collapsed .sidebar-logo-text,
+    .sidebar-collapsed .menu-title,
+    .sidebar-collapsed .menu-group-title,
+    .sidebar-collapsed .collapse-label {
+        display: block !important;
+    }
+
+    .sidebar-collapsed .sidebar-logo-container {
+        padding: 0 16px !important;
+        justify-content: flex-start !important;
+    }
+
+    .sidebar-collapsed .menu-item {
+        padding: 0 18px !important;
+        justify-content: flex-start !important;
+    }
+
+    .sidebar-collapsed .menu-icon {
+        margin-right: 12px !important;
+    }
+
+    /* 顶部导航栏响应式精简 */
+    .ruoyi-navbar {
+        padding: 0 8px;
+        height: 48px;
+    }
+
+    .navbar-left {
+        min-width: 0;
+    }
+
+    .hamburger-btn {
+        margin-right: 6px;
+        padding: 7px;
+    }
+
+    .ruoyi-breadcrumb {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .breadcrumb-item:not(#breadcrumbActive),
+    .breadcrumb-separator {
+        display: none !important;
+    }
+
+    .breadcrumb-active {
+        font-weight: 600;
+    }
+
+    .navbar-right {
+        gap: 6px;
+    }
+
+    .nav-action-btn span {
         display: none;
     }
 
-    .ruoyi-app-main {
-        padding: 12px;
+    .nav-action-btn {
+        padding: 6px 8px;
     }
 
+    .nav-action-btn[onclick*="toggleFullScreen"],
+    .nav-quick-link {
+        display: none !important;
+    }
+
+    .user-nickname {
+        display: none !important;
+    }
+
+    .avatar-box {
+        padding: 2px;
+    }
+
+    /* TagsView 紧凑微调 */
+    .ruoyi-tags-view-container {
+        height: 32px;
+        padding: 0 6px;
+    }
+
+    .tags-view-item {
+        height: 24px;
+        line-height: 24px;
+        padding: 0 8px;
+        font-size: 11.5px;
+    }
+
+    /* 主内容区内边距微调 */
+    .ruoyi-app-main {
+        padding: 10px 8px 32px;
+    }
+
+    .tool-page-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .tool-page-head h2 {
+        font-size: 18px;
+    }
+
+    .tool-page-head p {
+        font-size: 12px;
+    }
+
+    .tool-card {
+        padding: 14px 12px;
+    }
+
+    /* 表格自适应容器防溢出 */
+    .table-scroll,
+    .arpu-table-scroll {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 业务模块自适应 */
     .robot-rule-grid {
         grid-template-columns: 1fr;
     }
 
     .photo-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* ARPU 查询在手机端排版 */
+    .arpu-query-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    .arpu-phone-field {
+        width: 100% !important;
+    }
+
+    .arpu-query-button {
+        width: 100% !important;
+        height: 42px !important;
+    }
+
+    .arpu-stats {
+        grid-template-columns: 1fr !important;
     }
 }

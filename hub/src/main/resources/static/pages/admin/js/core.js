@@ -133,6 +133,11 @@
             invites: w.loadInvites
         };
         if (loaders[name]) loaders[name]();
+
+        // 移动端切换 Tab 后自动收起抽屉侧边栏
+        if (window.innerWidth <= 768) {
+            w.closeMobileSidebar();
+        }
     };
 
     w.closeTag = function (event, tabId) {
@@ -188,7 +193,23 @@
         }
     };
 
+    w.closeMobileSidebar = function () {
+        var sidebar = document.getElementById('sidebar');
+        var backdrop = document.getElementById('sidebarMobileBackdrop');
+        if (sidebar) sidebar.classList.remove('show-mobile');
+        if (backdrop) backdrop.classList.remove('show');
+    };
+
     w.toggleSidebarCollapse = function () {
+        if (window.innerWidth <= 768) {
+            var sidebar = document.getElementById('sidebar');
+            var backdrop = document.getElementById('sidebarMobileBackdrop');
+            if (sidebar) {
+                var isOpen = sidebar.classList.toggle('show-mobile');
+                if (backdrop) backdrop.classList.toggle('show', isOpen);
+            }
+            return;
+        }
         var wrapper = document.getElementById('appWrapper');
         if (!wrapper) return;
         wrapper.classList.toggle('sidebar-collapsed');
