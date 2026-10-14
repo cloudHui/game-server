@@ -45,6 +45,15 @@
 - **`mcp-excel-manage`**：通过统一 MCP 安全读取/写入 Excel，仅认英文 Sheet 正式配置。
 - **`mcp-log-copylog`**：基于 copylog 机制进行安全的时间/关键词日志切片。
 
+### 4. 研发提效与运维辅助技能
+- **`git`**：基于统一 MCP 进行安全只读提交历史追溯、Diff 与分支审计。
+- **`port-check`**：Windows 端口（8081 Hub / 18765 MCP 等）占用定位与安全释放。
+- **`daily-summary`**：Git 提交 + 对话上下文双源去重，自动生成精炼研发日报。
+- **`weekly-report`**：自动化结构化周报输出（已完成 / 待完成标准版式）。
+- **`caveman`**：极简高密交流模式，去除客套与铺垫，节省约 75% 上下文 Token。
+- **`handoff`**：长会话上下文结构化交接，确保新 Agent 零摩擦承接。
+- **`find-skills`**：基于 skills.sh 开源生态发现与推荐高质量扩展技能。
+
 ## 统一 MCP 服务接入
 
 统一 MCP 服务运行在本地端口 `18765`：
