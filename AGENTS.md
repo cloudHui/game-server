@@ -41,8 +41,8 @@
 
 ### 3. 统一 MCP 工具技能 (端口 18765)
 - **`mcp-service-ops`**：统一 MCP 服务的探活（`/health`）、启停与日志排查。
-- **`mcp-db-query`**：通过统一 MCP 进行受控索引查库，联动 `canvas` 生成图表。
-- **`mcp-excel-manage`**：通过统一 MCP 读取/写入 Excel 配置数据。
+- **`mcp-db-query`**：通过统一 MCP 进行受控索引查库与 Redis 缓存排查，联动 `canvas` 生成图表。
+- **`mcp-excel-manage`**：通过统一 MCP 安全读取/写入 Excel，仅认英文 Sheet 正式配置。
 - **`mcp-log-copylog`**：基于 copylog 机制进行安全的时间/关键词日志切片。
 
 ## 统一 MCP 服务接入
@@ -66,8 +66,8 @@
 ## MCP 工具优先调用准则（核心约束）
 > **在后续所有研发、排错、数据核对与代码审查中，AI 必须严格优先使用统一 MCP 工具（`game-server-tool`），严禁舍近求远：**
 
-- **查库与数据诊断**：一律优先调用 `player_db_query`（查玩家）或 `local_sql_query` / `local_get_database_info`（查库表结构），配合 `canvas` 输出可视化报表；
-- **配置与数值分析**：一律优先调用 `excel_read_sheet`、`excel_describe_sheets` 读取 Excel，禁止盲猜配表；
+- **查库与缓存诊断**：一律优先调用 `player_db_query`（精准查玩家）、`local_sql_query` / `local_get_database_info`（查库表结构）及 `get`/`list`（查 Redis 缓存），配合 `canvas` 输出可视化报表；
+- **配置与数值分析**：一律优先调用 `excel_read_sheet`、`excel_describe_sheets` 读取 Excel，仅认英文 Sheet 正式配置，禁止盲猜配表；
 - **历史变更追溯**：一律优先调用 `git_log`、`git_show` 查看提交历史与文件变更；
 - **日志切片取证**：优先使用统一 MCP 与 copylog 机制进行日志片段的安全检索。
 
