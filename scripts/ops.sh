@@ -431,33 +431,17 @@ cmd_build() {
   targets=($(resolve_targets "$arg"))
   command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn"; exit 1; }
   cd "$ROOT"
-  build_started_epoch="$(date +%s)"
-  echo "Maven 开始时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "下面实时显示 Maven 完整输出，可直接看到当前编译模块和停留位置。"
+  local t0="$(date +%s)"
   if [[ "$arg" == "all" ]]; then
-    echo "执行: mvn --batch-mode --show-version install -DskipTests"
-    if mvn --batch-mode --show-version install -DskipTests; then
-      build_status=0
-    else
-      build_status=$?
-    fi
+    echo "执行: mvn install -DskipTests"
+    run_silent_timer "Maven 打包" mvn --batch-mode --show-version install -DskipTests
   else
-    echo "执行: mvn --batch-mode --show-version -pl $arg -am install -DskipTests"
-    if mvn --batch-mode --show-version -pl "$arg" -am install -DskipTests; then
-      build_status=0
-    else
-      build_status=$?
-    fi
+    echo "执行: mvn -pl $arg -am install -DskipTests"
+    run_silent_timer "Maven 打包 ($arg)" mvn --batch-mode --show-version -pl "$arg" -am install -DskipTests
   fi
-  build_finished_epoch="$(date +%s)"
-  build_elapsed=$((build_finished_epoch - build_started_epoch))
-  if [[ "$build_status" -ne 0 ]]; then
-    printf 'Maven 打包失败（退出码 %s），耗时 %02d:%02d:%02d\n' \
-      "$build_status" $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60)) >&2
-    return "$build_status"
-  fi
+  local elapsed=$(( $(date +%s) - t0 ))
   printf 'Maven 编译完成，耗时 %02d:%02d:%02d；开始校验和同步产物。\n' \
-    $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60))
+    $((elapsed / 3600)) $(((elapsed % 3600) / 60)) $((elapsed % 60))
 
   local svc jar
   for svc in "${targets[@]}"; do

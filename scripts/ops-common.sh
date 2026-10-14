@@ -24,6 +24,48 @@ need_java() {
   command -v java >/dev/null 2>&1 || { echo "未找到 java"; exit 1; }
 }
 
+# 通用后台静默执行器：同屏同行实时刷新耗时，仅报错时输出完整日志
+run_silent_timer() {
+  local prompt="${1:-处理中}"
+  shift
+  local log_file
+  log_file="$(mktemp 2>/dev/null || echo "$ROOT/logs/task_$$.log")"
+  mkdir -p "$(dirname "$log_file")"
+
+  "$@" >"$log_file" 2>&1 &
+  local pid=$!
+  trap '[[ -t 1 ]] && printf "\033[?25h"; kill $pid 2>/dev/null || true; rm -f "$log_file"; exit 130' INT TERM
+
+  local t0 elapsed
+  t0="$(date +%s)"
+  [[ -t 1 ]] && printf '\033[?25l'
+  while kill -0 "$pid" 2>/dev/null; do
+    elapsed=$(( $(date +%s) - t0 ))
+    printf '\r[%s] 已耗时: %ds ...' "$prompt" "$elapsed"
+    sleep 1
+  done
+
+  local status=0
+  wait "$pid" || status=$?
+  trap - INT TERM
+  [[ -t 1 ]] && printf '\033[?25h'
+  printf '\r%-60s\r' ''
+
+  if [[ "$status" -ne 0 ]]; then
+    printf '[%s失败] 退出码 %s，总耗时 %ds\n' "$prompt" "$status" "$(( $(date +%s) - t0 ))" >&2
+    echo "==================== 错误日志详情 ====================" >&2
+    cat "$log_file" >&2
+    echo "======================================================" >&2
+    rm -f "$log_file"
+    return "$status"
+  fi
+  rm -f "$log_file"
+}
+
+run_maven_silent_with_timer() {
+  run_silent_timer "Maven 构建" "$@"
+}
+
 web_path() {
   if [[ ! -f "$PATH_FILE" ]]; then
     local p

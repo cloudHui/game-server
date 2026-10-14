@@ -51,6 +51,13 @@ mvn clean package -DskipTests
 
 # 重启服务
 ./scripts/hub.sh restart
+
+# 一键更新与重启 (停止 -> git pull -> 静默打包同屏耗时 -> 启动)
+./scripts/hub.sh pull-restart
+
+# 专有一键版本回退 (停止 -> git reset --hard [版本] -> 打包 -> 启动)
+./scripts/hub.sh rollback             # 默认回退到上次更新前记录的版本或 HEAD~1
+./scripts/hub.sh rollback <commit>    # 回退到指定 commit
 ```
 
 ## 运行状态与健康确认

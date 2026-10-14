@@ -48,6 +48,8 @@ sudo bash /tmp/gs-install.sh install
 ```bash
 cd /opt/Server   # 或本仓库根目录
 ./scripts/hub.sh deploy    # 打包 + 启动
+./scripts/hub.sh pull-restart # 停止 -> git pull -> 打包 -> 启动
+./scripts/hub.sh rollback     # 一键版本回退 (停止 -> git reset -> 打包 -> 启动)
 ./scripts/hub.sh status
 ./scripts/hub.sh stop
 ./scripts/hub.sh start     # 已有 hub.jar 时

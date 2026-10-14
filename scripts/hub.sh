@@ -10,18 +10,38 @@ INITIAL_HEAP=96m
 
 usage() {
   cat <<EOF
-用法:
-  $0 start|stop|restart|status
-  $0 build|build-restart|deploy
-  $0 monitor [刷新秒数|--once]
-  $0 clean-logs
-  $0 nginx-apply <域名> [Web端口]
+================================================================================
+Hub 一体化服务运维脚本 ($0)
+================================================================================
 
-示例:
-  $0 deploy
-  $0 start
-  $0 status
-  $0 stop
+基础启停与状态:
+  $0 start                 启动 Hub 服务 (后台运行，默认端口 8081)
+  $0 stop                  安全停止 Hub 服务 (超时 15 秒强制杀进程)
+  $0 restart               快速重启 Hub 服务 (stop -> start，不重新打包)
+  $0 status                查看 Hub 状态、PID、当前 Git 版本与访问入口
+
+构建与更新部署:
+  $0 build                 仅执行 Maven 打包 (同屏同行显示耗时，报错才输出详情)
+  $0 build-restart         打包并重启 (build -> stop -> start)
+  $0 deploy                打包并启动 (若已运行则不重复启动)
+  $0 pull-restart          一键更新重启 (停止 -> git pull -> 打包 -> 启动)
+                           (别名: update-restart, update)
+  $0 rollback [commit]     一键版本回退 (停止 -> git reset --hard [版本] -> 打包 -> 启动)
+                           默认回退到上次更新前记录的版本或 HEAD~1
+
+系统监控与运维:
+  $0 monitor [秒数|--once] 实时同屏监控 hub / xray / x-ui 进程资源占用 (默认 1s 刷新)
+  $0 clean-logs            清理超过 7 天的历史日志与 console.out 文件
+  $0 nginx-apply <域名>    配置并下发 Nginx 反向代理与 WebSocket 路由
+
+使用示例:
+  $0 pull-restart          # 日常更新：停服务 -> 拉最新代码 -> 编译打包 -> 启动
+  $0 rollback              # 紧急回退：回退到上次更新前版本并重新打包启动
+  $0 rollback abc1234      # 回退到指定 commit 并重新打包启动
+  $0 status                # 检查当前是否在运行及访问地址
+  $0 monitor               # 查看 CPU、内存监控看板
+
+================================================================================
 EOF
 }
 
@@ -137,37 +157,60 @@ cmd_status() {
   fi
   print_entry
   echo "日志目录: $LOG_HOME/hub/"
+  if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "当前版本: $(git -C "$ROOT" log -1 --format='%h (%ci) %s' 2>/dev/null)"
+  fi
 }
 
 cmd_build() {
-  local build_started_epoch build_finished_epoch build_elapsed build_status
-  command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn"; exit 1; }
+  command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn" >&2; exit 1; }
   cd "$ROOT"
-  build_started_epoch="$(date +%s)"
-  echo "Maven 开始时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "执行: mvn --batch-mode --show-version -pl hub -am install -DskipTests"
-  if mvn --batch-mode --show-version -pl hub -am install -DskipTests; then
-    build_status=0
-  else
-    build_status=$?
-  fi
-  build_finished_epoch="$(date +%s)"
-  build_elapsed=$((build_finished_epoch - build_started_epoch))
-  if [[ "$build_status" -ne 0 ]]; then
-    printf 'Maven 打包失败（退出码 %s），耗时 %02d:%02d:%02d\n' \
-      "$build_status" $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60)) >&2
-    return "$build_status"
-  fi
-  if [[ ! -f "$HUB_JAR" ]]; then
-    echo "缺少打包产物: $HUB_JAR" >&2
+  local t0="$(date +%s)"
+  echo "Maven 构建: mvn -pl hub -am install -DskipTests"
+  run_silent_timer "Maven 打包" mvn --batch-mode --show-version -pl hub -am install -DskipTests
+  [[ -f "$HUB_JAR" ]] || { echo "缺少打包产物: $HUB_JAR" >&2; return 1; }
+  pack_table_models
+  local elapsed=$(( $(date +%s) - t0 ))
+  printf '打包完成，耗时 %02d:%02d:%02d (OK %s)\n' \
+    $((elapsed / 3600)) $(((elapsed % 3600) / 60)) $((elapsed % 60)) "$HUB_JAR"
+}
+
+# 核心生命周期封装：停止 -> 中间命令(如 git pull/reset) -> 打包 -> 启动
+cycle_hub() {
+  stop_hub
+  "$@"
+  cmd_build
+  sleep 1
+  start_hub
+  echo "[hub] 完成！当前运行版本: $(git log -1 --oneline 2>/dev/null)"
+}
+
+# 一键更新与重启：停止 -> git pull -> 打包 -> 启动
+cmd_pull_restart() {
+  command -v git >/dev/null 2>&1 || { echo "[git] 错误: 未找到 git 命令" >&2; return 1; }
+  cd "$ROOT"
+  if [[ -n "$(git status --porcelain -uno 2>/dev/null)" ]]; then
+    echo "[git] 错误: 检测到本地有未提交修改，终止更新以保护现场。" >&2
     return 1
   fi
-  pack_table_models || return 1
-  build_finished_epoch="$(date +%s)"
-  build_elapsed=$((build_finished_epoch - build_started_epoch))
-  printf '打包完成: %s，总耗时 %02d:%02d:%02d\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" \
-    $((build_elapsed / 3600)) $(((build_elapsed % 3600) / 60)) $((build_elapsed % 60))
-  echo "  OK $HUB_JAR"
+  mkdir -p "$BUILD/hub"
+  git rev-parse HEAD > "$BUILD/hub/prev_commit.txt" 2>/dev/null || true
+  echo "[hub] 一键更新: 停止 -> git pull -> 打包 -> 启动"
+  cycle_hub git pull
+}
+
+# 专有一键版本回退：停止 -> git reset --hard [版本] -> 打包 -> 启动
+cmd_rollback() {
+  command -v git >/dev/null 2>&1 || { echo "[git] 错误: 未找到 git 命令" >&2; return 1; }
+  cd "$ROOT"
+  local target="${1:-}"
+  local record_file="$BUILD/hub/prev_commit.txt"
+  if [[ -z "$target" ]]; then
+    [[ -f "$record_file" ]] && target="$(tr -d '[:space:]' < "$record_file")"
+    target="${target:-HEAD~1}"
+  fi
+  echo "[hub] 版本回退: 停止 -> git reset --hard $target -> 打包 -> 启动"
+  cycle_hub git reset --hard "$target"
 }
 
 cmd_monitor() {
@@ -244,6 +287,8 @@ main() {
     monitor) cmd_monitor "${2:-1}" ;;
     build) cmd_build ;;
     build-restart) cmd_build; stop_hub; sleep 1; start_hub ;;
+    pull-restart|update-restart|update) cmd_pull_restart ;;
+    rollback) cmd_rollback "${2:-}" ;;
     deploy) cmd_build; start_hub ;;
     clean-logs) cmd_clean_logs ;;
     nginx-apply) cmd_nginx_apply "${2:-}" "${3:-$WEB_PORT}" ;;
