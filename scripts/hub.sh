@@ -70,49 +70,26 @@ pack_table_models() {
 }
 
 stop_hub() {
-  local pids
-  pids="$(hub_pids)"
-  if [[ -z "$pids" ]]; then
-    echo "[hub] 未在运行"
-    return 0
-  fi
-  echo "[hub] 停止: $pids"
-  # shellcheck disable=SC2086
-  kill $pids 2>/dev/null || true
-  local i=0
-  while [[ -n "$(hub_pids)" && $i -lt 15 ]]; do
-    sleep 1
-    i=$((i + 1))
-  done
-  pids="$(hub_pids)"
-  if [[ -n "$pids" ]]; then
-    echo "[hub] 强制结束: $pids"
-    # shellcheck disable=SC2086
-    kill -9 $pids 2>/dev/null || true
-  fi
-  echo "[hub] 已停止"
+  safe_stop_service "hub" hub_pids
 }
 
 start_hub() {
-  local pids ctx console_out unit
-  local -a java_args
   need_java
   require_no_legacy || return 1
-  if [[ ! -f "$HUB_JAR" ]]; then
-    echo "[hub] 找不到 $HUB_JAR，请先执行: $0 build"
-    return 1
-  fi
+  [[ -f "$HUB_JAR" ]] || { echo "[hub] 找不到 $HUB_JAR，请先执行: $0 build" >&2; return 1; }
+
+  local pids
   pids="$(hub_pids)"
   if [[ -n "$pids" ]]; then
-    echo "[hub] 已在运行 (PID $(echo "$pids" | tr '\n' ' '))"
+    echo "[hub] 已在运行 (PID: $(echo "$pids" | tr '\n' ' '))"
     print_entry
     return 0
   fi
 
-  mkdir -p "$BUILD/hub" "$LOG_HOME/hub"
-  ctx="/$(web_path)"
-  console_out="$LOG_HOME/hub/console.out"
-  java_args=(
+  local ctx="/$(web_path)"
+  local console_out="$LOG_HOME/hub/console.out"
+  local java_args=(
+    java
     -Dfile.encoding=UTF-8
     "-DLOG_HOME=${LOG_HOME}"
     "-Xms${INITIAL_HEAP}"
@@ -124,26 +101,9 @@ start_hub() {
     "-Dhub.root=${ROOT}"
     -jar "$HUB_JAR"
   )
-  echo "[hub] 启动 context-path=${ctx} heap=${INITIAL_HEAP}-${HEAP} stack=256k log=${LOG_HOME}/hub"
-  if command -v systemd-run >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
-    unit="game-server-hub-$(date +%s)"
-    systemd-run --user --quiet --collect --unit="$unit" \
-      --property="WorkingDirectory=$ROOT" \
-      --property="StandardOutput=append:$console_out" \
-      --property="StandardError=append:$console_out" \
-      java "${java_args[@]}"
-  else
-    (cd "$ROOT" && nohup java "${java_args[@]}" >>"$console_out" 2>&1 &)
-  fi
-  sleep 1
-  pids="$(hub_pids)"
-  if [[ -n "$pids" ]]; then
-    echo "[hub] 已启动 PID $(echo "$pids" | tr '\n' ' ')"
-    print_entry
-  else
-    echo "[hub] 启动失败，请检查 $console_out 与 $HUB_JAR" >&2
-    return 1
-  fi
+  echo "[hub] 启动参数: port=${WEB_PORT} context=${ctx} heap=${INITIAL_HEAP}-${HEAP} stack=256k"
+  launch_service "hub" "$ROOT" "$console_out" "hub_pids" "${java_args[@]}" || return 1
+  print_entry
 }
 
 cmd_status() {
@@ -177,12 +137,43 @@ cmd_build() {
 
 # 核心生命周期封装：停止 -> 中间命令(如 git pull/reset) -> 打包 -> 启动
 cycle_hub() {
+  local t_total="$(date +%s)"
+
+  echo "[步骤 1/4] 停止 hub 服务..."
   stop_hub
+
+  local t_cmd="$(date +%s)"
+  echo "[步骤 2/4] 执行: $*"
   "$@"
+  echo "[步骤 2/4] 完成 (耗时 $(( $(date +%s) - t_cmd ))s)"
+
+  echo "[步骤 3/4] 编译打包..."
   cmd_build
-  sleep 1
+
+  echo "[步骤 4/4] 启动 hub 服务..."
   start_hub
-  echo "[hub] 完成！当前运行版本: $(git log -1 --oneline 2>/dev/null)"
+
+  local total=$(( $(date +%s) - t_total ))
+  printf '[hub] 全部流程完成！总耗时: %02d:%02d:%02d，当前版本: %s\n' \
+    $((total / 3600)) $(((total % 3600) / 60)) $((total % 60)) \
+    "$(git log -1 --oneline 2>/dev/null)"
+}
+
+cmd_restart() {
+  local t0="$(date +%s)"
+  echo "[hub] 快速重启: 停止 -> 启动"
+  stop_hub
+  start_hub
+  echo "[hub] 重启完成 (总耗时 $(( $(date +%s) - t0 ))s)"
+}
+
+cmd_build_restart() {
+  local t0="$(date +%s)"
+  echo "[hub] 打包并重启: 打包 -> 停止 -> 启动"
+  cmd_build
+  stop_hub
+  start_hub
+  echo "[hub] 打包重启完成 (总耗时 $(( $(date +%s) - t0 ))s)"
 }
 
 # 一键更新与重启：停止 -> git pull -> 打包 -> 启动
@@ -282,11 +273,11 @@ main() {
   case "$cmd" in
     start) start_hub ;;
     stop) stop_hub ;;
-    restart) stop_hub; sleep 1; start_hub ;;
+    restart) cmd_restart ;;
     status) cmd_status ;;
     monitor) cmd_monitor "${2:-1}" ;;
     build) cmd_build ;;
-    build-restart) cmd_build; stop_hub; sleep 1; start_hub ;;
+    build-restart) cmd_build_restart ;;
     pull-restart|update-restart|update) cmd_pull_restart ;;
     rollback) cmd_rollback "${2:-}" ;;
     deploy) cmd_build; start_hub ;;

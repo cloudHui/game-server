@@ -126,6 +126,70 @@ require_no_legacy() {
   fi
 }
 
+# 通用服务安全停止：向 PID 发送 SIGTERM -> 等待退出 (最多 15s) -> 超时强制 SIGKILL
+safe_stop_service() {
+  local name="$1"
+  local pid_cmd="$2"
+  local t0="$(date +%s)"
+  local pids
+  pids="$($pid_cmd)"
+  if [[ -z "$pids" ]]; then
+    echo "[$name] 未在运行"
+    return 0
+  fi
+  echo "[$name] 停止中 (PID: $(echo "$pids" | tr '\n' ' '))..."
+  # shellcheck disable=SC2086
+  kill $pids 2>/dev/null || true
+  local i=0
+  while [[ -n "$($pid_cmd)" && $i -lt 15 ]]; do
+    sleep 1
+    i=$((i + 1))
+  done
+  pids="$($pid_cmd)"
+  if [[ -n "$pids" ]]; then
+    echo "[$name] 停止超时，强制结束 (kill -9 $pids)..."
+    # shellcheck disable=SC2086
+    kill -9 $pids 2>/dev/null || true
+  fi
+  local elapsed=$(( $(date +%s) - t0 ))
+  echo "[$name] 已停止 (耗时 ${elapsed}s)"
+}
+
+# 通用后台拉起服务并校验启动状态 (优先 systemd-run，兜底 nohup)
+launch_service() {
+  local name="$1"
+  local workdir="$2"
+  local console_out="$3"
+  local pid_cmd="$4"
+  shift 4
+
+  local t0="$(date +%s)"
+  mkdir -p "$workdir" "$(dirname "$console_out")"
+
+  if command -v systemd-run >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
+    local unit="game-server-${name}-$(date +%s)"
+    systemd-run --user --quiet --collect --unit="$unit" \
+      --property="WorkingDirectory=$workdir" \
+      --property="StandardOutput=append:$console_out" \
+      --property="StandardError=append:$console_out" \
+      "$@"
+  else
+    (cd "$workdir" && nohup "$@" >>"$console_out" 2>&1 &)
+  fi
+
+  sleep 1
+  local pids
+  pids="$($pid_cmd)"
+  local elapsed=$(( $(date +%s) - t0 ))
+  if [[ -n "$pids" ]]; then
+    echo "[$name] 启动成功 (PID: $(echo "$pids" | tr '\n' ' '), 耗时 ${elapsed}s)"
+    return 0
+  else
+    echo "[$name] 启动失败 (耗时 ${elapsed}s)，请检查日志: $console_out" >&2
+    return 1
+  fi
+}
+
 cmd_clean_logs() {
   local days=7
   local removed=0

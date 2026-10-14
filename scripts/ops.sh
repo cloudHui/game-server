@@ -127,51 +127,23 @@ pids_of() {
 }
 
 stop_one() {
-  local svc="$1"
-  local pids
-  pids="$(pids_of "$svc")"
-  if [[ -z "$pids" ]]; then
-    echo "[$svc] 未在运行"
-    return 0
-  fi
-  echo "[$svc] 停止: $pids"
-  # shellcheck disable=SC2086
-  kill $pids 2>/dev/null || true
-  local i=0
-  while [[ -n "$(pids_of "$svc")" && $i -lt 15 ]]; do
-    sleep 1
-    i=$((i + 1))
-  done
-  pids="$(pids_of "$svc")"
-  if [[ -n "$pids" ]]; then
-    echo "[$svc] 强制结束: $pids"
-    # shellcheck disable=SC2086
-    kill -9 $pids 2>/dev/null || true
-  fi
-  echo "[$svc] 已停止"
+  safe_stop_service "$1" "pids_of $1"
 }
 
 start_one() {
   local svc="$1"
-  local dir jar heap initial_heap logctx
-  dir="$(svc_dir "$svc")"
-  jar="$(svc_jar "$svc")"
-  heap="${HEAP[$svc]}"
-  initial_heap="${INITIAL_HEAP[$svc]}"
+  local jar="$(svc_jar "$svc")"
+  local heap="${HEAP[$svc]}"
+  local initial_heap="${INITIAL_HEAP[$svc]}"
 
   require_no_hub || return 1
+  [[ -f "$jar" ]] || { echo "[$svc] 找不到 $jar，请先执行: $0 build" >&2; return 1; }
 
-  if [[ ! -f "$jar" ]]; then
-    echo "[$svc] 找不到 $jar，请先执行: $0 build"
-    return 1
-  fi
-  if [[ -n "$(pids_of "$svc")" ]]; then
-    echo "[$svc] 已在运行 (PID $(pids_of "$svc" | tr '\n' ' '))"
+  local pids="$(pids_of "$svc")"
+  if [[ -n "$pids" ]]; then
+    echo "[$svc] 已在运行 (PID: $(echo "$pids" | tr '\n' ' '))"
     return 0
   fi
-
-  mkdir -p "$dir"
-  mkdir -p "$LOG_HOME/$svc"
 
   local jvm=(
     java
@@ -181,34 +153,21 @@ start_one() {
     "-Xmx${heap}"
     -XX:+UseG1GC
   )
-  local workdir="$dir"
+  local workdir="$(svc_dir "$svc")"
   if [[ "$svc" == "web" ]]; then
-    local ctx
-    ctx="/$(web_path)"
+    local ctx="/$(web_path)"
     jvm+=(
       -Xss256k
       "-Dserver.servlet.context-path=${ctx}"
       "-Dserver.port=${WEB_PORT}"
     )
-    # 保持仓库根为工作目录，使 application.yml 中 build/game/replay 路径有效
     workdir="$ROOT"
-    echo "[$svc] 启动 context-path=${ctx} heap=${initial_heap}-${heap} stack=256k log=${LOG_HOME}/${svc}"
+    echo "[$svc] 启动参数: port=${WEB_PORT} context=${ctx} heap=${initial_heap}-${heap}"
   else
-    echo "[$svc] 启动 heap=${initial_heap}-${heap} log=${LOG_HOME}/${svc}"
+    echo "[$svc] 启动参数: heap=${initial_heap}-${heap}"
   fi
 
-  local console_out="$LOG_HOME/$svc/console.out"
-  (
-    cd "$workdir"
-    nohup "${jvm[@]}" -jar "$jar" >>"$console_out" 2>&1 &
-  )
-  sleep 1
-  if [[ -n "$(pids_of "$svc")" ]]; then
-    echo "[$svc] 已启动 PID $(pids_of "$svc" | tr '\n' ' ')"
-  else
-    echo "[$svc] 启动失败，请检查 $console_out 与 jar / 依赖"
-    return 1
-  fi
+  launch_service "$svc" "$workdir" "$LOG_HOME/$svc/console.out" "pids_of $svc" "${jvm[@]}" -jar "$jar"
 }
 
 cmd_start() {
@@ -283,15 +242,19 @@ cmd_stop() {
 
 cmd_restart() {
   local arg="${1:-all}"
+  local t0="$(date +%s)"
   cmd_stop "$arg"
-  sleep 1
   cmd_start "$arg"
+  echo "[$arg] 重启完成 (总耗时 $(( $(date +%s) - t0 ))s)"
 }
 
 cmd_build_restart() {
   local arg="${1:-all}"
+  local t0="$(date +%s)"
   cmd_build "$arg"
-  cmd_restart "$arg"
+  cmd_stop "$arg"
+  cmd_start "$arg"
+  echo "[$arg] 打包重启完成 (总耗时 $(( $(date +%s) - t0 ))s)"
 }
 
 cmd_status() {
