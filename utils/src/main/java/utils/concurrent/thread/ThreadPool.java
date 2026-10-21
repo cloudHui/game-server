@@ -1,8 +1,5 @@
 package utils.concurrent.thread;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -12,24 +9,27 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 固定大小线程池：统一命名、有界队列、队列满时 CallerRuns 反压。
  */
 public class ThreadPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(ThreadPool.class);
-    private static final int INIT_SIZE = 1000;
+    private static final int INIT_SIZE = 1000;// 默认有界队列容量
 
     /**
      * 默认线程数建议值：CPU 核心数 * 2。
      */
     public static final int DEFAULT_POOL_SIZE = Math.max(2, Runtime.getRuntime().availableProcessors() * 2);
 
-    private final ExecutorService pools;
-    private final ThreadGroup group;
-    private final String threadPrefix;
-    private final AtomicInteger threadNumber;
-    private final Map<Long, String> threadName;
-    private final int size;
+    private final ExecutorService pools;// 线程池
+    private final ThreadGroup group;// 线程组
+    private final String threadPrefix;// 线程名前缀
+    private final AtomicInteger threadNumber;// 线程编号
+    private final Map<Long, String> threadName;// 线程名
+    private final int size;// 线程数
 
     public ThreadPool(String prefix) {
         this(prefix, 0);
@@ -62,6 +62,12 @@ public class ThreadPool {
         LOGGER.info("[init] ThreadPool name:{}, size:{}, queue:{}", prefix, this.size, capacity);
     }
 
+    /**
+     * 创建线程
+     * 
+     * @param runnable
+     * @return
+     */
     private Thread createThread(Runnable runnable) {
         Thread t = new Thread(this.group, runnable,
                 this.threadPrefix + '_' + this.threadNumber.incrementAndGet(), 0L);

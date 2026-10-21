@@ -97,22 +97,23 @@ public class ActorMailbox implements Runnable {
 
     /**
      * 调度判定门禁：如果处于空闲状态，则原子切换为就绪态并向线程池提交自身。
+     * <p>
+     * <b>核心设计（TTAS 模式）：</b>
+     * <ol>
+     *   <li><b>轻量读过滤：</b> 先通过轻量级的 {@code volatile} 读检查状态，若已有 Worker 在途（{@code SCHEDULED}）、
+     *       正在干活（{@code RUNNING}）或已被注销（{@code DISPOSED}），直接退出，避免无效硬件总线锁竞争；</li>
+     *   <li><b>单次 CAS 抢单：</b> 仅在静止态（{@code IDLE}）时尝试一次 CAS；若失败说明同一纳秒已被其他并发线程抢先拉起，无需循环重试。</li>
+     * </ol>
      */
     private void scheduleIfNeeded() {
-        while (true) {
-            int current = state.get();
-            if (current == STATE_DISPOSED) {
-                return;
-            }
-            if (current == STATE_RUNNING || current == STATE_SCHEDULED) {
-                // 已有 Worker 正在路上或正在消费，本任务安心排队即可，绝不重复拉起
-                return;
-            }
-            if (state.compareAndSet(STATE_IDLE, STATE_SCHEDULED)) {
-                // 成功抢下调度权，向物理线程池派单
-                executor.execute(this);
-                return;
-            }
+        // 第一步：快速门禁判断，若非空闲（已有工人接单、正在运行或已注销）直接返回
+        if (state.get() != STATE_IDLE) {
+            return;
+        }
+
+        // 第二步：原子抢占调度权（IDLE -> SCHEDULED），抢占成功则唤醒线程池派工
+        if (state.compareAndSet(STATE_IDLE, STATE_SCHEDULED)) {
+            executor.execute(this);
         }
     }
 

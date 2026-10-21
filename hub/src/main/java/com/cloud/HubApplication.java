@@ -9,11 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class HubApplication {
 
     public static void main(String[] args) {
-        String tableConfig = System.getProperty("hub.table-config-dir");
-        if (tableConfig != null && !tableConfig.isEmpty()) {
-            System.setProperty("table.config.dir", tableConfig);
-            System.setProperty("tableConfigDir", tableConfig);
-        }
         SpringApplication.run(HubApplication.class, args);
     }
 }

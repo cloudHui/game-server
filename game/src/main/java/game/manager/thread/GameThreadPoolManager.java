@@ -85,6 +85,7 @@ public final class GameThreadPoolManager {
      */
     public ScheduledFuture<?> scheduleTable(long tableId, Runnable task, long delayMs, long intervalMs) {
         registerTable(tableId);
+        // 周期性调用dispatchTick
         return tableScheduler.scheduleAtFixedRate(
                 () -> dispatchTick(tableId, task), delayMs, intervalMs, TimeUnit.MILLISECONDS);
     }
@@ -122,6 +123,17 @@ public final class GameThreadPoolManager {
         databasePool.shutdownNow();
     }
 
+    /**
+     * 将牌桌定时调度任务推入业务线程池执行，同时保证同一时刻至多仅有一个任务在队列中，防止调度“挤兑”业务。
+     * <p>
+     * <b>调度门禁逻辑：</b>
+     * <ol>
+     * <li>{@code activeTables.contains(tableId)}：确保桌子 still 在生命周期内（未销毁）；</li>
+     * <li>{@code tickBusy.add(tableId)}：使用{@code Set}记录当前已有任务在队列或执行中，若返回{@code false}则直接跳过本次调度，
+     * 避免任务在 {@code tablePool} 堆积；</li>
+     * <li>在 finally 中移除 {@code tickBusy} 标记，允许下次调度 entry。</li>
+     * </ol>
+     */
     private void dispatchTick(long tableId, Runnable task) {
         if (!activeTables.contains(tableId)) {
             return;
@@ -141,6 +153,9 @@ public final class GameThreadPoolManager {
         });
     }
 
+    /**
+     * 牌桌任务执行包装：注入 TraceContext 并将执行结果通过 CompletableFuture 传递。
+     */
     private void runTableTask(long tableId, Runnable task, CompletableFuture<Void> future) {
         try {
             TraceContext.setTableId(tableId);

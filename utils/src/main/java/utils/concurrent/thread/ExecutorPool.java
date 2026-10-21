@@ -208,39 +208,78 @@ public class ExecutorPool {
         }
     }
 
+    /**
+     * 尝试执行本槽位的任务。
+     * <p>
+     * 核心逻辑：
+     * 1. 如果当前 slot 正在被其他线程处理（isBusy && notSelf），则直接返回（不抢占）。
+     * 2. 如果当前 slot 未被处理，则尝试获取处理权限（getProcessingAuthority）。
+     * 3. 获取到权限后，执行本槽位的任务（executeSlotTasks）。
+     * 4. 执行完毕后，释放处理权限（releaseProcessingAuthority）。
+     * 5. 如果任务队列非空，则再次提交本槽位的处理任务，形成循环处理。
+     */
     private void processTasks(int startIndex) {
         try {
             long threadId = Thread.currentThread().getId();
+            // 先执行本槽位的任务
             drainSlot(startIndex, threadId);
+            // 再尝试从其他槽位偷取任务
             stealAndDrain(startIndex, threadId);
         } catch (Exception e) {
             LOGGER.error("[ExecutorPool] Worker 异常退出, startIndex: {}", startIndex, e);
         }
     }
 
+    /**
+     * 尝试执行本槽位的任务。
+     * <p>
+     * 核心逻辑：
+     * 1. 如果当前 slot 正在被其他线程处理（isBusy && notSelf），则直接返回（不抢占）。
+     * 2. 如果当前 slot 未被处理，则尝试获取处理权限（getProcessingAuthority）。
+     * 3. 获取到权限后，执行本槽位的任务（executeSlotTasks）。
+     * 4. 执行完毕后，释放处理权限（releaseProcessingAuthority）。
+     * 5. 如果任务队列非空，则再次提交本槽位的处理任务，形成循环处理。
+     */
     private void drainSlot(int slotIndex, long threadId) {
         TaskList list = this.taskLists[slotIndex];
 
+        // 判断当前 slot 是否正在被处理
         if (list.isBusy() && list.notSelf(threadId)) {
+            // 检查是否已经超时
             checkAndLogTimeout(slotIndex);
             return;
         }
 
+        // 尝试获取处理权限
         if (!list.getProcessingAuthority(threadId)) {
             return;
         }
 
         try {
+            // 执行本槽位的任务
             executeSlotTasks(slotIndex);
         } finally {
+            // 释放处理权限
             list.releaseProcessingAuthority(threadId);
 
+            // 如果任务队列非空，则再次提交本槽位的处理任务，形成循环处理
             if (list.finishAndRescheduleIfNeeded()) {
+                // 提交本槽位的处理任务
                 this.threadPool.execute(() -> processTasks(slotIndex));
             }
         }
     }
 
+    /**
+     * 执行本槽位的任务。
+     * <p>
+     * 核心逻辑：
+     * 1. 循环从任务队列中获取任务（poll）。
+     * 2. 获取到任务后，更新任务列表的忙碌时间（updateTime）。
+     * 3. 执行任务（task.run()）。
+     * 4. 任务执行成功后，完成 Future（task.completeSuccess()）。
+     * 5. 任务执行失败后，完成 Future 并打印错误日志（task.completeExceptionally()）。
+     */
     private void executeSlotTasks(int slotIndex) {
         TaskList list = this.taskLists[slotIndex];
         TaskNode task;
@@ -292,6 +331,9 @@ public class ExecutorPool {
         }
     }
 
+    /**
+     * 检查并记录超时任务。
+     */
     private void checkAndLogTimeout(int slotIndex) {
         long busySince = this.taskLists[slotIndex].getBusySinceMs();
         if (busySince <= 0L) {
@@ -313,6 +355,9 @@ public class ExecutorPool {
         }
     }
 
+    /**
+     * 记录线程堆栈信息。
+     */
     private void logStackTrace(long processorId) {
         Thread thread = ThreadPool.getThread(processorId);
         if (thread == null) {
