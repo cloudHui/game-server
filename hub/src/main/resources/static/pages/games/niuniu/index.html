@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牛牛 - 牌桌</title>
+    <link rel="stylesheet" href="../../../shared/game-table.css">
+    <link rel="stylesheet" href="../../../shared/game-landscape.css">
+    <link rel="stylesheet" href="../../../shared/poker-card.css">
+    <link rel="stylesheet" href="../../../shared/poker-table.css">
+    <link rel="stylesheet" href="./niuniu.css">
+    <script src="../../../shared/app-base.js"></script>
+    <script src="../../../shared/room-config.js"></script>
+    <script src="../../../shared/game-table.js"></script>
+    <script src="../../../shared/game-landscape.js"></script>
+    <script src="../../../shared/poker-card.js"></script>
+    <script src="../../../shared/table-seat-view.js"></script>
+    <meta name="screen-orientation" content="landscape">
+</head>
+<body data-game-type="5">
+<div class="table-bg">
+    <div class="top-bar">
+        <span class="room-info" id="roundInfo">牌桌加载中...</span>
+        <span id="tableState">等待准备</span>
+        <span id="multipleInfo">四人明牌抢庄</span>
+        <button class="back-btn" id="refreshTableBtn" onclick="refreshTable()">刷新牌桌</button>
+        <button class="back-btn" onclick="backToLobby()">返回房间列表</button>
+        <button class="back-btn" onclick="exitRoom()" style="margin-left:8px;background:rgba(198,40,40,0.85);">
+            退出房间
+        </button>
+    </div>
+    <div class="ws-status" id="wsStatus">连接中...</div>
+
+    <!-- 顶部对家 -->
+    <div class="player-area player-top">
+        <div class="player-info" id="playerTop"><span class="name">等待加入</span></div>
+        <div class="opponent-cards" id="cardsTop"></div>
+    </div>
+
+    <!-- 左侧上家 -->
+    <div class="player-area player-left">
+        <div class="player-info" id="playerLeft"><span class="name">等待加入</span></div>
+        <div class="opponent-cards" id="cardsLeft"></div>
+    </div>
+
+    <!-- 右侧下家 -->
+    <div class="player-area player-right">
+        <div class="player-info" id="playerRight"><span class="name">等待加入</span></div>
+        <div class="opponent-cards" id="cardsRight"></div>
+    </div>
+
+    <!-- 中央提示信息 -->
+    <div class="center-message" id="centerMsg"></div>
+
+    <!-- 结算浮层 -->
+    <div class="settle-overlay" id="settleOverlay">
+        <div class="settle-panel">
+            <h3 id="settleTitle">本局结算</h3>
+            <div class="meta" id="settleMeta"></div>
+            <div id="settleRows"></div>
+            <div class="settle-hands" id="settleHands"></div>
+            <div class="settle-countdown" id="settleCountdown"></div>
+            <button onclick="closeSettle()">继续</button>
+        </div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="action-bar" id="actionBar" style="display:none;"></div>
+
+    <!-- 底部本家 -->
+    <div class="player-area player-bottom">
+        <div class="player-info" id="playerBottom"><span class="name" id="myName">我</span></div>
+        <div class="my-cards" id="myCards"></div>
+    </div>
+</div>
+
+<script src="./niuniu-rule.js"></script>
+<script src="./niuniu-op.js"></script>
+<script src="./niuniu.js"></script>
+</body>
+</html>

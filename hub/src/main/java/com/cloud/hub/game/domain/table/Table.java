@@ -58,7 +58,8 @@ public abstract class Table implements FrameSyncRoom {
 
     private TableState tableState = TableState.WAITING;
     private long stateStartTime;
-    private int errorTimes;
+    /** 连续状态处理异常计数（正常执行成功自动清零） */
+    private int consecutiveErrors;
 
     private final Operate op;
     private final Set<Integer> readySet = ConcurrentHashMap.newKeySet();
@@ -66,7 +67,8 @@ public abstract class Table implements FrameSyncRoom {
     private final GameResult gameResult;
     private ReplayRecorder replayRecorder;
 
-    private static final int MAX_ERROR = 100;
+    /** 连续状态处理异常上限（超过立即熔断解散，防死循环与僵尸桌） */
+    private static final int MAX_CONSECUTIVE_ERRORS = 3;
     private static final long LOOP_INTERVAL = 500;
     private static final long IDLE_LOOP_INTERVAL = 2000;
     private static final AtomicInteger ROBOT_ID_SEQ = new AtomicInteger(-100000);
@@ -203,6 +205,13 @@ public abstract class Table implements FrameSyncRoom {
         return seatUsers.size() >= tableModel.getSeatNum();
     }
 
+    /**
+     * 判断是否满足开局条件（默认坐满开局，具体玩法可重写多态定制，如牛牛至少2人准备即可开局）。
+     */
+    public boolean canStartGame() {
+        return sitFull();
+    }
+
     public boolean isEmpty() {
         return users.isEmpty();
     }
@@ -283,6 +292,7 @@ public abstract class Table implements FrameSyncRoom {
                 logger.warn("补机器人失败, tableId: {}, result: {}", tableId, result);
                 break;
             }
+            addReady(botId);
             added++;
         }
         if (added > 0) {
@@ -291,6 +301,34 @@ public abstract class Table implements FrameSyncRoom {
                     tableId, added, seatUsers.size(), tableModel.getSeatNum());
             notifySeatPlayers();
         }
+    }
+
+    /**
+     * 向桌子空位添加一个陪玩机器人
+     *
+     * @return 添加成功返回 true，已满返回 false
+     */
+    public boolean addOneRobot() {
+        if (sitFull()) {
+            return false;
+        }
+        int botId = ROBOT_ID_SEQ.decrementAndGet();
+        if (botId >= 0) {
+            ROBOT_ID_SEQ.set(-100000);
+            botId = ROBOT_ID_SEQ.decrementAndGet();
+        }
+        TableUser bot = new TableUser(botId, "", randomBotName(), 0);
+        bot.setRobot(true);
+        int result = addUser(bot);
+        if (result == ConstProto.Result.SUCCESS_VALUE) {
+            addReady(botId);
+            runtimeAutoPlay = true;
+            logger.info("手动添加机器人入座, tableId: {}, botId: {}, seated: {}/{}",
+                    tableId, botId, seatUsers.size(), tableModel.getSeatNum());
+            notifySeatPlayers();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -382,9 +420,25 @@ public abstract class Table implements FrameSyncRoom {
         }
     }
 
+    /**
+     * 连续状态处理异常累加，达到上限后触发熔断解散（防不可逆死循环）
+     */
     public void addErrorTime() {
-        if (++errorTimes >= MAX_ERROR)
-            upNextState(TableState.TABLE_OVER);
+        if (++consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            if (!beginClosing()) {
+                return;
+            }
+            logger.error("桌子连续发生 {} 次状态处理异常，触发熔断解散! tableId: {}, state: {}",
+                    consecutiveErrors, tableId, tableState);
+            Game.getInstance().getTableManager().removeTableAsync(tableId);
+        }
+    }
+
+    /**
+     * 状态正常执行成功，重置连续异常计数
+     */
+    public void resetErrorTime() {
+        this.consecutiveErrors = 0;
     }
 
     // ======================== 定时器 ========================
@@ -488,6 +542,9 @@ public abstract class Table implements FrameSyncRoom {
     }
 
     public void tableLoop() {
+        if (closing) {
+            return;
+        }
         try {
             TraceContext.setTableId(tableId);
             com.cloud.hub.framework.metrics.HubMetrics metrics = com.cloud.hub.framework.metrics.HubMetrics.getInstance();
@@ -618,6 +675,22 @@ public abstract class Table implements FrameSyncRoom {
 
     public boolean allReady() {
         return readySet.size() >= tableModel.getSeatNum();
+    }
+
+    /**
+     * 判断当前已就座的所有玩家是否均已点击准备。
+     * <p>陪练机器人默认就绪，仅强制校验在座真人玩家。</p>
+     */
+    public boolean isAllSeatedReady() {
+        if (seatUsers.isEmpty()) {
+            return false;
+        }
+        for (TableUser user : seatUsers.values()) {
+            if (!user.isRobot() && !readySet.contains(user.getUserId())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int getReadyCount() {

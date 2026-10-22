@@ -12,13 +12,14 @@ public final class RobotRoomTemplates {
     public static final int DOU_DIZHU_ROB_ROOM_ID = 9003;
     public static final int PAO_DE_KUAI_ROOM_ID = 9010;
     public static final int TRACTOR_ROOM_ID = 9011;
+    public static final int NIUNIU_ROOM_ID = 9020;
 
     private RobotRoomTemplates() {
     }
 
     public static boolean isRobotRoom(int roomId) {
         return roomId == MAHJONG_ROOM_ID || roomId == DOU_DIZHU_ROOM_ID || roomId == DOU_DIZHU_ROB_ROOM_ID
-                || roomId == PAO_DE_KUAI_ROOM_ID || roomId == TRACTOR_ROOM_ID;
+                || roomId == PAO_DE_KUAI_ROOM_ID || roomId == TRACTOR_ROOM_ID || roomId == NIUNIU_ROOM_ID;
     }
 
     /**
@@ -64,12 +65,22 @@ public final class RobotRoomTemplates {
                 + "\"autoNextRound\":1,\"autoPlay\":1}");
     }
 
+    /**
+     * 牛牛快速房：4 人明牌抢庄。
+     */
+    public static TableModel niuniu() {
+        return TableModelJson.parse("{\"id\":9020,\"type\":5,\"seatNum\":4,\"cardNum\":5,"
+                + "\"exCardNum\":0,\"baseScore\":1,\"maxFan\":16,\"totalRounds\":4,"
+                + "\"autoNextRound\":1,\"autoPlay\":1}");
+    }
+
     public static void register(TableConfigManagerFacade manager) {
         manager.put(mahjong());
         manager.put(douDiZhu());
         manager.put(douDiZhuRob());
         manager.put(paoDeKuai());
         manager.put(tractor());
+        manager.put(niuniu());
     }
 
     /**

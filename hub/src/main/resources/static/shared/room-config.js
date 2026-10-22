@@ -8,13 +8,15 @@
         9002: {gameType: 2, seats: 3, quick: true, testName: '斗地主（叫地主）'},
         9003: {gameType: 2, seats: 3, quick: true, testName: '斗地主（抢地主）'},
         9010: {gameType: 3, seats: 3, quick: true, testName: '跑得快（三人）'},
-        9011: {gameType: 4, seats: 4, quick: true, testName: '拖拉机（四人两副）'}
+        9011: {gameType: 4, seats: 4, quick: true, testName: '拖拉机（四人两副）'},
+        9020: {gameType: 5, seats: 4, quick: true, testName: '牛牛（四人明牌抢庄）'}
     };
     var games = {
         1: {name: '麻将', page: '/pages/games/mahjong/index.html', defaultSeats: 4},
         2: {name: '斗地主', page: '/pages/games/doudizhu/index.html', defaultSeats: 3},
         3: {name: '跑得快', page: '/pages/games/paodekuai/index.html', defaultSeats: 3},
-        4: {name: '拖拉机', page: '/pages/games/tractor/index.html', defaultSeats: 4}
+        4: {name: '拖拉机', page: '/pages/games/tractor/index.html', defaultSeats: 4},
+        5: {name: '牛牛', page: '/pages/games/niuniu/index.html', defaultSeats: 4}
     };
     function room(roomId) { return rooms[Number(roomId)] || null; }
     function ruleTip(roomId, gameType) {
@@ -28,9 +30,11 @@
             9002: '经典斗地主 · 4局 · ' + seats + '人 · 17张手牌 · 3张底牌 · 轮流叫/抢地主',
             9003: '电脑快速房间 · 4局 · 叫地主后逆时针抢/再抢 · 抢一次倍数翻倍',
             9010: '跑得快 · 4局 · ' + seats + '人 · 16张手牌 · 方块3先出',
-            9011: '拖拉机 · 4局 · ' + seats + '人 · 两副牌 · 级牌升级'
+            9011: '拖拉机 · 4局 · ' + seats + '人 · 两副牌 · 级牌升级',
+            9020: '牛牛 · 4局 · ' + seats + '人 · 5张手牌 · 明牌抢庄拼牛'
         };
         if (tips[roomId]) return tips[roomId];
+        if (gameType === 5) return '牛牛 · ' + seats + '人 · 5张手牌 · 明牌抢庄';
         if (gameType === 3) return '跑得快 · ' + seats + '人 · 16张手牌';
         if (gameType === 4) return '拖拉机 · ' + seats + '人 · 两副牌';
         if (gameType === 2) return '经典斗地主 · ' + seats + '人 · 17张手牌 · 3张底牌';

@@ -91,6 +91,7 @@ public class TableStateHandleManager {
         }
         try {
             exit = handle.handle(table);
+            table.resetErrorTime();
         } catch (Exception e) {
             table.addErrorTime();
             logger.error("桌子状态处理异常, tableId: {}, state: {}",

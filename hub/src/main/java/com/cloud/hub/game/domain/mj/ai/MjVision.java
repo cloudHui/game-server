@@ -2,7 +2,7 @@ package com.cloud.hub.game.domain.mj.ai;
 
 import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
-import com.cloud.hub.game.domain.ddz.ai.AiVision;
+import com.cloud.hub.game.domain.ai.AiVision;
 import com.cloud.hub.game.domain.mj.MjExposedSet;
 import com.cloud.hub.game.domain.mj.MjTable;
 import com.cloud.hub.game.domain.mj.card.MjConst;

@@ -1,9 +1,6 @@
 package com.cloud.hub.game.domain.cards;
 
 
-import com.cloud.hub.game.domain.card.CardConst;
-import com.cloud.hub.game.domain.card.CardSuit;
-
 /**
  * 扑克牌/麻将牌通用基础数据模型。
  * <p>

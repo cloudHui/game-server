@@ -253,8 +253,6 @@ public final class ConstProto {
     }
 
     /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -262,10 +260,6 @@ public final class ConstProto {
       return forNumber(value);
     }
 
-    /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
-     */
     public static Result forNumber(int value) {
       switch (value) {
         case 0: return SUCCESS;
@@ -300,10 +294,6 @@ public final class ConstProto {
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
         getValueDescriptor() {
-      if (this == UNRECOGNIZED) {
-        throw new java.lang.IllegalStateException(
-            "Can't get the descriptor of an unrecognized enum value.");
-      }
       return getDescriptor().getValues().get(ordinal());
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
@@ -394,8 +384,6 @@ public final class ConstProto {
     }
 
     /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -403,10 +391,6 @@ public final class ConstProto {
       return forNumber(value);
     }
 
-    /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
-     */
     public static TableState forNumber(int value) {
       switch (value) {
         case 0: return WAIT;
@@ -429,10 +413,6 @@ public final class ConstProto {
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
         getValueDescriptor() {
-      if (this == UNRECOGNIZED) {
-        throw new java.lang.IllegalStateException(
-            "Can't get the descriptor of an unrecognized enum value.");
-      }
       return getDescriptor().getValues().get(ordinal());
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
@@ -628,6 +608,94 @@ public final class ConstProto {
      * <code>MJ_PASS = 18;</code>
      */
     MJ_PASS(18),
+    /**
+     * <pre>
+     * 牛牛操作
+     * </pre>
+     *
+     * <code>NIU_NO_ROB = 20;</code>
+     */
+    NIU_NO_ROB(20),
+    /**
+     * <pre>
+     *牛牛抢1倍
+     * </pre>
+     *
+     * <code>NIU_ROB_1 = 21;</code>
+     */
+    NIU_ROB_1(21),
+    /**
+     * <pre>
+     *牛牛抢2倍
+     * </pre>
+     *
+     * <code>NIU_ROB_2 = 22;</code>
+     */
+    NIU_ROB_2(22),
+    /**
+     * <pre>
+     *牛牛抢3倍
+     * </pre>
+     *
+     * <code>NIU_ROB_3 = 23;</code>
+     */
+    NIU_ROB_3(23),
+    /**
+     * <pre>
+     *牛牛抢4倍
+     * </pre>
+     *
+     * <code>NIU_ROB_4 = 24;</code>
+     */
+    NIU_ROB_4(24),
+    /**
+     * <pre>
+     *牛牛下注1倍
+     * </pre>
+     *
+     * <code>NIU_BET_1 = 25;</code>
+     */
+    NIU_BET_1(25),
+    /**
+     * <pre>
+     *牛牛下注2倍
+     * </pre>
+     *
+     * <code>NIU_BET_2 = 26;</code>
+     */
+    NIU_BET_2(26),
+    /**
+     * <pre>
+     *牛牛下注3倍
+     * </pre>
+     *
+     * <code>NIU_BET_3 = 27;</code>
+     */
+    NIU_BET_3(27),
+    /**
+     * <pre>
+     *牛牛下注4倍
+     * </pre>
+     *
+     * <code>NIU_BET_4 = 28;</code>
+     */
+    NIU_BET_4(28),
+    /**
+     * <pre>
+     *牛牛下注5倍
+     * </pre>
+     *
+     * <code>NIU_BET_5 = 29;</code>
+     */
+    NIU_BET_5(29),
+    /**
+     * <pre>
+     *牛牛拼牛摊牌
+     * </pre>
+     *
+     * <code>NIU_SHOW = 30;</code>
+     */
+    NIU_SHOW(30),
     UNRECOGNIZED(-1),
     ;
 
@@ -783,6 +851,94 @@ public final class ConstProto {
      * <code>MJ_PASS = 18;</code>
      */
     public static final int MJ_PASS_VALUE = 18;
+    /**
+     * <pre>
+     * 牛牛操作
+     * </pre>
+     *
+     * <code>NIU_NO_ROB = 20;</code>
+     */
+    public static final int NIU_NO_ROB_VALUE = 20;
+    /**
+     * <pre>
+     *牛牛抢1倍
+     * </pre>
+     *
+     * <code>NIU_ROB_1 = 21;</code>
+     */
+    public static final int NIU_ROB_1_VALUE = 21;
+    /**
+     * <pre>
+     *牛牛抢2倍
+     * </pre>
+     *
+     * <code>NIU_ROB_2 = 22;</code>
+     */
+    public static final int NIU_ROB_2_VALUE = 22;
+    /**
+     * <pre>
+     *牛牛抢3倍
+     * </pre>
+     *
+     * <code>NIU_ROB_3 = 23;</code>
+     */
+    public static final int NIU_ROB_3_VALUE = 23;
+    /**
+     * <pre>
+     *牛牛抢4倍
+     * </pre>
+     *
+     * <code>NIU_ROB_4 = 24;</code>
+     */
+    public static final int NIU_ROB_4_VALUE = 24;
+    /**
+     * <pre>
+     *牛牛下注1倍
+     * </pre>
+     *
+     * <code>NIU_BET_1 = 25;</code>
+     */
+    public static final int NIU_BET_1_VALUE = 25;
+    /**
+     * <pre>
+     *牛牛下注2倍
+     * </pre>
+     *
+     * <code>NIU_BET_2 = 26;</code>
+     */
+    public static final int NIU_BET_2_VALUE = 26;
+    /**
+     * <pre>
+     *牛牛下注3倍
+     * </pre>
+     *
+     * <code>NIU_BET_3 = 27;</code>
+     */
+    public static final int NIU_BET_3_VALUE = 27;
+    /**
+     * <pre>
+     *牛牛下注4倍
+     * </pre>
+     *
+     * <code>NIU_BET_4 = 28;</code>
+     */
+    public static final int NIU_BET_4_VALUE = 28;
+    /**
+     * <pre>
+     *牛牛下注5倍
+     * </pre>
+     *
+     * <code>NIU_BET_5 = 29;</code>
+     */
+    public static final int NIU_BET_5_VALUE = 29;
+    /**
+     * <pre>
+     *牛牛拼牛摊牌
+     * </pre>
+     *
+     * <code>NIU_SHOW = 30;</code>
+     */
+    public static final int NIU_SHOW_VALUE = 30;
 
 
     public final int getNumber() {
@@ -794,8 +950,6 @@ public final class ConstProto {
     }
 
     /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -803,10 +957,6 @@ public final class ConstProto {
       return forNumber(value);
     }
 
-    /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
-     */
     public static Operation forNumber(int value) {
       switch (value) {
         case 0: return PASS;
@@ -828,6 +978,17 @@ public final class ConstProto {
         case 16: return MJ_CHI;
         case 17: return MJ_HU;
         case 18: return MJ_PASS;
+        case 20: return NIU_NO_ROB;
+        case 21: return NIU_ROB_1;
+        case 22: return NIU_ROB_2;
+        case 23: return NIU_ROB_3;
+        case 24: return NIU_ROB_4;
+        case 25: return NIU_BET_1;
+        case 26: return NIU_BET_2;
+        case 27: return NIU_BET_3;
+        case 28: return NIU_BET_4;
+        case 29: return NIU_BET_5;
+        case 30: return NIU_SHOW;
         default: return null;
       }
     }
@@ -846,10 +1007,6 @@ public final class ConstProto {
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
         getValueDescriptor() {
-      if (this == UNRECOGNIZED) {
-        throw new java.lang.IllegalStateException(
-            "Can't get the descriptor of an unrecognized enum value.");
-      }
       return getDescriptor().getValues().get(ordinal());
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
@@ -997,6 +1154,126 @@ public final class ConstProto {
      * <code>BOOM_MAX = 12;</code>
      */
     BOOM_MAX(12),
+    /**
+     * <pre>
+     * 牛牛牌型
+     * </pre>
+     *
+     * <code>NIU_NONE = 20;</code>
+     */
+    NIU_NONE(20),
+    /**
+     * <pre>
+     *牛一
+     * </pre>
+     *
+     * <code>NIU_1 = 21;</code>
+     */
+    NIU_1(21),
+    /**
+     * <pre>
+     *牛二
+     * </pre>
+     *
+     * <code>NIU_2 = 22;</code>
+     */
+    NIU_2(22),
+    /**
+     * <pre>
+     *牛三
+     * </pre>
+     *
+     * <code>NIU_3 = 23;</code>
+     */
+    NIU_3(23),
+    /**
+     * <pre>
+     *牛四
+     * </pre>
+     *
+     * <code>NIU_4 = 24;</code>
+     */
+    NIU_4(24),
+    /**
+     * <pre>
+     *牛五
+     * </pre>
+     *
+     * <code>NIU_5 = 25;</code>
+     */
+    NIU_5(25),
+    /**
+     * <pre>
+     *牛六
+     * </pre>
+     *
+     * <code>NIU_6 = 26;</code>
+     */
+    NIU_6(26),
+    /**
+     * <pre>
+     *牛七
+     * </pre>
+     *
+     * <code>NIU_7 = 27;</code>
+     */
+    NIU_7(27),
+    /**
+     * <pre>
+     *牛八
+     * </pre>
+     *
+     * <code>NIU_8 = 28;</code>
+     */
+    NIU_8(28),
+    /**
+     * <pre>
+     *牛九
+     * </pre>
+     *
+     * <code>NIU_9 = 29;</code>
+     */
+    NIU_9(29),
+    /**
+     * <pre>
+     *牛牛
+     * </pre>
+     *
+     * <code>NIU_NIU = 30;</code>
+     */
+    NIU_NIU(30),
+    /**
+     * <pre>
+     *四花牛
+     * </pre>
+     *
+     * <code>NIU_FOUR_FLOWERS = 31;</code>
+     */
+    NIU_FOUR_FLOWERS(31),
+    /**
+     * <pre>
+     *五花牛
+     * </pre>
+     *
+     * <code>NIU_FIVE_FLOWERS = 32;</code>
+     */
+    NIU_FIVE_FLOWERS(32),
+    /**
+     * <pre>
+     *炸弹牛
+     * </pre>
+     *
+     * <code>NIU_BOMB = 33;</code>
+     */
+    NIU_BOMB(33),
+    /**
+     * <pre>
+     *五小牛
+     * </pre>
+     *
+     * <code>NIU_FIVE_SMALL = 34;</code>
+     */
+    NIU_FIVE_SMALL(34),
     UNRECOGNIZED(-1),
     ;
 
@@ -1104,6 +1381,126 @@ public final class ConstProto {
      * <code>BOOM_MAX = 12;</code>
      */
     public static final int BOOM_MAX_VALUE = 12;
+    /**
+     * <pre>
+     * 牛牛牌型
+     * </pre>
+     *
+     * <code>NIU_NONE = 20;</code>
+     */
+    public static final int NIU_NONE_VALUE = 20;
+    /**
+     * <pre>
+     *牛一
+     * </pre>
+     *
+     * <code>NIU_1 = 21;</code>
+     */
+    public static final int NIU_1_VALUE = 21;
+    /**
+     * <pre>
+     *牛二
+     * </pre>
+     *
+     * <code>NIU_2 = 22;</code>
+     */
+    public static final int NIU_2_VALUE = 22;
+    /**
+     * <pre>
+     *牛三
+     * </pre>
+     *
+     * <code>NIU_3 = 23;</code>
+     */
+    public static final int NIU_3_VALUE = 23;
+    /**
+     * <pre>
+     *牛四
+     * </pre>
+     *
+     * <code>NIU_4 = 24;</code>
+     */
+    public static final int NIU_4_VALUE = 24;
+    /**
+     * <pre>
+     *牛五
+     * </pre>
+     *
+     * <code>NIU_5 = 25;</code>
+     */
+    public static final int NIU_5_VALUE = 25;
+    /**
+     * <pre>
+     *牛六
+     * </pre>
+     *
+     * <code>NIU_6 = 26;</code>
+     */
+    public static final int NIU_6_VALUE = 26;
+    /**
+     * <pre>
+     *牛七
+     * </pre>
+     *
+     * <code>NIU_7 = 27;</code>
+     */
+    public static final int NIU_7_VALUE = 27;
+    /**
+     * <pre>
+     *牛八
+     * </pre>
+     *
+     * <code>NIU_8 = 28;</code>
+     */
+    public static final int NIU_8_VALUE = 28;
+    /**
+     * <pre>
+     *牛九
+     * </pre>
+     *
+     * <code>NIU_9 = 29;</code>
+     */
+    public static final int NIU_9_VALUE = 29;
+    /**
+     * <pre>
+     *牛牛
+     * </pre>
+     *
+     * <code>NIU_NIU = 30;</code>
+     */
+    public static final int NIU_NIU_VALUE = 30;
+    /**
+     * <pre>
+     *四花牛
+     * </pre>
+     *
+     * <code>NIU_FOUR_FLOWERS = 31;</code>
+     */
+    public static final int NIU_FOUR_FLOWERS_VALUE = 31;
+    /**
+     * <pre>
+     *五花牛
+     * </pre>
+     *
+     * <code>NIU_FIVE_FLOWERS = 32;</code>
+     */
+    public static final int NIU_FIVE_FLOWERS_VALUE = 32;
+    /**
+     * <pre>
+     *炸弹牛
+     * </pre>
+     *
+     * <code>NIU_BOMB = 33;</code>
+     */
+    public static final int NIU_BOMB_VALUE = 33;
+    /**
+     * <pre>
+     *五小牛
+     * </pre>
+     *
+     * <code>NIU_FIVE_SMALL = 34;</code>
+     */
+    public static final int NIU_FIVE_SMALL_VALUE = 34;
 
 
     public final int getNumber() {
@@ -1115,8 +1512,6 @@ public final class ConstProto {
     }
 
     /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -1124,10 +1519,6 @@ public final class ConstProto {
       return forNumber(value);
     }
 
-    /**
-     * @param value The numeric wire value of the corresponding enum entry.
-     * @return The enum associated with the given numeric wire value.
-     */
     public static CardType forNumber(int value) {
       switch (value) {
         case 0: return SINGLE;
@@ -1143,6 +1534,21 @@ public final class ConstProto {
         case 10: return STRAIGHT_DOUBLE;
         case 11: return BOOM;
         case 12: return BOOM_MAX;
+        case 20: return NIU_NONE;
+        case 21: return NIU_1;
+        case 22: return NIU_2;
+        case 23: return NIU_3;
+        case 24: return NIU_4;
+        case 25: return NIU_5;
+        case 26: return NIU_6;
+        case 27: return NIU_7;
+        case 28: return NIU_8;
+        case 29: return NIU_9;
+        case 30: return NIU_NIU;
+        case 31: return NIU_FOUR_FLOWERS;
+        case 32: return NIU_FIVE_FLOWERS;
+        case 33: return NIU_BOMB;
+        case 34: return NIU_FIVE_SMALL;
         default: return null;
       }
     }
@@ -1161,10 +1567,6 @@ public final class ConstProto {
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
         getValueDescriptor() {
-      if (this == UNRECOGNIZED) {
-        throw new java.lang.IllegalStateException(
-            "Can't get the descriptor of an unrecognized enum value.");
-      }
       return getDescriptor().getValues().get(ordinal());
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
@@ -1215,25 +1617,42 @@ public final class ConstProto {
       "ABLE_NULL\020\007\022\016\n\nTABLE_FULL\020\010\022\017\n\013TABLE_ERR" +
       "OR\020\t\022\016\n\nROLE_ERROR\020\n\022\r\n\tROLE_NULL\020\013\022\021\n\rO" +
       "P_CURR_ERROR\020\014\022\025\n\021OP_CARD_NOT_MATCH\020\r*!\n" +
-      "\nTableState\022\010\n\004WAIT\020\000\022\t\n\005START\020\001*\376\001\n\tOpe" +
+      "\nTableState\022\010\n\004WAIT\020\000\022\t\n\005START\020\001*\243\003\n\tOpe" +
       "ration\022\010\n\004PASS\020\000\022\010\n\004CALL\020\001\022\007\n\003ROB\020\002\022\014\n\010N" +
-      "OT_CALL\020\003\022\013\n\007NOT_ROB\020\004\022\007\n\003TIP\020\005\022\010\n\004PLAY\020" +
+      "OT_CALL\020\003\022\013\n\007NOT_ROB\020\004\022\007\n\003TIP\020\005\022\010\n\004PLAY\020",
       "\006\022\013\n\007PREPARE\020\007\022\016\n\nSTART_GAME\020\010\022\020\n\014CALL_S" +
       "CORE_1\020\t\022\020\n\014CALL_SCORE_2\020\n\022\020\n\014CALL_SCORE" +
       "_3\020\013\022\010\n\004DRAW\020\014\022\013\n\007DISCARD\020\r\022\013\n\007MJ_PENG\020\016" +
       "\022\013\n\007MJ_GANG\020\017\022\n\n\006MJ_CHI\020\020\022\t\n\005MJ_HU\020\021\022\013\n\007" +
-      "MJ_PASS\020\022*\333\001\n\010CardType\022\n\n\006SINGLE\020\000\022\n\n\006DO" +
-      "UBLE\020\001\022\n\n\006TRIPLE\020\002\022\016\n\nTRIPLE_ONE\020\003\022\021\n\rTR" +
-      "IPLE_DOUBLE\020\004\022\r\n\tPLANE_ONE\020\005\022\020\n\014PLANE_DO" +
-      "UBLE\020\006\022\026\n\022BOOM_DOUBLE_SINGLE\020\007\022\024\n\020BOOM_D" +
-      "OUBLE_PAIR\020\010\022\014\n\010STRAIGHT\020\t\022\023\n\017STRAIGHT_D" +
-      "OUBLE\020\n\022\010\n\004BOOM\020\013\022\014\n\010BOOM_MAX\020\014B\014B\nConst" +
-      "Protob\006proto3"
+      "MJ_PASS\020\022\022\016\n\nNIU_NO_ROB\020\024\022\r\n\tNIU_ROB_1\020\025" +
+      "\022\r\n\tNIU_ROB_2\020\026\022\r\n\tNIU_ROB_3\020\027\022\r\n\tNIU_RO" +
+      "B_4\020\030\022\r\n\tNIU_BET_1\020\031\022\r\n\tNIU_BET_2\020\032\022\r\n\tN" +
+      "IU_BET_3\020\033\022\r\n\tNIU_BET_4\020\034\022\r\n\tNIU_BET_5\020\035" +
+      "\022\014\n\010NIU_SHOW\020\036*\247\003\n\010CardType\022\n\n\006SINGLE\020\000\022" +
+      "\n\n\006DOUBLE\020\001\022\n\n\006TRIPLE\020\002\022\016\n\nTRIPLE_ONE\020\003\022",
+      "\021\n\rTRIPLE_DOUBLE\020\004\022\r\n\tPLANE_ONE\020\005\022\020\n\014PLA" +
+      "NE_DOUBLE\020\006\022\026\n\022BOOM_DOUBLE_SINGLE\020\007\022\024\n\020B" +
+      "OOM_DOUBLE_PAIR\020\010\022\014\n\010STRAIGHT\020\t\022\023\n\017STRAI" +
+      "GHT_DOUBLE\020\n\022\010\n\004BOOM\020\013\022\014\n\010BOOM_MAX\020\014\022\014\n\010" +
+      "NIU_NONE\020\024\022\t\n\005NIU_1\020\025\022\t\n\005NIU_2\020\026\022\t\n\005NIU_" +
+      "3\020\027\022\t\n\005NIU_4\020\030\022\t\n\005NIU_5\020\031\022\t\n\005NIU_6\020\032\022\t\n\005" +
+      "NIU_7\020\033\022\t\n\005NIU_8\020\034\022\t\n\005NIU_9\020\035\022\013\n\007NIU_NIU" +
+      "\020\036\022\024\n\020NIU_FOUR_FLOWERS\020\037\022\024\n\020NIU_FIVE_FLO" +
+      "WERS\020 \022\014\n\010NIU_BOMB\020!\022\022\n\016NIU_FIVE_SMALL\020\"" +
+      "B\014B\nConstProtob\006proto3"
     };
-    descriptor = com.google.protobuf.Descriptors.FileDescriptor
+    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
+        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
+          public com.google.protobuf.ExtensionRegistry assignDescriptors(
+              com.google.protobuf.Descriptors.FileDescriptor root) {
+            descriptor = root;
+            return null;
+          }
+        };
+    com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-        });
+        }, assigner);
   }
 
   // @@protoc_insertion_point(outer_class_scope)

@@ -1,13 +1,17 @@
 package com.cloud.hub.game.domain.mj;
 
-import com.cloud.hub.game.domain.table.TableUser;
+import com.cloud.hub.game.domain.mj.jm.JmScoring;
+import com.cloud.hub.game.domain.mj.jm.JmWinChecker;
+import com.cloud.hub.game.domain.mj.kw.KwScoring;
+import com.cloud.hub.game.domain.mj.kw.KwWinChecker;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
-import utils.registry.enums.TableState;
+import com.cloud.hub.game.domain.table.TableUser;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.enums.TableState;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +47,7 @@ public class MjPlayService {
         CHECKER_FACTORIES.put(1, t -> new JmWinChecker(
                 t.getMjContext().getLaiZiTileId(),
                 t.getTableModel().getAllowSevenPairs() != 0));
-        SCORING_FACTORIES.put(1, t -> new JmMjScoring());
+        SCORING_FACTORIES.put(1, t -> new JmScoring());
 
         // subType=2: 卡五星
         CHECKER_FACTORIES.put(2, t -> new KwWinChecker(
@@ -51,7 +55,7 @@ public class MjPlayService {
                 t.getTableModel().getAllowSevenPairs() != 0, true));
         SCORING_FACTORIES.put(2, t -> {
             MjWinChecker checker = CHECKER_FACTORIES.get(2).apply(t);
-            return new KwMjScoring((KwWinChecker) checker);
+            return new KwScoring((KwWinChecker) checker);
         });
     }
 
@@ -165,6 +169,6 @@ public class MjPlayService {
         Function<MjTable, MjScoring> factory = SCORING_FACTORIES.get(subType);
         if (factory != null) return factory.apply(table);
         // 默认：标准麻将计分
-        return new JmMjScoring();
+        return new JmScoring();
     }
 }

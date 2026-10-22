@@ -34,7 +34,7 @@ public class Waiting extends AbstractTableHandle {
 
     @Override
     public boolean onTiming(Table table) {
-        if (table.sitFull()) {
+        if (table.canStartGame()) {
             if (table.isAllRobot() && !table.isRobotRoom()) {
                 logger.info("普通桌全机器人不开局，解散桌子, tableId: {}", table.getTableId());
                 table.upNextState(TableState.TABLE_DIS);

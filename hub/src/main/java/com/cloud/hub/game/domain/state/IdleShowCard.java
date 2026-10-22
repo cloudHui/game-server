@@ -19,7 +19,7 @@ import utils.registry.enums.TableState;
 public class IdleShowCard extends AbstractTableHandle {
 
     /** 拖拉机扣底时限兼容常量 */
-    public static final int TRACTOR_BURY_SECONDS = com.cloud.hub.game.domain.tractor.TractorTable.TRACTOR_BURY_SECONDS;
+    public static final int TRACTOR_BURY_SECONDS = com.cloud.hub.game.domain.poker.tractor.TractorTable.TRACTOR_BURY_SECONDS;
 
     @Override
     public boolean handle(Table table) {

@@ -49,6 +49,18 @@ enum Operation{
     MJ_CHI = 16;//吃(麻将)
     MJ_HU = 17;//胡(麻将)
     MJ_PASS = 18;//过(麻将)
+    // 牛牛操作
+    NIU_NO_ROB = 20;//牛牛不抢
+    NIU_ROB_1 = 21;//牛牛抢1倍
+    NIU_ROB_2 = 22;//牛牛抢2倍
+    NIU_ROB_3 = 23;//牛牛抢3倍
+    NIU_ROB_4 = 24;//牛牛抢4倍
+    NIU_BET_1 = 25;//牛牛下注1倍
+    NIU_BET_2 = 26;//牛牛下注2倍
+    NIU_BET_3 = 27;//牛牛下注3倍
+    NIU_BET_4 = 28;//牛牛下注4倍
+    NIU_BET_5 = 29;//牛牛下注5倍
+    NIU_SHOW = 30;//牛牛拼牛摊牌
 }
 
 //牌型
@@ -66,4 +78,20 @@ enum CardType{
     STRAIGHT_DOUBLE = 10;//连对子
     BOOM = 11;//炸弹
     BOOM_MAX = 12;//双王炸
+    // 牛牛牌型
+    NIU_NONE = 20;//无牛
+    NIU_1 = 21;//牛一
+    NIU_2 = 22;//牛二
+    NIU_3 = 23;//牛三
+    NIU_4 = 24;//牛四
+    NIU_5 = 25;//牛五
+    NIU_6 = 26;//牛六
+    NIU_7 = 27;//牛七
+    NIU_8 = 28;//牛八
+    NIU_9 = 29;//牛九
+    NIU_NIU = 30;//牛牛
+    NIU_FOUR_FLOWERS = 31;//四花牛
+    NIU_FIVE_FLOWERS = 32;//五花牛
+    NIU_BOMB = 33;//炸弹牛
+    NIU_FIVE_SMALL = 34;//五小牛
 }

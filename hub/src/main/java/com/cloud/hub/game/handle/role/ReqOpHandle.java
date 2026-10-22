@@ -105,9 +105,14 @@ public class ReqOpHandle implements Handler {
 			GameProto.OpInfo op = request.getOp();
 			TableState ts = table.getTableState();
 
-			// 1. 局间结算状态 (TABLE_OVER)：只接受准备下一局操作
-			if (ts == TableState.TABLE_OVER) {
-				return processPrepare(table, userId, op);
+			// 1. 等待准备状态 (WAITING) 与 局间结算状态 (TABLE_OVER)：支持玩家点击准备
+			if (ts == TableState.WAITING || ts == TableState.TABLE_OVER) {
+				if (op.getChoice() == ConstProto.Operation.PREPARE) {
+					return processPrepare(table, userId, op);
+				}
+				if (!table.gaming()) {
+					return ConstProto.Result.TABLE_NOT_START_VALUE;
+				}
 			}
 
 			// 2. 校验牌局是否已正式开始

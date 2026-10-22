@@ -4,10 +4,11 @@ import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.Game;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.ddz.DdzTable;
+import com.cloud.hub.game.domain.poker.ddz.DdzTable;
 import com.cloud.hub.game.domain.mj.MjTable;
-import com.cloud.hub.game.domain.pdk.PdkTable;
-import com.cloud.hub.game.domain.tractor.TractorTable;
+import com.cloud.hub.game.domain.poker.niuniu.NiuniuTable;
+import com.cloud.hub.game.domain.poker.pdk.PdkTable;
+import com.cloud.hub.game.domain.poker.tractor.TractorTable;
 import com.cloud.hub.game.manager.thread.GameThreadPoolManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
@@ -262,6 +263,8 @@ public class TableManager {
                 table = new PdkTable(getTableId(), model, role);
             } else if (model.getType() == 4) {
                 table = new TractorTable(getTableId(), model, role);
+            } else if (model.getType() == 5) {
+                table = new NiuniuTable(getTableId(), model, role);
             } else {
                 table = new DdzTable(getTableId(), model, role);
             }

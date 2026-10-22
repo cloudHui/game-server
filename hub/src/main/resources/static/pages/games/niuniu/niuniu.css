@@ -1,0 +1,141 @@
+/**
+ * 牛牛专用样式：庄家标记、抢庄/下注倍数、牛型角标与结算动效。
+ */
+.banker-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    margin-left: 4px;
+}
+
+.mult-tag {
+    display: inline-block;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+.mult-tag.rob {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+.mult-tag.bet {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+.mult-tag.pass {
+    color: #94a3b8;
+}
+
+/* 牛型徽章（显示在玩家手牌上方） */
+.niu-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    animation: popIn 0.25s ease-out;
+}
+
+.niu-badge.niu-none {
+    background: linear-gradient(135deg, #64748b, #475569);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.niu-badge.niu-low {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: 1px solid rgba(147, 197, 253, 0.5);
+}
+
+.niu-badge.niu-high {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border: 1px solid rgba(196, 181, 253, 0.6);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
+.niu-badge.niu-niu {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: 1px solid rgba(252, 165, 165, 0.7);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+}
+
+.niu-badge.niu-special {
+    background: linear-gradient(135deg, #f59e0b, #b45309);
+    border: 1px solid rgba(253, 230, 138, 0.8);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+}
+
+@keyframes popIn {
+    0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* 飘分动效 */
+.score-float {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: 800;
+    z-index: 30;
+    pointer-events: none;
+    animation: floatUp 1.8s ease-out forwards;
+}
+
+.score-float.win {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.score-float.lose {
+    color: #94a3b8;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes floatUp {
+    0% { transform: translate(-50%, 0); opacity: 0; }
+    20% { transform: translate(-50%, -10px); opacity: 1; }
+    80% { transform: translate(-50%, -24px); opacity: 1; }
+    100% { transform: translate(-50%, -36px); opacity: 0; }
+}
+
+/* 操作栏按钮风格优化 */
+.action-bar .btn-rob {
+    background: linear-gradient(180deg, #f59e0b, #d97706);
+    border-color: #b45309;
+    color: #fff;
+}
+
+.action-bar .btn-bet {
+    background: linear-gradient(180deg, #10b981, #059669);
+    border-color: #047857;
+    color: #fff;
+}
+
+.action-bar .btn-show {
+    background: linear-gradient(180deg, #ec4899, #db2777);
+    border-color: #be185d;
+    color: #fff;
+}

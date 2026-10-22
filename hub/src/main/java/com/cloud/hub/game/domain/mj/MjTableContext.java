@@ -1,6 +1,6 @@
 package com.cloud.hub.game.domain.mj;
 
-import com.cloud.hub.game.domain.ddz.ai.AiVision;
+import com.cloud.hub.game.domain.ai.AiVision;
 
 import java.util.ArrayList;
 import java.util.Collections;
