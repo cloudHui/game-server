@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 /**
  * Game 进程线程资源唯一入口。
  * <p>
- * 整合原先分散的桌执行器与桌管理执行器，四类任务通过对应能力提交，
+ * 统一提供桌业务执行器与桌管理执行器，四类任务通过对应能力提交，
  * 避免桌内逻辑、玩家请求、桌管理和数据库互相阻塞。
  */
 public final class GameThreadPoolManager {
@@ -57,6 +57,10 @@ public final class GameThreadPoolManager {
 
     public ExecutorService databasePool() {
         return databasePool;
+    }
+
+    public ScheduledExecutorService scheduler() {
+        return tableScheduler;
     }
 
     /**

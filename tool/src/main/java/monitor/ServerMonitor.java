@@ -3,8 +3,7 @@ package monitor;
 import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.concurrent.thread.ExecutorPool;
-import utils.concurrent.timer.Timer;
+import java.util.concurrent.ScheduledExecutorService;
 import tools.ding.DingTalkWaring;
 import utils.system.ExecCommand;
 
@@ -46,18 +45,19 @@ public class ServerMonitor {
         if (warning < DEFAULT_DELAY) {
             warning = DEFAULT_DELAY;
         }
-        int coreNUm = Runtime.getRuntime().availableProcessors();
-        ExecutorPool pool = new ExecutorPool("waring", coreNUm);
-        Timer timer = new Timer();
-        timer.setRunners(pool);
-        timer.register(1, warning, -1, MyTest -> {
+        int coreNum = Runtime.getRuntime().availableProcessors();
+        ScheduledExecutorService monitorScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "ServerMonitor-Worker");
+            t.setDaemon(true);
+            return t;
+        });
+        monitorScheduler.scheduleWithFixedDelay(() -> {
             try {
-                cpuLoadWaring(coreNUm, phone);
+                cpuLoadWaring(coreNum, phone);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("cpuLoadWaring error", e);
             }
-            return false;
-        }, null);
+        }, 1, warning, java.util.concurrent.TimeUnit.MILLISECONDS);
     }
 
     /**

@@ -48,9 +48,8 @@ public class AckServerInfoHandle extends AbstractAckServerInfoHandle {
     @Override
     protected void scheduleRetry(Sender serverClient) {
         logger.error("未找到可用服务器,将在 {}ms 后重试", RETRY_DELAY);
-        Lobby.getInstance().registerTimer(RETRY_DELAY, RETRY_INTERVAL, RETRY_COUNT, lobby -> {
+        Lobby.getInstance().schedule(() -> {
             sendRetryRequest(serverClient, RETRY_SERVER_TYPES, ConnectProcessor.PARSER);
-            return true;
-        }, Lobby.getInstance());
+        }, RETRY_DELAY, java.util.concurrent.TimeUnit.MILLISECONDS);
     }
 }

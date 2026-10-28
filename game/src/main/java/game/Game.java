@@ -15,8 +15,6 @@ import utils.registry.enums.ServerType;
 import utils.concurrent.thread.ExecutorPool;
 import utils.concurrent.thread.Task;
 import utils.concurrent.thread.ThreadPool;
-import utils.concurrent.timer.Runner;
-import utils.concurrent.timer.Timer;
 import tools.ServerClientManager;
 import tools.ServerManager;
 import game.config.GameRuntimeConfig;
@@ -26,22 +24,17 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * @author cloud
- * @version 1.0
- * @date 2026-05-03
- * @className Game
- * @description 游戏服务器主类，负责游戏逻辑处理、桌子管理和玩家会话
- * @createDate 2026-05-03
- * @since 1.0
+ * 游戏服务器主类，负责游戏逻辑处理、桌子管理和玩家会话
  */
 public class Game {
     private static final Logger logger = LoggerFactory.getLogger(Game.class);
     private static final Game instance = new Game();
     private final ServerClientManager serverClientManager = new ServerClientManager();
     private ExecutorPool executorPool;
-    private Timer timer;
     private int serverId;
     private String center;
     private ModelProto.ServerInfo serverInfo;
@@ -116,38 +109,6 @@ public class Game {
         return serverInfo;
     }
 
-    /**
-     * 注册定时器
-     */
-    public <T> void registerTimer(long delay, long interval, int count, Runner<T> runner, T param) {
-        timer.register(delay, interval, count, runner, param);
-        logger.debug("注册定时器, delay: {}, interval: {}, count: {}", delay, interval, count);
-    }
-
-    /**
-     * 注册串行定时器
-     */
-    public <T> void registerSerialTimer(int groupId, long delay, long interval, int count, Runner<T> runner, T param) {
-        timer.registerSerial(groupId, delay, interval, count, runner, param);
-        logger.debug("注册串行定时器, groupId: {}, delay: {}, interval: {}", groupId, delay, interval);
-    }
-
-    /**
-     * 注册串行定时器并返回ID（用于后续替换间隔）
-     */
-    public <T> int registerSerialTimerWithId(int groupId, long delay, long interval, int count, Runner<T> runner,
-            T param) {
-        int id = timer.registerSerialWithId(groupId, delay, interval, count, runner, param);
-        logger.debug("注册串行定时器, id: {}, groupId: {}, delay: {}, interval: {}", id, groupId, delay, interval);
-        return id;
-    }
-
-    /**
-     * 注销定时器
-     */
-    public void unregisterTimer(int nodeId) {
-        timer.unregister(nodeId);
-    }
 
     /**
      * 直接提交任务到线程池
@@ -225,10 +186,8 @@ public class Game {
         threadPoolManager = new GameThreadPoolManager(poolSize, queueCap,
                 config.getInt("game.databasePoolSize", 2));
         executorPool = threadPoolManager.playerPool();
-        timer = new Timer().setRunners(executorPool);
         databaseExecutorManager = new DatabaseExecutorManager(threadPoolManager.databasePool());
-        serverManager = new ServerManager(timer,
-                config.getInt("plant", 0) != 0);
+        serverManager = new ServerManager(config.getInt("plant", 0) != 0);
         logger.info("服务器组件初始化完成, 业务/桌线程数:{}, 队列容量:{}", poolSize, queueCap);
         String scoreDb = config.getProperty("game.score-db");
         ScoreRepository.initialize(scoreDb == null || scoreDb.isEmpty() ? "../lobby/data/lobby.db" : scoreDb,
@@ -283,10 +242,8 @@ public class Game {
     private void initializeGameManagers() {
         tableManager = new TableManager();
         GameRuntimeConfig.initialize();
-        registerTimer(1_000L, 1_000L, -1, ignored -> {
-            GameRuntimeConfig.reloadIfDue();
-            return false;
-        }, null);
+        threadPoolManager.scheduler().scheduleAtFixedRate(
+                GameRuntimeConfig::reloadIfDue, 1_000L, 1_000L, TimeUnit.MILLISECONDS);
         logger.info("游戏管理器初始化完成");
     }
 

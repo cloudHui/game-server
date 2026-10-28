@@ -1,9 +1,9 @@
 package com.cloud.hub.game.domain.mj.state;
 
 import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.mj.MjDrawService;
-import com.cloud.hub.game.domain.mj.MjSettleService;
 import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.service.MjDrawService;
+import com.cloud.hub.game.domain.mj.service.MjSettleService;
 import com.cloud.hub.game.domain.state.AbstractTableHandle;
 import utils.registry.annotation.ProcessEnum;
 import utils.registry.enums.TableState;

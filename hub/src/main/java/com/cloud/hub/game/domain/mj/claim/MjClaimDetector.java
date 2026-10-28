@@ -1,14 +1,20 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.claim;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.model.MjClaimInfo;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
+import com.cloud.hub.game.domain.mj.service.MjPlayService;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
-import utils.registry.enums.TableState;
+import com.cloud.hub.game.domain.table.TableUser;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,8 +44,8 @@ public final class MjClaimDetector {
         return detectSeatClaim(table, seat, user.getCards(), ctx.getExposedSets(seat), tileId, ctx.getClaimFromSeat());
     }
 
-    static MjClaimInfo detectSeatClaim(MjTable table, int seat, List<Card> handTiles,
-                                       List<MjExposedSet> exposedSets, int tileId, int fromSeat) {
+    public static MjClaimInfo detectSeatClaim(MjTable table, int seat, List<Card> handTiles,
+                                               List<MjExposedSet> exposedSets, int tileId, int fromSeat) {
         boolean allowHu = table.getTableModel().getAllowHu() != 0
                 && table.getTableModel().getAllowDianPao() != 0;
         boolean allowPeng = table.getTableModel().getAllowPeng() != 0;

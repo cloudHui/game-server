@@ -111,7 +111,7 @@ maybe_deploy() {
   ask "是否现在部署" "${DEPLOY:-yes}"
   case "$ANSWER" in
     y|Y|yes|YES)
-      ask "部署模式（hub=一体化，legacy=旧五服务）" "${DEPLOY_MODE:-hub}"
+      ask "部署模式（hub=一体化，legacy=分布式集群）" "${DEPLOY_MODE:-hub}"
       local mode="$ANSWER"
       case "$mode" in
         hub|legacy) ;;

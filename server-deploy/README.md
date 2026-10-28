@@ -42,7 +42,7 @@ sudo server-deploy configure
 ```bash
 cd /opt/Server && ./scripts/hub.sh status
 cd /opt/Server && ./scripts/hub.sh deploy
-# 旧五服务：./scripts/ops.sh start all
+# 分布式集群模式：./scripts/ops.sh start all
 ```
 
 ## 路径

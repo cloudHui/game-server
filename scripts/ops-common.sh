@@ -121,7 +121,7 @@ require_no_legacy() {
   local pids
   pids="$(legacy_pids)"
   if [[ -n "$pids" ]]; then
-    echo "旧五服务仍在运行。先执行: $SCRIPTS/ops.sh stop all" >&2
+    echo "分布式集群子服务仍在运行。先执行: $SCRIPTS/ops.sh stop all" >&2
     return 1
   fi
 }

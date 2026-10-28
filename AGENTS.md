@@ -6,12 +6,12 @@
 
 | 模块 | 说明 | 核心技术栈 |
 |------|------|------------|
-| **hub** | **核心推荐服务**：一体化服务，整合账号、大厅、游戏、Web 管理与学习模块 | Spring Boot 2.5.1, WebSocket, HikariCP, SQLite |
+| **hub** | **核心主服务**：集账号、大厅、对局引擎、Web 管理与家庭学习于一体的一体化服务 | Spring Boot 2.5.1, WebSocket, HikariCP, SQLite |
 | **proto** | 消息协议定义与路由注册中心 | Protobuf 3.20.3, 注解式消息映射 (`@ClassField`) |
 | **utils** | 底层通信与通用基础工具库 | Netty 4.1.68, KCP, FastJson, Jackson, SLF4J |
 | **tool** | 数据库连接与底层存储支持 | Druid, Jedis, MySQL Connector |
 | **servertool**| **统一本地工具与 MCP 服务** | 轻量 HTTP 服务 (端口 18765), POI, 数据库安全查询, 日志切片 |
-| **game / lobby / gate / center / web** | 历史分布式微服务形态（与 hub 互斥） | Netty, 自研 RPC |
+| **game / lobby / gate / center / web** | 分布式集群多进程子模块 | Netty, 自研 RPC |
 
 ## 规则文档 (`.agents/rules/`)
 

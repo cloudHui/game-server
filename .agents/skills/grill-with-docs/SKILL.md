@@ -9,7 +9,7 @@ description: >-
 
 ## 何时使用
 - 方案涉及前端 Vue3 迁移或与老 Web 页面交互；
-- 方案涉及 Hub 与旧五服务（center/gate/lobby/game/web）的边界划分；
+- 方案涉及 Hub 与分布式集群模块（center/gate/lobby/game/web）的边界划分；
 - 用户的术语与现有代码或规范产生歧义时。
 
 ## 执行流程

@@ -13,7 +13,7 @@ public class ScoreRepositoryFailureTest {
         Path db = blocker.resolve("lobby.db");
         java.util.concurrent.ExecutorService pool = Executors.newSingleThreadExecutor();
         try {
-            new ScoreRepository(db.toString(), new DatabaseExecutorManager(pool));
+            new ScoreRepository(db.toString(), pool);
         } finally {
             pool.shutdownNow();
         }

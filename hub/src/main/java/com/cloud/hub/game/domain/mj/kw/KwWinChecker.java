@@ -1,9 +1,9 @@
 package com.cloud.hub.game.domain.mj.kw;
 
 import com.cloud.hub.game.domain.cards.Card;
-import com.cloud.hub.game.domain.mj.MjExposedSet;
-import com.cloud.hub.game.domain.mj.MjWinChecker;
 import com.cloud.hub.game.domain.mj.card.MjConst;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
 
 import java.util.List;
 

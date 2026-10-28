@@ -18,7 +18,7 @@ import java.sql.Statement;
  * <p>
  * <b>不可变快照隔离设计：</b>
  * 在对局桌业务线程内迅速深拷贝结算不可变快照 {@link RoundSnapshot}，
- * 随后投递到专用 {@link DatabaseExecutorManager} 异步线程池进行批量 JDBC Batch 写入，
+ * 随后投递到专用异步阻塞 I/O 线程池进行批量 JDBC Batch 写入，
  * 完全杜绝数据库锁对游戏主循环的任何卡顿影响。
  * </p>
  *
@@ -31,15 +31,19 @@ public class ScoreRepository {
 
     /** SQLite JDBC 连接字符串 */
     private final String jdbcUrl;
-    /** 异步落库线程池管理器 */
-    private final DatabaseExecutorManager databaseExecutorManager;
+    /** 异步阻塞落库线程执行器（直接采用标准 Executor） */
+    private final java.util.concurrent.Executor asyncIoExecutor;
 
     public ScoreRepository(String dbPath) {
-        this(dbPath, new DatabaseExecutorManager(1));
+        this(dbPath, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "ScoreRepo-IO");
+            t.setDaemon(true);
+            return t;
+        }));
     }
 
-    public ScoreRepository(String dbPath, DatabaseExecutorManager databaseExecutorManager) {
-        this.databaseExecutorManager = databaseExecutorManager;
+    public ScoreRepository(String dbPath, java.util.concurrent.Executor asyncIoExecutor) {
+        this.asyncIoExecutor = asyncIoExecutor;
         try {
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {
@@ -58,9 +62,8 @@ public class ScoreRepository {
         instance = new ScoreRepository(dbPath);
     }
 
-
-    public static void initialize(String dbPath, DatabaseExecutorManager databaseExecutorManager) {
-        instance = new ScoreRepository(dbPath, databaseExecutorManager);
+    public static void initialize(String dbPath, java.util.concurrent.Executor asyncIoExecutor) {
+        instance = new ScoreRepository(dbPath, asyncIoExecutor);
     }
 
     public static ScoreRepository getInstance() {
@@ -82,7 +85,10 @@ public class ScoreRepository {
     public void saveRound(Table table) {
         RoundSnapshot snapshot = createSnapshot(table);
         if (snapshot == null) return;
-        databaseExecutorManager.submit(() -> writeRound(snapshot)).exceptionally(error -> {
+        java.util.concurrent.CompletableFuture.runAsync(
+                utils.concurrent.thread.DecoratedRunnable.of(() -> writeRound(snapshot), "ScoreRepo-WriteRound", snapshot.tableId),
+                asyncIoExecutor
+        ).exceptionally(error -> {
             logger.error("保存战绩异步任务失败, tableId={}", snapshot.tableId, error);
             return null;
         });

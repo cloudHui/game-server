@@ -1,4 +1,4 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.model;
 
 import proto.ConstProto;
 
@@ -70,7 +70,7 @@ public class MjClaimInfo {
      * <p>吃牌因需携带组合数据，由调用方单独处理；过牌由调用方统一追加。
      * 新增操作类型时只需在此处追加即可，sendClaimOptions 无需修改。
      */
-    List<ConstProto.Operation> simpleOps() {
+    public List<ConstProto.Operation> simpleOps() {
         List<ConstProto.Operation> ops = new ArrayList<>();
         if (canHu)   ops.add(ConstProto.Operation.MJ_HU);
         if (canGang) ops.add(ConstProto.Operation.MJ_GANG);

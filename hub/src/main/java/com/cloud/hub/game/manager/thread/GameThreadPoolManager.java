@@ -25,13 +25,13 @@ import utils.trace.TraceContext;
 /**
  * Game 服务端全局线程调度管理器（多模式统一收敛与自由切换门面）。
  * <p>
- * <b>三版模式自由切换架构：</b>
+ * <b>三大运行模式自由切换架构：</b>
  * <ul>
- * <li><b>Mode 1: SLOTS（默认第一版）：</b> 统一业务亲和池（32 物理 Worker + 1024 逻辑槽位解耦）。
+ * <li><b>Mode 1: SLOTS（默认推荐）：</b> 统一业务亲和池（32 物理 Worker + 1024 逻辑槽位解耦）。
  * 相同 tableId 按位运算扰动永远映射到同一槽位，FIFO 无锁串行且将哈希碰撞降至 4.7% 以下；</li>
- * <li><b>Mode 2: MAILBOX（第二版）：</b> 去中心化 Actor Mailbox 模型。每张桌子私有独占无锁队列，
+ * <li><b>Mode 2: MAILBOX：</b> 去中心化 Actor Mailbox 模型。每张桌子私有独占无锁队列，
  * 彻底消除全局哈希碰撞，桌间 100% 物理隔离，支持批量 64 任务配额与安全注销排空；</li>
- * <li><b>Mode 3: DEDICATED（第三版）：</b> 混合/实时竞技模式。棋牌业务走亲和池/Mailbox，
+ * <li><b>Mode 3: DEDICATED：</b> 实时竞技模式。棋牌业务走亲和池/Mailbox，
  * 针对高帧率（30/60 FPS）实时对局房间挂载 {@link DedicatedGameLoopEngine} 纳秒定长补帧引擎与零垃圾对象池。</li>
  * </ul>
  * 可通过 JVM 启动参数 {@code -Dgame.thread.mode=SLOTS|MAILBOX|DEDICATED} 或
@@ -44,25 +44,25 @@ public final class GameThreadPoolManager {
      * 线程模型工作模式枚举。
      */
     public enum ThreadModelMode {
-        /** 【第一版】高维逻辑哈希槽亲和模型（默认推荐，1024 槽位解耦，适合麻将/斗地主/拖拉机） */
+        /** 【SLOTS 模式】高维逻辑哈希槽亲和模型（默认推荐，1024 槽位解耦，适合麻将/斗地主/拖拉机） */
         SLOTS,
-        /** 【第二版】去中心化 Actor Mailbox 模型（单桌私有无锁队列，彻底零碰撞物理隔离） */
+        /** 【MAILBOX 模式】去中心化 Actor Mailbox 模型（单桌私有无锁队列，彻底零碰撞物理隔离） */
         MAILBOX,
-        /** 【第三版】实时竞技模式（棋牌走独立调度，实时房间挂载 60 FPS Dedicated Loop 引擎与对象池） */
+        /** 【DEDICATED 模式】实时竞技模式（棋牌走独立调度，实时房间挂载 60 FPS Dedicated Loop 引擎与对象池） */
         DEDICATED
     }
 
     /** 当前运行的线程模型工作模式，支持配置与动态切换 */
     private volatile ThreadModelMode threadModelMode;
 
-    /** 统一业务亲和执行器池：承载对局状态机、玩家个人会话及房间全局管理 */
-    private final ExecutorPool businessPool;
+    /** 业务串行亲和执行器（承载对局状态机、玩家个人会话及房间全局管理） */
+    private final ExecutorPool businessExecutor;
 
-    /** 数据库异步写入线程池：专门跑阻塞 IO（SQLite、MySQL、战绩写入） */
-    private final ExecutorService databasePool;
+    /** 异步阻塞 I/O 隔离线程池（专门跑 SQLite、战绩落库、日志与阻塞磁盘读写） */
+    private final ExecutorService asyncIoExecutor;
 
-    /** 牌桌心跳周期时钟源：单线程纯脉冲，严禁执行任何业务逻辑 */
-    private final ScheduledExecutorService tableScheduler;
+    /** 全服统一准时脉冲时钟源（单线程守护时钟，统筹牌桌心跳、配置热更与机器人调度） */
+    private final ScheduledExecutorService scheduler;
 
     /** 当前处于激活状态的桌号集合：建桌注册，删桌移除，用于调度准入校验 */
     private final Set<Long> activeTables = ConcurrentHashMap.newKeySet();
@@ -70,61 +70,67 @@ public final class GameThreadPoolManager {
     /** 调度防堆积标记集合：记录当前正在执行周期心跳的桌号，上一拍未结束跳过本拍 */
     private final Set<Long> tickBusy = ConcurrentHashMap.newKeySet();
 
-    /** 单桌私有 ActorMailbox 映射表 <tableId, ActorMailbox>，仅在 MAILBOX 模式下生效 */
+    /** 单桌私有 ActorMailbox 映射表 <tableId, ActorMailbox>，保证同桌绝对严格串行与零碰撞 */
     private final ConcurrentHashMap<Long, ActorMailbox> tableMailboxes = new ConcurrentHashMap<>();
 
-    /** 实时竞技专用 Dedicated Loop 调度引擎（第三版），懒加载单例 */
+    /** 实时竞技专用 Dedicated Loop 调度引擎（可选扩展），懒加载单例 */
     private volatile DedicatedGameLoopEngine dedicatedGameLoopEngine;
 
-    /** 第三版实时竞技专用对象池注册表 <Class, ObjectPool>，用于 Mode 3 零 GC 复用 */
+    /** 实时竞技专用对象池注册表 <Class, ObjectPool>，用于零 GC 临时对象复用 */
     private final ConcurrentHashMap<Class<?>, ObjectPool<?>> dedicatedPools = new ConcurrentHashMap<>();
 
     /** 全局桌子管理串行分组 ID，用于 submitTableManager 串行化防冲突 */
     private static final long MANAGER_GROUP_ID = 0L;
 
     /**
-     * 构造函数：初始化全局三大核心执行器并装配初始运行模式。
+     * 构造函数：初始化三权分立三大核心执行器并装配初始运行模式。
      *
-     * @param workerSize    业务物理线程数（若 <= 0 则采用 ThreadPool.DEFAULT_POOL_SIZE 与 32
-     *                      较大者）
-     * @param queueCapacity 业务每个槽位的有界队列容量（推荐 10 万）
-     * @param databaseSize  数据库写入线程数（默认 4~8 线程）
+     * @param workerSize    业务物理线程数（若 <= 0 则采用 32 线程）
+     * @param queueCapacity 业务缓冲队列容量（推荐 10 万）
+     * @param asyncIoSize   异步 I/O 写入线程数（默认 4~8 线程）
      */
-    public GameThreadPoolManager(int workerSize, int queueCapacity, int databaseSize) {
-        // 读取环境配置模式，默认启用成熟的第一版 SLOTS
-        String configMode = System.getProperty("game.thread.mode", "SLOTS").trim().toUpperCase();
+    public GameThreadPoolManager(int workerSize, int queueCapacity, int asyncIoSize) {
+        // 读取配置模式：优先 JVM 属性 -Dgame.thread.mode，次选环境变量 GAME_THREAD_MODE，默认 MAILBOX
+        String configMode = System.getProperty("game.thread.mode");
+        if (configMode == null || configMode.trim().isEmpty()) {
+            configMode = System.getenv("GAME_THREAD_MODE");
+        }
+        if (configMode == null || configMode.trim().isEmpty()) {
+            configMode = "MAILBOX";
+        }
         try {
-            this.threadModelMode = ThreadModelMode.valueOf(configMode);
+            this.threadModelMode = ThreadModelMode.valueOf(configMode.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            this.threadModelMode = ThreadModelMode.SLOTS;
+            LOGGER.warn("[init] 未知的线程模型配置: '{}', 自动回退至默认 MAILBOX 模式", configMode);
+            this.threadModelMode = ThreadModelMode.MAILBOX;
         }
 
-        // 1. 业务亲和池：统一调度所有纯内存运算任务（原生 1024 高维逻辑槽位解耦）
+        // 1. BusinessExecutor：业务亲和计算池（承载出牌、摸牌、规则校验与状态机）
         int size = workerSize > 0 ? workerSize : Math.max(32, ThreadPool.DEFAULT_POOL_SIZE);
-        this.businessPool = new ExecutorPool("Game-Business", size, ExecutorPool.DEFAULT_SLOT_COUNT, queueCapacity);
+        this.businessExecutor = new ExecutorPool("Game-Business", size, ExecutorPool.DEFAULT_SLOT_COUNT, queueCapacity);
 
-        // 2. 数据库阻塞池：独立线程池，防止慢 SQL 拖慢主业务
-        this.databasePool = Executors.newFixedThreadPool(Math.max(1, databaseSize), r -> {
-            Thread t = new Thread(r, "Game-Database");
+        // 2. AsyncIoExecutor：异步阻塞 I/O 隔离池（确保磁盘写入与数据库卡顿绝不影响毫秒级对局）
+        this.asyncIoExecutor = Executors.newFixedThreadPool(Math.max(1, asyncIoSize), r -> {
+            Thread t = new Thread(r, "Game-AsyncIO");
             t.setDaemon(false);
             return t;
         });
 
-        // 3. 定时时钟源：单线程守护时钟，保证心跳节奏绝对精准
-        this.tableScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        // 3. Scheduler：全服唯一准时时钟源（纯定时打铃脉冲，严禁执行业务逻辑）
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "Game-TableScheduler");
             t.setDaemon(true);
             return t;
         });
 
-        // 4. 若配置为 DEDICATED 模式，预热专用实时引擎与帧事件对象池
+        // 4. 若显式配置为 DEDICATED 模式，预热专用实时引擎与帧事件对象池
         if (this.threadModelMode == ThreadModelMode.DEDICATED) {
             getDedicatedGameLoopEngine();
             LOGGER.info("[init] DEDICATED 实时竞技模式激活，DedicatedGameLoopEngine 与 FrameEvent 对象池预热完成");
         }
 
-        LOGGER.info("[init] GameThreadPoolManager 启动完成, 当前模式: {}, workers: {}, slots: {}, databasePool: {}",
-                this.threadModelMode, size, ExecutorPool.DEFAULT_SLOT_COUNT, databaseSize);
+        LOGGER.info("[init] GameThreadPoolManager 三权分立架构启动完成, 当前生效模式: {} (支持 SLOTS | MAILBOX | DEDICATED), workers: {}, asyncIoThreads: {}",
+                this.threadModelMode, size, asyncIoSize);
     }
 
     /**
@@ -140,21 +146,15 @@ public final class GameThreadPoolManager {
      * @param mode 目标工作模式
      */
     public void setThreadModelMode(ThreadModelMode mode) {
-        LOGGER.info("[GameThreadPoolManager] 动态切换工作模式: {} -> {}", this.threadModelMode, mode);
+        LOGGER.info("[GameThreadPoolManager] 切换工作模式: {} -> {}", this.threadModelMode, mode);
         this.threadModelMode = mode;
         if (mode == ThreadModelMode.DEDICATED) {
             getDedicatedGameLoopEngine();
-            LOGGER.info("[GameThreadPoolManager] DEDICATED 模式已激活，DedicatedGameLoopEngine 与 FrameEvent 对象池预热完成");
         }
     }
 
     /**
-     * 获取或懒加载初始化第三版实时竞技专用 Dedicated Loop 引擎。
-     * <p>
-     * 引擎配置 4 个独立循环时钟 Worker 与 60 FPS（16.6ms）定长步长，
-     * 并绑定业务执行线程池 {@code businessPool.getExecutorService()}，
-     * 实现时钟巡检与业务执行彻底解耦，单桌卡顿不阻塞其他任何房间。
-     * </p>
+     * 获取或懒加载初始化实时竞技专用 Dedicated Loop 引擎。
      *
      * @return 60 FPS 专用引擎实例
      */
@@ -163,19 +163,13 @@ public final class GameThreadPoolManager {
             dedicatedGameLoopEngine = new DedicatedGameLoopEngine(
                     4,
                     DedicatedGameLoopEngine.FRAME_INTERVAL_60_FPS,
-                    businessPool.getExecutorService());
+                    businessExecutor.getExecutorService());
         }
         return dedicatedGameLoopEngine;
     }
 
     /**
-     * 获取或创建指定类型的专用对象池（仅在 DEDICATED 模式或高频运算下使用，达成零 GC 堆分配）。
-     *
-     * @param <T>      对象类型
-     * @param clazz    对象类型 Class
-     * @param creator  对象创建工厂
-     * @param capacity 最大缓存容量
-     * @return 对应的对象池实例
+     * 获取或创建指定类型的专用对象池。
      */
     @SuppressWarnings("unchecked")
     public <T> ObjectPool<T> getDedicatedPool(Class<T> clazz, Supplier<T> creator, int capacity) {
@@ -184,52 +178,55 @@ public final class GameThreadPoolManager {
     }
 
     /**
-     * 便捷入口：获取预置的实时帧事件对象池（DEDICATED 模式标配）。
-     *
-     * @return 帧事件对象池
+     * 便捷入口：获取预置的实时帧事件对象池。
      */
     public ObjectPool<FrameEvent> getFrameEventPool() {
         return getDedicatedGameLoopEngine().getEventPool();
     }
 
+    // =========================================================================
+    // 【三权分立核心获取方法】
+    // =========================================================================
+
     /**
-     * 获取统一业务亲和执行器池。
+     * 1. 获取核心业务串行执行器（BusinessExecutor）。
      *
-     * @return 业务执行器池实例
+     * @return 业务执行器
      */
+    public ExecutorPool businessExecutor() {
+        return businessExecutor;
+    }
+
+    /**
+     * 2. 获取异步阻塞 I/O 隔离线程池（AsyncIoExecutor）。
+     *
+     * @return 异步 I/O 线程池
+     */
+    public ExecutorService asyncIoExecutor() {
+        return asyncIoExecutor;
+    }
+
+    /**
+     * 3. 获取全服准时时钟调度源（Scheduler）。
+     *
+     * @return 单线程守护调度器
+     */
+    public ScheduledExecutorService scheduler() {
+        return scheduler;
+    }
+
+    // =========================================================================
+    // 【历史方法兼容层 - 标记 Deprecated】
+    // =========================================================================
+
+    @Deprecated
     public ExecutorPool businessPool() {
-        return businessPool;
+        return businessExecutor;
     }
 
-    /**
-     * 兼容旧接口：获取牌桌执行器池。
-     */
-    public ExecutorPool tablePool() {
-        return businessPool;
-    }
-
-    /**
-     * 兼容旧接口：获取玩家执行器池。
-     */
-    public ExecutorPool playerPool() {
-        return businessPool;
-    }
-
-    /**
-     * 兼容旧接口：获取牌桌管理执行器池。
-     */
-    public ExecutorPool tableManagerPool() {
-        return businessPool;
-    }
-
-    /**
-     * 获取数据库异步线程池。
-     *
-     * @return 数据库线程池实例
-     */
-    public ExecutorService databasePool() {
-        return databasePool;
-    }
+    // =========================================================================
+    // 【业务调度与投递入口（全量统一装配 DecoratedRunnable）】
+    // =========================================================================
 
     /**
      * 注册激活桌子：建桌时登记，允许后续投递任务与定时心跳。
@@ -238,13 +235,14 @@ public final class GameThreadPoolManager {
      */
     public void registerTable(long tableId) {
         activeTables.add(tableId);
-        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
-            tableMailboxes.computeIfAbsent(tableId, id -> new ActorMailbox(id, businessPool.getExecutorService()));
+        if (threadModelMode != ThreadModelMode.SLOTS) {
+            tableMailboxes.computeIfAbsent(tableId, id -> new ActorMailbox(id, businessExecutor.getExecutorService()));
         }
     }
 
     /**
      * 将无返回值的牌桌任务按当前运行模式分发投递，保证同桌严格串行。
+     * 统一通过 {@link utils.concurrent.thread.DecoratedRunnable} 装配链路上下文快照、MDC 与慢任务告警。
      *
      * @param tableId 目标桌号
      * @param task    具体业务逻辑
@@ -257,29 +255,17 @@ public final class GameThreadPoolManager {
             return future;
         }
 
-        // 第二版 (MAILBOX) 与 第三版 (DEDICATED)：直接走单桌独占私有队列，达成绝对零碰撞
-        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
+        Runnable decoratedTask = utils.concurrent.thread.DecoratedRunnable.of(task, "TableTask", tableId);
+
+        // 默认模式 (MAILBOX / DEDICATED)：直接走单桌独占私有队列，达成绝对零碰撞
+        if (threadModelMode != ThreadModelMode.SLOTS) {
             ActorMailbox mailbox = tableMailboxes.computeIfAbsent(tableId,
-                    id -> new ActorMailbox(id, businessPool.getExecutorService()));
-            return mailbox.tell(() -> {
-                try {
-                    TraceContext.setTableId(tableId);
-                    task.run();
-                } finally {
-                    TraceContext.endTrace();
-                }
-            });
+                    id -> new ActorMailbox(id, businessExecutor.getExecutorService()));
+            return mailbox.tell(decoratedTask);
         }
 
-        // 第一版 (SLOTS) 默认走 1024 高维槽位亲和池
-        return businessPool.serialExecute(tableId, () -> {
-            try {
-                TraceContext.setTableId(tableId);
-                task.run();
-            } finally {
-                TraceContext.endTrace();
-            }
-        });
+        // 兼容模式 (SLOTS)：走 1024 高维槽位亲和池
+        return businessExecutor.serialExecute(tableId, decoratedTask);
     }
 
     /**
@@ -297,29 +283,27 @@ public final class GameThreadPoolManager {
             return future;
         }
 
-        // 第二版 (MAILBOX) 与 第三版 (DEDICATED)：直接走单桌独占私有队列
-        if (threadModelMode == ThreadModelMode.MAILBOX || threadModelMode == ThreadModelMode.DEDICATED) {
+        Supplier<T> decoratedSupplier = utils.concurrent.thread.DecoratedRunnable.decorateSupplier(supplier, "TableCompute", tableId);
+
+        if (threadModelMode != ThreadModelMode.SLOTS) {
             ActorMailbox mailbox = tableMailboxes.computeIfAbsent(tableId,
-                    id -> new ActorMailbox(id, businessPool.getExecutorService()));
-            return mailbox.ask(() -> {
-                try {
-                    TraceContext.setTableId(tableId);
-                    return supplier.get();
-                } finally {
-                    TraceContext.endTrace();
-                }
-            });
+                    id -> new ActorMailbox(id, businessExecutor.getExecutorService()));
+            return mailbox.ask(decoratedSupplier);
         }
 
-        // 第一版 (SLOTS) 默认走 1024 高维槽位亲和池
-        return businessPool.serialExecute(tableId, () -> {
-            try {
-                TraceContext.setTableId(tableId);
-                return supplier.get();
-            } finally {
-                TraceContext.endTrace();
-            }
-        });
+        return businessExecutor.serialExecute(tableId, decoratedSupplier);
+    }
+
+    /**
+     * 异步投递阻塞 I/O 任务（SQLite 战绩写、日志写、第三方网络查询等），由 AsyncIoExecutor 独立承载。
+     *
+     * @param taskName 任务名称（用于慢任务排查与异常定位）
+     * @param task     具体阻塞任务逻辑
+     * @return 异步执行凭据
+     */
+    public CompletableFuture<Void> submitIo(String taskName, Runnable task) {
+        return CompletableFuture.runAsync(
+                utils.concurrent.thread.DecoratedRunnable.of(task, taskName), asyncIoExecutor);
     }
 
     /**
@@ -336,7 +320,7 @@ public final class GameThreadPoolManager {
      */
     public ScheduledFuture<?> scheduleTable(long tableId, Runnable task, long delayMs, long intervalMs) {
         registerTable(tableId);
-        return tableScheduler.scheduleAtFixedRate(
+        return scheduler.scheduleAtFixedRate(
                 () -> dispatchTick(tableId, task), delayMs, intervalMs, TimeUnit.MILLISECONDS);
     }
 
@@ -360,7 +344,6 @@ public final class GameThreadPoolManager {
         activeTables.remove(tableId);
         tickBusy.remove(tableId);
 
-        // 如果存在私有 Mailbox，安全终结并排空
         ActorMailbox mailbox = tableMailboxes.remove(tableId);
         if (mailbox != null) {
             mailbox.dispose();
@@ -369,9 +352,6 @@ public final class GameThreadPoolManager {
 
     /**
      * 桌子全局生命周期与房间索引操作（如建桌、解散、跨桌匹配）。
-     * <p>
-     * 通过固定分组 ID（{@code MANAGER_GROUP_ID}）投递至业务亲和池，
-     * 保证全局管理任务严格单线程串行执行，无需加锁，亦无需独立开辟物理线程池。
      *
      * @param <T>  返回结果类型
      * @param task 待执行的管理任务
@@ -379,7 +359,13 @@ public final class GameThreadPoolManager {
      */
     public <T> CompletableFuture<T> submitTableManager(Callable<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        businessPool.serialExecute(MANAGER_GROUP_ID, () -> runManagerTask(task, future));
+        businessExecutor.serialExecute(MANAGER_GROUP_ID, () -> {
+            try {
+                future.complete(utils.concurrent.thread.DecoratedRunnable.decorateCallable(task, "TableManagerTask", MANAGER_GROUP_ID).call());
+            } catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
         return future;
     }
 
@@ -401,9 +387,9 @@ public final class GameThreadPoolManager {
             pool.clear();
         }
         dedicatedPools.clear();
-        tableScheduler.shutdownNow();
-        businessPool.getExecutorService().shutdownNow();
-        databasePool.shutdownNow();
+        scheduler.shutdownNow();
+        businessExecutor.getExecutorService().shutdownNow();
+        asyncIoExecutor.shutdownNow();
     }
 
     /**
@@ -431,13 +417,5 @@ public final class GameThreadPoolManager {
             tickBusy.remove(tableId);
             return null;
         });
-    }
-
-    private <T> void runManagerTask(Callable<T> task, CompletableFuture<T> future) {
-        try {
-            future.complete(task.call());
-        } catch (Throwable error) {
-            future.completeExceptionally(error);
-        }
     }
 }

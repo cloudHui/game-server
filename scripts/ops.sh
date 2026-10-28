@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 旧五服务运维：center / gate / lobby / game / web
+# 分布式集群服务运维：center / gate / lobby / game / web
 set -euo pipefail
 
 # shellcheck source=ops-common.sh

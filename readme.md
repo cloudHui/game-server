@@ -20,10 +20,10 @@ https://域名/访问唯一码/
 ## 目录
 
 ```text
-hub/            一体化服务（推荐）
-center/ gate/ lobby/ game/ web/   旧五服务源码
+hub/            一体化服务（主线推荐）
+center/ gate/ lobby/ game/ web/   分布式模式子模块源码
 scripts/hub.sh  hub 启停构建
-scripts/ops.sh  旧五服务启停构建
+scripts/ops.sh  分布式多进程启停构建
 install.sh      应用安装
 server-deploy/  整机（Xray/Nginx/Fail2ban）
 ```
@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/cloudHui/game-server/main/install.s
 sudo bash /tmp/gs-install.sh install
 ```
 
-问：Git 用户、是否部署（hub 或旧五服务）、是否配 Nginx。含 Xray 的整机用 `server-deploy/install.sh`。
+问：Git 用户、是否部署（hub 或分布式模式）、是否配 Nginx。含 Xray 的整机用 `server-deploy/install.sh`。
 
 本仓库已有代码时不要重装，直接用下面命令。
 
@@ -59,7 +59,7 @@ sudo ./scripts/hub.sh nginx-apply 你的域名
 本机：`http://127.0.0.1:8081/<scripts/web-path.txt 里的唯一码>/`  
 换端口：`WEB_PORT=18081 ./scripts/hub.sh start`
 
-**旧五服务（center/gate/lobby/game/web，与 hub 互斥）：**
+**分布式多进程模式（center/gate/lobby/game/web）：**
 
 ```bash
 ./scripts/ops.sh start web

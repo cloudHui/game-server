@@ -1,12 +1,12 @@
 package com.cloud.hub.game.domain.mj.ai;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.ai.AiSearchBudget;
-import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.ai.AiVision;
-import com.cloud.hub.game.domain.mj.MjClaimInfo;
+import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.mj.MjTable;
 import com.cloud.hub.game.domain.mj.card.MjConst;
+import com.cloud.hub.game.domain.mj.model.MjClaimInfo;
+import com.cloud.hub.game.domain.table.TableUser;
 import proto.ConstProto;
 import proto.GameProto;
 

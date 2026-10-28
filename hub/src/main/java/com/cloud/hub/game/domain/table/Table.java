@@ -41,7 +41,7 @@ import java.util.function.Supplier;
  *   <li>驱动状态机主循环（tableLoop 与 tick 调度），支持动态调整空闲/对局 tick 间隔；</li>
  *   <li>管理对局多局流转、总结算汇总广播（sendGameResult）与安全异步销毁；</li>
  *   <li>提供纯多态生命周期钩子，消灭外层状态机类型强转分支；</li>
- *   <li>实现 {@link FrameSyncRoom}，可在第三版 DEDICATED 实时竞技模式下无缝挂载 DedicatedGameLoopEngine 驱动。</li>
+ *   <li>实现 {@link FrameSyncRoom}，可在 DEDICATED 实时竞技模式下无缝挂载 DedicatedGameLoopEngine 驱动。</li>
  * </ul>
  *
  * @author cloud

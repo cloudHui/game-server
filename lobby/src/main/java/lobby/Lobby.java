@@ -17,31 +17,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ModelProto;
 import proto.ServerProto;
-import utils.concurrent.thread.ExecutorPool;
-import utils.concurrent.timer.Runner;
-import utils.concurrent.timer.Timer;
 import tools.ServerClientManager;
 import tools.ServerManager;
 import tools.manager.HandleManager;
+import utils.concurrent.thread.ExecutorPool;
 import utils.config.ConfigurationManager;
 import utils.crypto.MD5Utils;
 import utils.net.IpUtils;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Lobby 服务器（原 hall + room 合并）
+ * Lobby 服务器：负责大厅玩家会话、房间列表与对局路由调度
  */
 public class Lobby {
     private static final Logger logger = LoggerFactory.getLogger(Lobby.class);
     private static final Lobby instance = new Lobby();
 
     private final ExecutorPool executorPool;
-    private final Timer timer;
+    private final ScheduledExecutorService scheduler;
     public final ServerClientManager serverClientManager = new ServerClientManager();
 
     private int serverId;
@@ -57,7 +58,11 @@ public class Lobby {
 
     private Lobby() {
         executorPool = new ExecutorPool("Lobby");
-        timer = new Timer().setRunners(executorPool);
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "Lobby-Scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public static Lobby getInstance() {
@@ -131,8 +136,12 @@ public class Lobby {
         executorPool.execute(task);
     }
 
-    public <T> void registerTimer(long delay, long interval, int count, Runner<T> runner, T param) {
-        timer.register(delay, interval, count, runner, param);
+    public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
+        return scheduler.schedule(task, delay, unit);
+    }
+
+    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
+        return scheduler.scheduleWithFixedDelay(task, initialDelay, delay, unit);
     }
 
     private void start() {
@@ -170,7 +179,7 @@ public class Lobby {
     }
 
     private void initializeComponents() {
-        serverManager = new ServerManager(timer,
+        serverManager = new ServerManager(
                 ConfigurationManager.getInstance().getInt("plant", 0) != 0);
 
         SqliteDatabase db = SqliteDatabase.getInstance();

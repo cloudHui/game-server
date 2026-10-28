@@ -1,5 +1,7 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.rule;
 
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.model.MjWinResult;
 import model.tablemodel.TableModel;
 
 /**

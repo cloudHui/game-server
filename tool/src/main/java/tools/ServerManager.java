@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ModelProto;
 import proto.ServerProto;
-import utils.concurrent.timer.Timer;
 import utils.config.ConfigurationManager;
 import utils.lang.RandomUtils;
 import utils.net.IpUtils;
@@ -26,6 +25,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,12 +42,19 @@ public class ServerManager {
     // 连接存储: 服务类型 -> [服务ID -> 连接处理器]
     private final Map<ServerType, Map<Integer, ConnectHandler>> serverMap;
     private final EventLoopGroup workerGroup = new NioEventLoopGroup(1);
-    private final Timer timer;
+    private final ScheduledExecutorService jarCheckScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "ServerManager-JarCheck");
+        t.setDaemon(true);
+        return t;
+    });
     private GitJarManager gitJar;
 
-    public ServerManager(Timer timer, boolean initJar) {
-        serverMap = new HashMap<>();
-        this.timer = timer;
+    public ServerManager() {
+        this(false);
+    }
+
+    public ServerManager(boolean initJar) {
+        this.serverMap = new HashMap<>();
         if (initJar) {
             initJar();
         }
@@ -59,17 +67,21 @@ public class ServerManager {
      */
     private void initJar() {
         gitJar = new GitJarManager();
-        timer.register(JAR_CHECK_DELAY * 1000, JAR_CHECK_INTERVAL * 1000, -1, game -> {
-            logger.debug("检查Jar包更新");
-            gitJar.checkJarUpdate();
-            return false;
-        }, this);
+        jarCheckScheduler.scheduleWithFixedDelay(() -> {
+            try {
+                logger.debug("检查Jar包更新");
+                gitJar.checkJarUpdate();
+            } catch (Exception e) {
+                logger.error("checkJarUpdate error", e);
+            }
+        }, JAR_CHECK_DELAY, JAR_CHECK_INTERVAL, TimeUnit.SECONDS);
     }
 
     /**
      * 关闭服务管理器,释放资源
      */
     public void shutdown() {
+        jarCheckScheduler.shutdownNow();
         workerGroup.shutdownGracefully();
     }
 

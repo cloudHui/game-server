@@ -1,6 +1,6 @@
 package com.cloud.hub.game.domain.replay;
 
-import com.cloud.hub.game.domain.mj.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
 
 import java.util.List;
 import java.util.Map;

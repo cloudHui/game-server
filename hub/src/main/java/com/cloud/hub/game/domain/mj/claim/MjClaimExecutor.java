@@ -1,13 +1,23 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.claim;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.model.MjClaimInfo;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.model.MjWinResult;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
+import com.cloud.hub.game.domain.mj.service.MjDrawService;
+import com.cloud.hub.game.domain.mj.service.MjGangService;
+import com.cloud.hub.game.domain.mj.service.MjPlayService;
+import com.cloud.hub.game.domain.mj.service.MjSettleService;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
-import utils.registry.enums.TableState;
+import com.cloud.hub.game.domain.table.TableUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.Arrays;

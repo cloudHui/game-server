@@ -8,9 +8,9 @@ alwaysApply: true
 
 ## 1. 项目简介
 `game-server` 是一个基于 Java 8 的轻量级休闲棋牌与家庭学习系统服务端，采用 Maven 多模块工程管理。
-系统支持两种运行架构模式：
-- **一体化 Hub 模式（推荐与主线）**：所有逻辑（Gateway长连接、Lobby大厅、Game桌子对局、Web后台与家庭学习接口）整合在 `hub` 单一 Spring Boot 进程中运行（默认端口 8081），内存状态高效同步，部署维护最简。
-- **微服务旧五服务模式（互斥保留）**：`center`、`gate`、`lobby`、`game`、`web` 五个独立进程通过 Netty RPC 协同。
+系统支持两种部署与运行形态：
+- **一体化 Hub 模式（主线推荐）**：包含网关长连接、大厅服务、游戏对局引擎、Web 管理后台与家庭学习接口，统一在 `hub` 单一 Spring Boot 进程中运行（默认端口 8081），内存状态高效同步，运维部署最简。
+- **分布式集群模式**：由 `center`、`gate`、`lobby`、`game`、`web` 五个独立子模块通过 Netty RPC 协同。
 
 ## 2. 模块结构与职责
 
@@ -21,11 +21,11 @@ game-server/
 ├── utils/            网络层底层封装 (Netty/KCP)、通用工具类、序列化支持
 ├── tool/             数据库连接池与基础持久化依赖 (Druid, Jedis, MySQL)
 ├── servertool/       统一本地工具与统一 MCP 服务 (端口 18765)
-├── center/           [旧五服务] 中心服
-├── gate/             [旧五服务] 网关服
-├── lobby/            [旧五服务] 大厅服
-├── game/             [旧五服务] 游戏服
-├── web/              [旧五服务] 后台 Web 服
+├── center/           分布式中心服务
+├── gate/             分布式网关服务
+├── lobby/            分布式大厅服务
+├── game/             分布式游戏对局服务
+├── web/              分布式后台 Web 服务
 ├── scripts/          运维启停与部署脚本 (hub.sh, mcp.bat, ops.sh, deploy.bat)
 └── data/             运行时本地数据目录 (lobby.db, learning/)
 ```

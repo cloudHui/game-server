@@ -1,7 +1,8 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.rule;
 
 import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.mj.card.MjConst;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,10 +1,10 @@
 package com.cloud.hub.game.domain.mj.kw;
 
 import com.cloud.hub.game.domain.cards.Card;
-import com.cloud.hub.game.domain.mj.BaseMjScoring;
-import com.cloud.hub.game.domain.mj.MjExposedSet;
-import com.cloud.hub.game.domain.mj.MjTableContext;
-import com.cloud.hub.game.domain.mj.MjWinResult;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.model.MjWinResult;
+import com.cloud.hub.game.domain.mj.rule.BaseMjScoring;
 import model.tablemodel.TableModel;
 
 import java.util.List;

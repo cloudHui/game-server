@@ -1,10 +1,16 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.service;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
 import com.cloud.hub.game.domain.mj.card.MjConst;
 import com.cloud.hub.game.domain.mj.card.MjTilePool;
+import com.cloud.hub.game.domain.mj.claim.MjClaimService;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.model.MjWinResult;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
+import com.cloud.hub.game.domain.table.TableUser;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,9 +99,9 @@ public class MjDrawService {
     }
 
     /**
-     * 处理自摸胡牌（包内可见，供 MjClaimService 调用）
+     * 处理自摸胡牌（供 MjClaimService 调用）
      */
-    static void processZiMo(MjTable table, int seat, int drawnTile) {
+    public static void processZiMo(MjTable table, int seat, int drawnTile) {
         TableUser user = table.getSeatUser(seat);
         MjTableContext ctx = table.getMjContext();
 

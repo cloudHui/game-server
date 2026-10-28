@@ -48,11 +48,6 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     private static final Logger logger = LoggerFactory.getLogger(MiniGameWebSocketHandler.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserService userService;
-    private final ScheduledExecutorService botScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "MiniGame-Bot-Worker");
-        t.setDaemon(true);
-        return t;
-    });
 
     private final Map<String, String> wsToSession = new ConcurrentHashMap<>();
     private final Map<String, WebSocketSession> sessionToWs = new ConcurrentHashMap<>();
@@ -288,7 +283,16 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void scheduleBotMove(MiniRoom room) {
-        botScheduler.schedule(() -> {
+        ScheduledExecutorService scheduler = null;
+        if (com.cloud.hub.game.Game.getInstance().getThreadPoolManager() != null) {
+            scheduler = com.cloud.hub.game.Game.getInstance().getThreadPoolManager().scheduler();
+        }
+        if (scheduler == null) {
+            logger.warn("全局调度器尚未初始化, 放弃机器人调度, roomId: {}", room.getRoomId());
+            return;
+        }
+
+        scheduler.schedule(utils.concurrent.thread.DecoratedRunnable.of(() -> {
             try {
                 if (room.getEngine().isFinished()) {
                     return;
@@ -311,7 +315,7 @@ public class MiniGameWebSocketHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 logger.error("AI 走步异常, roomId: {}", room.getRoomId(), e);
             }
-        }, 350, TimeUnit.MILLISECONDS);
+        }, "MiniGame-BotMove"), 350, TimeUnit.MILLISECONDS);
     }
 
     private Map<String, Object> calculateBotMove(MiniRoom room) {

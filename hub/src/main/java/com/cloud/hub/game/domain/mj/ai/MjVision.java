@@ -1,11 +1,11 @@
 package com.cloud.hub.game.domain.mj.ai;
 
-import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.ai.AiVision;
-import com.cloud.hub.game.domain.mj.MjExposedSet;
+import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.mj.MjTable;
 import com.cloud.hub.game.domain.mj.card.MjConst;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.table.TableUser;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * 离线独立数据迁移工具：将旧版分散的 JSON 业务数据安全迁移并合并入统一 SQLite 文件存储。
+ * 离线数据导入工具：将 JSON 业务数据导入 SQLite 文件存储。
  *
  * @author cloud
  */

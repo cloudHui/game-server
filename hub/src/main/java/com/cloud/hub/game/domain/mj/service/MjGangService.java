@@ -1,8 +1,13 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.service;
 
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.claim.MjClaimService;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
+import com.cloud.hub.game.domain.table.TableUser;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,7 +166,7 @@ public class MjGangService {
     /**
      * 杠分即时结算：明杠/补杠每家出1分，暗杠每家出2分
      */
-    static void settleGangScore(MjTable table, int seat, MjExposedSet.Type gangType) {
+    public static void settleGangScore(MjTable table, int seat, MjExposedSet.Type gangType) {
         int gangScore = table.getTableModel().getGangScore();
         if (gangScore <= 0)
             gangScore = 1;

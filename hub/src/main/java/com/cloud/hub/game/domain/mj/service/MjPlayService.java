@@ -1,9 +1,14 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.service;
 
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.claim.MjClaimService;
 import com.cloud.hub.game.domain.mj.jm.JmScoring;
 import com.cloud.hub.game.domain.mj.jm.JmWinChecker;
 import com.cloud.hub.game.domain.mj.kw.KwScoring;
 import com.cloud.hub.game.domain.mj.kw.KwWinChecker;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.rule.MjScoring;
+import com.cloud.hub.game.domain.mj.rule.MjWinChecker;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
 import com.cloud.hub.game.domain.table.TableUser;
 import msg.registor.message.GMsg;

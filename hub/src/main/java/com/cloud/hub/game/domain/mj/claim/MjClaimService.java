@@ -1,6 +1,9 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.claim;
 
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.model.MjClaimInfo;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
 import proto.GameProto;
 
 import java.util.List;
@@ -17,8 +20,8 @@ public final class MjClaimService {
         return MjClaimDetector.buildClaimInfo(table, seat);
     }
 
-    static MjClaimInfo detectSeatClaim(MjTable table, int seat, List<Card> handTiles,
-                                       List<MjExposedSet> exposedSets, int tileId, int fromSeat) {
+    public static MjClaimInfo detectSeatClaim(MjTable table, int seat, List<Card> handTiles,
+                                               List<MjExposedSet> exposedSets, int tileId, int fromSeat) {
         return MjClaimDetector.detectSeatClaim(table, seat, handTiles, exposedSets, tileId, fromSeat);
     }
 
@@ -39,9 +42,9 @@ public final class MjClaimService {
     }
 
     /**
-     * 处理胡牌（包内可见，供 MjGangService 抢杠调用）
+     * 处理胡牌（供 MjGangService 抢杠调用）
      */
-    static boolean processHu(MjTable table, int seat, int tileId, int fromSeat, boolean qiangGang) {
+    public static boolean processHu(MjTable table, int seat, int tileId, int fromSeat, boolean qiangGang) {
         return MjClaimExecutor.processHu(table, seat, tileId, fromSeat, qiangGang);
     }
 }

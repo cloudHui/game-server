@@ -1,4 +1,4 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.model;
 
 import java.util.ArrayList;
 import java.util.Collections;

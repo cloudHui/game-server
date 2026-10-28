@@ -1,4 +1,6 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.claim;
+
+import com.cloud.hub.game.domain.mj.model.MjClaimInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;

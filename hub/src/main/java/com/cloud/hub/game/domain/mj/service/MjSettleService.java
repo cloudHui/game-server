@@ -1,18 +1,24 @@
-package com.cloud.hub.game.domain.mj;
+package com.cloud.hub.game.domain.mj.service;
 
 import com.cloud.hub.framework.metrics.HubMetrics;
 import com.cloud.hub.game.db.ScoreRepository;
-import com.cloud.hub.game.domain.table.TableUser;
 import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.mj.model.MjExposedSet;
+import com.cloud.hub.game.domain.mj.model.MjRoundResult;
+import com.cloud.hub.game.domain.mj.model.MjTableContext;
+import com.cloud.hub.game.domain.mj.model.MjWinResult;
+import com.cloud.hub.game.domain.mj.rule.MjScoring;
 import com.cloud.hub.game.domain.replay.MjReplayRecorder;
+import com.cloud.hub.game.domain.table.TableUser;
 import com.google.protobuf.ByteString;
 import model.tablemodel.TableModel;
-import utils.registry.enums.TableState;
 import msg.registor.message.GMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,14 +71,14 @@ public class MjSettleService {
 
 	// ======================== 胡牌结算 ========================
 
-	/** 胡牌结算（包内可见，供MjDrawService和MjClaimService调用） */
-	static void finishGameWithWin(MjTable table, MjWinResult winResult) {
+	/** 胡牌结算（供 MjDrawService 和 MjClaimService 调用） */
+	public static void finishGameWithWin(MjTable table, MjWinResult winResult) {
 		List<MjWinResult> one = Collections.singletonList(winResult);
 		finishGameWithWins(table, one, determineWinType(winResult));
 	}
 
 	/** 一炮多响：多家胡，点炮者按各家番型分别赔付后累加 */
-	static void finishGameWithMultiWin(MjTable table, List<MjWinResult> winResults) {
+	public static void finishGameWithMultiWin(MjTable table, List<MjWinResult> winResults) {
 		if (winResults == null || winResults.isEmpty()) {
 			finishGame(table, "一炮多响无胜者");
 			return;

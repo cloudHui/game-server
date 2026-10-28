@@ -11,18 +11,19 @@ import net.service.ServerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
-import utils.concurrent.thread.ExecutorPool;
-import utils.concurrent.timer.Runner;
-import utils.concurrent.timer.Timer;
 import tools.ServerManager;
 import tools.manager.HandleManager;
+import utils.concurrent.thread.ExecutorPool;
 import utils.config.ConfigurationManager;
 import utils.net.IpUtils;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 网关服务器主类
@@ -33,7 +34,7 @@ public class Gate {
     private static final Gate instance = new Gate();
 
     private final ExecutorPool executorPool;
-    private final Timer timer;
+    private final ScheduledExecutorService scheduler;
 
     private int port;
     private int serverId;
@@ -44,7 +45,11 @@ public class Gate {
 
     private Gate() {
         executorPool = new ExecutorPool("Gate");
-        timer = new Timer().setRunners(executorPool);
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "Gate-Scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public static Gate getInstance() {
@@ -99,9 +104,12 @@ public class Gate {
     }
 
 
-    public <T> void registerTimer(long delay, long interval, int count, Runner<T> runner, T param) {
-        timer.register(delay, interval, count, runner, param);
-        logger.debug("注册定时器, delay: {}, interval: {}, count: {}", delay, interval, count);
+    public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
+        return scheduler.schedule(task, delay, unit);
+    }
+
+    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
+        return scheduler.scheduleWithFixedDelay(task, initialDelay, delay, unit);
     }
 
     /**
@@ -149,7 +157,7 @@ public class Gate {
      * 初始化组件
      */
     private void initializeComponents() {
-        serverManager = new ServerManager(timer, ConfigurationManager.getInstance().getInt("plant", 0) != 0);
+        serverManager = new ServerManager(ConfigurationManager.getInstance().getInt("plant", 0) != 0);
         ConnectProcessor.init();
         ClientProto.init();
         HandleManager.init(ConnectProcessor.class);
