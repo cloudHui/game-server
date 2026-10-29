@@ -397,6 +397,51 @@
     }
 
     /**
+     * 处理牛牛抢庄、定庄、闲家下注、补发第5张及亮牌事件。
+     *
+     * @param {Object} model 回放模型
+     * @param {Object} state 动态状态容器
+     * @param {string} text 事件描述文本
+     * @returns {boolean} 是否匹配并处理成功
+     */
+    function handleNiuniu(model, state, text) {
+        var mRob = text.match(/^座(\d+)\s*(抢庄\s*×\d+|(?:超时)?不抢)/);
+        if (mRob) {
+            state.bids[mRob[1]] = mRob[2];
+            return true;
+        }
+        var mBanker = text.match(/^定庄\s*座(\d+)\s*\(×(\d+)\)/);
+        if (mBanker) {
+            state.landlordSeat = +mBanker[1];
+            state.bids = {};
+            state.bids[mBanker[1]] = '庄×' + mBanker[2];
+            return true;
+        }
+        var mBet = text.match(/^座(\d+)\s*(?:超时)?下注\s*×(\d+)/);
+        if (mBet) {
+            state.bids[mBet[1]] = '闲×' + mBet[2];
+            return true;
+        }
+        var mFifth = text.match(/^座(\d+)\s*补发第5张\s*(\d+)/);
+        if (mFifth) {
+            var fSeat = mFifth[1];
+            state.hands[fSeat] = state.hands[fSeat] || [];
+            state.hands[fSeat].push(+mFifth[2]);
+            sortHand(model, state.hands[fSeat]);
+            return true;
+        }
+        var mShow = text.match(/^座(\d+)\s*亮牌\s*\[([\d,\s]*)\]\s*(.+)$/);
+        if (mShow) {
+            var sSeat = mShow[1];
+            var rawCards = mShow[2].trim();
+            state.played[sSeat] = rawCards ? rawCards.split(/\s*,\s*/).map(Number) : [];
+            state.bids[sSeat] = mShow[3];
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 单步执行事件：通过职责链模式分发给具体的动作处理器。
      *
      * @param {Object} model 回放模型对象
@@ -410,6 +455,7 @@
         // 顺序匹配各业务子处理器
         var handled = handleBid(state, text)
             || handleBottomCards(model, state, text)
+            || handleNiuniu(model, state, text)
             || handlePlay(model, state, text)
             || handlePass(state, text)
             || handleDraw(state, text)

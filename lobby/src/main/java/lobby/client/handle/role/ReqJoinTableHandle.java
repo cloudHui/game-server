@@ -1,6 +1,7 @@
 package lobby.client.handle.role;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
 import lobby.Lobby;
 import lobby.client.ClientProto;
 import lobby.manager.User;
@@ -9,15 +10,13 @@ import lobby.manager.table.TableInfo;
 import lobby.manager.table.TableManager;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import utils.registry.enums.ServerType;
 import msg.registor.message.LMsg;
 import msg.registor.message.SMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
 import net.connect.handle.ConnectHandler;
+import net.handler.Handler;
 import net.message.TCPMessage;
-import net.msg.Msg;
-import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
@@ -25,41 +24,35 @@ import proto.LobbyProto;
 import proto.ModelProto;
 import proto.ServerProto;
 import tools.manager.HandleManager;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 
 /**
  * 玩家加入或匹配桌子请求处理器
  * <p>
  * 寻找可加入的空闲桌子；若无可用桌子则向游戏服务异步请求创建新桌。
  */
-public class ReqJoinTableHandle {
+@ProcessType(LMsg.REQ_JOIN_ROOM_TABLE_MSG)
+public class ReqJoinTableHandle implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(ReqJoinTableHandle.class);
 
-    /**
-     * 处理玩家加入桌子请求
-     *
-     * @param ctx 消息上下文
-     */
-    @Msg(id = LMsg.REQ_JOIN_ROOM_TABLE_MSG, desc = "玩家加入桌子请求")
-    public void handle(MsgContext<LobbyProto.ReqJoinRoomTable> ctx) {
-        int clientId = ctx.getClientId();
-        Sender sender = ctx.getSender();
-        int sequence = ctx.getSequence();
-
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         User user = UserManager.getInstance().getUser(clientId);
         if (user == null) {
             logger.error("用户不存在, userId: {}", clientId);
             sender.sendMessage(TCPMessage.newInstance(ConstProto.Result.SERVER_ERROR_VALUE));
-            return;
+            return true;
         }
 
-        LobbyProto.ReqJoinRoomTable request = ctx.getMsg();
+        LobbyProto.ReqJoinRoomTable request = (LobbyProto.ReqJoinRoomTable) message;
         int roomId = request.getRoomId();
         TableModel tableModel = TableManager.getInstance().getTableModel(roomId);
         if (tableModel == null) {
             logger.error("房间配置不存在, roomId: {}", roomId);
             sender.sendMessage(TCPMessage.newInstance(ConstProto.Result.TABLE_CONFIG_ERROR_VALUE));
-            return;
+            return true;
         }
 
         if (!joinTable(tableModel, user, sequence, sender)) {
@@ -67,10 +60,11 @@ public class ReqJoinTableHandle {
             if (gameServer == null) {
                 logger.error("游戏服务器不可用");
                 sender.sendMessage(TCPMessage.newInstance(ConstProto.Result.SERVER_NULL_VALUE));
-                return;
+                return true;
             }
             createTable(gameServer, roomId, sequence, clientId, sender);
         }
+        return true;
     }
 
     /**

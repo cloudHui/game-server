@@ -175,6 +175,7 @@
     if (path.indexOf('/mahjong/') >= 0) return '/pages/games/mahjong/rooms.html';
     if (path.indexOf('/paodekuai/') >= 0) return '/pages/games/paodekuai/rooms.html';
     if (path.indexOf('/tractor/') >= 0) return '/pages/games/tractor/rooms.html';
+    if (path.indexOf('/niuniu/') >= 0) return '/pages/games/niuniu/rooms.html';
     return '/pages/games/doudizhu/rooms.html';
   }
 
@@ -277,11 +278,13 @@
   }
 
   /** 使用所有玩法共用的座位总分结构展示总结算。 */
-  function showScoreFinal(data, gameWs) {
+  function showScoreFinal(data, gameWs, seatNameFn) {
     if (!data) return;
     var rows = '';
     (data.totalScores || []).forEach(function (item) {
-      rows += '<div class="row"><span>座位 ' + item.seat + '</span><span>' + item.score + ' 分</span></div>';
+      var label = typeof seatNameFn === 'function' ? seatNameFn(item.seat) : ('座位 ' + item.seat);
+      var scoreStr = (item.score > 0 ? '+' : '') + item.score + ' 分';
+      rows += '<div class="row"><span>' + label + '</span><span>' + scoreStr + '</span></div>';
     });
     showFinalSettle({
       title: '总结算',

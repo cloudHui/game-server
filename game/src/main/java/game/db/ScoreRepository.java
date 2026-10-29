@@ -1,7 +1,8 @@
 package game.db;
 
-import game.manager.table.Table;
-import game.manager.table.TableUser;
+import game.domain.table.GameResult;
+import game.domain.table.Table;
+import game.domain.table.TableUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +73,10 @@ public class ScoreRepository {
      */
     private RoundSnapshot createSnapshot(Table table) {
         if (table.getGameResult().getRoundEntries().isEmpty()) return null;
-        game.manager.table.GameResult.RoundEntry entry = table.getGameResult().getRoundEntries()
+        GameResult.RoundEntry entry = table.getGameResult().getRoundEntries()
                 .get(table.getGameResult().getRoundEntries().size() - 1);
         java.util.List<ScoreRow> rows = new java.util.ArrayList<>();
-        for (int seat = 0; seat < table.getTableModel().getSeatNum(); seat++) {
+        for (int seat = 0; seat < table.getModel().getSeatNum(); seat++) {
             TableUser user = table.getSeatUser(seat);
             if (user != null) rows.add(new ScoreRow(user.getUserId(), seat, entry.getScores()[seat],
                     table.getGameResult().getTotalScore(seat)));
@@ -133,7 +134,7 @@ public class ScoreRepository {
             this.scoreValue = scoreValue;
             this.winType = winType;
             this.createdAt = createdAt;
-            this.rows = java.util.Collections.unmodifiableList(rows);
+            this.rows = rows;
         }
     }
 
@@ -153,15 +154,26 @@ public class ScoreRepository {
 
     private void initSchema() {
         String sql = "CREATE TABLE IF NOT EXISTS score_record ("
-                + "table_id INTEGER NOT NULL, room_id INTEGER NOT NULL, game_type INTEGER NOT NULL,"
-                + "round INTEGER NOT NULL, user_id INTEGER NOT NULL, seat INTEGER NOT NULL,"
-                + "score INTEGER NOT NULL, total_score INTEGER NOT NULL, winner_seat INTEGER NOT NULL,"
-                + "score_value INTEGER NOT NULL, win_type TEXT NOT NULL, created_at INTEGER NOT NULL,"
-                + "PRIMARY KEY(table_id, round, user_id))";
-        try (Connection conn = DriverManager.getConnection(jdbcUrl); Statement st = conn.createStatement()) {
+                + "table_id INTEGER NOT NULL,"
+                + "room_id INTEGER NOT NULL,"
+                + "game_type INTEGER NOT NULL,"
+                + "round INTEGER NOT NULL,"
+                + "user_id INTEGER NOT NULL,"
+                + "seat INTEGER NOT NULL,"
+                + "score INTEGER NOT NULL,"
+                + "total_score INTEGER NOT NULL,"
+                + "winner_seat INTEGER NOT NULL,"
+                + "score_value INTEGER NOT NULL,"
+                + "win_type TEXT NOT NULL,"
+                + "created_at INTEGER NOT NULL,"
+                + "PRIMARY KEY(table_id, round, user_id)"
+                + ")";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl);
+             Statement st = conn.createStatement()) {
             st.execute(sql);
+            st.execute("CREATE INDEX IF NOT EXISTS idx_score_user_created ON score_record(user_id, created_at)");
         } catch (SQLException e) {
-            throw new IllegalStateException("初始化战绩表失败", e);
+            logger.error("初始化战绩表结构失败", e);
         }
     }
 }

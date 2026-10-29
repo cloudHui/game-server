@@ -133,6 +133,8 @@ public final class GameWsPushFormatter {
     private static Map<String, Object> formatNotTableState(GameProto.NotTableState state) {
         Map<String, Object> m = new HashMap<>();
         m.put("state", state.getState());
+        m.put("stateStart", state.getStateStart());
+        m.put("stateDuration", state.getStateDuration());
         m.put("currentRound", state.getCurrentRound());
         m.put("totalRounds", state.getTotalRounds());
         return m;
@@ -444,6 +446,7 @@ public final class GameWsPushFormatter {
             rs.put("winnerSeat", r.getWinnerSeat());
             rs.put("fan", r.getFan());
             rs.put("winType", r.getWinType().toStringUtf8());
+            rs.put("seatScores", formatSeatScores(r.getSeatScoresList()));
             rounds.add(rs);
         }
         m.put("rounds", rounds);

@@ -5,6 +5,7 @@ import com.cloud.hub.game.domain.cards.Card;
 import com.cloud.hub.game.domain.cards.CardFormatter;
 import com.cloud.hub.game.domain.poker.ddz.DdzTable;
 import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.poker.niuniu.NiuniuTable;
 import com.cloud.hub.game.domain.poker.pdk.PdkTable;
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
@@ -240,6 +241,8 @@ public class TableInspectorService {
             buildTractorDeckInfo((TractorTable) table, gameType, deckInfo);
         } else if (table instanceof PdkTable) {
             buildPdkDeckInfo((PdkTable) table, gameType, deckInfo);
+        } else if (table instanceof NiuniuTable) {
+            buildNiuniuDeckInfo((NiuniuTable) table, gameType, deckInfo);
         }
         detail.put("deckInfo", deckInfo);
 
@@ -290,6 +293,21 @@ public class TableInspectorService {
     private void buildPdkDeckInfo(PdkTable table, int gameType, Map<String, Object> deckInfo) {
         deckInfo.put("type", "pdk");
         deckInfo.put("firstSeat", table.getOp() != null ? table.getOp().getCurrOpSeat() : -1);
+        List<Map<String, Object>> pool = new ArrayList<>();
+        if (table.getCardPool() != null) {
+            for (Card c : table.getCardPool().getPoolCards()) {
+                pool.add(CardFormatter.toCardMap(gameType, c.getId()));
+            }
+        }
+        deckInfo.put("remainingCards", pool);
+        deckInfo.put("remainingCount", pool.size());
+    }
+
+    private void buildNiuniuDeckInfo(NiuniuTable table, int gameType, Map<String, Object> deckInfo) {
+        deckInfo.put("type", "niuniu");
+        deckInfo.put("bankerSeat", table.getContext().getBankerSeat());
+        deckInfo.put("bankerMultiplier", table.getContext().getBankerMultiplier());
+        deckInfo.put("stage", table.getContext().getStage());
         List<Map<String, Object>> pool = new ArrayList<>();
         if (table.getCardPool() != null) {
             for (Card c : table.getCardPool().getPoolCards()) {

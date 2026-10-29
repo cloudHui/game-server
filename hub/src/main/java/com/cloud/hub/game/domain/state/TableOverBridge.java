@@ -1,14 +1,18 @@
 package com.cloud.hub.game.domain.state;
 
-import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.table.TableUser;
-import utils.registry.annotation.ProcessEnum;
-import utils.registry.enums.TableState;
-import msg.registor.message.GMsg;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cloud.hub.game.domain.table.Table;
+import com.cloud.hub.game.domain.table.TableUser;
+
+import msg.registor.message.GMsg;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.annotation.ProcessEnum;
+import utils.registry.enums.TableState;
 
 /**
  * 小结算阶段（TABLE_OVER）：展示约 15 秒后进入下一局或总结算散桌。
@@ -18,13 +22,15 @@ import proto.GameProto;
  */
 @ProcessEnum(TableState.TABLE_OVER)
 public class TableOverBridge extends AbstractTableHandle {
+
+    /** 日志记录器 */
     private static final Logger logger = LoggerFactory.getLogger(TableOverBridge.class);
 
     @Override
     public boolean handle(Table table) {
-        // 每 tick：下发准备提示；手动房机器人先准备；若已全员准备则可提前开下一局。
+        // 每 tick：下发准备提示；手动房机器人先准备；若已全员准备则可提前开下一局
         processSettleTick(table);
-        // 若 tick 内已切到 WAITING，勿再按 TABLE_OVER 超时逻辑处理。
+        // 若 tick 内已切到 WAITING，勿再按 TABLE_OVER 超时逻辑处理
         if (table.getTableState() != TableState.TABLE_OVER) {
             return false;
         }
@@ -44,7 +50,7 @@ public class TableOverBridge extends AbstractTableHandle {
             table.dismissAndSettle();
             return;
         }
-        // 15 秒小结算结束：自动开下一局（autoNextRound/机器人房），否则总结算并散桌。
+        // 15 秒小结算结束：自动开下一局（autoNextRound/机器人房），否则总结算并散桌
         if (canContinueNextRound(table)) {
             autoReadyForNextRound(table);
             if (table.allReady()) {
@@ -61,24 +67,26 @@ public class TableOverBridge extends AbstractTableHandle {
     }
 
     /**
-     * 小结算 tick：仅发一次准备提示；非自动房给机器人自动准备。
+     * 小结算 tick：仅发一次准备提示并写入哨兵标记，防止后续 tick 重复清空多人桌已准备玩家集合。
      */
     private void processSettleTick(Table table) {
         if (!canContinueNextRound(table)) {
             return;
         }
-        java.util.Set<GameProto.OpInfo> currChoice = table.getOp().getCurrChoice();
-        if (currChoice == null || currChoice.isEmpty()) {
+        Set<GameProto.OpInfo> sentinel = table.getOp().getSeatOps(-1);
+        if (sentinel == null || sentinel.isEmpty()) {
             sendPreparePrompt(table);
             if (table.getTableModel().getAutoNextRound() != 1) {
-                // 非自动下一局：机器人自动准备，真人需手动点准备。
+                // 非自动下一局：机器人自动准备，真人需手动点准备
                 for (TableUser u : table.getSeatUsers().values()) {
                     if (u.isRobot()) {
                         table.addReady(u.getUserId());
                     }
                 }
             }
-            table.getOp().setCurrOpSeat(-1);
+            table.getOp().reset();
+            table.getOp().addPosOpInfo(-1,
+                    GameProto.OpInfo.newBuilder().setChoice(ConstProto.Operation.PREPARE).build());
         }
         if (table.allReady()) {
             table.resetForNextRound();
@@ -108,7 +116,6 @@ public class TableOverBridge extends AbstractTableHandle {
     }
 
     private void sendPreparePrompt(Table table) {
-        table.clearReadySet();
         for (TableUser user : table.getSeatUsers().values()) {
             GameProto.NotOperation not = GameProto.NotOperation.newBuilder()
                     .setWait(TableState.TABLE_OVER.getOverTime())

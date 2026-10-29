@@ -1,5 +1,5 @@
 /**
- * 牛牛前端牌型判定器（与服务端 NiuniuEvaluator 规则保持 100% 对齐）。
+ * 牛牛前端牌型判定与 3+2 凑十分牌工具（与服务端 NiuniuRules 对齐）。
  */
 (function (w) {
     'use strict';
@@ -8,26 +8,19 @@
         [0, 1, 2], [0, 1, 3], [0, 1, 4], [0, 2, 3], [0, 2, 4],
         [0, 3, 4], [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]
     ];
+    var NIU_NAMES = ['无牛', '牛一', '牛二', '牛三', '牛四', '牛五', '牛六', '牛七', '牛八', '牛九', '牛牛'];
+    var NIU_MULTS = [1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4];
 
     function getNiuPoint(cardId) {
         if (!cardId) return 0;
-        var val = cardId % 100;
-        if (val === 14) return 1; // A=1
-        if (val === 15) return 2; // 2=2
-        if (val >= 10 && val <= 13) return 10; // 10, J, Q, K
-        if (val >= 16) return 10;
-        return val; // 3 ~ 9
+        var v = cardId % 100;
+        return v === 14 ? 1 : (v === 15 ? 2 : (v >= 10 ? 10 : v));
     }
 
     function getCardRank(cardId) {
         if (!cardId) return 0;
-        var val = cardId % 100;
-        if (val === 14) return 1; // A
-        if (val === 15) return 2; // 2
-        if (val >= 3 && val <= 13) return val; // 3 ~ 10, J(11), Q(12), K(13)
-        if (val === 16) return 14;
-        if (val === 17) return 15;
-        return val;
+        var v = cardId % 100;
+        return v === 14 ? 1 : (v === 15 ? 2 : (v >= 16 ? v - 2 : v));
     }
 
     function getCardSuit(cardId) {
@@ -35,76 +28,69 @@
     }
 
     function evaluate(cards) {
-        if (!cards || cards.length < 5) return {name: '', multiplier: 1, type: 0, level: 'none'};
+        if (!cards || cards.length < 5) {
+            return {name: '', multiplier: 1, type: 0, level: 'none', hasGroupSplit: false, orderedCards: (cards || []).slice()};
+        }
+        var copy = cards.slice(0, 5);
 
-        // 1. 五小牛: 5张牌点数均小于5且总点数 <= 10
-        var allSmall = true, sumVal = 0;
+        // 1. 五小牛
+        var small = true, sum = 0;
         for (var i = 0; i < 5; i++) {
-            var pt = getNiuPoint(cards[i]);
-            sumVal += pt;
-            if (pt >= 5) allSmall = false;
+            var pt = getNiuPoint(copy[i]);
+            sum += pt;
+            if (pt >= 5) small = false;
         }
-        if (allSmall && sumVal <= 10) {
-            return {name: '五小牛', multiplier: 8, type: 14, level: 'special'};
+        if (small && sum <= 10) {
+            return {name: '五小牛', multiplier: 8, type: 14, level: 'special', hasGroupSplit: false, orderedCards: copy};
         }
 
-        // 2. 炸弹牛: 4张同点数
-        var rankCounts = {};
+        // 2. 炸弹牛（四条排前，单张垫后）
+        var counts = {}, bombRank = 0;
         for (var j = 0; j < 5; j++) {
-            var r = getCardRank(cards[j]);
-            rankCounts[r] = (rankCounts[r] || 0) + 1;
-            if (rankCounts[r] === 4) {
-                return {name: '炸弹牛', multiplier: 7, type: 13, level: 'special'};
-            }
+            var r = getCardRank(copy[j]);
+            counts[r] = (counts[r] || 0) + 1;
+            if (counts[r] >= 4) bombRank = r;
+        }
+        if (bombRank > 0) {
+            var quads = copy.filter(function (c) { return getCardRank(c) === bombRank; });
+            var rest = copy.filter(function (c) { return getCardRank(c) !== bombRank; });
+            return {name: '炸弹牛', multiplier: 7, type: 13, level: 'special', hasGroupSplit: false, orderedCards: quads.concat(rest)};
         }
 
         // 3. 五花牛 / 四花牛
-        var jqkCount = 0, tenCount = 0;
+        var jqk = 0, ten = 0;
         for (var k = 0; k < 5; k++) {
-            var rk = getCardRank(cards[k]);
-            if (rk >= 11 && rk <= 13) jqkCount++;
-            else if (rk === 10) tenCount++;
+            var rk = getCardRank(copy[k]);
+            if (rk >= 11 && rk <= 13) jqk++;
+            else if (rk === 10) ten++;
         }
-        if (jqkCount === 5) {
-            return {name: '五花牛', multiplier: 6, type: 12, level: 'special'};
-        }
-        if (jqkCount === 4 && tenCount === 1) {
-            return {name: '四花牛', multiplier: 5, type: 11, level: 'special'};
-        }
+        if (jqk === 5) return {name: '五花牛', multiplier: 6, type: 12, level: 'special', hasGroupSplit: false, orderedCards: copy};
+        if (jqk === 4 && ten === 1) return {name: '四花牛', multiplier: 5, type: 11, level: 'special', hasGroupSplit: false, orderedCards: copy};
 
-        // 4. 经典找牛 (C(5, 3))
-        var bestNiu = -1;
+        // 4. 经典 3+2 凑十寻优
+        var best = 0, ordered = copy;
         for (var c = 0; c < COMBS_3.length; c++) {
-            var idxs = COMBS_3[c];
-            var sum3 = getNiuPoint(cards[idxs[0]]) + getNiuPoint(cards[idxs[1]]) + getNiuPoint(cards[idxs[2]]);
-            if (sum3 % 10 === 0) {
-                var remSum = 0;
-                for (var x = 0; x < 5; x++) {
-                    if (x !== idxs[0] && x !== idxs[1] && x !== idxs[2]) {
-                        remSum += getNiuPoint(cards[x]);
-                    }
+            var idx = COMBS_3[c];
+            if ((getNiuPoint(copy[idx[0]]) + getNiuPoint(copy[idx[1]]) + getNiuPoint(copy[idx[2]])) % 10 !== 0) continue;
+            var head = [], rem = 0;
+            for (var x = 0; x < 5; x++) {
+                if (x !== idx[0] && x !== idx[1] && x !== idx[2]) {
+                    head.push(copy[x]);
+                    rem += getNiuPoint(copy[x]);
                 }
-                var remNiu = remSum % 10;
-                if (remNiu === 0) remNiu = 10; // 牛牛
-                if (remNiu > bestNiu) bestNiu = remNiu;
+            }
+            var niu = rem % 10 === 0 ? 10 : rem % 10;
+            if (niu > best) {
+                best = niu;
+                ordered = [copy[idx[0]], copy[idx[1]], copy[idx[2]]].concat(head);
             }
         }
-
-        if (bestNiu === 10) return {name: '牛牛', multiplier: 4, type: 10, level: 'niu'};
-        if (bestNiu === 9) return {name: '牛九', multiplier: 3, type: 9, level: 'high'};
-        if (bestNiu === 8) return {name: '牛八', multiplier: 2, type: 8, level: 'high'};
-        if (bestNiu === 7) return {name: '牛七', multiplier: 2, type: 7, level: 'high'};
-        if (bestNiu >= 1 && bestNiu <= 6) {
-            var names = ['', '牛一', '牛二', '牛三', '牛四', '牛五', '牛六'];
-            return {name: names[bestNiu], multiplier: 1, type: bestNiu, level: 'low'};
+        if (best > 0) {
+            var lv = best === 10 ? 'niu' : (best >= 7 ? 'high' : 'low');
+            return {name: NIU_NAMES[best], multiplier: NIU_MULTS[best], type: best, level: lv, hasGroupSplit: true, orderedCards: ordered};
         }
-        return {name: '无牛', multiplier: 1, type: 0, level: 'none'};
+        return {name: '无牛', multiplier: 1, type: 0, level: 'none', hasGroupSplit: false, orderedCards: copy};
     }
 
-    w.NiuniuRule = {
-        getNiuPoint: getNiuPoint,
-        getCardRank: getCardRank,
-        getCardSuit: getCardSuit,
-        evaluate: evaluate
-    };
+    w.NiuniuRule = {getNiuPoint: getNiuPoint, getCardRank: getCardRank, getCardSuit: getCardSuit, evaluate: evaluate};
 })(window);

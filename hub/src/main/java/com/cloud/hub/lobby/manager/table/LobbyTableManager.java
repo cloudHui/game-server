@@ -94,19 +94,15 @@ public class LobbyTableManager {
     /**
      * 判断是否属于大厅对外展示的官方模板房间。
      * <p>
-     * 麻将 1(4人)/11(2人)/12(3人)/9001(4人快速)；斗地主 2/9002/9003；跑得快/拖拉机。
+     * Excel 经典房：1/11/12(麻将)、2(斗地主)、5(牛牛)；快速机器人房：由 {@link RobotRoomTemplates#isRobotRoom(int)} 统一判定。
      * </p>
      *
      * @param roomId 房间模板 ID
      * @return true 表示为官方房间
      */
     public static boolean isOfficialRoom(int roomId) {
-        return roomId == 1 || roomId == 11 || roomId == 12 || roomId == 2
-                || roomId == RobotRoomTemplates.MAHJONG_ROOM_ID
-                || roomId == RobotRoomTemplates.DOU_DIZHU_ROB_ROOM_ID
-                || roomId == RobotRoomTemplates.DOU_DIZHU_ROOM_ID
-                || roomId == RobotRoomTemplates.PAO_DE_KUAI_ROOM_ID
-                || roomId == RobotRoomTemplates.TRACTOR_ROOM_ID;
+        return roomId == 1 || roomId == 11 || roomId == 12 || roomId == 2 || roomId == 5
+                || RobotRoomTemplates.isRobotRoom(roomId);
     }
 
     /**

@@ -1,6 +1,7 @@
 package lobby.client.handle.role;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
 import lobby.Lobby;
 import lobby.db.UserEntity;
 import lobby.db.UserRepository;
@@ -10,12 +11,12 @@ import lobby.manager.table.TableInfo;
 import lobby.manager.table.TableManager;
 import msg.registor.message.LMsg;
 import net.client.Sender;
-import net.msg.Msg;
-import net.msg.MsgContext;
+import net.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.LobbyProto;
 import utils.crypto.MD5Utils;
+import utils.registry.annotation.ProcessType;
 import utils.trace.TraceContext;
 
 import java.util.ArrayList;
@@ -26,26 +27,18 @@ import java.util.List;
  * <p>
  * 支持 username + password 凭证登录或 Token 重连认证；登录成功后返回用户所在桌子信息。
  */
-public class ReqLoginHandler {
+@ProcessType(LMsg.REQ_LOGIN_MSG)
+public class ReqLoginHandler implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(ReqLoginHandler.class);
 
     public static final int CODE_OK = 0;
     public static final int CODE_FAIL = 1;
 
-    /**
-     * 处理玩家登录请求
-     *
-     * @param ctx 消息上下文
-     */
-    @Msg(id = LMsg.REQ_LOGIN_MSG, desc = "玩家登录请求")
-    public void handle(MsgContext<LobbyProto.ReqLogin> ctx) {
-        int clientId = ctx.getClientId();
-        Sender sender = ctx.getSender();
-        int sequence = ctx.getSequence();
-
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {
-            LobbyProto.ReqLogin request = ctx.getMsg();
+            LobbyProto.ReqLogin request = (LobbyProto.ReqLogin) message;
             String username = request.getUsername().toStringUtf8();
             String password = request.getPassword().toStringUtf8();
             String token = request.getToken().toStringUtf8();
@@ -59,8 +52,8 @@ public class ReqLoginHandler {
             if (!token.isEmpty()) {
                 entity = repo.findByToken(token).orElse(null);
                 if (entity == null || !entity.isEnabled()) {
-                    sendAck(ctx, CODE_FAIL, 0, "", "", "", null, null);
-                    return;
+                    sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "", null, null);
+                    return true;
                 }
             } else if (!username.isEmpty() && !password.isEmpty()) {
                 entity = repo.findByUsername(username).orElse(null);
@@ -68,12 +61,12 @@ public class ReqLoginHandler {
                 if (entity == null || !entity.isEnabled()
                         || entity.getPasswordHash() == null
                         || !entity.getPasswordHash().equals(hash)) {
-                    sendAck(ctx, CODE_FAIL, 0, "", "", "", null, null);
-                    return;
+                    sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "", null, null);
+                    return true;
                 }
             } else {
-                sendAck(ctx, CODE_FAIL, 0, "", "", "", null, null);
-                return;
+                sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "", null, null);
+                return true;
             }
 
             String newToken = Lobby.newToken();
@@ -97,14 +90,15 @@ public class ReqLoginHandler {
             TraceContext.setUserId((int) user.getUserId());
             List<Long> tables = user.getAllTables();
             List<LobbyProto.TableSeatInfo> tableInfos = buildTableInfos(tables);
-            sendAck(ctx, CODE_OK, user.getUserIdInt(),
+            sendAck(sender, clientId, sequence, CODE_OK, user.getUserIdInt(),
                     entity.getUsername(), user.getNick(), newToken, tables, tableInfos);
             logger.info("登录成功, userId: {}, username: {}, tables: {}",
                     user.getUserId(), entity.getUsername(), tables.size());
         } catch (Exception e) {
             logger.error("处理登录失败, gateClientId: {}", clientId, e);
-            sendAck(ctx, CODE_FAIL, 0, "", "", "", null, null);
+            sendAck(sender, clientId, sequence, CODE_FAIL, 0, "", "", "", null, null);
         }
+        return true;
     }
 
     /**
@@ -137,7 +131,7 @@ public class ReqLoginHandler {
     /**
      * 发送登录响应
      */
-    private void sendAck(MsgContext<LobbyProto.ReqLogin> ctx, int code,
+    private void sendAck(Sender sender, int clientId, int sequence, int code,
                          int userId, String username, String nick, String token,
                          List<Long> tables, List<LobbyProto.TableSeatInfo> tableInfos) {
         try {
@@ -153,7 +147,7 @@ public class ReqLoginHandler {
             if (tableInfos != null) {
                 builder.addAllTableInfos(tableInfos);
             }
-            ctx.reply(LMsg.ACK_LOGIN_MSG, 0L, builder.build());
+            sender.sendMessage(clientId, LMsg.ACK_LOGIN_MSG, 0L, builder.build(), sequence);
         } catch (Exception e) {
             logger.error("发送 AckLogin 失败", e);
         }

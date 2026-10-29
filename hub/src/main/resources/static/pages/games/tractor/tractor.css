@@ -1,10 +1,4 @@
 /** 拖拉机桌面增量样式（基础见 shared/poker-table.css） */
-.player-top {
-    top: 58px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
 .card.deal-in {
     animation: tractor-deal-in 0.28s ease-out;
 }

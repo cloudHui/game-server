@@ -1,7 +1,9 @@
 package utils.registry;
 
+import com.google.protobuf.Internal;
 import com.google.protobuf.Message;
-import net.msg.MsgRouter;
+import com.google.protobuf.MessageLite;
+import com.google.protobuf.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.registry.annotation.ClassType;
@@ -39,6 +41,8 @@ public final class HandlerRegistry {
 
     private static final Map<Integer, Class<?>> TRANS_MAP = new ConcurrentHashMap<>();
     private static final Map<Class<?>, Integer> MSG_TRANS_MAP = new ConcurrentHashMap<>();
+    private static final Map<Integer, Parser<? extends Message>> PARSER_MAP = new ConcurrentHashMap<>();
+    private static final byte[] EMPTY_BYTES = new byte[0];
     private static final Map<Class<? extends Annotation>, KeyResolver<Annotation>> RESOLVERS = new ConcurrentHashMap<>();
     private static final AtomicBoolean MESSAGE_INITIALIZED = new AtomicBoolean(false);
 
@@ -59,7 +63,7 @@ public final class HandlerRegistry {
     }
 
     /**
-     * 扫描指定常量包并绑定消息映射关系到本注册中心与 {@link MsgRouter}
+     * 扫描指定常量包并绑定消息映射关系到本注册中心
      */
     public static void initMessageConstants(String... packageNames) {
         long start = System.currentTimeMillis();
@@ -111,7 +115,10 @@ public final class HandlerRegistry {
                     TRANS_MAP.put(messageId, protoClass);
                     MSG_TRANS_MAP.put(protoClass, messageId);
                     if (Message.class.isAssignableFrom(protoClass)) {
-                        MsgRouter.getInstance().register(messageId, (Class<? extends Message>) protoClass, desc);
+                        Parser<? extends Message> parser = findParser(protoClass);
+                        if (parser != null) {
+                            PARSER_MAP.put(messageId, parser);
+                        }
                     }
                     bound++;
                 }
@@ -143,7 +150,45 @@ public final class HandlerRegistry {
 
     public static Message parseMessage(int messageId, byte[] bytes) {
         ensureMessageInitialized();
-        return MsgRouter.getInstance().parseMessage(messageId, bytes);
+        Parser<? extends Message> parser = PARSER_MAP.get(messageId);
+        if (parser == null) {
+            Class<?> protoClass = TRANS_MAP.get(messageId);
+            if (protoClass != null && Message.class.isAssignableFrom(protoClass)) {
+                parser = findParser(protoClass);
+                if (parser != null) {
+                    PARSER_MAP.put(messageId, parser);
+                }
+            }
+        }
+        if (parser == null) {
+            return null;
+        }
+        try {
+            return (bytes == null || bytes.length == 0) ? parser.parseFrom(EMPTY_BYTES) : parser.parseFrom(bytes);
+        } catch (Exception e) {
+            logger.error("反序列化消息失败, msgId: 0x{}", Integer.toHexString(messageId), e);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Parser<? extends Message> findParser(Class<?> protoClass) {
+        if (protoClass == null || !Message.class.isAssignableFrom(protoClass)) {
+            return null;
+        }
+        try {
+            Method parserMethod = protoClass.getMethod("parser");
+            return (Parser<? extends Message>) parserMethod.invoke(null);
+        } catch (Exception ignored) {
+        }
+        try {
+            Class<MessageLite> liteClass = (Class<MessageLite>) (Class<?>) protoClass;
+            MessageLite defaultInstance = Internal.getDefaultInstance(liteClass);
+            return (Parser<? extends Message>) defaultInstance.getParserForType();
+        } catch (Exception e) {
+            logger.warn("获取 Protobuf 解析器失败: {}", protoClass.getName(), e);
+            return null;
+        }
     }
 
     // ==================== 便捷处理器装配 API ====================

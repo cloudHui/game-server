@@ -351,6 +351,7 @@
         };
     </script>
     <script src="./shared/app-base.js"></script>
+    <script src="./shared/room-config.js"></script>
 </head>
 <body class="page-theme">
 <div class="shell">
@@ -604,15 +605,21 @@
         }
     }
 
+    function goGameTable(tableId, roomId, gameType) {
+        var gt = Number(gameType || 2);
+        localStorage.setItem('tableId', tableId);
+        localStorage.setItem('roomId', roomId || 0);
+        localStorage.setItem('gameType', gt);
+        var meta = window.RoomConfig ? RoomConfig.game(gt) : {page: '/pages/games/doudizhu/index.html'};
+        window.location.href = appUrl(meta.page);
+    }
+
     function showTablePickerFromInfos(infos) {
         var list = document.getElementById('tableList');
         list.innerHTML = '';
         for (var i = 0; i < infos.length; i++) {
             (function (info) {
-                var name = info.gameType === 1 ? '麻将'
-                    : info.gameType === 2 ? '斗地主'
-                        : info.gameType === 3 ? '跑得快'
-                            : info.gameType === 4 ? '拖拉机' : '牌桌';
+                var name = (window.RoomConfig && RoomConfig.game(info.gameType).name) || '牌桌';
                 var row = document.createElement('div');
                 row.className = 'table-item';
                 row.innerHTML = '<span>' + name + ' · 桌号 ' + info.tableId + '</span>';
@@ -654,15 +661,7 @@
     }
 
     function enterTableDirect(info) {
-        localStorage.setItem('tableId', info.tableId);
-        localStorage.setItem('roomId', info.roomId || 0);
-        localStorage.setItem('gameType', info.gameType || 2);
-        var gt = Number(info.gameType || 2);
-        var page = gt === 1 ? '/pages/games/mahjong/index.html'
-            : gt === 3 ? '/pages/games/paodekuai/index.html'
-                : gt === 4 ? '/pages/games/tractor/index.html'
-                    : '/pages/games/doudizhu/index.html';
-        window.location.href = appUrl(page);
+        goGameTable(info.tableId, info.roomId || 0, info.gameType || 2);
     }
 
     function enterTable(tableId) {
@@ -686,19 +685,10 @@
                         }
                     }
                 }
-                localStorage.setItem('tableId', tableId);
-                localStorage.setItem('roomId', roomId);
-                localStorage.setItem('gameType', gameType);
-                var page = gameType === 1 ? '/pages/games/mahjong/index.html'
-                    : gameType === 3 ? '/pages/games/paodekuai/index.html'
-                        : gameType === 4 ? '/pages/games/tractor/index.html'
-                            : '/pages/games/doudizhu/index.html';
-                window.location.href = appUrl(page);
+                goGameTable(tableId, roomId, gameType);
             })
             .catch(function () {
-                localStorage.setItem('tableId', tableId);
-                localStorage.setItem('gameType', 2);
-                window.location.href = appUrl('/pages/games/doudizhu/index.html');
+                goGameTable(tableId, 0, 2);
             });
     }
 

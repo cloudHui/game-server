@@ -1,14 +1,16 @@
 package game.client.handle.server;
 
+import com.google.protobuf.Message;
 import game.Game;
-import game.manager.table.Table;
-import game.manager.table.TableUser;
+import game.domain.table.Table;
+import game.domain.table.TableUser;
 import msg.registor.message.CMsg;
-import net.msg.Msg;
-import net.msg.MsgContext;
+import net.client.Sender;
+import net.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
+import utils.registry.annotation.ProcessType;
 import utils.trace.TraceContext;
 
 /**
@@ -16,19 +18,15 @@ import utils.trace.TraceContext;
  * <p>
  * 接收网关发送的玩家连接断开通知，标记对应桌内玩家为离线状态。
  */
-public class NotBreakHandle {
+@ProcessType(CMsg.NOT_BREAK)
+public class NotBreakHandle implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(NotBreakHandle.class);
 
-    /**
-     * 处理玩家断线事件
-     *
-     * @param ctx 消息上下文
-     */
-    @Msg(id = CMsg.NOT_BREAK, desc = "玩家断线通知")
-    public void handle(MsgContext<ServerProto.NotBreak> ctx) {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {
-            ServerProto.NotBreak notification = ctx.getMsg();
+            ServerProto.NotBreak notification = (ServerProto.NotBreak) message;
             int userId = notification.getUserId();
             int gateClientId = notification.getGateClientId();
 
@@ -46,8 +44,9 @@ public class NotBreakHandle {
                         }
                     });
         } catch (Exception e) {
-            logger.error("处理玩家断线通知失败, clientId: {}", ctx.getClientId(), e);
+            logger.error("处理玩家断线通知失败, clientId: {}", clientId, e);
         }
+        return true;
     }
 
     /**
@@ -62,17 +61,16 @@ public class NotBreakHandle {
         if (user == null) {
             return;
         }
+
+        // 仅在断线通知的 gateClientId 匹配当前活跃 gateId 时才标记离线
         if (gateClientId != 0 && user.getGateId() != 0 && user.getGateId() != gateClientId) {
-            logger.info("忽略旧连接断线, userId: {}, tableId: {}, noticeGate: {}, currentGate: {}",
-                    userId, table.getTableId(), gateClientId, user.getGateId());
+            logger.info("忽略旧连接断线通知, tableId: {}, userId: {}, noticeGateId: {}, currentGateId: {}",
+                    table.getTableId(), userId, gateClientId, user.getGateId());
             return;
         }
+
+        user.setGateId(0);
         user.setOnLine(false);
-        TraceContext.setTableId(table.getTableId());
-        logger.info("玩家标记离线, userId: {}, tableId: {}", userId, table.getTableId());
-        if (table.gaming()) {
-            logger.info("游戏进行中玩家断线, userId: {}, tableId: {}，等待超时自动处理",
-                    userId, table.getTableId());
-        }
+        logger.info("玩家已离线, tableId: {}, userId: {}", table.getTableId(), userId);
     }
 }

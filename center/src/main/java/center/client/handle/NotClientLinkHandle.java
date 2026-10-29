@@ -1,11 +1,13 @@
 package center.client.handle;
 
+import com.google.protobuf.Message;
 import msg.registor.message.CMsg;
-import net.msg.Msg;
-import net.msg.MsgContext;
+import net.client.Sender;
+import net.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
+import utils.registry.annotation.ProcessType;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * 跟踪客户端 IP 与网关地址的映射关系，用于后续连接管理和负载均衡。
  */
-public class NotClientLinkHandle {
+@ProcessType(CMsg.NOT_LINK)
+public class NotClientLinkHandle implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(NotClientLinkHandle.class);
 
@@ -75,21 +78,17 @@ public class NotClientLinkHandle {
         return clientToGateMap.size();
     }
 
-    /**
-     * 处理网关通知的客户端连接建立事件
-     *
-     * @param ctx 消息上下文
-     */
-    @Msg(id = CMsg.NOT_LINK, desc = "客户端连接建立通知")
-    public void handle(MsgContext<ServerProto.NotRegisterClient> ctx) {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {
-            ServerProto.NotRegisterClient notification = ctx.getMsg();
+            ServerProto.NotRegisterClient notification = (ServerProto.NotRegisterClient) message;
             String clientIp = notification.getCert().toStringUtf8();
             String gateAddress = notification.getGate().toStringUtf8();
 
             addClientConnection(clientIp, gateAddress);
         } catch (Exception e) {
-            logger.error("处理客户端连接通知失败, clientId: {}", ctx.getClientId(), e);
+            logger.error("处理客户端连接通知失败, clientId: {}", clientId, e);
         }
+        return true;
     }
 }

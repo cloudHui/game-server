@@ -225,6 +225,12 @@
         } else if (deck.type === 'pdk') {
             html += '<div style="margin-bottom:8px;font-size:13px;"><strong>跑得快发牌余牌（剩余 ' + (deck.remainingCount || 0) + ' 张）</strong></div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + renderCardList(deck.remainingCards) + '</div>';
+        } else if (deck.type === 'niuniu') {
+            var stageNames = {0: '等待开局', 1: '明牌抢庄', 2: '闲家加倍', 3: '拼牛亮牌', 4: '结算完成'};
+            html += '<div style="margin-bottom:8px;font-size:13px;"><strong>牛牛牌堆透视（剩余 ' + (deck.remainingCount || 0) + ' 张）</strong>'
+                + ' | 阶段：<strong>' + (stageNames[deck.stage] || deck.stage) + '</strong>'
+                + ' | 庄家位：<strong>' + (deck.bankerSeat >= 0 ? ('座' + deck.bankerSeat + ' (×' + (deck.bankerMultiplier || 1) + ')') : '尚未定庄') + '</strong></div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + renderCardList(deck.remainingCards) + '</div>';
         }
         html += '</div>';
 

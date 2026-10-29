@@ -76,6 +76,35 @@ public final class ArenaRules {
     }
 
     /**
+     * 副本推荐战力计算（兼容方法）。
+     *
+     * @param stage 副本层数 (1 ~ 999)
+     * @return 推荐达标战力数值
+     */
+    public static long dungeonPower(int stage) {
+        return dungeonRequiredPower(stage);
+    }
+
+    /**
+     * 仙修角色综合战力计算。
+     *
+     * @param hp 生命值
+     * @param atk 攻击力
+     * @param def 防御力
+     * @param rank 境界阶数
+     * @param stars 星级
+     * @param skill 功法等级
+     * @return 角色战力数值
+     */
+    public static long heroPower(long hp, long atk, long def, int rank, int stars, int skill) {
+        positive(rank);
+        positive(stars);
+        positive(skill);
+        long base = hp / 5 + atk * 8 + def * 5;
+        return base + (rank - 1) * 900L + (stars - 1) * 2400L + (skill - 1) * 650L;
+    }
+
+    /**
      * 根据通天塔层数计算敌方的特性词缀代码。
      * <ul>
      *   <li>HIGH_ATK: 狂暴雷霆 (超高攻击秒人，克制方法：沉默打断)</li>

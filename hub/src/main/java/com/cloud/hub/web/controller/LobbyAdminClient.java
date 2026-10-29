@@ -294,8 +294,8 @@ public class LobbyAdminClient {
      */
     public Map<String, Object> createCustomRoom(String username, Map<String, Object> body) {
         int gameType = integer(body.get("gameType"), 1);
-        if (gameType != 1 && gameType != 2) {
-            return error(400, "gameType 须为 1麻将 或 2斗地主");
+        if (gameType < 1 || gameType > 5) {
+            return error(400, "gameType 须为 1~5（麻将/斗地主/跑得快/拖拉机/牛牛）");
         }
         try {
             LobbyTableManager manager = LobbyTableManager.getInstance();
@@ -377,10 +377,14 @@ public class LobbyAdminClient {
     }
 
     private static String rulesJson(Map<String, Object> b, int type, int id) {
+        // 根据不同玩法匹配默认座位数、初始手牌张数及底牌张数，防止跨玩法创房参数错位
+        int defaultSeats = (type == 2 || type == 3) ? 3 : 4;
+        int defaultCardNum = type == 2 ? 17 : (type == 3 ? 16 : (type == 4 ? 25 : (type == 5 ? 5 : 13)));
+        int defaultExCardNum = type == 2 ? 3 : (type == 4 ? 8 : 0);
         StringBuilder s = new StringBuilder("{\"id\":").append(id).append(",\"type\":").append(type);
-        append(s, "seatNum", integer(b.get("seatNum"), 3));
-        append(s, "cardNum", integer(b.get("cardNum"), type == 2 ? 17 : 13));
-        append(s, "exCardNum", integer(b.get("exCardNum"), type == 2 ? 3 : 0));
+        append(s, "seatNum", integer(b.get("seatNum"), defaultSeats));
+        append(s, "cardNum", integer(b.get("cardNum"), defaultCardNum));
+        append(s, "exCardNum", integer(b.get("exCardNum"), defaultExCardNum));
         append(s, "baseScore", integer(b.get("baseScore"), 1));
         append(s, "maxFan", integer(b.get("maxFan"), 16));
         append(s, "allowChi", integer(b.get("allowChi"), 1));

@@ -69,7 +69,8 @@ public abstract class Table implements FrameSyncRoom {
 
     /** 连续状态处理异常上限（超过立即熔断解散，防死循环与僵尸桌） */
     private static final int MAX_CONSECUTIVE_ERRORS = 3;
-    private static final long LOOP_INTERVAL = 500;
+    /** 对局活跃期状态机高频轮询间隔（毫秒） */
+    public static final long LOOP_INTERVAL = 500;
     private static final long IDLE_LOOP_INTERVAL = 2000;
     private static final AtomicInteger ROBOT_ID_SEQ = new AtomicInteger(-100000);
     private final AtomicLong snapshotVersion = new AtomicLong(1);
@@ -430,7 +431,9 @@ public abstract class Table implements FrameSyncRoom {
             }
             logger.error("桌子连续发生 {} 次状态处理异常，触发熔断解散! tableId: {}, state: {}",
                     consecutiveErrors, tableId, tableState);
+            if (Game.getInstance().getTableManager() != null) {
             Game.getInstance().getTableManager().removeTableAsync(tableId);
+        }
         }
     }
 
@@ -766,7 +769,9 @@ public abstract class Table implements FrameSyncRoom {
         if (isMultiRound()) {
             sendGameResult();
         }
-        Game.getInstance().getTableManager().removeTableAsync(tableId);
+        if (Game.getInstance().getTableManager() != null) {
+            Game.getInstance().getTableManager().removeTableAsync(tableId);
+        }
     }
 
     protected GameProto.AckTableSnapshot.Builder newSnapshotBuilder(TableUser viewer) {

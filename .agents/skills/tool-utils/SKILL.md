@@ -15,7 +15,7 @@ description: >-
 
 ### 1. `utils` 模块常用工具
 - **反射与扫描**：`utils.registry.ClassScanner`（支持包扫描与注解类查找）、`HandlerRegistry`（处理器自动装配）
-- **网络与消息路由**：`net.msg.MsgRouter`（消息分发路由）、`net.client.Sender`（统一长连接发送接口）
+- **网络与消息路由**：`utils.registry.HandlerRegistry`（统一消息注册与分发）、`net.client.Sender`（统一长连接发送接口）
 - **加密与摘要**：优先使用 Spring Security Crypto 或项目内提供的哈希工具，避免自定义简陋加盐
 - **JSON 序列化**：优先使用 Jackson（Spring 默认）或统一的 FastJson，保持全局行为一致
 

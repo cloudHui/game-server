@@ -28,7 +28,7 @@
 ### 1. 通用思考、审查与可视化技能 (遵循 skills.sh 规范)
 - **`canvas`**：生成独立的交互式 HTML/Tailwind/ECharts 分析看板，专门呈现复杂数据与 MCP 查询结果。
 - **`grill-me`**：重大方案动手前，沿着决策树向用户进行单步深入盘问并附带推荐答案。
-- **`grill-with-docs`**：结合项目文档（AGENTS.md、vue3-migration-plan.md）进行术语与架构对齐盘问。
+- **`grill-with-docs`**：结合项目文档（AGENTS.md、plans/vue3-migration-plan.md）进行术语与架构对齐盘问。
 - **`improve-codebase-architecture`**：运用删除测试法扫描浅薄模块，提出高内聚重构方案。
 - **`zoom-out`**：全局宏观复盘，避免深陷局部细节偏离系统主线。
 - **`code-review`**：提交前自动审查：三层注释完整度、SQLite 锁竞争、未关闭流与资源泄漏。

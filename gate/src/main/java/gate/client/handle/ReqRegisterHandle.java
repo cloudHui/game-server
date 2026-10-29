@@ -1,19 +1,17 @@
 package gate.client.handle;
 
 import com.google.protobuf.Message;
-import utils.registry.annotation.ProcessType;
-import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.handler.Handler;
-import net.msg.Msg;
 import proto.ModelProto;
 import proto.ServerProto;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 
 /**
  * 机器人注册服务信息请求
  */
-@Msg(value = CMsg.REQ_REGISTER, ack = CMsg.ACK_REGISTER, desc = "机器人注册服务信息")
 @ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandle implements Handler {
 

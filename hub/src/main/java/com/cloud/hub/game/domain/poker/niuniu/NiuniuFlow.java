@@ -1,70 +1,117 @@
 package com.cloud.hub.game.domain.poker.niuniu;
 
-import com.cloud.hub.game.domain.table.TableUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import proto.ConstProto;
-import proto.GameProto;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cloud.hub.framework.metrics.HubMetrics;
+import com.cloud.hub.game.db.ScoreRepository;
+import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.replay.ReplayRecorder;
+import com.cloud.hub.game.domain.table.TableUser;
+
+import proto.ConstProto;
+import proto.GameProto;
+
 /**
- * 牛牛核心流程流转与结算（抢庄、下注、拼牛摊牌、比牌结算）。
- *
- * @author cloud
+ * 牛牛核心阶段流转与结算服务（明牌抢庄、闲家加倍、拼牛摊牌、庄闲零和比牌结算）。
  */
 public final class NiuniuFlow {
 
+    /** 日志记录器 */
     private static final Logger logger = LoggerFactory.getLogger(NiuniuFlow.class);
+
+    /** 抢庄倍数（0~4）对应的协议操作码表 */
+    private static final ConstProto.Operation[] ROB_OPS = {
+            ConstProto.Operation.NIU_NO_ROB,
+            ConstProto.Operation.NIU_ROB_1,
+            ConstProto.Operation.NIU_ROB_2,
+            ConstProto.Operation.NIU_ROB_3,
+            ConstProto.Operation.NIU_ROB_4
+    };
+
+    /** 闲家下注倍数（1~5，下标 0 对应 1 倍）对应的协议操作码表 */
+    private static final ConstProto.Operation[] BET_OPS = {
+            ConstProto.Operation.NIU_BET_1,
+            ConstProto.Operation.NIU_BET_2,
+            ConstProto.Operation.NIU_BET_3,
+            ConstProto.Operation.NIU_BET_4,
+            ConstProto.Operation.NIU_BET_5
+    };
 
     private NiuniuFlow() {
     }
 
-    // ======================== 抢庄阶段 ========================
-
+    /**
+     * 处理玩家提交抢庄倍数操作。
+     *
+     * @param table      牛牛牌桌实例
+     * @param userId     操作玩家 ID
+     * @param multiplier 抢庄倍数（0 不抢，1~4 倍）
+     * @return true 表示操作有效并已受理
+     */
     public static boolean onRob(NiuniuTable table, int userId, int multiplier) {
         TableUser user = table.getUserByUserId(userId);
-        if (user == null || user.getSeated() < 0) {
+        NiuniuContext ctx = table.getContext();
+        // 仅在抢庄阶段且该座位首次表态时受理，防客户端连点与超时并发重入
+        if (user == null || user.getSeated() < 0
+                || ctx.getStage() != NiuniuContext.STAGE_ROB
+                || ctx.getRobMultipliers().containsKey(user.getSeated())) {
             return false;
         }
         int seat = user.getSeated();
-        NiuniuContext ctx = table.getContext();
-        ctx.getRobMultipliers().put(seat, Math.max(0, Math.min(multiplier, 4)));
-
-        table.broadcastRob(userId, seat, ctx.getRobMultipliers().get(seat));
-
+        int finalMult = clamp(multiplier, 0, 4);
+        ctx.getRobMultipliers().put(seat, finalMult);
+        audit(table, "座" + seat + (finalMult > 0 ? " 抢庄 ×" + finalMult : " 不抢"));
+        table.broadcastRob(userId, finalMult);
         if (ctx.getRobMultipliers().keySet().containsAll(table.getSeatUsers().keySet())) {
             electBanker(table);
         }
         return true;
     }
 
+    /**
+     * 抢庄超时处理：未表态座位默认按“不抢(0倍)”补齐并定庄。
+     *
+     * @param table 牛牛牌桌实例
+     */
     public static void onRobTimeout(NiuniuTable table) {
         NiuniuContext ctx = table.getContext();
-        for (int seat : table.getSeatUsers().keySet()) {
-            ctx.getRobMultipliers().putIfAbsent(seat, 0);
+        if (ctx.getStage() != NiuniuContext.STAGE_ROB) {
+            return;
+        }
+        for (Map.Entry<Integer, TableUser> e : table.getSeatUsers().entrySet()) {
+            int seat = e.getKey();
+            if (!ctx.getRobMultipliers().containsKey(seat)) {
+                ctx.getRobMultipliers().put(seat, 0);
+                audit(table, "座" + seat + " 超时不抢");
+                table.broadcastRob(e.getValue().getUserId(), 0);
+            }
         }
         electBanker(table);
     }
 
+    /**
+     * 根据全桌抢庄结果选举本局庄家（最高倍当选，同最高倍随机，全员不抢随机定庄且按 1 倍计）。
+     *
+     * @param table 牛牛牌桌实例
+     */
     public static void electBanker(NiuniuTable table) {
         NiuniuContext ctx = table.getContext();
         if (ctx.getBankerSeat() >= 0) {
             return;
         }
-
         Map<Integer, Integer> robs = ctx.getRobMultipliers();
         int maxRob = 0;
         for (int m : robs.values()) {
-            if (m > maxRob) {
-                maxRob = m;
-            }
+            maxRob = Math.max(maxRob, m);
         }
-
         List<Integer> candidates = new ArrayList<>();
         if (maxRob > 0) {
             for (Map.Entry<Integer, Integer> e : robs.entrySet()) {
@@ -76,47 +123,232 @@ public final class NiuniuFlow {
             candidates.addAll(table.getSeatUsers().keySet());
             maxRob = 1;
         }
-
-        int luckySeat = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-        ctx.setBankerSeat(luckySeat);
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int bankerSeat = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+        ctx.setBankerSeat(bankerSeat);
         ctx.setBankerMultiplier(maxRob);
-
-        logger.info("牛牛定庄完成! bankerSeat: {}, mult: {}, tableId: {}",
-                luckySeat, maxRob, table.getTableId());
+        audit(table, "定庄 座" + bankerSeat + " (×" + maxRob + ")");
         table.onBankerDetermined();
     }
 
-    // ======================== 闲家下注阶段 ========================
-
+    /**
+     * 处理闲家提交下注倍数操作。
+     *
+     * @param table      牛牛牌桌实例
+     * @param userId     操作玩家 ID
+     * @param multiplier 下注倍数（1~5 倍）
+     * @return true 表示下注成功
+     */
     public static boolean onBet(NiuniuTable table, int userId, int multiplier) {
         TableUser user = table.getUserByUserId(userId);
-        if (user == null || user.getSeated() < 0) {
-            return false;
-        }
-        int seat = user.getSeated();
         NiuniuContext ctx = table.getContext();
-        if (seat == ctx.getBankerSeat()) {
+        int seat = user != null ? user.getSeated() : -1;
+        // 庄家不可参与闲家下注，且每位闲家单局仅允许锁定一次下注倍数
+        if (seat < 0 || ctx.getStage() != NiuniuContext.STAGE_BET
+                || seat == ctx.getBankerSeat() || ctx.getBetMultipliers().containsKey(seat)) {
             return false;
         }
-
-        ctx.getBetMultipliers().put(seat, Math.max(1, Math.min(multiplier, 5)));
-        table.broadcastBet(userId, seat, ctx.getBetMultipliers().get(seat));
-
+        int finalMult = clamp(multiplier, 1, 5);
+        ctx.getBetMultipliers().put(seat, finalMult);
+        audit(table, "座" + seat + " 下注 ×" + finalMult);
+        table.broadcastBet(userId, finalMult);
         if (isAllBet(table)) {
             table.onBetCompleted();
         }
         return true;
     }
 
+    /**
+     * 闲家下注超时处理：未下注闲家默认补齐 1 倍并进入发第 5 张牌流程。
+     *
+     * @param table 牛牛牌桌实例
+     */
     public static void onBetTimeout(NiuniuTable table) {
         NiuniuContext ctx = table.getContext();
+        if (ctx.getStage() != NiuniuContext.STAGE_BET) {
+            return;
+        }
         int bankerSeat = ctx.getBankerSeat();
-        for (int seat : table.getSeatUsers().keySet()) {
-            if (seat != bankerSeat) {
-                ctx.getBetMultipliers().putIfAbsent(seat, 1);
+        for (Map.Entry<Integer, TableUser> e : table.getSeatUsers().entrySet()) {
+            int seat = e.getKey();
+            if (seat != bankerSeat && !ctx.getBetMultipliers().containsKey(seat)) {
+                ctx.getBetMultipliers().put(seat, 1);
+                audit(table, "座" + seat + " 超时下注 ×1");
+                table.broadcastBet(e.getValue().getUserId(), 1);
             }
         }
         table.onBetCompleted();
+    }
+
+    /**
+     * 处理玩家拼牛摊牌操作，全员摊牌后立即触发比牌结算。
+     *
+     * @param table  牛牛牌桌实例
+     * @param userId 操作玩家 ID
+     * @return true 表示摊牌已受理
+     */
+    public static boolean onShow(NiuniuTable table, int userId) {
+        TableUser user = table.getUserByUserId(userId);
+        NiuniuContext ctx = table.getContext();
+        if (user == null || user.getSeated() < 0 || ctx.getStage() != NiuniuContext.STAGE_SHOW) {
+            return false;
+        }
+        int seat = user.getSeated();
+        if (ctx.getShowedSeats().add(seat)) {
+            recordHand(table, user);
+            table.notifyPlayerShowed(seat);
+            if (ctx.getShowedSeats().containsAll(table.getSeatUsers().keySet())) {
+                table.onShowCompleted();
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 拼牛摊牌超时处理：对未摊牌座位自动算牛亮牌并触发结算。
+     *
+     * @param table 牛牛牌桌实例
+     */
+    public static void onShowTimeout(NiuniuTable table) {
+        NiuniuContext ctx = table.getContext();
+        if (ctx.getStage() != NiuniuContext.STAGE_SHOW) {
+            return;
+        }
+        for (TableUser user : table.getSeatUsers().values()) {
+            int seat = user.getSeated();
+            if (ctx.getShowedSeats().add(seat)) {
+                recordHand(table, user);
+                table.notifyPlayerShowed(seat);
+            }
+        }
+        table.onShowCompleted();
+    }
+
+    /**
+     * 执行单局庄闲逐一比牌零和结算，落盘战绩与回放并广播结算详情。
+     *
+     * @param table 牛牛牌桌实例
+     */
+    public static void settle(NiuniuTable table) {
+        NiuniuContext ctx = table.getContext();
+        int bankerSeat = ctx.getBankerSeat();
+        NiuniuHand bankerHand = ctx.getPlayerHands().get(bankerSeat);
+        if (bankerSeat < 0 || bankerHand == null) {
+            logger.error("牛牛结算异常: 未找到庄家手牌, tableId: {}", table.getTableId());
+            return;
+        }
+
+        int baseScore = Math.max(1, table.getTableModel().getBaseScore());
+        int bankerMult = Math.max(1, ctx.getBankerMultiplier());
+        int maxFan = table.getTableModel().getMaxFan();
+        int maxSeatNum = table.getTableModel().getSeatNum();
+
+        Map<Integer, Integer> roundScores = new HashMap<>();
+        int[] scoresArray = new int[maxSeatNum];
+        int bankerDelta = 0;
+
+        for (TableUser user : table.getSeatUsers().values()) {
+            int seat = user.getSeated();
+            NiuniuHand playerHand = ctx.getPlayerHands().get(seat);
+            if (seat == bankerSeat || playerHand == null) {
+                continue;
+            }
+            boolean playerWin = NiuniuRules.isPlayerWin(playerHand, bankerHand);
+            int typeMult = (playerWin ? playerHand : bankerHand).getCardType().getDefaultMultiplier();
+            int betMult = Math.max(1, ctx.getBetMultipliers().getOrDefault(seat, 1));
+            int lineMult = typeMult * betMult * bankerMult;
+            // 应用房间 maxFan 倍数保护上限，防止特殊牌型叠加高倍抢庄产生极端分差
+            if (maxFan > 0) {
+                lineMult = Math.min(lineMult, maxFan * 5);
+            }
+            int signed = (playerWin ? 1 : -1) * baseScore * lineMult;
+            roundScores.put(seat, signed);
+            bankerDelta -= signed;
+        }
+        roundScores.put(bankerSeat, bankerDelta);
+
+        int bestSeat = bankerSeat;
+        int bestScore = Integer.MIN_VALUE;
+        for (Map.Entry<Integer, Integer> e : roundScores.entrySet()) {
+            int s = e.getKey();
+            int val = e.getValue();
+            if (s >= 0 && s < maxSeatNum) {
+                scoresArray[s] = val;
+            }
+            if (val > bestScore) {
+                bestScore = val;
+                bestSeat = s;
+            }
+        }
+
+        String summaryType = bankerHand.getCardType().getName();
+        table.getGameResult().addRound(table.getCurrentRound(), bestSeat, bankerMult, scoresArray, summaryType);
+        ScoreRepository.getInstance().saveRound(table);
+
+        HubMetrics metrics = HubMetrics.getInstance();
+        if (metrics != null) {
+            metrics.recordRoundSettled("niuniu");
+        }
+
+        ReplayRecorder replay = table.getReplayRecorder();
+        if (replay != null) {
+            replay.writeAuditEvent("结算 庄家座" + bankerSeat + " 庄家牌型 " + summaryType + " 各座得分 " + Arrays.toString(scoresArray));
+            replay.writeSettlement(bestSeat, bankerMult, summaryType, scoresArray);
+            replay.save();
+        }
+        table.broadcastSettle(roundScores);
+    }
+
+    /**
+     * 将抢庄倍数（0~4）转换为协议操作枚举。
+     *
+     * @param multiplier 抢庄倍数
+     * @return 协议操作枚举
+     */
+    public static ConstProto.Operation robOp(int multiplier) {
+        return ROB_OPS[clamp(multiplier, 0, 4)];
+    }
+
+    /**
+     * 从客户端操作消息解析抢庄倍数（0~4）。
+     *
+     * @param op 客户端操作详情
+     * @return 抢庄倍数
+     */
+    public static int parseRobMult(GameProto.OpInfo op) {
+        for (int i = 0; i < ROB_OPS.length; i++) {
+            if (ROB_OPS[i] == op.getChoice()) {
+                return i;
+            }
+        }
+        return clamp(op.getChoiceValue(), 0, 4);
+    }
+
+    /**
+     * 将闲家下注倍数（1~5）转换为协议操作枚举。
+     *
+     * @param multiplier 下注倍数
+     * @return 协议操作枚举
+     */
+    public static ConstProto.Operation betOp(int multiplier) {
+        return BET_OPS[clamp(multiplier, 1, 5) - 1];
+    }
+
+    /**
+     * 从客户端操作消息解析闲家下注倍数（1~5）。
+     *
+     * @param op 客户端操作详情
+     * @return 下注倍数
+     */
+    public static int parseBetMult(GameProto.OpInfo op) {
+        for (int i = 0; i < BET_OPS.length; i++) {
+            if (BET_OPS[i] == op.getChoice()) {
+                return i + 1;
+            }
+        }
+        return clamp(op.getChoiceValue(), 1, 5);
     }
 
     private static boolean isAllBet(NiuniuTable table) {
@@ -130,152 +362,28 @@ public final class NiuniuFlow {
         return true;
     }
 
-    // ======================== 拼牛摊牌阶段 ========================
-
-    public static boolean onShow(NiuniuTable table, int userId) {
-        TableUser user = table.getUserByUserId(userId);
-        if (user == null || user.getSeated() < 0) {
-            return false;
-        }
-        int seat = user.getSeated();
-        NiuniuContext ctx = table.getContext();
-        if (ctx.getShowedSeats().contains(seat)) {
-            return true;
-        }
-
-        recordHand(table, user);
-        ctx.getShowedSeats().add(seat);
-        table.notifyPlayerShowed(seat);
-
-        if (ctx.getShowedSeats().containsAll(table.getSeatUsers().keySet())) {
-            table.onShowCompleted();
-        }
-        return true;
-    }
-
-    public static void onShowTimeout(NiuniuTable table) {
-        NiuniuContext ctx = table.getContext();
-        for (TableUser user : table.getSeatUsers().values()) {
-            int seat = user.getSeated();
-            if (!ctx.getShowedSeats().contains(seat)) {
-                recordHand(table, user);
-                ctx.getShowedSeats().add(seat);
-                table.notifyPlayerShowed(seat);
-            }
-        }
-        table.onShowCompleted();
-    }
-
     private static void recordHand(NiuniuTable table, TableUser user) {
-        NiuniuHand hand = NiuniuRules.evaluate(user.getCards(), table.getRuleConfig());
-        table.getContext().getPlayerHands().put(user.getSeated(), hand);
+        while (user.getCards().size() < 5 && !table.getCardPool().getPoolCards().isEmpty()) {
+            user.addCards(table.getCardPool().getPoolCards().remove(0));
+        }
+        NiuniuHand hand = NiuniuRules.evaluate(user.getCards());
+        int seat = user.getSeated();
+        table.getContext().getPlayerHands().put(seat, hand);
+        List<Integer> ids = new ArrayList<>(user.getCards().size());
+        for (Card c : user.getCards()) {
+            ids.add(c.getId());
+        }
+        audit(table, "座" + seat + " 亮牌 " + ids + " " + hand.getCardType().getName());
     }
 
-    // ======================== 庄闲结算 ========================
-
-    public static void settle(NiuniuTable table) {
-        NiuniuContext ctx = table.getContext();
-        int bankerSeat = ctx.getBankerSeat();
-        NiuniuHand bankerHand = ctx.getPlayerHands().get(bankerSeat);
-        if (bankerSeat < 0 || bankerHand == null) {
-            logger.error("牛牛结算异常: 未找到合法庄家手牌, tableId: {}", table.getTableId());
-            return;
-        }
-
-        NiuniuConfig config = table.getRuleConfig();
-        int baseScore = Math.max(1, table.getTableModel().getBaseScore());
-        int bankerMultiplier = Math.max(1, ctx.getBankerMultiplier());
-
-        Map<Integer, Integer> roundScores = new HashMap<>();
-        int bankerTotalDelta = 0;
-        int maxSeatNum = table.getTableModel().getSeatNum();
-        int[] scoresArray = new int[maxSeatNum];
-
-        for (TableUser user : table.getSeatUsers().values()) {
-            int seat = user.getSeated();
-            if (seat == bankerSeat) {
-                continue;
-            }
-
-            NiuniuHand playerHand = ctx.getPlayerHands().get(seat);
-            if (playerHand == null) {
-                continue;
-            }
-
-            boolean isPlayerWin = NiuniuRules.isPlayerWin(playerHand, bankerHand);
-            NiuniuHand winHand = isPlayerWin ? playerHand : bankerHand;
-            int typeMultiplier = config.getMultiplier(winHand.getCardType());
-            int betMultiplier = Math.max(1, ctx.getBetMultipliers().getOrDefault(seat, 1));
-            int lineMultiplier = typeMultiplier * betMultiplier * bankerMultiplier;
-            int delta = baseScore * lineMultiplier;
-
-            if (isPlayerWin) {
-                roundScores.put(seat, delta);
-                bankerTotalDelta -= delta;
-            } else {
-                roundScores.put(seat, -delta);
-                bankerTotalDelta += delta;
-            }
-        }
-
-        roundScores.put(bankerSeat, bankerTotalDelta);
-        ctx.getRoundScoreDeltas().putAll(roundScores);
-
-        for (Map.Entry<Integer, Integer> entry : roundScores.entrySet()) {
-            int s = entry.getKey();
-            if (s >= 0 && s < maxSeatNum) {
-                scoresArray[s] = entry.getValue();
-            }
-        }
-
-        int winnerSeat = bankerTotalDelta >= 0 ? bankerSeat : -1;
-        table.getGameResult().addRound(table.getCurrentRound(), winnerSeat, 1,
-                scoresArray, bankerHand.getCardType().getName());
-
-        table.broadcastSettle(roundScores);
-    }
-
-    // ======================== 通用协议操作转换（抽出公共重复） ========================
-
-    public static ConstProto.Operation robOp(int multiplier) {
-        switch (multiplier) {
-            case 1: return ConstProto.Operation.NIU_ROB_1;
-            case 2: return ConstProto.Operation.NIU_ROB_2;
-            case 3: return ConstProto.Operation.NIU_ROB_3;
-            case 4: return ConstProto.Operation.NIU_ROB_4;
-            default: return ConstProto.Operation.NIU_NO_ROB;
+    private static void audit(NiuniuTable table, String event) {
+        ReplayRecorder replay = table.getReplayRecorder();
+        if (replay != null) {
+            replay.writeAuditEvent(event);
         }
     }
 
-    public static int parseRobMult(GameProto.OpInfo op) {
-        switch (op.getChoice()) {
-            case NIU_ROB_1: return 1;
-            case NIU_ROB_2: return 2;
-            case NIU_ROB_3: return 3;
-            case NIU_ROB_4: return 4;
-            case NIU_NO_ROB: return 0;
-            default: return Math.max(0, Math.min(op.getChoiceValue(), 4));
-        }
-    }
-
-    public static ConstProto.Operation betOp(int multiplier) {
-        switch (multiplier) {
-            case 2: return ConstProto.Operation.NIU_BET_2;
-            case 3: return ConstProto.Operation.NIU_BET_3;
-            case 4: return ConstProto.Operation.NIU_BET_4;
-            case 5: return ConstProto.Operation.NIU_BET_5;
-            default: return ConstProto.Operation.NIU_BET_1;
-        }
-    }
-
-    public static int parseBetMult(GameProto.OpInfo op) {
-        switch (op.getChoice()) {
-            case NIU_BET_2: return 2;
-            case NIU_BET_3: return 3;
-            case NIU_BET_4: return 4;
-            case NIU_BET_5: return 5;
-            case NIU_BET_1: return 1;
-            default: return Math.max(1, Math.min(op.getChoiceValue() > 0 ? op.getChoiceValue() : 1, 5));
-        }
+    private static int clamp(int val, int min, int max) {
+        return Math.max(min, Math.min(val, max));
     }
 }

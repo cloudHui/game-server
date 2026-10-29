@@ -61,6 +61,9 @@ public class Waiting extends AbstractTableHandle {
      * @param table 游戏桌实例
      */
     private void startGame(Table table) {
+        // 新一局正式发牌前清空准备集合与残留操作提示，避免首局准备状态污染局间 TABLE_OVER 续局判定
+        table.clearReadySet();
+        table.getOp().reset();
         table.initGameConfig();
         table.dealCards();
         table.onGameStarted();

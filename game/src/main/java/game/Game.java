@@ -24,7 +24,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -108,7 +107,6 @@ public class Game {
     public ModelProto.ServerInfo getServerInfo() {
         return serverInfo;
     }
-
 
     /**
      * 直接提交任务到线程池

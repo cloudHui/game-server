@@ -17,7 +17,6 @@ import net.message.Parser;
 import net.message.TCPMaker;
 import net.message.TCPMessage;
 import net.message.Transfer;
-import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -240,10 +239,6 @@ public class ConnectHandler extends ChannelInboundHandlerAdapter implements Send
     }
 
     private void handleSyncMessage(TCPMessage msg) throws InvalidProtocolBufferException {
-        if (handlers instanceof MsgRouter) {
-            ((MsgRouter) handlers).dispatch(this, msg);
-            return;
-        }
         Handler handler = handlers.getHandler(msg.getMessageId());
         if (null != handler) {
             handler.handler(this, msg.getClientId(), parseMessage(msg), msg.getMapId(), msg.getSequence());

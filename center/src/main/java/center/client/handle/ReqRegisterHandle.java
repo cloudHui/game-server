@@ -2,7 +2,6 @@ package center.client.handle;
 
 import center.Center;
 import center.client.CenterClient;
-import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
@@ -10,8 +9,8 @@ import proto.ModelProto;
 import proto.ServerProto;
 import tools.ServerClientManager;
 import tools.handle.AbstractRegisterHandler;
-
-import net.msg.Msg;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 
 import java.util.List;
 
@@ -19,7 +18,7 @@ import java.util.List;
  * 处理服务注册请求
  * 负责管理所有服务器的注册和发现
  */
-@Msg(id = CMsg.REQ_REGISTER, desc = "服务器注册处理")
+@ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandle extends AbstractRegisterHandler<Center> {
 
     private ServerClientManager manager;

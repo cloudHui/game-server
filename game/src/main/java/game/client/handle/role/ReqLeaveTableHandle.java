@@ -1,93 +1,86 @@
 package game.client.handle.role;
 
-import game.Game;
-import game.manager.table.Table;
-import game.manager.table.TableUser;
-import game.manager.table.ddz.DdzSettleService;
-import game.manager.table.mj.MjSettleService;
-import game.manager.table.mj.MjTable;
-import utils.registry.enums.TableState;
-import msg.registor.message.GMsg;
-import net.message.TCPMessage;
-import net.msg.Msg;
-import net.msg.MsgContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import game.Game;
+import game.handle.TableHandlerHelper;
+import game.domain.table.Table;
+import game.domain.table.TableUser;
+import com.google.protobuf.Message;
+
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.TableState;
+import msg.registor.message.GMsg;
+import net.client.Sender;
+import net.handler.Handler;
+import net.message.TCPMessage;
 import proto.ConstProto;
 import proto.GameProto;
 
 /**
- * 玩家离开桌子请求处理器
+ * 处理玩家请求离桌消息处理器。
  * <p>
- * 处理玩家主动离桌、等待阶段退房或牌局中逃跑解散。
+ * <b>职责边界：</b>
+ * <ul>
+ * <li>等待阶段离桌：将玩家移出桌子，若桌空或无真人则异步销毁桌子；</li>
+ * <li>对局中离桌：直接解散牌局，通过 {@link Table#dismissAndSettle()} 多态广播总结算并销毁桌子。</li>
+ * </ul>
  */
-public class ReqLeaveTableHandle {
+@ProcessType(GMsg.REQ_LEAVE)
+public class ReqLeaveTableHandle implements Handler {
 
+    /**
+     * 日志记录器。
+     */
     private static final Logger logger = LoggerFactory.getLogger(ReqLeaveTableHandle.class);
 
     /**
-     * 处理离开桌子请求
+     * 接收客户端离桌请求。
      *
-     * @param ctx 消息上下文
+     * @param sender   消息发送者
+     * @param clientId 玩家 ID
+     * @param message  离桌请求体
+     * @param mapId    目标桌号
+     * @param sequence 消息序列号
+     * @return 恒为 true
      */
-    @Msg(id = GMsg.REQ_LEAVE, desc = "请求离开桌子")
-    public void handle(MsgContext<GameProto.ReqLeaveTable> ctx) {
-        try {
-            int clientId = ctx.getClientId();
-            long mapId = ctx.getMapId();
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        logger.info("收到离开桌子请求, userId: {}, tableId: {}", clientId, mapId);
 
-            logger.info("处理离开桌子请求, userId: {}, tableId: {}", clientId, mapId);
-
-            Table table = Game.getInstance().getTableManager().getTable(mapId);
-            if (table == null) {
-                ctx.getSender().sendMessage(TCPMessage.newInstance(ConstProto.Result.TABLE_NULL_VALUE));
-                return;
+        return TableHandlerHelper.dispatchOrReplyNull(sender, mapId, "离开桌子", table -> {
+            int result = processLeave(clientId, table);
+            if (result == ConstProto.Result.SUCCESS_VALUE) {
+                GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
+                        .setTableInfo(table.buildTableInfo())
+                        .build();
+                sender.sendMessage(clientId, GMsg.ACK_LEAVE, mapId, response, sequence);
+            } else {
+                sender.sendMessage(TCPMessage.newInstance(result));
             }
-
-            table.execute(() -> {
-                int result = processLeave(clientId, table);
-                if (result == ConstProto.Result.SUCCESS_VALUE) {
-                    GameProto.AckLeaveTable response = GameProto.AckLeaveTable.newBuilder()
-                            .setTableInfo(table.buildTableInfo())
-                            .build();
-                    ctx.reply(GMsg.ACK_LEAVE, mapId, response);
-                } else {
-                    ctx.getSender().sendMessage(TCPMessage.newInstance(result));
-                }
-            }).exceptionally(error -> {
-                logger.error("桌子线程处理离开请求失败, tableId: {}", mapId, error);
-                return null;
-            });
-        } catch (Exception e) {
-            logger.error("处理离开桌子请求失败, userId: {}", ctx.getClientId(), e);
-        }
+        });
     }
 
     /**
-     * 玩家离桌核心逻辑
-     *
-     * @param userId 玩家 ID
-     * @param table  桌子实例
-     * @return 返回码
+     * 处理玩家离桌逻辑。
+     * 
+     * @param userId 玩家ID
+     * @param table  桌子对象
+     * @return 结果码
      */
     private int processLeave(int userId, Table table) {
         TableUser user = table.getUsers().get(userId);
-        if (user == null) return ConstProto.Result.ROLE_NULL_VALUE;
+        if (user == null)
+            return ConstProto.Result.ROLE_NULL_VALUE;
 
         long tableId = table.getTableId();
 
-        // 游戏中离开: 解散牌局, 发送总结算
+        // 游戏中离开: 解散牌局, 广播总结算并销毁桌子
         if (table.gaming()) {
             logger.info("游戏中玩家离开, 解散牌局, userId: {}, tableId: {}", userId, tableId);
-            if (table.isMultiRound()) {
-                if (table.getGameType() == 1) {
-                    MjSettleService.sendGameResult((MjTable) table);
-                } else {
-                    DdzSettleService.sendGameResult(table);
-                }
-            }
             table.removeUser(user);
-            Game.getInstance().getTableManager().removeTableAsync(tableId);
+            table.dismissAndSettle();
             return ConstProto.Result.SUCCESS_VALUE;
         }
 

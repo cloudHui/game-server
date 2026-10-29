@@ -1,452 +1,357 @@
 /**
- * 牛牛操作与消息推送处理。
- * 支持 2~4 人动态人数、明牌抢庄、闲家加倍、添加陪练机器人、拼牛摊牌与闲庄比牌结算。
+ * 牛牛操作与阶段控制器（复用 shared/poker-view.js 座位、手牌、倒计时与结算渲染）。
  */
-(function (w) {
-    'use strict';
+var STATE_LABELS = {1: '等待准备', 3: '明牌抢庄', 4: '明牌抢庄', 6: '闲家加倍', 7: '拼牛亮牌', 10: '本局结算'};
+var ROB_CHOICES = [{choice: 20}, {choice: 21}, {choice: 22}, {choice: 23}, {choice: 24}];
+var BET_CHOICES = [{choice: 25}, {choice: 26}, {choice: 27}, {choice: 28}, {choice: 29}];
+var SHOW_CHOICES = [{choice: 30}];
 
-    var TABLE_STATE = {
-        WAITING: 1,
-        START_ANI: 2,
-        ROB: 3,
-        IDLE_ROB: 4,
-        SHOW_CARD: 5,
-        BET: 6, // IDLE_SHOW_CARD 在牛牛中作为闲家加倍阶段
-        CARD: 7, // 拼牛摊牌阶段
-        IDLE_CARD: 8,
-        TABLE_OVER: 10,
-        ROUND_OVER: 11
-    };
+window.pokerSortSettleCards = function () {};
+window.pokerOpChoiceMap = {
+    20: {cls: 'btn-pass', text: '不抢'},
+    21: {cls: 'btn-call', text: '1倍抢'},
+    22: {cls: 'btn-call', text: '2倍抢'},
+    23: {cls: 'btn-rob', text: '3倍抢'},
+    24: {cls: 'btn-rob', text: '4倍抢'},
+    25: {cls: 'btn-call', text: '下1倍'},
+    26: {cls: 'btn-call', text: '下2倍'},
+    27: {cls: 'btn-call', text: '下3倍'},
+    28: {cls: 'btn-rob', text: '下4倍'},
+    29: {cls: 'btn-rob', text: '下5倍'},
+    30: {cls: 'btn-play', text: '亮牌'}
+};
 
-    var STATE_NAMES = {
-        1: '等待准备',
-        2: '发牌中',
-        3: '明牌抢庄',
-        4: '抢庄等待',
-        6: '闲家加倍',
-        7: '拼牛摊牌',
-        10: '局间结算',
-        11: '等待下一局'
-    };
-
-    /** 牛牛操作码（与 const.proto 中 Operation 强类型对齐） */
-    var NIU_OP = {
-        NO_ROB: 20,
-        ROB_1: 21, ROB_2: 22, ROB_3: 23, ROB_4: 24,
-        BET_1: 25, BET_2: 26, BET_3: 27, BET_4: 28, BET_5: 29,
-        SHOW: 30
-    };
-
-    function totalSeats() {
-        return Math.max(2, gameState.players.length || 4);
+function roleBadgeHtml(roleId) {
+    if (!gameState.landlordId) return '';
+    if (roleId === gameState.landlordId) {
+        return '<span class="avatar-mark landlord">庄</span>'
+            + '<span class="role-badge landlord">庄×' + (gameState.robMultiplier || 1) + '</span>';
     }
+    var bet = gameState.betMultipliers[roleId];
+    return '<span class="avatar-mark farmer">闲</span>'
+        + '<span class="role-badge farmer">' + (bet ? ('闲×' + bet) : '闲') + '</span>';
+}
 
-    function slotForSeat(seat) {
-        var myPos = gameState.myPosition >= 0 ? gameState.myPosition : 0;
-        return TableSeatView.slotFor(seat, myPos, totalSeats());
-    }
+function pokerSettleTag(roleId, landlordId) {
+    return roleId === landlordId ? '庄' : '闲';
+}
 
-    function playerByRoleId(roleId) {
-        for (var i = 0; i < gameState.players.length; i++) {
-            if (gameState.players[i].roleId === roleId) return gameState.players[i];
-        }
-        return null;
-    }
-
-    function playerBySeat(seat) {
-        for (var i = 0; i < gameState.players.length; i++) {
-            if (gameState.players[i].position === seat) return gameState.players[i];
-        }
-        return null;
-    }
-
-    function renderPlayerLabels() {
-        var myPos = gameState.myPosition >= 0 ? gameState.myPosition : 0;
-        var seats = totalSeats();
-        ['bottom', 'right', 'top', 'left'].forEach(function (slot) {
-            var infoEl = document.getElementById(slot === 'bottom' ? 'playerBottom' : ('player' + slot.charAt(0).toUpperCase() + slot.slice(1)));
-            if (!infoEl) return;
-            var targetPlayer = null;
-            for (var i = 0; i < gameState.players.length; i++) {
-                var p = gameState.players[i];
-                if (TableSeatView.slotFor(p.position, myPos, seats) === slot) {
-                    targetPlayer = p;
-                    break;
-                }
-            }
-            if (!targetPlayer) {
-                infoEl.innerHTML = '<span class="name">等待加入</span>';
-                return;
-            }
-
-            var html = '<span class="name">' + (targetPlayer.nickName || ('玩家' + targetPlayer.roleId)) + '</span>';
-            // 庄家标志
-            if (gameState.bankerId && targetPlayer.roleId === gameState.bankerId) {
-                html += '<span class="banker-tag">👑 庄(' + (gameState.bankerMultiplier || 1) + '倍)</span>';
-            }
-            // 抢庄/下注状态标记
-            var rob = gameState.robMultipliers[targetPlayer.roleId];
-            if (rob != null && !gameState.bankerId) {
-                html += '<span class="mult-tag rob">' + (rob > 0 ? ('抢' + rob + '倍') : '不抢') + '</span>';
-            }
-            var bet = gameState.betMultipliers[targetPlayer.roleId];
-            if (bet != null && targetPlayer.roleId !== gameState.bankerId) {
-                html += '<span class="mult-tag bet">' + bet + '倍</span>';
-            }
-            if (gameState.showedPlayers.has(targetPlayer.roleId)) {
-                html += '<span class="mult-tag" style="color:#a78bfa;">已摊牌</span>';
-            }
-            infoEl.innerHTML = html;
-        });
-    }
-
-    function renderOpponentHands() {
-        var myPos = gameState.myPosition >= 0 ? gameState.myPosition : 0;
-        var seats = totalSeats();
-        ['right', 'top', 'left'].forEach(function (slot) {
-            var container = document.getElementById('cards' + slot.charAt(0).toUpperCase() + slot.slice(1));
-            if (!container) return;
-            container.innerHTML = '';
-            var targetPlayer = null;
-            for (var i = 0; i < gameState.players.length; i++) {
-                var p = gameState.players[i];
-                if (TableSeatView.slotFor(p.position, myPos, seats) === slot) {
-                    targetPlayer = p;
-                    break;
-                }
-            }
-            if (!targetPlayer) return;
-
-            var cards = gameState.opponentCards[targetPlayer.roleId];
-            var count = gameState.opponentCounts[targetPlayer.roleId] || (cards ? cards.length : 0);
-
-            if (cards && cards.length && cards[0] > 0) {
-                // 亮明的手牌（结算后）
-                cards.forEach(function (cid) {
-                    container.appendChild(TableSeatView.createPokerCard(cid));
-                });
-                var evalResult = NiuniuRule.evaluate(cards);
-                if (evalResult && evalResult.name) {
-                    var badge = document.createElement('div');
-                    badge.className = 'niu-badge niu-' + evalResult.level;
-                    badge.textContent = evalResult.name;
-                    container.appendChild(badge);
-                }
-            } else if (count > 0) {
-                // 暗牌背面
-                TableSeatView.renderBacks(container, count, 'poker');
-            }
-        });
-    }
-
-    function renderMyCards() {
-        var container = document.getElementById('myCards');
-        if (!container) return;
-        container.innerHTML = '';
-        var cards = gameState.myCards || [];
-        cards.forEach(function (cid) {
-            container.appendChild(TableSeatView.createPokerCard(cid));
-        });
-
-        // 5 张牌时自动展示当前自身牛型
-        if (cards.length >= 5) {
-            var evalResult = NiuniuRule.evaluate(cards);
-            if (evalResult && evalResult.name) {
-                var badge = document.createElement('div');
-                badge.className = 'niu-badge niu-' + evalResult.level;
-                badge.textContent = evalResult.name + ' (' + evalResult.multiplier + '倍)';
-                container.appendChild(badge);
-            }
+function updatePlayers(players) {
+    gameState.players = players || [];
+    gameState.seatNum = 4;
+    for (var i = 0; i < gameState.players.length; i++) {
+        if (gameState.players[i].roleId === userId) {
+            gameState.myPosition = gameState.players[i].position;
+            break;
         }
     }
+    renderOpponentHands();
+}
 
-    function handleNotCard(data) {
-        GameTable.noteRoundStarted();
-        if (!data || !data.nCards) return;
-        var myCards = [];
-        data.nCards.forEach(function (nc) {
-            if (!nc.cards) return;
-            if (nc.roleId === userId) {
-                nc.cards.forEach(function (c) { if (c.value) myCards.push(c.value); });
-            } else {
-                var oppCards = [];
-                nc.cards.forEach(function (c) { oppCards.push(c.value || 0); });
-                gameState.opponentCounts[nc.roleId] = nc.cards.length;
-                if (oppCards.length && oppCards[0] > 0) {
-                    gameState.opponentCards[nc.roleId] = oppCards;
-                }
-            }
-        });
-        if (myCards.length) gameState.myCards = myCards;
-
-        renderMyCards();
-        renderOpponentHands();
-        renderPlayerLabels();
+function updateMultipleInfo() {
+    var el = document.getElementById('multipleInfo');
+    if (!el) return;
+    var base = gameState.baseScore || 1;
+    if (!gameState.landlordId) {
+        el.textContent = '底分 ' + base + ' ｜ 明牌抢庄';
+        return;
     }
+    var myBet = gameState.betMultipliers[userId];
+    var betPart = (userId !== gameState.landlordId && myBet) ? (' ｜ 我的下注 ×' + myBet) : '';
+    el.textContent = '底分 ' + base + ' ｜ 庄家 ×' + (gameState.robMultiplier || 1) + betPart;
+}
 
-    function handleNotState(data) {
-        if (!data) return;
-        var state = data.state;
-        gameState.currentState = state;
-        var stateEl = document.getElementById('tableState');
-        if (stateEl) {
-            stateEl.textContent = STATE_NAMES[state] || ('状态 ' + state);
-        }
-
-        if (state === TABLE_STATE.WAITING || state === 0) {
-            showWaitingActions();
-        } else if (state === TABLE_STATE.ROB || state === TABLE_STATE.IDLE_ROB || state === 4) {
-            showRobActions();
-        } else if (state === TABLE_STATE.BET || state === 8) {
-            showBetActions();
-        } else if (state === TABLE_STATE.CARD || state === 5) {
-            showShowActions();
-        } else if (state === TABLE_STATE.TABLE_OVER || state === TABLE_STATE.ROUND_OVER || state === 10 || state === 12) {
-            showRoundOverActions();
-        }
+function syncMyCardsAndSplit() {
+    var split = false;
+    if (gameState.myCards.length === 5) {
+        var ev = NiuniuRule.evaluate(gameState.myCards);
+        gameState.myCards = ev.orderedCards.slice();
+        split = ev.hasGroupSplit;
     }
-
-    function handleAckOp(data) {
-        gameState.opPending = false;
-        var choice = data.choice;
-        var opFrom = data.opFrom;
-
-        if (choice === 2 || (choice === 0 && data.robMultiplier != null && gameState.currentState === 8)) {
-            // 定庄广播
-            gameState.bankerId = opFrom;
-            gameState.bankerMultiplier = data.robMultiplier || data.currentMultiplier || 1;
-            GameTable.showCenterMsg('庄家已确定: 玩家' + opFrom + ' (' + gameState.bankerMultiplier + '倍)', 1500);
-            renderPlayerLabels();
-            return;
-        }
-
-        // 抢庄操作响应
-        if ((choice >= NIU_OP.ROB_1 && choice <= NIU_OP.ROB_4) || choice === NIU_OP.NO_ROB || choice === 1 || choice === 0) {
-            var mult = data.robMultiplier != null ? data.robMultiplier : (choice >= NIU_OP.ROB_1 ? choice - NIU_OP.ROB_1 + 1 : 0);
-            gameState.robMultipliers[opFrom] = mult;
-            renderPlayerLabels();
-            return;
-        }
-
-        // 闲家下注响应
-        if ((choice >= NIU_OP.BET_1 && choice <= NIU_OP.BET_5) || choice === 7) {
-            var betMult = data.currentMultiplier != null ? data.currentMultiplier : (choice >= NIU_OP.BET_1 ? choice - NIU_OP.BET_1 + 1 : 1);
-            gameState.betMultipliers[opFrom] = betMult;
-            renderPlayerLabels();
-            return;
-        }
-
-        // 拼牛摊牌响应
-        if (choice === NIU_OP.SHOW || choice === 6) {
-            gameState.showedPlayers.add(opFrom);
-            renderPlayerLabels();
-            if (opFrom === userId) {
-                var bar = document.getElementById('actionBar');
-                if (bar) bar.innerHTML = '<span style="color:#e2e8f0;font-size:14px;">已摊牌，等待其他玩家…</span>';
-            }
-        }
+    renderMyCards();
+    if (split) {
+        var cards = document.querySelectorAll('#myCards .card');
+        if (cards[3]) cards[3].classList.add('niu-gap');
     }
+}
 
-    function handleNotRoundResult(data) {
-        if (!data) return;
-        GameTable.noteRoundCompleted(data.round);
-
-        // 揭晓所有玩家的手牌 (hands: [{ seat, handTiles }])
-        if (data.hands && data.hands.length) {
-            data.hands.forEach(function (h) {
-                var p = playerBySeat(h.seat);
-                if (p && h.handTiles && h.handTiles.length) {
-                    if (p.roleId === userId) {
-                        gameState.myCards = h.handTiles;
-                    } else {
-                        gameState.opponentCards[p.roleId] = h.handTiles;
-                        gameState.opponentCounts[p.roleId] = h.handTiles.length;
-                    }
-                }
-            });
-        }
-        renderMyCards();
-        renderOpponentHands();
-
-        // 浮动显示单局得分 (seatScores: [{ seat, score }])
-        if (data.seatScores && data.seatScores.length) {
-            data.seatScores.forEach(function (item) {
-                var slot = slotForSeat(item.seat);
-                showScoreFloat(slot, item.score);
-            });
-        }
-
-        if (data.winType) {
-            GameTable.showCenterMsg('本局胜者牛型: ' + data.winType, 2000);
-        }
-
-        showRoundOverActions();
+function showWaitingActions() {
+    if (gameState.autoNextRound) {
+        showActionButtons('waiting');
+        return;
     }
-
-    function handleNotGameResult(data) {
-        if (!data) return;
-        renderOpponentHands();
-        renderPlayerLabels();
-
-        // 浮动显示本局得分
-        if (data.rounds && data.rounds.length) {
-            var latestRound = data.rounds[data.rounds.length - 1];
-            if (latestRound && latestRound.seatScores) {
-                latestRound.seatScores.forEach(function (item) {
-                    var slot = slotForSeat(item.seat);
-                    var score = item.score;
-                    showScoreFloat(slot, score);
-                });
-            }
-        }
-
-        // 展示总结算面板
-        GameTable.showScoreFinal(data, gameWs);
+    var bar = document.getElementById('actionBar');
+    bar.innerHTML = '';
+    bar.style.display = 'flex';
+    if (!gameState.myReady) {
+        var readyBtn = document.createElement('button');
+        readyBtn.className = 'action-btn btn-prepare';
+        readyBtn.textContent = '准备';
+        readyBtn.onclick = doPrepare;
+        bar.appendChild(readyBtn);
     }
-
-    function showScoreFloat(slot, score) {
-        var container = document.getElementById(slot === 'bottom' ? 'playerBottom' : ('player' + slot.charAt(0).toUpperCase() + slot.slice(1)));
-        if (!container) return;
-        var floatEl = document.createElement('div');
-        floatEl.className = 'score-float ' + (score >= 0 ? 'win' : 'lose');
-        floatEl.textContent = (score > 0 ? '+' : '') + score;
-        container.appendChild(floatEl);
-        setTimeout(function () { floatEl.remove(); }, 1800);
+    if (gameState.players.length < 4) {
+        var botBtn = document.createElement('button');
+        botBtn.className = 'action-btn btn-call';
+        botBtn.textContent = '+ 添加机器人';
+        botBtn.onclick = addRobot;
+        bar.appendChild(botBtn);
     }
+    if (gameState.myReady) {
+        var tip = document.createElement('span');
+        tip.style.cssText = 'color:#fff;font-size:14px;padding:6px 10px;';
+        tip.textContent = '已准备，满2人全员准备即开局';
+        bar.appendChild(tip);
+    }
+}
 
-    // ======================== 操作栏行为 ========================
+function syncStageActions(waitSec) {
+    stopOperationCountdown();
+    var st = gameState.currentState;
+    if (st === 1) {
+        showWaitingActions();
+        return;
+    }
+    if (waitSec > 0) {
+        startOperationCountdown(document.getElementById('playerBottom'), waitSec);
+    }
+    if ((st === 3 || st === 4) && gameState.robMultipliers[userId] == null) {
+        showOperationChoices(ROB_CHOICES);
+    } else if (st === 6 && userId !== gameState.landlordId && gameState.betMultipliers[userId] == null) {
+        showOperationChoices(BET_CHOICES);
+    } else if (st === 7 && !gameState.showedPlayers.has(userId)) {
+        showOperationChoices(SHOW_CHOICES);
+    } else {
+        hideActions();
+    }
+}
 
-    function showWaitingActions() {
-        var bar = document.getElementById('actionBar');
-        if (!bar) return;
-        bar.style.display = 'flex';
-        var html = '<button class="action-btn btn-prepare" id="btnPrepare">准备</button>';
-        if (gameState.players.length < 4) {
-            html += '<button class="action-btn" id="btnAddRobot" style="margin-left:8px;background:linear-gradient(135deg,#3b82f6,#2563eb);border-color:#1d4ed8;color:#fff;">+ 添加机器人</button>';
-        }
-        bar.innerHTML = html;
-
-        var prepBtn = document.getElementById('btnPrepare');
-        if (prepBtn) {
-            prepBtn.onclick = function () {
-                GameTable.doPrepare(sendWsMessage);
-                bar.innerHTML = '<span style="color:#94a3b8;font-size:14px;">已准备，等待开局…</span>';
-            };
-        }
-
-        var addBotBtn = document.getElementById('btnAddRobot');
-        if (addBotBtn) {
-            addBotBtn.onclick = function () {
-                sendWsMessage('addRobot', {tableId: tableId}, function (resp) {
-                    if (resp.code !== 0) {
-                        GameTable.showCenterMsg(resp.msg || '添加机器人失败');
-                    }
-                });
-            };
+function handleNotCard(data) {
+    GameTable.noteRoundStarted();
+    if (!data || !data.nCards) return;
+    gameState.myCards = [];
+    gameState.opponentCounts = {};
+    for (var i = 0; i < data.nCards.length; i++) {
+        var nc = data.nCards[i];
+        if (!nc.cards || !nc.roleId) continue;
+        if (nc.roleId === userId) {
+            gameState.myCards = nc.cards.map(function (c) { return c.value; });
+        } else {
+            gameState.opponentCounts[nc.roleId] = nc.cards.length;
         }
     }
+    syncMyCardsAndSplit();
+    renderOpponentHands();
+}
 
-    function showRobActions() {
-        var bar = document.getElementById('actionBar');
-        if (!bar) return;
-        bar.style.display = 'flex';
-        bar.innerHTML = '<span style="color:#f59e0b;font-weight:bold;margin-right:8px;">抢庄:</span>'
-            + '<button class="action-btn" data-rob="0">不抢</button>'
-            + '<button class="action-btn btn-rob" data-rob="1">1倍</button>'
-            + '<button class="action-btn btn-rob" data-rob="2">2倍</button>'
-            + '<button class="action-btn btn-rob" data-rob="3">3倍</button>'
-            + '<button class="action-btn btn-rob" data-rob="4">4倍</button>';
-
-        bar.querySelectorAll('[data-rob]').forEach(function (btn) {
-            btn.onclick = function () {
-                var mult = parseInt(this.dataset.rob, 10);
-                var choice = mult > 0 ? (NIU_OP.ROB_1 + mult - 1) : NIU_OP.NO_ROB;
-                sendWsMessage('op', {choice: choice});
-                bar.innerHTML = '<span style="color:#e2e8f0;font-size:14px;">已提交抢庄(' + (mult > 0 ? mult + '倍' : '不抢') + ')</span>';
-            };
-        });
+function handleNotState(data) {
+    if (!data) return;
+    GameTable.renderRoundInfo(data.currentRound, data.totalRounds);
+    if (data.state === TABLE_STATE_DIS) {
+        GameTable.handleTableDestroyed(gameWs);
+        return;
     }
+    gameState.currentState = data.state;
+    gameState.opPending = false;
+    document.getElementById('tableState').textContent = STATE_LABELS[data.state] || '进行中';
 
-    function showBetActions() {
-        var bar = document.getElementById('actionBar');
-        if (!bar) return;
-        if (gameState.bankerId === userId) {
-            bar.style.display = 'flex';
-            bar.innerHTML = '<span style="color:#f59e0b;font-size:14px;font-weight:bold;">👑 你是庄家，等待闲家下注…</span>';
-            return;
-        }
-        bar.style.display = 'flex';
-        bar.innerHTML = '<span style="color:#10b981;font-weight:bold;margin-right:8px;">下注:</span>'
-            + '<button class="action-btn btn-bet" data-bet="1">1倍</button>'
-            + '<button class="action-btn btn-bet" data-bet="2">2倍</button>'
-            + '<button class="action-btn btn-bet" data-bet="3">3倍</button>'
-            + '<button class="action-btn btn-bet" data-bet="4">4倍</button>'
-            + '<button class="action-btn btn-bet" data-bet="5">5倍</button>';
-
-        bar.querySelectorAll('[data-bet]').forEach(function (btn) {
-            btn.onclick = function () {
-                var mult = parseInt(this.dataset.bet, 10);
-                var choice = NIU_OP.BET_1 + mult - 1;
-                sendWsMessage('op', {choice: choice});
-                bar.innerHTML = '<span style="color:#e2e8f0;font-size:14px;">已下注(' + mult + '倍)</span>';
-            };
-        });
-    }
-
-    function showShowActions() {
-        var bar = document.getElementById('actionBar');
-        if (!bar) return;
-        if (gameState.showedPlayers.has(userId)) {
-            bar.style.display = 'flex';
-            bar.innerHTML = '<span style="color:#a78bfa;font-size:14px;">已摊牌，等待其他玩家…</span>';
-            return;
-        }
-        var evalResult = NiuniuRule.evaluate(gameState.myCards);
-        bar.style.display = 'flex';
-        bar.innerHTML = '<button class="action-btn btn-show" id="btnShow">摊牌 (' + (evalResult.name || '亮牌') + ')</button>';
-        document.getElementById('btnShow').onclick = function () {
-            sendWsMessage('op', {choice: NIU_OP.SHOW});
-            bar.innerHTML = '<span style="color:#a78bfa;font-size:14px;">已摊牌，等待比牌…</span>';
-        };
-    }
-
-    function showRoundOverActions() {
-        var bar = document.getElementById('actionBar');
-        if (!bar) return;
-        bar.style.display = 'flex';
-        bar.innerHTML = '<button class="action-btn btn-prepare" id="btnNextRound">准备下一局</button>'
-            + '<button class="action-btn" onclick="GameTable.backToLobby()" style="margin-left:8px;">返回房间</button>';
-        document.getElementById('btnNextRound').onclick = function () {
-            resetRoundState();
-            GameTable.doPrepare(sendWsMessage);
-            bar.innerHTML = '<span style="color:#94a3b8;font-size:14px;">已准备，等待开局…</span>';
-        };
-    }
-
-    function resetRoundState() {
-        gameState.myCards = [];
-        gameState.opponentCards = {};
-        gameState.opponentCounts = {};
+    if (data.state === 1) {
+        closeSettle();
+        clearAllPlayedAreas();
+        gameState.landlordId = 0;
+        gameState.robMultiplier = 1;
         gameState.robMultipliers = {};
         gameState.betMultipliers = {};
         gameState.showedPlayers.clear();
-        gameState.bankerId = 0;
-        gameState.bankerMultiplier = 1;
-        renderMyCards();
+        gameState.myReady = false;
+        updateMultipleInfo();
         renderOpponentHands();
-        renderPlayerLabels();
+    } else if (data.state === 3) {
+        closeSettle();
+        clearAllPlayedAreas();
+        gameState.landlordId = 0;
+        gameState.robMultipliers = {};
+        gameState.betMultipliers = {};
+        gameState.showedPlayers.clear();
+        updateMultipleInfo();
+        showCenterMsg('明牌抢庄', 1000);
+    } else if (data.state === 6 || data.state === 7) {
+        clearAllPlayedAreas();
     }
+    syncStageActions(Number(data.wait || 0));
+}
 
-    w.NiuniuOp = {
-        renderPlayerLabels: renderPlayerLabels,
-        renderOpponentHands: renderOpponentHands,
-        renderMyCards: renderMyCards,
-        handleNotCard: handleNotCard,
-        handleNotState: handleNotState,
-        handleAckOp: handleAckOp,
-        handleNotRoundResult: handleNotRoundResult,
-        handleNotGameResult: handleNotGameResult,
-        showWaitingActions: showWaitingActions,
-        resetRoundState: resetRoundState
-    };
-})(window);
+function handleAckOp(data) {
+    gameState.opPending = false;
+    var ch = data.choice;
+    var actor = data.opFrom;
+    if (ch === 2) {
+        gameState.landlordId = actor;
+        gameState.robMultiplier = data.robMultiplier || 1;
+        if (data.baseScore) gameState.baseScore = data.baseScore;
+        updateMultipleInfo();
+        renderOpponentHands();
+        showCenterMsg(findPlayerName(actor) + ' 当庄 ×' + gameState.robMultiplier, 1200);
+        return;
+    }
+    if (ch >= 20 && ch <= 24) {
+        var rm = ch - 20;
+        gameState.robMultipliers[actor] = rm;
+        showBidHint(actor, rm > 0 ? ('抢×' + rm) : '不抢');
+    } else if (ch >= 25 && ch <= 29) {
+        var bm = ch - 24;
+        gameState.betMultipliers[actor] = bm;
+        updateMultipleInfo();
+        renderOpponentHands();
+        showBidHint(actor, '下' + bm + '倍');
+    } else if (ch === 30) {
+        gameState.showedPlayers.add(actor);
+        showBidHint(actor, '已亮牌');
+    }
+    if (actor === userId) hideActions();
+}
+
+function renderShowdownArea(roleId, ev) {
+    renderPlayedCards(roleId, ev.orderedCards);
+    var target = playedTargetForRole(roleId);
+    if (!target) return;
+    if (ev.hasGroupSplit) {
+        var faces = target.querySelectorAll('.played-face');
+        if (faces[3]) faces[3].classList.add('niu-gap');
+    }
+    var badge = document.createElement('span');
+    badge.className = 'niu-badge' + (ev.type === 0 ? ' none' : '');
+    badge.textContent = ev.name + (ev.multiplier > 1 ? (' ×' + ev.multiplier) : '');
+    target.appendChild(badge);
+}
+
+function handleNotRoundResult(data) {
+    GameTable.noteRoundCompleted(data && data.round);
+    if (!data) return;
+    stopOperationCountdown();
+    hideActions();
+
+    var seatPlayer = {};
+    gameState.players.forEach(function (p) { seatPlayer[p.position] = p; });
+    (data.totalScores || []).forEach(function (ts) {
+        if (seatPlayer[ts.seat]) seatPlayer[ts.seat].totalScore = ts.score;
+    });
+    if (data.winnerSeat != null && seatPlayer[data.winnerSeat]) {
+        gameState.landlordId = seatPlayer[data.winnerSeat].roleId;
+    }
+    if (data.fan) gameState.robMultiplier = data.fan;
+    renderOpponentHands();
+
+    var roundScoreBySeat = {};
+    (data.seatScores || []).forEach(function (ss) { roundScoreBySeat[ss.seat] = ss.score; });
+
+    var rows = '';
+    var remainPlayers = [];
+    var splitFlags = [];
+    (data.hands || []).forEach(function (h) {
+        var p = seatPlayer[h.seat];
+        if (!p) return;
+        var ev = NiuniuRule.evaluate(h.handTiles || []);
+        renderShowdownArea(p.roleId, ev);
+        remainPlayers.push({roleId: p.roleId, cards: ev.orderedCards});
+        splitFlags.push(ev.hasGroupSplit);
+        var sc = Number(roundScoreBySeat[h.seat] || 0);
+        var tag = p.roleId === gameState.landlordId ? '庄' : '闲';
+        rows += '<div class="row"><span>' + findPlayerName(p.roleId) + '（' + tag + ' · ' + ev.name + '×' + ev.multiplier + '）</span>'
+            + '<span>' + (sc > 0 ? '+' : '') + sc + '</span></div>';
+    });
+
+    var mySeatScore = roundScoreBySeat[gameState.myPosition] || 0;
+    var title = mySeatScore > 0 ? '本局获胜' : (mySeatScore < 0 ? '本局失利' : '本局平局');
+    var meta = '第 ' + (data.round || 1) + ' 局 ｜ 庄家 ×' + (gameState.robMultiplier || 1);
+    showSettle(title, meta, rows, remainPlayers, gameState.landlordId);
+
+    var handRows = document.querySelectorAll('#settleHands .settle-hand-cards');
+    for (var i = 0; i < splitFlags.length; i++) {
+        if (splitFlags[i] && handRows[i]) {
+            var fc = handRows[i].querySelectorAll('.played-face');
+            if (fc[3]) fc[3].classList.add('niu-gap');
+        }
+    }
+    if (!gameState.autoNextRound) {
+        gameState.myReady = false;
+        showActionButtons('prepare');
+    }
+}
+
+function handleNotGameResult(data) {
+    GameTable.showScoreFinal(data, gameWs);
+}
+
+function doOp(choice) {
+    if (gameState.opPending) return;
+    gameState.opPending = true;
+    sendWsMessage('op', {choice: choice}, function (resp) {
+        if (resp && resp.code !== 0) {
+            gameState.opPending = false;
+            showCenterMsg(resp.msg || '操作失败');
+            syncStageActions(0);
+        }
+    });
+    hideActions();
+}
+
+function doPrepare() {
+    gameState.myReady = true;
+    GameTable.doPrepare(sendWsMessage);
+    if (gameState.currentState === 1) showWaitingActions();
+}
+
+function addRobot() {
+    sendWsMessage('addRobot', {tableId: tableId}, function (resp) {
+        if (resp && resp.code !== 0) {
+            showCenterMsg(resp.msg || '添加机器人失败');
+        }
+    });
+}
+
+function refreshTable() {
+    var btn = document.getElementById('refreshTableBtn');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '刷新中';
+    sendWsMessage('refreshTable', {tableId: tableId}, function (resp) {
+        btn.disabled = false;
+        btn.textContent = '刷新牌桌';
+        if (!resp || resp.code !== 0 || !resp.data) {
+            showCenterMsg((resp && resp.msg) || '刷新牌桌失败');
+            return;
+        }
+        applyNiuniuSnapshot(resp.data);
+        showCenterMsg('牌桌已刷新', 1000);
+    });
+}
+
+function applyNiuniuSnapshot(s) {
+    updatePlayers(s.players || []);
+    gameState.myCards = [];
+    gameState.opponentCounts = {};
+    gameState.landlordId = 0;
+    (s.players || []).forEach(function (p) {
+        if (p.roleId === userId) gameState.myCards = (p.cards || []).slice();
+        else gameState.opponentCounts[p.roleId] = p.cardCount || 0;
+        if (s.landlordSeat >= 0 && p.position === s.landlordSeat) gameState.landlordId = p.roleId;
+    });
+    gameState.baseScore = s.baseScore || 1;
+    gameState.robMultiplier = s.robMultiplier || 1;
+    if (s.state) gameState.currentState = s.state;
+    GameTable.renderRoundInfo(s.currentRound, s.totalRounds);
+    document.getElementById('tableState').textContent = STATE_LABELS[gameState.currentState] || '进行中';
+    updateMultipleInfo();
+    syncMyCardsAndSplit();
+    renderOpponentHands();
+    syncStageActions(snapshotOperationWait(s));
+}
+
+function backToLobby() {
+    GameTable.backToLobby();
+}
+
+function exitRoom() {
+    GameTable.exitRoom(sendWsMessage);
+}

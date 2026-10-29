@@ -4,6 +4,7 @@
     var rooms = {
         1: {gameType: 1, seats: 4}, 11: {gameType: 1, seats: 2}, 12: {gameType: 1, seats: 3},
         2: {gameType: 2, seats: 3},
+        5: {gameType: 5, seats: 4},
         9001: {gameType: 1, seats: 4, quick: true, testName: '麻将（四人）'},
         9002: {gameType: 2, seats: 3, quick: true, testName: '斗地主（叫地主）'},
         9003: {gameType: 2, seats: 3, quick: true, testName: '斗地主（抢地主）'},
@@ -24,6 +25,7 @@
         var tips = {
             1: '经典麻将 · ' + seats + '人满开 · 手动准备下一局',
             2: '经典斗地主 · ' + seats + '人 · 手动准备下一局',
+            5: '经典牛牛 · 2~' + seats + '人开局 · 5张手牌 · 明牌抢庄 · 支持邀请好友或手动加机器人',
             11: '麻将 · ' + seats + '人满开 · 13张手牌 · 支持吃/碰/杠/胡',
             12: '麻将 · ' + seats + '人满开 · 13张手牌 · 支持吃/碰/杠/胡',
             9001: '快速麻将 · 4局 · ' + seats + '人满开 · 13张手牌 · 吃/碰/杠/胡',
@@ -31,7 +33,7 @@
             9003: '电脑快速房间 · 4局 · 叫地主后逆时针抢/再抢 · 抢一次倍数翻倍',
             9010: '跑得快 · 4局 · ' + seats + '人 · 16张手牌 · 方块3先出',
             9011: '拖拉机 · 4局 · ' + seats + '人 · 两副牌 · 级牌升级',
-            9020: '牛牛 · 4局 · ' + seats + '人 · 5张手牌 · 明牌抢庄拼牛'
+            9020: '快速机器人房 · 4局 · ' + seats + '人 · 5张手牌 · 进桌自动补满机器人立即开局'
         };
         if (tips[roomId]) return tips[roomId];
         if (gameType === 5) return '牛牛 · ' + seats + '人 · 5张手牌 · 明牌抢庄';

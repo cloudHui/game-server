@@ -118,6 +118,10 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.game-grid.cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .game-card {
     position: relative;
     min-height: clamp(170px, 25vh, 280px);
@@ -185,7 +189,10 @@ main {
 .learn {
     --card-color: #8268ef;
 }
-.photos { --card-color: #6248c7; }
+
+.photos {
+    --card-color: #6248c7;
+}
 
 .poker {
     --card-color: #6d55d9;
@@ -209,6 +216,10 @@ main {
 
 .tractor {
     --card-color: #5b40d2;
+}
+
+.niuniu {
+    --card-color: #6248c7;
 }
 
 .section-title {
@@ -247,7 +258,7 @@ main {
         padding: 14px 16px 20px;
     }
 
-    .game-grid, .game-grid.cols-2 {
+    .game-grid, .game-grid.cols-2, .game-grid.cols-4 {
         grid-template-columns: 1fr;
     }
 

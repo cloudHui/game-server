@@ -1,7 +1,7 @@
 ---
 name: grill-with-docs
 description: >-
-  结合项目已有设计文档（AGENTS.md、vue3-migration-plan.md、readme.md）进行方案对齐质询。
+  结合项目已有设计文档（AGENTS.md、plans/vue3-migration-plan.md、readme.md）进行方案对齐质询。
   在用户讨论方案时，主动挑战术语不一致与已有决策冲突，并在共识达成后同步更新文档。
 ---
 
@@ -14,7 +14,7 @@ description: >-
 
 ## 执行流程
 1. **现有文档自检**：
-   - 查阅 `AGENTS.md`、`readme.md`、`vue3-migration-plan.md` 及相关规则；
+   - 查阅 `AGENTS.md`、`readme.md`、`plans/vue3-migration-plan.md` 及相关规则；
    - 提取领域统一语言（例如：区分“桌子 Table”与“房间 Room”、“用户 User”与“角色 Role”）。
 2. **术语与决策挑战**：
    - 当用户使用的表述与系统既定术语冲突时，当场明确指出并澄清；

@@ -1,0 +1,57 @@
+package game.domain.state;
+
+import game.domain.table.Table;
+import utils.registry.enums.TableState;
+
+/**
+ * 牌桌状态处理器抽象基类。
+ * <p>
+ * 封装超时倒计时检测（overTime）、超时自动推进（next 状态）及定时检测回调（onTiming）。
+ *
+ * @author cloud
+ */
+public abstract class AbstractTableHandle {
+
+    /**
+     * 状态实时检测反应和处理
+     *
+     * @param table 桌子
+     * @return 是否退出循环
+     */
+    protected boolean onTiming(Table table) {
+        return false;
+    }
+
+    /**
+     * 默认通用处理
+     *
+     * @param table 桌子
+     * @return 是否退出循环
+     */
+    public boolean handle(Table table) {
+        TableState currState = table.getTableState();
+        // 有超时时间：仅在已超过等待时长后切下一状态或调用 overTime
+        if (currState.getOverTime() > 0) {
+            long now = System.currentTimeMillis();
+            long deadline = table.getStateStartTime() + currState.getOverTime() * 1000L;
+            if (now >= deadline) {
+                TableState next = currState.getNext();
+                if (next != null) {
+                    table.upNextStateWithTime(next, now);
+                } else {
+                    overTime(table);
+                }
+            }
+            return false;
+        }
+        return onTiming(table);
+    }
+
+    /**
+     * 超时处理
+     *
+     * @param table 桌子
+     */
+    protected void overTime(Table table) {
+    }
+}

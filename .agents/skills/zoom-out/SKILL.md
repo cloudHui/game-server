@@ -16,7 +16,7 @@ description: >-
 1. **停止局部微调**：
    - 立即暂停修改局部的具体语句或修修补补；
 2. **绘制端到端全链路图**：
-   - 梳理真实请求的完整拓扑：客户端 WebSocket ➔ Netty Channel ➔ Gateway 包装 ➔ 消息路由分发 (`MsgRouter`) ➔ Handler 处理 ➔ Manager 内存状态流转 ➔ SQLite 异步或同步持久化 ➔ 回包路径；
+   - 梳理真实请求的完整拓扑：客户端 WebSocket ➔ Netty Channel ➔ Gateway 包装 ➔ 消息路由分发 (`HandlerRegistry`) ➔ Handler 处理 ➔ Manager 内存状态流转 ➔ SQLite 异步或同步持久化 ➔ 回包路径；
 3. **核查三个核心不变式（Invariants）**：
    - **会话状态生命周期**：用户登录态和 Channel 的绑定在何处建立？在何处注销？重连时如何抢占？
    - **房间/桌子归属权**：桌子对象由哪个 Manager 独占管理？是否存在内存双份副本？

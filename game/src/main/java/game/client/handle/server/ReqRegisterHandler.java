@@ -2,19 +2,19 @@ package game.client.handle.server;
 
 import game.Game;
 import game.client.GameClient;
-import utils.registry.enums.ServerType;
 import msg.registor.message.CMsg;
 import net.client.Sender;
-import net.msg.Msg;
 import proto.ModelProto;
 import tools.handle.AbstractRegisterHandler;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 
 /**
  * 注册服务信息请求处理器
  * <p>
  * 接收网关等其他节点发起的注册握手请求，并登记到当前服务的客户端管理器中。
  */
-@Msg(id = CMsg.REQ_REGISTER, desc = "服务器注册请求")
+@ProcessType(CMsg.REQ_REGISTER)
 public class ReqRegisterHandler extends AbstractRegisterHandler<Game> {
 
     @Override

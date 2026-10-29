@@ -10,28 +10,45 @@ import net.handler.Handlers;
 import net.message.Parser;
 import net.message.TCPMessage;
 import net.message.Transfer;
-import net.msg.MsgRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.registry.HandlerRegistry;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ConnectProcessor {
     private static final Logger logger = LoggerFactory.getLogger(ConnectProcessor.class);
 
     private final static Map<Integer, Handler> HANDLER_MAP = new HashMap<>();
-    private final static MsgRouter FORWARD_ROUTER = new MsgRouter();
 
     public final static Parser PARSER = HandlerRegistry::parseMessage;
     public final static Handlers HANDLERS = HANDLER_MAP::get;
     public final static Transfer TRANSFER = ConnectProcessor::handleServerTrans;
 
+    private static final Set<Integer> FORWARD_PUSH_MSG_IDS;
+
+    static {
+        Set<Integer> ids = new HashSet<>();
+        ids.add(GMsg.NOT_CARD);
+        ids.add(GMsg.NOT_OP);
+        ids.add(GMsg.ACK_OP);
+        ids.add(GMsg.NOT_RESULT);
+        ids.add(GMsg.NOT_STATE);
+        ids.add(GMsg.NOT_TABLE_STATE);
+        ids.add(GMsg.MJ_TILE_NOT);
+        ids.add(GMsg.NOT_ROUND_RESULT);
+        ids.add(GMsg.NOT_GAME_RESULT);
+        ids.add(GMsg.ACK_ENTER_TABLE_MSG);
+        FORWARD_PUSH_MSG_IDS = Collections.unmodifiableSet(ids);
+    }
+
     public static void init() {
         HandlerRegistry.bind(ConnectProcessor.class, HANDLER_MAP);
-        FORWARD_ROUTER.register(new GateForwardController());
-        logger.info("ConnectProcessor 初始化完成, 转发路由数: {}", FORWARD_ROUTER.getRouteCount());
+        logger.info("ConnectProcessor 初始化完成, 处理器数: {}", HANDLER_MAP.size());
     }
 
     /**
@@ -43,14 +60,14 @@ public class ConnectProcessor {
         // 带 sequence 的请求回复走 completer，不要当推送吞掉（入桌/出牌/离开）
         if (tcpMessage.getSequence() != 0
                 && (msgId == GMsg.ACK_ENTER_TABLE_MSG
-                || msgId == GMsg.ACK_OP
-                || msgId == GMsg.ACK_LEAVE)) {
+                        || msgId == GMsg.ACK_OP
+                        || msgId == GMsg.ACK_LEAVE)) {
             return false;
         }
 
-        if (FORWARD_ROUTER.getRoute(msgId) != null) {
-            Sender sender = (connectHandler instanceof Sender) ? (Sender) connectHandler : null;
-            return FORWARD_ROUTER.dispatch(sender, tcpMessage);
+        if (FORWARD_PUSH_MSG_IDS.contains(msgId)) {
+            forwardToPlayer(tcpMessage);
+            return true;
         }
         return false;
     }
@@ -80,7 +97,7 @@ public class ConnectProcessor {
             Sender sender = entry.getValue();
             if (sender instanceof GateTcpClient) {
                 GateTcpClient client = (GateTcpClient) sender;
-                if (client.getRoleId() == roleId) {
+                if (client.getId() == roleId) {
                     return client;
                 }
             }

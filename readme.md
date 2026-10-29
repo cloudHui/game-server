@@ -70,4 +70,4 @@ sudo ./scripts/hub.sh nginx-apply 你的域名
 
 配置在 `hub/src/main/resources/application.yml`，可用环境变量覆盖。数据在仓库下 `data/`。
 
-前端 Vue 3 迁移计划：`vue3-migration-plan.md`。
+前端 Vue 3 迁移计划：`plans/vue3-migration-plan.md`。

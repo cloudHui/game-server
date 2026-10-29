@@ -33,6 +33,12 @@ body {
     overflow: visible;
 }
 
+.player-top {
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 .player-left {
     left: 20px;
     top: 50%;
@@ -503,6 +509,12 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 30;
+}
+
+.played-top {
+    top: 122px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .played-left {

@@ -19,7 +19,6 @@ import net.message.Parser;
 import net.message.TCPMaker;
 import net.message.TCPMessage;
 import net.message.Transfer;
-import net.msg.MsgRouter;
 import net.safe.Safe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * WebSocket 客户端连接与消息分发处理器
- * <p>负责 WebSocket 长连接会话生命周期管理、协议解包校验与 MsgRouter 统一分发。</p>
+ * <p>负责 WebSocket 长连接会话生命周期管理、协议解包校验与 HandlerRegistry 统一分发。</p>
  *
  * @author cloud
  */
@@ -161,14 +160,6 @@ public class WsClientHandler extends SimpleChannelInboundHandler<WebSocketFrame>
         try {
             if (!validateMessageSafety(tcpMsg)) return;
             if (this.transfer.isTransfer(this, tcpMsg)) return;
-
-            if (handlers instanceof MsgRouter) {
-                boolean shouldKeep = ((MsgRouter) handlers).dispatch(this, tcpMsg);
-                if (!shouldKeep) {
-                    channel.close();
-                }
-                return;
-            }
 
             Message message = parseMessageContent(tcpMsg);
             boolean shouldKeepOpen = executeMessageHandler(tcpMsg, message);

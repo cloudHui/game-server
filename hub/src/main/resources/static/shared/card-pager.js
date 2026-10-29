@@ -1,14 +1,15 @@
-/** 卡片入口分页：按钮翻页，不拦截页面或游戏内的触控手势。 */
+/** 卡片入口分页：按钮翻页，支持 data-page-size 自定义每页数量，不拦截页面或游戏内的触控手势。 */
 (function () {
     'use strict';
 
-    var PAGE_SIZE = 3;
+    var DEFAULT_PAGE_SIZE = 3;
 
     function setup(grid, index) {
+        var pageSize = parseInt(grid.getAttribute('data-page-size'), 10) || DEFAULT_PAGE_SIZE;
         var items = Array.prototype.filter.call(grid.children, function (item) {
             return item.matches('article, .game-card, .card');
         });
-        if (items.length <= PAGE_SIZE) return;
+        if (items.length <= pageSize) return;
 
         var key = 'card-page:' + location.pathname + ':' + index;
         var current = parseInt(sessionStorage.getItem(key), 10) || 1;
@@ -29,10 +30,10 @@
         grid.parentNode.insertBefore(pager, grid.nextSibling);
 
         function render() {
-            var pages = Math.ceil(items.length / PAGE_SIZE);
+            var pages = Math.ceil(items.length / pageSize);
             current = Math.min(Math.max(current, 1), pages);
             items.forEach(function (item, itemIndex) {
-                item.hidden = itemIndex < (current - 1) * PAGE_SIZE || itemIndex >= current * PAGE_SIZE;
+                item.hidden = itemIndex < (current - 1) * pageSize || itemIndex >= current * pageSize;
             });
             previous.disabled = current === 1;
             next.disabled = current === pages;

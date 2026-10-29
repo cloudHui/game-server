@@ -2,55 +2,49 @@ package center.client.handle;
 
 import center.Center;
 import center.client.CenterClient;
-import utils.registry.enums.ServerType;
+import com.google.protobuf.Message;
 import msg.registor.message.CMsg;
+import net.client.Sender;
 import net.client.handler.ClientHandler;
-import net.msg.Msg;
-import net.msg.MsgContext;
+import net.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ServerProto;
 import tools.ServerClientManager;
+import utils.registry.annotation.ProcessType;
+import utils.registry.enums.ServerType;
 
 import java.util.List;
 
 /**
- * 服务信息查询请求处理器
- * <p>
- * 返回指定类型服务器的信息列表（如大厅向中心服拉取网关或游戏服列表）。
+ * 处理服务信息查询请求
+ * 返回指定类型服务器的信息列表
  */
-public class ReqServerInfoHandle {
+@ProcessType(CMsg.REQ_SERVER)
+public class ReqServerInfoHandle implements Handler {
 
     private static final Logger logger = LoggerFactory.getLogger(ReqServerInfoHandle.class);
 
-    /**
-     * 处理服务信息查询请求
-     *
-     * @param ctx 消息上下文
-     */
-    @Msg(id = CMsg.REQ_SERVER, desc = "查询各服务节点信息")
-    public void handle(MsgContext<ServerProto.ReqServerInfo> ctx) {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
         try {
-            ServerProto.ReqServerInfo request = ctx.getMsg();
+            ServerProto.ReqServerInfo request = (ServerProto.ReqServerInfo) message;
             ServerClientManager manager = Center.getInstance().getServerManager();
 
             logger.info("处理服务信息查询请求, 查询类型数量: {}", request.getServerTypeCount());
 
             ServerProto.AckServerInfo response = buildServerInfoResponse(request, manager);
-            ctx.reply(CMsg.ACK_SERVER, response);
+            sender.sendMessage(clientId, CMsg.ACK_SERVER, mapId, response, sequence);
 
             logger.info("返回服务信息, 服务器数量: {}", response.getServersCount());
         } catch (Exception e) {
             logger.error("处理服务信息查询请求失败", e);
         }
+        return true;
     }
 
     /**
      * 构建服务器信息响应
-     *
-     * @param request 查询请求
-     * @param manager 服务器客户端管理器
-     * @return 包含所有指定类型在线服务器信息的应答
      */
     private ServerProto.AckServerInfo buildServerInfoResponse(ServerProto.ReqServerInfo request, ServerClientManager manager) {
         ServerProto.AckServerInfo.Builder response = ServerProto.AckServerInfo.newBuilder();
@@ -71,10 +65,6 @@ public class ReqServerInfoHandle {
 
     /**
      * 添加指定类型的服务器信息到响应
-     *
-     * @param manager    服务器客户端管理器
-     * @param response   响应构建器
-     * @param serverType 目标服务器类型
      */
     private void addServerInfoToResponse(ServerClientManager manager,
                                          ServerProto.AckServerInfo.Builder response,

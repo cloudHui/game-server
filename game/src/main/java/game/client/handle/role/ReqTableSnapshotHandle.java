@@ -1,50 +1,44 @@
 package game.client.handle.role;
 
-import game.Game;
-import game.manager.table.Table;
-import game.manager.table.TableUser;
+import game.handle.TableHandlerHelper;
+import game.domain.table.TableUser;
+import com.google.protobuf.Message;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.GMsg;
-import net.msg.Msg;
-import net.msg.MsgContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.client.Sender;
+import net.handler.Handler;
 import proto.GameProto;
 
 /**
- * 独立只读牌桌快照处理器
+ * 独立只读牌桌快照请求处理器。
  * <p>
- * 不复用入桌/重连链路，不修改玩家连接与在线状态，仅返回当前桌内状态快照。
+ * 满足前端页面刷新或观察者视角拉取当前牌面，
+ * 不复用入桌/重连链路，不修改玩家连接与在线状态。
+ *
+ * @author cloud
  */
-public class ReqTableSnapshotHandle {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReqTableSnapshotHandle.class);
+@ProcessType(GMsg.REQ_TABLE_SNAPSHOT)
+public class ReqTableSnapshotHandle implements Handler {
 
     /**
-     * 处理牌桌快照请求
+     * 接收客户端拉取快照请求，调度至桌线程组装并回送当前快照。
      *
-     * @param ctx 消息上下文
+     * @param sender   消息发送者
+     * @param clientId 玩家 ID
+     * @param message  快照请求体 (ReqTableSnapshot)
+     * @param mapId    桌号
+     * @param sequence 消息序列号
+     * @return 恒为 true
      */
-    @Msg(id = GMsg.REQ_TABLE_SNAPSHOT, desc = "获取牌桌只读快照")
-    public void handle(MsgContext<GameProto.ReqTableSnapshot> ctx) {
-        GameProto.ReqTableSnapshot request = ctx.getMsg();
-        int clientId = ctx.getClientId();
-        long tableId = request.getTableId();
-
-        Table table = Game.getInstance().getTableManager().getTable(tableId);
-        if (table == null) {
-            return;
-        }
-
-        table.execute(() -> {
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        GameProto.ReqTableSnapshot request = (GameProto.ReqTableSnapshot) message;
+        return TableHandlerHelper.dispatch(request.getTableId(), "生成牌桌快照", table -> {
             TableUser viewer = table.getUsers().get(clientId);
-            if (viewer == null) {
-                return;
-            }
+            if (viewer == null) return;
             GameProto.AckTableSnapshot snapshot = table.buildTableSnapshot(viewer);
-            ctx.reply(GMsg.ACK_TABLE_SNAPSHOT, table.getTableId(), snapshot);
-        }).exceptionally(error -> {
-            logger.error("生成牌桌快照失败, tableId: {}, userId: {}", tableId, clientId, error);
-            return null;
+            sender.sendMessage(clientId, GMsg.ACK_TABLE_SNAPSHOT,
+                    table.getTableId(), snapshot, sequence);
         });
     }
 }

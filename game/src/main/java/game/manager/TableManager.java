@@ -1,17 +1,17 @@
 package game.manager;
 
 import game.Game;
-import game.manager.table.Table;
-import game.manager.table.TableUser;
-import game.manager.table.ddz.DdzTable;
-import game.manager.table.mj.MjTable;
-import game.manager.table.pdk.PdkTable;
-import game.manager.table.tractor.TractorTable;
+import game.domain.mj.MjTable;
+import game.domain.poker.ddz.DdzTable;
+import game.domain.poker.niuniu.NiuniuTable;
+import game.domain.poker.pdk.PdkTable;
+import game.domain.poker.tractor.TractorTable;
+import game.domain.table.Table;
+import game.domain.table.TableUser;
 import game.manager.thread.GameThreadPoolManager;
 import model.tablemodel.RobotRoomTemplates;
 import model.tablemodel.TableModel;
 import model.tablemodel.TableModelJson;
-import utils.registry.enums.ServerType;
 import msg.registor.message.GMsg;
 import msg.registor.message.SMsg;
 import net.client.handler.ClientHandler;
@@ -21,6 +21,8 @@ import proto.GameProto;
 import proto.ModelProto;
 import proto.ServerProto;
 import tool.config.TableConfigManager;
+import utils.registry.enums.ServerType;
+import utils.registry.enums.TableState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +84,10 @@ public class TableManager {
     /**
      * 获取桌子
      */
+    public List<Table> getAllTables() {
+        return new ArrayList<>(tableMap.values());
+    }
+
     public Table getTable(long tableId) {
         Table table = tableMap.get(tableId);
         if (table == null) {
@@ -111,7 +117,7 @@ public class TableManager {
      */
     private void notifyPlayersTableDestroyed(Table table) {
         GameProto.NotTableState notification = table.buildStateNotification(
-                utils.registry.enums.TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
+                TableState.TABLE_DIS.getId(), System.currentTimeMillis(), 0);
         for (TableUser user : table.getSeatUsers().values()) {
             try {
                 user.sendRoleMessage(notification, GMsg.NOT_TABLE_STATE, table.getTableId());
@@ -173,14 +179,27 @@ public class TableManager {
     }
 
     /**
-     * Lobby 连入 game 后注册在 ServerClientManager，不能用 ServerManager（那是 game 主动外连）
+     * 优雅停服：销毁所有桌子
      */
+    public void shutdownAllTables() {
+        logger.info("开始关闭所有游戏桌子, 当前数量: {}", tableMap.size());
+        for (Table table : tableMap.values()) {
+            try {
+                table.stop();
+            } catch (Exception e) {
+                logger.error("关闭桌子异常, tableId: {}", table.getTableId(), e);
+            }
+        }
+        tableMap.clear();
+        logger.info("所有游戏桌子已关闭");
+    }
+
     private ClientHandler lobbyClient() {
         return Game.getInstance().getServerClientManager().getServerClient(ServerType.Lobby);
     }
 
     /**
-     * 通知Lobby桌子已销毁
+     * 通知Lobby桌子销毁
      */
     private void notifyRoomTableDestroyed(long tableId) {
         try {
@@ -251,6 +270,8 @@ public class TableManager {
                 table = new PdkTable(getTableId(), model, role);
             } else if (model.getType() == 4) {
                 table = new TractorTable(getTableId(), model, role);
+            } else if (model.getType() == 5) {
+                table = new NiuniuTable(getTableId(), model, role);
             } else {
                 table = new DdzTable(getTableId(), model, role);
             }
@@ -297,10 +318,10 @@ public class TableManager {
         for (Table table : tableMap.values()) {
             ModelProto.RoomTableInfo.Builder builder = ModelProto.RoomTableInfo.newBuilder()
                     .setTableId(table.getTableId())
-                    .setRoomId(table.getTableModel().getId())
+                    .setRoomId(table.getModel().getId())
                     .setOwnerId(table.getOwnerId())
                     .setCreatorId(table.getOwnerId())
-                    .setGameType(table.getTableModel().getType());
+                    .setGameType(table.getModel().getType());
 
             for (TableUser user : table.getSeatUsers().values()) {
                 if (user != null) {

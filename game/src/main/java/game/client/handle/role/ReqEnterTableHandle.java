@@ -1,86 +1,78 @@
 package game.client.handle.role;
 
+import game.handle.TableHandlerHelper;
+import game.domain.table.Table;
+import game.domain.table.TableUser;
 import com.google.protobuf.ByteString;
-import game.Game;
-import game.manager.TableManager;
-import game.manager.table.Table;
-import game.manager.table.TableUser;
+import com.google.protobuf.Message;
+import utils.registry.annotation.ProcessType;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
-import net.message.TCPMessage;
-import net.msg.Msg;
-import net.msg.MsgContext;
+import net.handler.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
 
 /**
- * 玩家请求进入桌子处理器
+ * 处理玩家请求进入牌桌处理器。
  * <p>
- * 负责玩家入桌或断线重连逻辑的校验与分发。
+ * 统一接入 {@link TableHandlerHelper#dispatchOrReplyNull} 进行调度：
+ * 自动完成查桌、判空向客户端回发 TABLE_NULL_VALUE，并在桌串行队列排他执行入桌或断线重连逻辑。
  */
-public class ReqEnterTableHandle {
+@ProcessType(GMsg.REQ_ENTER_TABLE_MSG)
+public class ReqEnterTableHandle implements Handler {
 
+    /**
+     * 日志记录器。
+     */
     private static final Logger logger = LoggerFactory.getLogger(ReqEnterTableHandle.class);
 
     /**
-     * 处理玩家进入桌子请求
+     * 接收客户端进入桌子请求。
      *
-     * @param ctx 消息上下文，包含发送者、客户端ID、序列号等元数据
+     * @param sender   发送方句柄
+     * @param clientId 玩家 ID
+     * @param message  ReqEnterTable 协议体
+     * @param mapId    桌号
+     * @param sequence 消息序列号
+     * @return 恒为 true
      */
-    @Msg(id = GMsg.REQ_ENTER_TABLE_MSG, desc = "请求进入桌子")
-    public void handle(MsgContext<GameProto.ReqEnterTable> ctx) {
-        try {
-            GameProto.ReqEnterTable request = ctx.getMsg();
-            int clientId = ctx.getClientId();
-            Sender sender = ctx.getSender();
-            long tableId = request.getTableId();
+    @Override
+    public boolean handler(Sender sender, int clientId, Message message, long mapId, int sequence) {
+        GameProto.ReqEnterTable request = (GameProto.ReqEnterTable) message;
+        long tableId = request.getTableId() != 0 ? request.getTableId() : mapId;
+        logger.info("收到进入桌子请求, userId: {}, tableId: {}", clientId, tableId);
 
-            logger.info("处理进入桌子请求, userId: {}, tableId: {}", clientId, tableId);
+        // gateId 用 Gate→Game 连接 id，便于后续推送找对网关
+        final int gateConnId = (sender instanceof ClientHandler) ? ((ClientHandler) sender).getId() : 0;
 
-            TableManager tableManager = Game.getInstance().getTableManager();
-            Table table = tableManager.getTable(tableId);
-            if (table == null) {
-                logger.warn("桌子不存在, tableId: {}", tableId);
-                sender.sendMessage(TCPMessage.newInstance(ConstProto.Result.TABLE_NULL_VALUE));
-                return;
+        return TableHandlerHelper.dispatchOrReplyNull(sender, tableId, "进入桌子", table -> {
+            int result = processEnterTable(clientId, tableId, gateConnId, request, table);
+            if (result == ConstProto.Result.SUCCESS_VALUE) {
+                GameProto.AckEnterTable response = buildEnterTableResponse(table);
+                sender.sendMessage(clientId, GMsg.ACK_ENTER_TABLE_MSG, tableId, response, sequence);
+            } else {
+                // 必须带原 sequence，否则 web sendAndWait 会一直等到超时
+                GameProto.AckEnterTable empty = GameProto.AckEnterTable.newBuilder().build();
+                sender.sendMessage(clientId, GMsg.ACK_ENTER_TABLE_MSG, tableId, empty, sequence);
+                logger.warn("进入桌子失败, userId: {}, tableId: {}, result: {}", clientId, tableId, result);
             }
-
-            // gateId 用 Gate→Game 连接 id，便于后续推送找对网关
-            final int gateConnId = (sender instanceof ClientHandler) ? ((ClientHandler) sender).getId() : 0;
-            table.execute(() -> {
-                int result = processEnterTable(clientId, tableId, gateConnId, request, table);
-                if (result == ConstProto.Result.SUCCESS_VALUE) {
-                    GameProto.AckEnterTable response = buildEnterTableResponse(table);
-                    ctx.reply(GMsg.ACK_ENTER_TABLE_MSG, tableId, response);
-                } else {
-                    // 必须带原 sequence，否则 web sendAndWait 会一直等到超时
-                    GameProto.AckEnterTable empty = GameProto.AckEnterTable.newBuilder().build();
-                    ctx.reply(GMsg.ACK_ENTER_TABLE_MSG, tableId, empty);
-                    logger.warn("进入桌子失败, userId: {}, tableId: {}, result: {}", clientId, tableId, result);
-                }
-                logger.info("进入桌子请求处理完成, userId: {}, tableId: {}, success: {}, gateConnId: {}",
-                        clientId, tableId, result, gateConnId);
-            }).exceptionally(error -> {
-                logger.error("桌子线程处理进入请求失败, tableId: {}", tableId, error);
-                return null;
-            });
-        } catch (Exception e) {
-            logger.error("处理进入桌子请求失败, userId: {}", ctx.getMapId(), e);
-        }
+            logger.info("进入桌子请求处理完成, userId: {}, tableId: {}, success: {}, gateConnId: {}",
+                    clientId, tableId, result, gateConnId);
+        });
     }
 
     /**
-     * 进入桌子逻辑处理
+     * 执行具体的入桌与断线重连逻辑。
      *
-     * @param userId  玩家 ID
-     * @param tableId 桌子 ID
-     * @param gateId  网关连接 ID
-     * @param req     请求数据
-     * @param table   桌子实例
-     * @return 错误码（0 为成功）
+     * @param userId   玩家 ID
+     * @param tableId  桌号
+     * @param gateId   网关连接 ID
+     * @param req      协议请求
+     * @param table    当前桌子
+     * @return 结果状态码
      */
     private int processEnterTable(int userId, long tableId, int gateId, GameProto.ReqEnterTable req, Table table) {
         try {
@@ -92,7 +84,7 @@ public class ReqEnterTableHandle {
                             userId, tableId, existingUser.getGateId(), gateId);
                     existingUser.setOnLine(true);
                     existingUser.setGateId(gateId);
-                    table.syncGameState(existingUser);
+                    table.syncGameState(existingUser); // 多态调用
                     return ConstProto.Result.SUCCESS_VALUE;
                 }
                 return ConstProto.Result.TABLE_START_VALUE;
@@ -113,10 +105,10 @@ public class ReqEnterTableHandle {
     }
 
     /**
-     * 构建进入桌子成功响应
+     * 构建进入桌子应答协议包。
      *
-     * @param table 桌子实例
-     * @return AckEnterTable 响应对象
+     * @param table 当前桌子
+     * @return 应答协议包
      */
     private GameProto.AckEnterTable buildEnterTableResponse(Table table) {
         GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder();
