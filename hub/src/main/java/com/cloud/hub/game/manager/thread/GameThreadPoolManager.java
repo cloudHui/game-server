@@ -129,7 +129,7 @@ public final class GameThreadPoolManager {
             LOGGER.info("[init] DEDICATED 实时竞技模式激活，DedicatedGameLoopEngine 与 FrameEvent 对象池预热完成");
         }
 
-        LOGGER.info("[init] GameThreadPoolManager 三权分立架构启动完成, 当前生效模式: {} (支持 SLOTS | MAILBOX | DEDICATED), workers: {}, asyncIoThreads: {}",
+        LOGGER.info("[init] GameThreadPoolManager , 当前生效模式: {} (支持 SLOTS | MAILBOX | DEDICATED), workers: {}, asyncIoThreads: {}",
                 this.threadModelMode, size, asyncIoSize);
     }
 

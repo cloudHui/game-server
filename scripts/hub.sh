@@ -126,8 +126,21 @@ cmd_build() {
   command -v mvn >/dev/null 2>&1 || { echo "未找到 mvn" >&2; exit 1; }
   cd "$ROOT"
   local t0="$(date +%s)"
-  echo "Maven 构建: mvn -pl hub -am install -DskipTests"
-  run_silent_timer "Maven 打包" mvn --batch-mode --show-version -pl hub -am install -DskipTests
+  # 多核并行编译(-T 1C)、跳过源码打包(-Dsource.skip=true)、package直出目标jar避免本地仓库写放大
+  local mvn_args=(
+    --batch-mode
+    --show-version
+    -pl hub
+    -am
+    package
+    -DskipTests
+    -Dsource.skip=true
+    -Dmaven.source.skip=true
+    -Dmaven.javadoc.skip=true
+    -T 1C
+  )
+  echo "Maven 构建: mvn -pl hub -am package -DskipTests -Dsource.skip=true -T 1C"
+  run_silent_timer "Maven 打包" mvn "${mvn_args[@]}"
   [[ -f "$HUB_JAR" ]] || { echo "缺少打包产物: $HUB_JAR" >&2; return 1; }
   pack_table_models
   local elapsed=$(( $(date +%s) - t0 ))

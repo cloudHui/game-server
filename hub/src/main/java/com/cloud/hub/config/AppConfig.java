@@ -4,8 +4,10 @@ import com.cloud.hub.web.config.AuthInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.CacheControl;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -58,13 +60,27 @@ public class AppConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 放行公共静态资源、登录认证接口、能力探活接口以及 WebSocket 握手端点
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/", "/index.html", "/api/auth/**", "/api/login",
                         "/api/capabilities", "/api/learning/auth/**",
+                        "/pages/api/capabilities", "/pages/api/auth/**",
                         "/app-base.js", "/favicon.ico", "/css/**", "/js/**", "/img/**",
                         "/shared/**", "/pages/learning/css/**", "/pages/learning/js/**",
-                        "/ws/**");
+                        "/ws/**", "/pages/ws/**");
+    }
+
+    /**
+     * 注册静态资源处理器并禁用本地强缓存，确保开发热更新即时生效。
+     *
+     * @param registry 静态资源注册中心
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 开发阶段禁用静态资源强缓存，防止浏览器缓存旧版 JS/HTML
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .setCacheControl(CacheControl.noStore());
     }
 }
-

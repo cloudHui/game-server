@@ -1,84 +1,40 @@
-/** 每分钟轮询 /api/capabilities，控制联网玩法「敬请期待」 */
+/**
+ * 一体化 Hub 环境下的能力就绪与防御性放行脚本。
+ * Hub 服务在同一进程内启动所有组件，所有对局与联网能力均永久就绪。
+ * 负责主动清除 DOM 中历史残留的「敬请期待」标签与点击拦截。
+ */
 (function (w) {
-    var CAP = {onlineTables: false, miniOnline: true, miniLocal: true, learning: true};
-    var listeners = [];
-    var timer = null;
-    var refreshing = false;
-
-    function applyDom() {
-        document.querySelectorAll('[data-need-online]').forEach(function (el) {
-            var need = el.getAttribute('data-need-online');
-            var ok = !!CAP[need];
-            el.classList.toggle('is-waiting', !ok);
-            var tip = el.querySelector('.waiting-tip');
-            if (!ok) {
-                if (!tip) {
-                    tip = document.createElement('span');
-                    tip.className = 'waiting-tip';
-                    tip.textContent = '敬请期待';
-                    el.appendChild(tip);
-                }
-                if (el.tagName === 'A') {
-                    el.addEventListener('click', blockClick, true);
-                }
-            } else if (tip) {
-                tip.remove();
-                if (el.tagName === 'A') {
-                    el.removeEventListener('click', blockClick, true);
-                }
-            }
-        });
-        listeners.forEach(function (fn) {
-            try {
-                fn(CAP);
-            } catch (e) {
-            }
-        });
-    }
-
-    function blockClick(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        AppDialog.alert('联网服务尚未启动，敬请期待');
-    }
-
-    async function refresh() {
-        if (refreshing || (w.AppQuality && !w.AppQuality.canRequest())) return;
-        refreshing = true;
-        try {
-            var url = (typeof appUrl === 'function') ? appUrl('/api/capabilities') : '/api/capabilities';
-            var r = await fetch(url, {credentials: 'include'});
-            if (r.ok) {
-                CAP = await r.json();
-            }
-        } catch (e) { /* 保留上次能力状态，避免短暂断网让入口闪烁。 */
-        } finally {
-            refreshing = false;
-            applyDom();
-        }
-    }
-
-    w.Capabilities = {
-        get: function () {
-            return CAP;
-        },
-        onChange: function (fn) {
-            listeners.push(fn);
-        },
-        refresh: refresh,
-        start: function () {
-            refresh();
-            if (timer) clearInterval(timer);
-            timer = setInterval(refresh, 60000);
-            if (w.AppQuality) w.AppQuality.onResume(refresh);
-        }
+    var READY_CAP = {
+        onlineTables: true,
+        miniOnline: true,
+        miniLocal: true,
+        learning: true,
+        ready: true,
+        lobby: true,
+        game: true,
+        gate: true
+    };
+    w.__CAPABILITIES__ = READY_CAP;
+    w.checkCapabilities = function () {
+        return Promise.resolve(READY_CAP);
     };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-            w.Capabilities.start();
+    function unlockAll() {
+        // 清理所有敬请期待提示和等待样式
+        document.querySelectorAll('.waiting-tip').forEach(function (el) {
+            el.remove();
         });
+        document.querySelectorAll('.is-waiting').forEach(function (el) {
+            el.classList.remove('is-waiting');
+        });
+        document.querySelectorAll('[data-need-online]').forEach(function (el) {
+            el.removeAttribute('data-need-online');
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', unlockAll);
     } else {
-        w.Capabilities.start();
+        unlockAll();
     }
 })(window);

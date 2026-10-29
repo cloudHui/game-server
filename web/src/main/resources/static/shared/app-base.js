@@ -121,7 +121,9 @@
 
     var parts = w.location.pathname.split('/').filter(Boolean);
     var base = '';
-    if (parts.length && parts[0].indexOf('.') < 0) {
+    // 排除工程内建的顶级静态资源和路由目录，避免将 /pages 等静态前缀误判为外网随机 context-path
+    var rootDirs = ['pages', 'shared', 'static', 'assets', 'api', 'ws'];
+    if (parts.length && parts[0].indexOf('.') < 0 && rootDirs.indexOf(parts[0]) < 0) {
         base = '/' + parts[0];
     }
     w.APP_BASE = base;
@@ -131,8 +133,14 @@
         if (path == null || path === '') {
             return base || '/';
         }
+        if (/^(https?:|\/\/|wss?:)/i.test(path)) {
+            return path;
+        }
         if (path.charAt(0) !== '/') {
             path = '/' + path;
+        }
+        if (base && (path === base || path.indexOf(base + '/') === 0)) {
+            return path;
         }
         return base + path;
     };

@@ -36,9 +36,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(gameWebSocketHandler, "/ws/game")
+        // 注册标准端点与容错别名端点，兼容前端子路径相对解析差异
+        registry.addHandler(gameWebSocketHandler, "/ws/game", "/pages/ws/game")
                 .setAllowedOrigins("*");
-        registry.addHandler(miniGameWebSocketHandler, "/ws/mini")
+        registry.addHandler(miniGameWebSocketHandler, "/ws/mini", "/pages/ws/mini")
                 .setAllowedOrigins("*");
     }
 }

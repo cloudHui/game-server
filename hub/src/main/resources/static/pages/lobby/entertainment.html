@@ -2,10 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>娱乐</title>
-    <script src="../../shared/app-base.js"></script>
-    <link rel="stylesheet" href="../../shared/lobby-home.css?v=20261029-1">
+    <script src="../../shared/app-base.js?v=20261029-3"></script>
+    <link rel="stylesheet" href="../../shared/lobby-home.css?v=20261029-3">
     <link rel="stylesheet" href="../../shared/card-pager.css">
     <link rel="stylesheet" href="../../shared/theme.css">
 </head>
@@ -27,21 +30,21 @@
         </div>
     </div>
     <section class="game-grid cols-2 paged-grid" data-card-pager data-page-size="4">
-        <article class="game-card poker" data-need-online="onlineTables">
+        <article class="game-card poker">
             <div>
                 <div class="game-icon">🃏</div>
                 <h3>牌类</h3>
                 <p>斗地主、跑得快、拖拉机、牛牛，各自独立房间页。</p>
             </div>
-            <a class="game-btn poker" href="../games/index.html" data-need-online="onlineTables">进入牌类</a>
+            <a class="game-btn poker" href="../games/index.html">进入牌类</a>
         </article>
-        <article class="game-card mj" data-need-online="onlineTables">
+        <article class="game-card mj">
             <div>
                 <div class="game-icon">🀄</div>
                 <h3>麻将</h3>
                 <p>进入麻将专区后再加载麻将房间和桌子。</p>
             </div>
-            <a class="game-btn mj" href="../games/mahjong/rooms.html" data-need-online="onlineTables">进入麻将</a>
+            <a class="game-btn mj" href="../games/mahjong/rooms.html">进入麻将</a>
         </article>
         <article class="game-card mini">
             <div>
@@ -62,26 +65,6 @@
     </section>
 </main>
 <script src="./session.js"></script>
-<script src="../../shared/capabilities-poll.js"></script>
-<style>
-    .waiting-tip {
-        display: inline-block;
-        margin-left: 8px;
-        padding: 2px 8px;
-        border-radius: 6px;
-        background: #c62828;
-        color: #fff;
-        font-size: 12px;
-    }
-
-    .is-waiting {
-        opacity: .72;
-    }
-
-    a.is-waiting {
-        pointer-events: auto;
-    }
-</style>
 <script src="../../shared/card-pager.js"></script>
 </body>
 </html>

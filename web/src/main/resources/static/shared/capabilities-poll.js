@@ -36,10 +36,24 @@
         });
     }
 
-    function blockClick(e) {
+    async function blockClick(e) {
         e.preventDefault();
         e.stopPropagation();
-        AppDialog.alert('联网服务尚未启动，敬请期待');
+        var target = e.currentTarget || e.target;
+        var btn = target.closest ? target.closest('[data-need-online]') : target;
+        // 点击拦截时立即静默重新检测一次状态，避免 60 秒轮询间隔导致服务已就绪但前端误拦截
+        await refresh();
+        var need = btn ? btn.getAttribute('data-need-online') : null;
+        if (need && CAP[need]) {
+            var href = btn.getAttribute('href');
+            if (href) {
+                window.location.href = href;
+                return;
+            }
+        }
+        var tipMsg = (CAP && CAP.message) ? CAP.message : '联网服务尚未启动，敬请期待';
+        console.warn('[分布式节点探活拦截]', { need: need, capabilities: CAP });
+        AppDialog.alert(tipMsg);
     }
 
     async function refresh() {
