@@ -19,6 +19,13 @@
         4: {name: '拖拉机', page: '/pages/games/tractor/index.html', defaultSeats: 4},
         5: {name: '牛牛', page: '/pages/games/niuniu/index.html', defaultSeats: 4}
     };
+    var gameTips = {
+        1: '麻将 · {s}人满开 · 13张手牌 · 支持吃/碰/杠/胡',
+        2: '经典斗地主 · {s}人 · 17张手牌 · 3张底牌',
+        3: '跑得快 · {s}人 · 16张手牌',
+        4: '拖拉机 · {s}人 · 两副牌',
+        5: '牛牛 · {s}人 · 5张手牌 · 明牌抢庄'
+    };
     function room(roomId) { return rooms[Number(roomId)] || null; }
     function ruleTip(roomId, gameType) {
         roomId = Number(roomId); var item = room(roomId), seats = item ? item.seats : (games[gameType] || games[2]).defaultSeats;
@@ -35,12 +42,7 @@
             9011: '拖拉机 · 4局 · ' + seats + '人 · 两副牌 · 级牌升级',
             9020: '快速机器人房 · 4局 · ' + seats + '人 · 5张手牌 · 进桌自动补满机器人立即开局'
         };
-        if (tips[roomId]) return tips[roomId];
-        if (gameType === 5) return '牛牛 · ' + seats + '人 · 5张手牌 · 明牌抢庄';
-        if (gameType === 3) return '跑得快 · ' + seats + '人 · 16张手牌';
-        if (gameType === 4) return '拖拉机 · ' + seats + '人 · 两副牌';
-        if (gameType === 2) return '经典斗地主 · ' + seats + '人 · 17张手牌 · 3张底牌';
-        return '麻将 · ' + seats + '人满开 · 13张手牌 · 支持吃/碰/杠/胡';
+        return tips[roomId] || (gameTips[gameType] || gameTips[1]).replace('{s}', seats);
     }
     w.RoomConfig = {
         game: function (gameType) { return games[Number(gameType)] || games[2]; },

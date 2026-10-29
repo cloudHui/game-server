@@ -281,6 +281,7 @@ public class NiuniuGameTest {
         TableStateHandleManager.handle(table);
         assertEquals(TableState.ROB, table.getTableState());
         assertEquals(1, table.getCurrentRound());
+        assertFalse("开局后禁止中途塞入机器人", table.addOneRobot());
 
         TableStateHandleManager.handle(table);
         assertEquals(TableState.IDLE_ROB, table.getTableState());

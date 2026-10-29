@@ -31,11 +31,7 @@
   }
 
   function gamePageByType(gameType) {
-    if (gameType === 1) return '/pages/games/mahjong/index.html';
-    if (gameType === 3) return '/pages/games/paodekuai/index.html';
-    if (gameType === 4) return '/pages/games/tractor/index.html';
-    if (gameType === 5) return '/pages/games/niuniu/index.html';
-    return '/pages/games/doudizhu/index.html';
+    return w.RoomConfig ? w.RoomConfig.game(gameType).page : '/pages/games/doudizhu/index.html';
   }
 
   function setWsStatus(connected, text) {

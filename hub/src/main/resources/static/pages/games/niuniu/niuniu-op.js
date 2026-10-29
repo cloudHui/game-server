@@ -36,6 +36,25 @@ function pokerSettleTag(roleId, landlordId) {
     return roleId === landlordId ? '庄' : '闲';
 }
 
+function renderStageHints() {
+    if (!gameState.players.length) return;
+    var st = gameState.currentState;
+    if (st === 3 || st === 4) {
+        Object.keys(gameState.robMultipliers).forEach(function (rid) {
+            var rm = gameState.robMultipliers[rid];
+            showBidHint(Number(rid), rm > 0 ? ('抢×' + rm) : '不抢');
+        });
+    } else if (st === 6) {
+        Object.keys(gameState.betMultipliers).forEach(function (rid) {
+            showBidHint(Number(rid), '下' + gameState.betMultipliers[rid] + '倍');
+        });
+    } else if (st === 7) {
+        gameState.showedPlayers.forEach(function (rid) {
+            showBidHint(rid, '已亮牌');
+        });
+    }
+}
+
 function updatePlayers(players) {
     gameState.players = players || [];
     gameState.seatNum = 4;
@@ -46,6 +65,7 @@ function updatePlayers(players) {
         }
     }
     renderOpponentHands();
+    renderStageHints();
 }
 
 function updateMultipleInfo() {
@@ -175,8 +195,9 @@ function handleNotState(data) {
         gameState.showedPlayers.clear();
         updateMultipleInfo();
         showCenterMsg('明牌抢庄', 1000);
-    } else if (data.state === 6 || data.state === 7) {
+    } else if (data.state === 4 || data.state === 6 || data.state === 7) {
         clearAllPlayedAreas();
+        renderStageHints();
     }
     syncStageActions(Number(data.wait || 0));
 }
@@ -191,7 +212,10 @@ function handleAckOp(data) {
         if (data.baseScore) gameState.baseScore = data.baseScore;
         updateMultipleInfo();
         renderOpponentHands();
-        showCenterMsg(findPlayerName(actor) + ' 当庄 ×' + gameState.robMultiplier, 1200);
+        if (actor === userId && gameState.currentState === 6) hideActions();
+        if (gameState.players.length) {
+            showCenterMsg(findPlayerName(actor) + ' 当庄 ×' + gameState.robMultiplier, 1200);
+        }
         return;
     }
     if (ch >= 20 && ch <= 24) {
@@ -328,7 +352,6 @@ function refreshTable() {
 }
 
 function applyNiuniuSnapshot(s) {
-    updatePlayers(s.players || []);
     gameState.myCards = [];
     gameState.opponentCounts = {};
     gameState.landlordId = 0;
@@ -344,7 +367,8 @@ function applyNiuniuSnapshot(s) {
     document.getElementById('tableState').textContent = STATE_LABELS[gameState.currentState] || '进行中';
     updateMultipleInfo();
     syncMyCardsAndSplit();
-    renderOpponentHands();
+    clearAllPlayedAreas();
+    updatePlayers(s.players || []);
     syncStageActions(snapshotOperationWait(s));
 }
 

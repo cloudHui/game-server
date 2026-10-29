@@ -1,10 +1,7 @@
 package tools.ding;
 
 import com.alibaba.fastjson.JSON;
-import com.dingtalk.api.DefaultDingTalkClient;
-import com.dingtalk.api.request.OapiRobotSendRequest;
-import com.dingtalk.api.response.OapiRobotSendResponse;
-import com.taobao.api.TaobaoClient;
+import http.client.HttpClientPool;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,69 +14,124 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * 钉钉群自定义机器人告警工具类（轻量零 SDK 实现）。
+ * <p>
+ * 基于项目已有的 HttpClientPool 连接池与标准 HmacSHA256 签名算法直接调用钉钉 Webhook，
+ * 彻底解绑 4.1MB 的私有 taobao-sdk-java-auto.jar 依赖。
+ *
+ * @author cloud
+ */
 public class DingTalkWaring {
+
+    /** 日志记录器 */
     private static final Logger LOGGER = LoggerFactory.getLogger(DingTalkWaring.class);
 
+    /** HTTP 连接池（UTF-8 编码，超时 5 秒） */
+    private static final HttpClientPool HTTP_POOL = new HttpClientPool("UTF-8", 5);
+
+    /** 钉钉机器人的 Webhook AccessToken */
     private final String accessToken;
 
+    /** 钉钉机器人安全设置中的加签密钥 Secret */
     private final String secret;
 
+    /**
+     * 使用默认预设群机器人构建告警实例。
+     */
     public DingTalkWaring() {
-        this.accessToken = "c025bd04abf39f4b19aca4ac4d277b073619d231cde1875f458e3bb10badf80b";
-        this.secret = "SEC74fa5d21ccd682f91446220528864a4bf00d580e82e15ee38eec3be18b6374b5";
+        this("c025bd04abf39f4b19aca4ac4d277b073619d231cde1875f458e3bb10badf80b",
+             "SEC74fa5d21ccd682f91446220528864a4bf00d580e82e15ee38eec3be18b6374b5");
     }
 
+    /**
+     * 使用指定的自定义机器人参数构建告警实例。
+     *
+     * @param accessToken 机器人 AccessToken
+     * @param secret      机器人加签 Secret
+     */
     public DingTalkWaring(String accessToken, String secret) {
         this.accessToken = accessToken;
         this.secret = secret;
     }
 
-    public static void main(String[] args) {
-        DingTalkWaring dingTalkWaring = new DingTalkWaring();
-        dingTalkWaring.sendMsg("钉钉自带api", "17671292550");
+    /**
+     * 发送普通文本告警（不 @ 任何人）。
+     *
+     * @param message 要发送的报警消息文本
+     */
+    public void sendMsg(String message) {
+        sendMsg(message, null);
     }
 
     /**
-     * 发送钉钉消息
+     * 发送钉钉文本告警消息。
      *
-     * @param message 要发送的报警消息
-     * @param phones  要at的电话号码 逗号隔开
+     * @param message 要发送的报警消息文本
+     * @param phones  要 @ 的手机号列表，多个以英文逗号隔开
      */
     public void sendMsg(String message, String phones) {
         long timestamp = System.currentTimeMillis();
-        OapiRobotSendRequest request = new OapiRobotSendRequest();
-        request.setMsgtype("text");
-        OapiRobotSendRequest.Text text = new OapiRobotSendRequest.Text();
-        text.setContent(message);
-        request.setText(text);
-        OapiRobotSendRequest.At at = new OapiRobotSendRequest.At();
-        if (phones != null && phones.length() > 0) {
-            String[] phoneArray = phones.split(",");
-            List<String> atMobiles = new ArrayList<>(Arrays.asList(phoneArray));
-            at.setAtMobiles(atMobiles);
-            at.setIsAtAll("false");
-            request.setAt(at);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("msgtype", "text");
+
+        Map<String, Object> textObj = new HashMap<>();
+        textObj.put("content", message);
+        payload.put("text", textObj);
+
+        // 如果配置了手机号，则构建 @ 节点
+        if (phones != null && !phones.trim().isEmpty()) {
+            Map<String, Object> atObj = new HashMap<>();
+            List<String> atMobiles = new ArrayList<>();
+            for (String p : phones.split(",")) {
+                String trimmed = p.trim();
+                if (!trimmed.isEmpty()) {
+                    atMobiles.add(trimmed);
+                }
+            }
+            atObj.put("atMobiles", atMobiles);
+            atObj.put("isAtAll", false);
+            payload.put("at", atObj);
         }
+
         try {
-            String URL = "https://oapi.dingtalk.com/robot/send?access_token=";
-            String url = URL + accessToken + "&timestamp=" + timestamp + "&sign=" + getSign(timestamp, secret);
-            TaobaoClient client = new DefaultDingTalkClient(url);
-            OapiRobotSendResponse response = client.execute(request);
-            LOGGER.info("[sendMsg message:{} url:{} param:{} res:{}]", message, url, JSON.toJSONString(request), JSON.toJSONString(response));
+            // 拼装钉钉 Webhook 加签 URL: access_token + timestamp + sign
+            String url = "https://oapi.dingtalk.com/robot/send?access_token=" + accessToken
+                    + "&timestamp=" + timestamp
+                    + "&sign=" + getSign(timestamp, secret);
+
+            String jsonBody = JSON.toJSONString(payload);
+            // 通过 HttpClientPool 发送 POST 请求，底层已设置 Content-Type 为 application/json
+            String response = HTTP_POOL.sendPost(url, jsonBody);
+            LOGGER.info("[DingTalk sendMsg] url: {}, param: {}, res: {}, cost: {}ms",
+                    url, jsonBody, response, (System.currentTimeMillis() - timestamp));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("发送钉钉告警消息失败: {}", message, e);
         }
-        LOGGER.info("cost:{}ms", System.currentTimeMillis() - timestamp);
     }
 
-    private static String getSign(long timestamp, String secret) throws NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException {
+    /**
+     * 计算钉钉 Webhook 要求的 HmacSHA256 签名。
+     *
+     * @param timestamp 当前毫秒时间戳
+     * @param secret    加签密钥
+     * @return 经过 Base64 与 URLEncoder 编码的签名串
+     */
+    private static String getSign(long timestamp, String secret)
+            throws NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException {
         String stringToSign = timestamp + "\n" + secret;
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         byte[] signData = mac.doFinal(stringToSign.getBytes(StandardCharsets.UTF_8));
         return URLEncoder.encode(new String(Base64.encodeBase64(signData)), "UTF-8");
+    }
+
+    public static void main(String[] args) {
+        DingTalkWaring dingTalkWaring = new DingTalkWaring();
+        dingTalkWaring.sendMsg("【测试】钉钉轻量HTTP通知", "17671292550");
     }
 }

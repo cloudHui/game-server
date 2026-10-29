@@ -10,32 +10,23 @@ import com.cloud.hub.game.domain.cards.Card;
  */
 public class NiuniuHand {
 
-    /** 5 张完整原始手牌列表 */
+    /** 5 张完整原始手牌列表（不可变视图） */
     private final List<Card> allCards;
     /** 最终认定的牛牛牌型 */
     private final NiuniuCardType cardType;
-    /** 凑成 10 倍数的 3 张牛身牌（无牛时为空，特殊牌型时为全部 5 张） */
-    private final List<Card> bodyCards;
-    /** 决定牛几的 2 张牛头余牌（特殊牌型时为空，无牛时为全部 5 张） */
-    private final List<Card> headCards;
     /** 同牌型比大小使用的关键代表牌（普通牌型取最大单张，炸弹牛取四条主牌） */
     private final Card maxCard;
 
     /**
      * 构造不可变的牛牛手牌评估结果。
      *
-     * @param allCards  5 张完整手牌
-     * @param cardType  认定的牛牛牌型
-     * @param bodyCards 牛身牌列表
-     * @param headCards 牛头牌列表
-     * @param maxCard   同牌型比大小使用的关键代表牌
+     * @param allCards 5 张完整手牌
+     * @param cardType 认定的牛牛牌型
+     * @param maxCard  同牌型比大小使用的关键代表牌
      */
-    public NiuniuHand(List<Card> allCards, NiuniuCardType cardType,
-            List<Card> bodyCards, List<Card> headCards, Card maxCard) {
+    public NiuniuHand(List<Card> allCards, NiuniuCardType cardType, Card maxCard) {
         this.allCards = allCards != null ? Collections.unmodifiableList(allCards) : Collections.emptyList();
         this.cardType = cardType;
-        this.bodyCards = bodyCards != null ? Collections.unmodifiableList(bodyCards) : Collections.emptyList();
-        this.headCards = headCards != null ? Collections.unmodifiableList(headCards) : Collections.emptyList();
         this.maxCard = maxCard;
     }
 
@@ -55,24 +46,6 @@ public class NiuniuHand {
      */
     public NiuniuCardType getCardType() {
         return cardType;
-    }
-
-    /**
-     * 获取凑十牛身牌列表。
-     *
-     * @return 牛身牌列表
-     */
-    public List<Card> getBodyCards() {
-        return bodyCards;
-    }
-
-    /**
-     * 获取牛头余牌列表。
-     *
-     * @return 牛头牌列表
-     */
-    public List<Card> getHeadCards() {
-        return headCards;
     }
 
     /**

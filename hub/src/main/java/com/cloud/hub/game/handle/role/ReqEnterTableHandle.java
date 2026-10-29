@@ -1,19 +1,19 @@
 package com.cloud.hub.game.handle.role;
 
-import com.cloud.hub.game.handle.TableHandlerHelper;
+import com.google.protobuf.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.cloud.hub.game.domain.table.Table;
 import com.cloud.hub.game.domain.table.TableUser;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-import utils.registry.annotation.ProcessType;
+import com.cloud.hub.game.handle.TableHandlerHelper;
 import msg.registor.message.GMsg;
 import net.client.Sender;
 import net.client.handler.ClientHandler;
 import net.handler.Handler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import proto.ConstProto;
 import proto.GameProto;
+import utils.registry.annotation.ProcessType;
 
 /**
  * 处理玩家请求进入牌桌处理器。
@@ -51,8 +51,7 @@ public class ReqEnterTableHandle implements Handler {
         return TableHandlerHelper.dispatchOrReplyNull(sender, tableId, "进入桌子", table -> {
             int result = processEnterTable(clientId, tableId, gateConnId, request, table);
             if (result == ConstProto.Result.SUCCESS_VALUE) {
-                GameProto.AckEnterTable response = buildEnterTableResponse(table);
-                sender.sendMessage(clientId, GMsg.ACK_ENTER_TABLE_MSG, tableId, response, sequence);
+                sender.sendMessage(clientId, GMsg.ACK_ENTER_TABLE_MSG, tableId, table.buildEnterTableAck(), sequence);
             } else {
                 // 必须带原 sequence，否则 web sendAndWait 会一直等到超时
                 GameProto.AckEnterTable empty = GameProto.AckEnterTable.newBuilder().build();
@@ -102,25 +101,5 @@ public class ReqEnterTableHandle implements Handler {
             logger.error("处理进入桌子逻辑失败, userId: {}, tableId: {}", userId, tableId, e);
             return ConstProto.Result.TABLE_ERROR_VALUE;
         }
-    }
-
-    /**
-     * 构建进入桌子应答协议包。
-     *
-     * @param table 当前桌子
-     * @return 应答协议包
-     */
-    private GameProto.AckEnterTable buildEnterTableResponse(Table table) {
-        GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder();
-        response.setTableInfo(table.buildTableInfo());
-        for (TableUser tableUser : table.getUsers().values()) {
-            response.addPlayers(GameProto.Player.newBuilder()
-                    .setPosition(tableUser.getSeated())
-                    .setRoleId(tableUser.getUserId())
-                    .setNickName(ByteString.copyFromUtf8(tableUser.getNick()))
-                    .setAvatar(ByteString.copyFromUtf8(tableUser.getHead()))
-                    .build());
-        }
-        return response.build();
     }
 }

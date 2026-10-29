@@ -3,8 +3,10 @@ package model.tablemodel;
 /**
  * 系统内置快速机器人房间模板。
  *
- * <p>经典多人房（1/2/5/11/12）统一由 {@code TableModel.xlsx} 配表维护；
- * 进桌自动补满机器人的快速体验房（9001..9020）在此统一定义，供 lobby 与 game 共享。</p>
+ * <p>
+ * 经典多人房（1/2/5/11/12）统一由 {@code TableModel.xlsx} 配表维护；
+ * 进桌自动补满机器人的快速体验房（9001..9020）在此统一定义，供 lobby 与 game 共享。
+ * </p>
  */
 public final class RobotRoomTemplates {
 

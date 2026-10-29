@@ -88,4 +88,54 @@ assert.strictEqual(finalSnap.played['0'].length, 5, '亮牌后应解析含空格
 assert.strictEqual(finalSnap.bids['0'], '牛牛', '亮牌后应记录座0牛型标签');
 assert.strictEqual(finalSnap.bids['1'], '牛九', '亮牌后应记录座1牛型标签');
 
-console.log('PASS: 牛牛房间配置、3+2 牌型分牌与回放推演单元测试');
+// 4. 校验断线重连乱序（ackOp / notState 早于 enterTable 座位列表到达）时阶段气泡与庄家按钮兜底恢复
+const vm = require('vm');
+const fs = require('fs');
+const path = require('path');
+const bidHints = {};
+const sandbox = {
+    window: {},
+    userId: 1001,
+    tableId: 500001,
+    TABLE_STATE_DIS: 12,
+    NiuniuRule: Rule,
+    gameWs: {},
+    gameState: {
+        seatNum: 4, myCards: [], players: [], myPosition: -1, opponentCounts: {},
+        landlordId: 0, robMultiplier: 1, baseScore: 1,
+        robMultipliers: {}, betMultipliers: {}, showedPlayers: new Set(),
+        autoNextRound: false, currentState: 1, myReady: false, opPending: false
+    },
+    document: {
+        getElementById: () => ({ textContent: '', innerHTML: '', style: {}, appendChild: () => {} }),
+        querySelectorAll: () => [],
+        createElement: () => ({ className: '', textContent: '', style: {} })
+    },
+    GameTable: { renderRoundInfo: () => {}, noteRoundStarted: () => {}, noteRoundCompleted: () => {} },
+    renderOpponentHands: () => {},
+    renderMyCards: () => {},
+    clearAllPlayedAreas: () => { Object.keys(bidHints).forEach((k) => delete bidHints[k]); },
+    showBidHint: (rid, text) => { bidHints[rid] = text; },
+    showOperationChoices: (choices) => { sandbox.lastChoices = choices; },
+    hideActions: () => { sandbox.lastChoices = null; },
+    stopOperationCountdown: () => {},
+    startOperationCountdown: () => {},
+    closeSettle: () => {},
+    showCenterMsg: () => {},
+    findPlayerName: (rid) => 'P' + rid,
+    snapshotOperationWait: () => 5
+};
+vm.runInNewContext(
+    fs.readFileSync(path.join(__dirname, '../../main/resources/static/pages/games/niuniu/niuniu-op.js'), 'utf8'),
+    sandbox
+);
+// 模拟服务端 syncGameState 顺序：先推 ackOp（1001 当庄，2002 下 3 倍）与 notState(6)，后推 enterTable 玩家列表
+sandbox.handleAckOp({ choice: 2, opFrom: 1001, robMultiplier: 2, baseScore: 1 });
+sandbox.handleAckOp({ choice: 27, opFrom: 2002 });
+sandbox.handleNotState({ state: 6, wait: 10, currentRound: 1, totalRounds: 4 });
+assert.strictEqual(sandbox.lastChoices, null, '庄家重连进入闲家加倍阶段不得弹出下注按钮');
+assert.strictEqual(bidHints[2002], undefined, 'enterTable 尚未到达时座位为空，暂不绘制气泡');
+sandbox.updatePlayers([{ roleId: 1001, position: 0 }, { roleId: 2002, position: 1 }]);
+assert.strictEqual(bidHints[2002], '下3倍', 'enterTable 到达后必须自动补绘闲家已下注气泡');
+
+console.log('PASS: 牛牛房间配置、3+2 牌型分牌、重连乱序恢复与回放推演单元测试');

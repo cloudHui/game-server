@@ -276,24 +276,14 @@ public abstract class Table implements FrameSyncRoom {
     }
 
     /**
-     * 补齐空位为机器人；成功补位后打开本桌托管以便超时代打
+     * 补齐空位为机器人；成功补位后打开本桌托管以便超时代打。
      */
     public void fillRobotSeats() {
         int added = 0;
         while (!sitFull()) {
-            int botId = ROBOT_ID_SEQ.decrementAndGet();
-            if (botId >= 0) {
-                ROBOT_ID_SEQ.set(-100000);
-                botId = ROBOT_ID_SEQ.decrementAndGet();
-            }
-            TableUser bot = new TableUser(botId, "", randomBotName(), 0);
-            bot.setRobot(true);
-            int result = addUser(bot);
-            if (result != ConstProto.Result.SUCCESS_VALUE) {
-                logger.warn("补机器人失败, tableId: {}, result: {}", tableId, result);
+            if (seatOneRobot() == 0) {
                 break;
             }
-            addReady(botId);
             added++;
         }
         if (added > 0) {
@@ -305,14 +295,32 @@ public abstract class Table implements FrameSyncRoom {
     }
 
     /**
-     * 向桌子空位添加一个陪玩机器人
+     * 在首局开局前等待阶段向空位手动添加一个陪玩机器人。
      *
-     * @return 添加成功返回 true，已满返回 false
+     * @return 添加成功返回 true，座位已满或已开局返回 false
      */
     public boolean addOneRobot() {
-        if (sitFull()) {
+        // 仅允许首局开局前补位，防止牛牛等非满座开局玩法在中途或局间塞入 0 手牌机器人破坏结算
+        if (sitFull() || gaming() || currentRound > 1) {
             return false;
         }
+        int botId = seatOneRobot();
+        if (botId == 0) {
+            return false;
+        }
+        runtimeAutoPlay = true;
+        logger.info("手动添加机器人入座, tableId: {}, botId: {}, seated: {}/{}",
+                tableId, botId, seatUsers.size(), tableModel.getSeatNum());
+        notifySeatPlayers();
+        return true;
+    }
+
+    /**
+     * 生成单个负向 ID 机器人并执行入座与自动准备。
+     *
+     * @return 成功入座返回负向机器人 ID，失败返回 0
+     */
+    private int seatOneRobot() {
         int botId = ROBOT_ID_SEQ.decrementAndGet();
         if (botId >= 0) {
             ROBOT_ID_SEQ.set(-100000);
@@ -321,15 +329,12 @@ public abstract class Table implements FrameSyncRoom {
         TableUser bot = new TableUser(botId, "", randomBotName(), 0);
         bot.setRobot(true);
         int result = addUser(bot);
-        if (result == ConstProto.Result.SUCCESS_VALUE) {
-            addReady(botId);
-            runtimeAutoPlay = true;
-            logger.info("手动添加机器人入座, tableId: {}, botId: {}, seated: {}/{}",
-                    tableId, botId, seatUsers.size(), tableModel.getSeatNum());
-            notifySeatPlayers();
-            return true;
+        if (result != ConstProto.Result.SUCCESS_VALUE) {
+            logger.warn("补机器人失败, tableId: {}, result: {}", tableId, result);
+            return 0;
         }
-        return false;
+        addReady(botId);
+        return botId;
     }
 
     /**
@@ -353,22 +358,31 @@ public abstract class Table implements FrameSyncRoom {
     }
 
     /**
-     * 推送当前座位名单（补机器人后刷新前端显示）
+     * 构建当前座位与桌信息快照应答包，供入桌回包与座位变更广播统一复用。
+     *
+     * @return 入桌应答协议包
      */
-    public void notifySeatPlayers() {
-        GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder();
-        response.setTableInfo(buildTableInfo());
+    public GameProto.AckEnterTable buildEnterTableAck() {
+        GameProto.AckEnterTable.Builder response = GameProto.AckEnterTable.newBuilder()
+                .setTableInfo(buildTableInfo());
         for (TableUser tableUser : users.values()) {
             response.addPlayers(GameProto.Player.newBuilder()
                     .setPosition(tableUser.getSeated())
                     .setRoleId(tableUser.getUserId())
-                    .setNickName(com.google.protobuf.ByteString.copyFromUtf8(
+                    .setNickName(ByteString.copyFromUtf8(
                             tableUser.getNick() == null ? "" : tableUser.getNick()))
-                    .setAvatar(com.google.protobuf.ByteString.copyFromUtf8(
+                    .setAvatar(ByteString.copyFromUtf8(
                             tableUser.getHead() == null ? "" : tableUser.getHead()))
                     .build());
         }
-        sendTableMessage(response.build(), msg.registor.message.GMsg.ACK_ENTER_TABLE_MSG);
+        return response.build();
+    }
+
+    /**
+     * 推送当前座位名单（补机器人后刷新前端显示）。
+     */
+    public void notifySeatPlayers() {
+        sendTableMessage(buildEnterTableAck(), GMsg.ACK_ENTER_TABLE_MSG);
     }
 
     /** 构建所有入桌、离桌和座位推送共用的桌信息。 */

@@ -1,8 +1,5 @@
 package com.cloud.hub.game.domain.poker.niuniu;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -69,7 +66,7 @@ public final class NiuniuRules implements Comparator<NiuniuHand> {
      * 获取牌的花色比较权重（黑桃 4 &gt; 红桃 3 &gt; 梅花 2 &gt; 方块 1）。
      *
      * @param card 扑克牌对象
-     * @return 花色权重
+     * @return 花色权重（0~4）
      */
     public static int getCardSuitWeight(Card card) {
         return (card == null || card.getCardSuit() == null) ? 0 : card.getCardSuit().getId();
@@ -113,7 +110,7 @@ public final class NiuniuRules implements Comparator<NiuniuHand> {
     }
 
     /**
-     * 求解 5 张手牌的最优牛牛牌型与分牌结构。
+     * 求解 5 张手牌的最优牛牛牌型。
      *
      * @param cards 5 张完整手牌
      * @return 最优手牌评估模型
@@ -124,42 +121,40 @@ public final class NiuniuRules implements Comparator<NiuniuHand> {
         }
         Card maxCard = findMaxCard(cards);
 
-        if (isFiveSmall(cards)) {
-            return new NiuniuHand(cards, NiuniuCardType.FIVE_SMALL, cards, Collections.emptyList(), maxCard);
+        int total = 0;
+        boolean allUnderFive = true;
+        for (Card card : cards) {
+            int pt = getNiuPoint(card);
+            total += pt;
+            if (pt >= 5) {
+                allUnderFive = false;
+            }
         }
+        if (allUnderFive && total <= 10) {
+            return new NiuniuHand(cards, NiuniuCardType.FIVE_SMALL, maxCard);
+        }
+
         // 炸弹牛直接以四条主牌作为代表牌，后续同牌型比大小无需二次统计炸弹点数
         Card quadCard = findQuadCard(cards);
         if (quadCard != null) {
-            return new NiuniuHand(cards, NiuniuCardType.BOMB, cards, Collections.emptyList(), quadCard);
-        }
-        NiuniuCardType flowerType = detectFlowerType(cards);
-        if (flowerType != null) {
-            return new NiuniuHand(cards, flowerType, cards, Collections.emptyList(), maxCard);
+            return new NiuniuHand(cards, NiuniuCardType.BOMB, quadCard);
         }
 
-        NiuniuCardType bestType = NiuniuCardType.NO_NIU;
-        List<Card> bestBody = Collections.emptyList();
-        List<Card> bestHead = cards;
+        NiuniuCardType flowerType = detectFlowerType(cards);
+        if (flowerType != null) {
+            return new NiuniuHand(cards, flowerType, maxCard);
+        }
+
+        // 任意 3 张凑成 10 的倍数时，其余 2 张牛头点数之和即为 total - sum3，无需内层循环创建临时集合
+        int bestLevel = 0;
         for (int[] c : COMBINATIONS_3) {
             int sum3 = getNiuPoint(cards.get(c[0])) + getNiuPoint(cards.get(c[1])) + getNiuPoint(cards.get(c[2]));
-            if (sum3 % 10 != 0) {
-                continue;
-            }
-            List<Card> head = new ArrayList<>(2);
-            for (int i = 0; i < 5; i++) {
-                if (i != c[0] && i != c[1] && i != c[2]) {
-                    head.add(cards.get(i));
-                }
-            }
-            int rem = (getNiuPoint(head.get(0)) + getNiuPoint(head.get(1))) % 10;
-            NiuniuCardType cur = NiuniuCardType.ofLevel(rem == 0 ? 10 : rem);
-            if (cur.getLevel() > bestType.getLevel()) {
-                bestType = cur;
-                bestBody = Arrays.asList(cards.get(c[0]), cards.get(c[1]), cards.get(c[2]));
-                bestHead = head;
+            if (sum3 % 10 == 0) {
+                int rem = (total - sum3) % 10;
+                bestLevel = Math.max(bestLevel, rem == 0 ? 10 : rem);
             }
         }
-        return new NiuniuHand(cards, bestType, bestBody, bestHead, maxCard);
+        return new NiuniuHand(cards, NiuniuCardType.ofLevel(bestLevel), maxCard);
     }
 
     @Override
@@ -183,18 +178,6 @@ public final class NiuniuRules implements Comparator<NiuniuHand> {
      */
     public static boolean isPlayerWin(NiuniuHand playerHand, NiuniuHand bankerHand) {
         return INSTANCE.compare(playerHand, bankerHand) > 0;
-    }
-
-    private static boolean isFiveSmall(List<Card> cards) {
-        int sum = 0;
-        for (Card card : cards) {
-            int pt = getNiuPoint(card);
-            if (pt >= 5) {
-                return false;
-            }
-            sum += pt;
-        }
-        return sum <= 10;
     }
 
     private static Card findQuadCard(List<Card> cards) {

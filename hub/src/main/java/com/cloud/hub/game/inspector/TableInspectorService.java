@@ -1,26 +1,28 @@
 package com.cloud.hub.game.inspector;
 
-import com.cloud.hub.game.Game;
-import com.cloud.hub.game.domain.cards.Card;
-import com.cloud.hub.game.domain.cards.CardFormatter;
-import com.cloud.hub.game.domain.poker.ddz.DdzTable;
-import com.cloud.hub.game.domain.mj.MjTable;
-import com.cloud.hub.game.domain.poker.niuniu.NiuniuTable;
-import com.cloud.hub.game.domain.poker.pdk.PdkTable;
-import com.cloud.hub.game.domain.table.Table;
-import com.cloud.hub.game.domain.table.TableUser;
-import com.cloud.hub.game.domain.poker.tractor.TractorTable;
-import com.cloud.hub.game.manager.TableManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import utils.registry.enums.TableState;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import com.cloud.hub.game.Game;
+import com.cloud.hub.game.domain.cards.Card;
+import com.cloud.hub.game.domain.cards.CardFormatter;
+import com.cloud.hub.game.domain.mj.MjTable;
+import com.cloud.hub.game.domain.poker.ddz.DdzTable;
+import com.cloud.hub.game.domain.poker.niuniu.NiuniuTable;
+import com.cloud.hub.game.domain.poker.pdk.PdkTable;
+import com.cloud.hub.game.domain.poker.tractor.TractorTable;
+import com.cloud.hub.game.domain.table.Table;
+import com.cloud.hub.game.domain.table.TableUser;
+import com.cloud.hub.game.manager.TableManager;
+import utils.registry.enums.TableState;
 
 /**
  * 牌桌实时状态透视与巡检服务。
@@ -49,12 +51,14 @@ public class TableInspectorService {
      */
     public List<Map<String, Object>> listAllTablesOverview(Long queryTableId) {
         TableManager tm = Game.getInstance().getTableManager();
-        if (tm == null) return Collections.emptyList();
+        if (tm == null)
+            return Collections.emptyList();
 
         List<Table> tables = tm.getAllTables();
         List<Map<String, Object>> result = new ArrayList<>();
         for (Table table : tables) {
-            if (table == null) continue;
+            if (table == null)
+                continue;
             if (queryTableId != null && table.getTableId() != queryTableId) {
                 continue;
             }
@@ -79,10 +83,12 @@ public class TableInspectorService {
      */
     public Map<String, Object> getTableDetail(long tableId) {
         TableManager tm = Game.getInstance().getTableManager();
-        if (tm == null) return null;
+        if (tm == null)
+            return null;
 
         Table table = tm.getTable(tableId);
-        if (table == null) return null;
+        if (table == null)
+            return null;
 
         return buildTableDetail(table);
     }
@@ -96,13 +102,16 @@ public class TableInspectorService {
      */
     public Map<String, Object> getPlayerTableSnapshot(long tableId, int currentUserId) {
         TableManager tm = Game.getInstance().getTableManager();
-        if (tm == null) return null;
+        if (tm == null)
+            return null;
 
         Table table = tm.getTable(tableId);
-        if (table == null) return null;
+        if (table == null)
+            return null;
 
         Map<Integer, TableUser> seatUsers = table.getSeatUsers();
-        if (seatUsers == null) return null;
+        if (seatUsers == null)
+            return null;
 
         // 验证当前玩家是否在桌上
         boolean inTable = false;
@@ -126,7 +135,8 @@ public class TableInspectorService {
         for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
             int seat = entry.getKey();
             TableUser user = entry.getValue();
-            if (user == null) continue;
+            if (user == null)
+                continue;
 
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("seat", seat);
@@ -204,7 +214,8 @@ public class TableInspectorService {
             for (Map.Entry<Integer, TableUser> entry : seatUsers.entrySet()) {
                 int seat = entry.getKey();
                 TableUser user = entry.getValue();
-                if (user == null) continue;
+                if (user == null)
+                    continue;
 
                 Map<String, Object> p = new LinkedHashMap<>();
                 p.put("seat", seat);
@@ -218,12 +229,8 @@ public class TableInspectorService {
                 List<Card> cards = new ArrayList<>(user.getCards());
                 CardSortUtil.sortCards(gameType, cards);
 
-                List<Map<String, Object>> cardList = new ArrayList<>();
-                for (Card c : cards) {
-                    cardList.add(CardFormatter.toCardMap(gameType, c.getId()));
-                }
                 p.put("cardCount", cards.size());
-                p.put("cards", cardList);
+                p.put("cards", formatCards(gameType, cards));
                 playerDetails.add(p);
             }
         }
@@ -252,13 +259,8 @@ public class TableInspectorService {
     private void buildDdzDeckInfo(DdzTable table, int gameType, Map<String, Object> deckInfo) {
         deckInfo.put("type", "ddz");
         deckInfo.put("landlordSeat", table.getDdz().getLandlordSeat());
-        List<Map<String, Object>> bottom = new ArrayList<>();
-        if (table.getCardPool() != null) {
-            for (Card c : table.getCardPool().getBottomCards()) {
-                bottom.add(CardFormatter.toCardMap(gameType, c.getId()));
-            }
-        }
-        deckInfo.put("bottomCards", bottom);
+        deckInfo.put("bottomCards", formatCards(gameType,
+                table.getCardPool() != null ? table.getCardPool().getBottomCards() : null));
     }
 
     private void buildMjDeckInfo(MjTable table, int gameType, Map<String, Object> deckInfo) {
@@ -281,24 +283,15 @@ public class TableInspectorService {
         deckInfo.put("type", "tractor");
         deckInfo.put("bankerSeat", table.getTractor().getBankerSeat());
         deckInfo.put("trumpSuit", table.getTractor().getTrumpSuit());
-        List<Map<String, Object>> bottom = new ArrayList<>();
-        if (table.getCardPool() != null) {
-            for (Card c : table.getCardPool().getBottomCards()) {
-                bottom.add(CardFormatter.toCardMap(gameType, c.getId()));
-            }
-        }
-        deckInfo.put("bottomCards", bottom);
+        deckInfo.put("bottomCards", formatCards(gameType,
+                table.getCardPool() != null ? table.getCardPool().getBottomCards() : null));
     }
 
     private void buildPdkDeckInfo(PdkTable table, int gameType, Map<String, Object> deckInfo) {
         deckInfo.put("type", "pdk");
         deckInfo.put("firstSeat", table.getOp() != null ? table.getOp().getCurrOpSeat() : -1);
-        List<Map<String, Object>> pool = new ArrayList<>();
-        if (table.getCardPool() != null) {
-            for (Card c : table.getCardPool().getPoolCards()) {
-                pool.add(CardFormatter.toCardMap(gameType, c.getId()));
-            }
-        }
+        List<Map<String, Object>> pool = formatCards(gameType,
+                table.getCardPool() != null ? table.getCardPool().getPoolCards() : null);
         deckInfo.put("remainingCards", pool);
         deckInfo.put("remainingCount", pool.size());
     }
@@ -308,13 +301,27 @@ public class TableInspectorService {
         deckInfo.put("bankerSeat", table.getContext().getBankerSeat());
         deckInfo.put("bankerMultiplier", table.getContext().getBankerMultiplier());
         deckInfo.put("stage", table.getContext().getStage());
-        List<Map<String, Object>> pool = new ArrayList<>();
-        if (table.getCardPool() != null) {
-            for (Card c : table.getCardPool().getPoolCards()) {
-                pool.add(CardFormatter.toCardMap(gameType, c.getId()));
-            }
-        }
+        List<Map<String, Object>> pool = formatCards(gameType,
+                table.getCardPool() != null ? table.getCardPool().getPoolCards() : null);
         deckInfo.put("remainingCards", pool);
         deckInfo.put("remainingCount", pool.size());
+    }
+
+    /**
+     * 将实体牌集合统一格式化为前端透视结构列表。
+     *
+     * @param gameType 玩法类型
+     * @param cards    实体牌集合（允许为 null）
+     * @return 格式化后的牌面字典列表
+     */
+    private List<Map<String, Object>> formatCards(int gameType, Collection<Card> cards) {
+        if (cards == null || cards.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<>(cards.size());
+        for (Card c : cards) {
+            result.add(CardFormatter.toCardMap(gameType, c.getId()));
+        }
+        return result;
     }
 }
